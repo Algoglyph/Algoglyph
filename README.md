@@ -1,105 +1,163 @@
 # Scratchpad
 
-Scratchpad is a fast, local-first thinking workspace designed for developers, students, and problem solvers. Inspired by the simplicity of Obsidian, the drawing capability of Excalidraw, and the feel of a rough notebook on a desk, it links an infinite drawing canvas and a rich markdown notes editor side-by-side on a single screen.
+Scratchpad combines notes and an infinite canvas in a single workspace.
 
-There is no onboarding, no templates gallery, no accounts, and no cloud dependency. The workspace opens instantly, persisting everything locally in the browser.
+It is a local-first desktop application designed for developers, students, and problem solvers to organize diagrams, code notes, and algorithmic templates side-by-side. By integrating a spatial canvas with a rich markdown editor, Scratchpad provides a distraction-free environment for visual thinking.
 
----
+## Screenshots
 
-## 🚀 Key Features
+![Main Workspace](./screenshots/main.png)
 
-*   **Split-Screen Workspace**: Resizable double-pane layout initializing at a **65:35 (Canvas : Notes)** ratio to provide maximum drawing space.
-*   **Infinite Drawing Canvas**: Powered by a heavily customized dark-themed Excalidraw instance. All Excalidraw branding, default menu links, welcome screen graphics, social buttons, and help overlays have been completely removed for a clean, distraction-free product feel.
-*   **Rich Markdown Editor**: Built with TipTap, supporting standard Markdown styling, resizable tables, task checklists, and code blocks with syntax highlighting. Includes a custom floating monospace search/find panel (`Ctrl+F`).
-*   **DSA Structures Panel**: A collapsable sidebar displaying 14 custom DSA templates (Data Structures & Algorithm concepts). Items can be **clicked** to center on the canvas or **dragged-and-dropped** directly, with mouse coordinates translated dynamically through viewport zoom/scroll spaces.
-    *   *Data Structures*: Array, Linked List, Doubly Linked List, Binary Tree, BST, Heap, Stack, Queue, Graph.
-    *   *Algorithm Templates*: Sliding Window, Fast-Slow Pointer, DFS, BFS, Two Pointers.
-*   **Fully Editable Structures**: Generated components are built from native Excalidraw elements. All text labels and values are bound and grouped with their parent shapes, allowing you to double-click nodes to edit their values natively and move them together.
-*   **Global Command Palette (`Ctrl+K`)**: Monospace keyboard-first search menu to fuzzy match, navigate (arrow keys), and instantly insert structures at the center of the canvas viewport.
-*   **Offline-First Autosave**: State is managed via Zustand and automatically autosaved to browser-native IndexedDB. Saves are debounced to ensure layout resizing, typing, and drawing remain lag-free.
-*   **Custom Toast Popups**: Standard browser alerts have been replaced with a monospace, floating notification popup component aligned to the bottom-center, themed according to the notification type (`success`, `error`, `info`).
+![Canvas](./screenshots/canvas.png)
 
----
+![Notes](./screenshots/notes.png)
 
-## ⌨️ Keyboard Shortcuts
+## Core Features
 
-| Shortcut | Action |
-| :--- | :--- |
-| `Ctrl + K` / `Cmd + K` | Toggle the DSA Command Palette |
-| `Ctrl + B` / `Cmd + B` | Cycle layout modes (`Split` ⇄ `Canvas Only` ⇄ `Notes Only`) |
+- **Infinite Canvas**: Draw diagrams, construct custom flowcharts, and sketch designs on an unconstrained canvas powered by Excalidraw.
+- **Markdown Notes**: Write structured documentation, tables, and code snippets in a rich markdown pane powered by TipTap.
+- **Local-First Architecture**: Your workspace data is saved entirely on your local machine using client-side storage.
+- **Offline Support**: Fully functional without internet connectivity, ensuring you can work from anywhere.
+- **Import / Export**: Save work as portable JSON files, export notes to Markdown, or save canvas sketches as images.
+- **Structure Templates**: Quickly drag, drop, and edit pre-built templates for common data structures and algorithm patterns.
+- **Fast Performance**: Optimized rendering ensures typing, drawing, and UI resizing remain responsive.
+- **Dark Mode**: A unified dark interface designed to reduce eye strain during long-duration sessions.
+
+## Use Cases
+
+- **DSA Practice**: Visualize tree traversals, stack behaviors, or queue operations alongside implementation notes.
+- **LeetCode Problem Solving**: Map out problem logic and edge cases visually before writing code.
+- **Interview Preparation**: Practice system design or coding interviews in a mock whiteboard environment.
+- **System Design**: Draft network diagrams, database schemas, and application architecture.
+- **Brainstorming**: Sketch ideas, wireframes, and concept maps dynamically.
+- **Learning and Note Taking**: Maintain structured programming notes alongside conceptual drawings.
+
+## Keyboard Shortcuts
+
+| Command | Action |
+|:---|:---|
+| `Ctrl + K` / `Cmd + K` | Open the DSA Command Palette |
+| `Ctrl + B` / `Cmd + B` | Cycle layout modes (Split, Canvas Only, Notes Only) |
 | `Ctrl + S` / `Cmd + S` | Force manual workspace save |
-| `Ctrl + F` / `Cmd + F` | Toggle floating find/search menu in Notes editor |
-| `T` | Switch Canvas to **Text tool** (when editor is not focused) |
-| `D` | Switch Canvas to **Freedraw tool** (when editor is not focused) |
-| `E` | Switch Canvas to **Eraser tool** (when editor is not focused) |
-| `A` | Switch Canvas to **Arrow tool** (when editor is not focused) |
-| `L` | Switch Canvas to **Line tool** (when editor is not focused) |
-| `R` | Switch Canvas to **Rectangle tool** (when editor is not focused) |
+| `Ctrl + F` / `Cmd + F` | Toggle search/find within Notes editor |
+| `T` | Select Text tool (Canvas focused) |
+| `D` | Select Freedraw tool (Canvas focused) |
+| `E` | Select Eraser tool (Canvas focused) |
+| `A` | Select Arrow tool (Canvas focused) |
+| `L` | Select Line tool (Canvas focused) |
+| `R` | Select Rectangle tool (Canvas focused) |
 
----
+## Tech Stack
 
-## 🛠️ Technology Stack
+- **React**: Frontend UI framework.
+- **TypeScript**: Static typing for robust application state.
+- **Electron**: Desktop container for cross-platform execution.
+- **Excalidraw**: High-performance canvas drawing engine.
+- **TipTap**: Extensible rich-text editor toolkit.
+- **Tailwind CSS**: Utility-first styling framework.
 
-*   **Frontend Framework**: React 19 + TypeScript + Vite
-*   **Styling**: Tailwind CSS v4 (Vanilla styling tokens)
-*   **Drawing Engine**: `@excalidraw/excalidraw`
-*   **Rich Text Editor**: `@tiptap/react` + `@tiptap/starter-kit` + `lowlight` (syntax highlighting)
-*   **State Management**: `zustand` (granular selectors optimized to prevent canvas pointer loop re-renders)
-*   **Database**: Native browser IndexedDB
-*   **Icons**: `lucide-react`
+## Philosophy
 
----
+- **Local-first**: You own your data. Files are kept on your hard drive, not on third-party servers.
+- **No account required**: No sign-up flow, email forms, or onboarding prompts. The workspace is available instantly.
+- **No cloud dependency**: Does not require cloud connectivity, telemetry, or remote assets to function.
+- **No distractions**: A minimalist, utility-focused layout designed to keep you in flow.
+- **Fast and lightweight**: Debounced auto-saves and targeted React updates to ensure smooth operation on standard developer hardware.
 
-## ⚙️ Installation & Development
+## Download
 
-### 1. Install Dependencies
+Pre-built Windows installers are available under [GitHub Releases](https://github.com/VarunArora24/Scratchpad/releases). Download the executable to run the desktop application natively.
+
+## Installation & Development
+
+To clone, set up, and run the development environment locally:
+
 ```bash
+# Clone the repository
+git clone https://github.com/VarunArora24/Scratchpad.git
+cd Scratchpad
+
+# Install project dependencies
 npm install
-```
 
-### 2. Run Locally in Development Mode
-```bash
+# Start the local development server
 npm run dev
 ```
-The application will start running on [http://localhost:5173/](http://localhost:5173/).
 
-### 3. Build for Production
+## Build Instructions
+
+To build and package the application for desktop distribution:
+
 ```bash
+# Compile and package binaries
 npm run build
 ```
-Generates optimized code-split production bundles inside the `dist` folder.
 
----
+This compiles the frontend assets and packages the Electron application into the `release/` directory using `electron-builder`.
 
-## 📂 Project Architecture
+## Project Directory Structure
 
 ```
 Scratchpad/
 ├── src/
-│   ├── assets/           # Application assets & favicons
-│   ├── components/       # React UI Components
-│   │   ├── Canvas.tsx          # Excalidraw Canvas wrapper & drops
-│   │   ├── Editor.tsx          # TipTap Notes Editor & find panel
-│   │   ├── Toolbar.tsx         # Header, Layout controls, Import/Export
-│   │   ├── StructuresPanel.tsx # Sidebar drag-and-drop DSA items
-│   │   ├── CommandPalette.tsx  # Ctrl+K Command overlay
-│   │   └── NotificationToast.tsx # Monospace custom popups
-│   ├── config/           # Configuration files
-│   │   └── dsaStructures.ts    # 14 DSA element definitions & text binding
-│   ├── db/               # Database wrapper
-│   │   └── indexedDB.ts        # Promise-based IndexedDB manager
-│   ├── store/            # State management
-│   │   └── workspaceStore.ts   # Zustand state, auto-save & notifications
-│   ├── index.css         # Tailwind v4 imports, Obsidian styles, & brand overrides
-│   ├── main.tsx          # Application bootstrapper
-│   └── App.tsx           # Layout shell, resizer, global key hooks
+│   ├── assets/           # Media assets and desktop icons
+│   ├── components/       # Core UI and layout components
+│   │   ├── Canvas.tsx          # Excalidraw drawing wrapper
+│   │   ├── Editor.tsx          # TipTap rich-text editor
+│   │   ├── Toolbar.tsx         # Workspace controls and actions
+│   │   ├── StructuresPanel.tsx # DSA template sidebar
+│   │   ├── CommandPalette.tsx  # Keyboard-based action overlay
+│   │   └── NotificationToast.tsx # Custom system feedback notifications
+│   ├── config/           # Static configurations and structures
+│   ├── db/               # IndexedDB database wrappers
+│   ├── store/            # Zustand global workspace store
+│   ├── index.css         # Styling and custom theme configuration
+│   ├── main.tsx          # Application entry point
+│   └── App.tsx           # Layout workspace resizer
 ├── index.html            # Main HTML document
-├── package.json          # Dependency manifest
-└── vite.config.ts        # Vite, Tailwind CSS v4, define-inject configs
+├── package.json          # Dependency and build scripts
+└── vite.config.ts        # Vite building configurations
 ```
 
----
+## Roadmap
 
-## 🔒 Local & Secure
+- **Workspace Tabs**: Organize multiple canvas-note sets in a single window context.
+- **Better Structure Templates**: Expand templates for recursion trees, matrix systems, and custom graphs.
+- **Command Palette**: Add direct shortcuts, theme switching, and quick navigation capabilities.
+- **Improved Export Options**: Add direct PDF and JSON schema export features.
 
-Scratchpad is 100% serverless. All notebooks, canvas vector strokes, uploaded files, and markdown documents remain entirely inside your local browser storage. You can safely import and export your workspaces as raw JSON files, or export notes as markdown (`.md`) and canvas sheets as images (`.png`).
+## Repository Improvements
+
+### Ignored Compiler Output and Packaged Binaries
+- **Current issue**: The workspace generates typescript build cache files (`.tsbuildinfo`) and local configuration files, which can accidentally get committed if they are not explicitly listed in `.gitignore`.
+- **Why it matters**: Accidental commits of build cache files or developer environment files pollute the history, bloat the repository size, and cause unnecessary merge conflicts.
+- **Recommended fix**: Extend the `.gitignore` configuration to explicitly exclude all TypeScript caches, environment configurations, and build/compilation artifacts.
+
+### Clarity of Build Assets vs. Outputs
+- **Current issue**: The `build/` folder contains only static branding resources (like `icon.png`) for desktop packaging, which can easily be mistaken for a generated build output folder (similar to a standard Create React App or Webpack build folder).
+- **Why it matters**: Developers might inadvertently add `build/` to `.gitignore` or clean scripts, deleting the desktop application icon and causing subsequent application packaging runs to fail.
+- **Recommended fix**: Document the purpose of the `build/` folder, configure packaging commands to output strictly to `dist/` (web assets) and `release/` (packaged desktop installers), and keep the `build/` folder committed solely for branding assets.
+
+## Release Management
+
+A professional GitHub release workflow is recommended to separate source code from compiled execution packages:
+
+- **Source Code**: Track only the source configuration files, code directories (`src/`), branding assets, and project files in the main Git repository branches.
+- **Compiled Installers**: Avoid committing compiled execution packages (e.g., `.exe` installers, `.zip` folders) to Git. These installers should be generated on clean build runners and distributed exclusively through GitHub Releases.
+
+### Handling the `build/` Directory
+The `build/` directory contains `icon.png` which is the desktop application icon referenced by the Electron packager. 
+- **Recommendation**: The `build/` directory **must remain committed** to the repository because `build/icon.png` is a source design asset, not a generated build artifact.
+- **Git Integration**: To ensure `build/icon.png` is tracked while avoiding the accidental tracking of any other system-generated files in that directory, use the following configuration in `.gitignore`:
+
+```gitignore
+# Exclude build output folders
+dist/
+dist-ssr/
+release/
+
+# Only track packaging branding assets inside the build directory
+build/*
+!build/icon.png
+```
+
