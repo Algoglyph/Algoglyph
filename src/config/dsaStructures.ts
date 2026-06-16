@@ -1245,17 +1245,6 @@ export const bindTextContainers = (skeletons: any[]) => {
         s.y = container.y + (container.height - textHeight) / 2;
         s.width = textWidth;
         s.height = textHeight;
-
-        // Group container and text so they move together
-        const groupId = `${container.id}-group`;
-        container.groupIds = container.groupIds || [];
-        if (!container.groupIds.includes(groupId)) {
-          container.groupIds.push(groupId);
-        }
-        s.groupIds = s.groupIds || [];
-        if (!s.groupIds.includes(groupId)) {
-          s.groupIds.push(groupId);
-        }
       }
     }
   });
