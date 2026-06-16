@@ -1,0 +1,211 @@
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import { useWorkspaceStore } from '../store/workspaceStore';
+import { StructuresPanel } from './StructuresPanel';
+import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
+import '@excalidraw/excalidraw/index.css';
+
+export const Canvas: React.FC = () => {
+  // Select only loading, import counters, and save methods reactively.
+  // DO NOT select elements, appState, or tool state to keep the component render-independent.
+  const isLoading = useWorkspaceStore((state) => state.isLoading);
+  const lastImportTime = useWorkspaceStore((state) => state.lastImportTime);
+  const updateCanvas = useWorkspaceStore((state) => state.updateCanvas);
+  const setActiveCanvasTool = useWorkspaceStore((state) => state.setActiveCanvasTool);
+
+  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+  const [localLastImportTime, setLocalLastImportTime] = useState(0);
+
+  // Capture the initial data only once when the canvas mount occurs (after loading completes)
+  const initialElements = useRef<any[]>([]);
+  const initialAppState = useRef<any>({});
+  const initialFiles = useRef<any>({});
+  const hasLoadedInitialData = useRef(false);
+
+  if (!isLoading && !hasLoadedInitialData.current) {
+    const state = useWorkspaceStore.getState();
+    initialElements.current = state.canvasElements || [];
+    initialAppState.current = state.canvasAppState || {};
+    initialFiles.current = state.canvasFiles || {};
+    hasLoadedInitialData.current = true;
+  }
+
+  // Stable references for Excalidraw configuration to prevent prop-change loops
+  const initialData = useMemo(() => {
+    return {
+      elements: initialElements.current,
+      appState: {
+        ...initialAppState.current,
+        theme: 'dark',
+      },
+      files: initialFiles.current,
+    };
+  }, []);
+
+  const UIOptions = useMemo(() => {
+    return {
+      canvasActions: {
+        changeViewBackgroundColor: true,
+        clearCanvas: true,
+        export: false,
+        loadScene: false,
+        saveToActiveFile: false,
+        toggleTheme: false,
+      },
+      welcomeScreen: false,
+    } as const;
+  }, []);
+
+  // Sync scene ONLY on manual workspace imports
+  useEffect(() => {
+    if (excalidrawAPI && !isLoading && lastImportTime > localLastImportTime) {
+      const state = useWorkspaceStore.getState();
+      excalidrawAPI.updateScene({
+        elements: state.canvasElements,
+        appState: {
+          ...state.canvasAppState,
+          theme: 'dark', // Force dark theme
+        },
+        files: state.canvasFiles,
+      });
+      setLocalLastImportTime(lastImportTime);
+    }
+  }, [excalidrawAPI, isLoading, lastImportTime, localLastImportTime]);
+
+  // Handle global keyboard shortcuts for tool switching
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        !excalidrawAPI ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable ||
+        target.closest('.ProseMirror')
+      ) {
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      let toolType: string | null = null;
+
+      switch (key) {
+        case 't':
+          toolType = 'text';
+          break;
+        case 'd':
+          toolType = 'freedraw';
+          break;
+        case 'e':
+          toolType = 'eraser';
+          break;
+        case 'a':
+          toolType = 'arrow';
+          break;
+        case 'l':
+          toolType = 'line';
+          break;
+        case 'r':
+          toolType = 'rectangle';
+          break;
+        default:
+          return;
+      }
+
+      if (toolType) {
+        e.preventDefault();
+        excalidrawAPI.setActiveTool({ type: toolType });
+        setActiveCanvasTool(toolType);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [excalidrawAPI, setActiveCanvasTool]);
+
+  const handleCanvasChange = (elements: readonly any[], appState: any, files: any) => {
+    const activeTool = appState.activeTool?.type;
+    if (activeTool) {
+      // Keep store updated without triggering rendering
+      const state = useWorkspaceStore.getState();
+      if (state.activeCanvasTool !== activeTool) {
+        setActiveCanvasTool(activeTool);
+      }
+    }
+
+    updateCanvas([...elements], appState, files);
+  };
+
+  // Handle Drag & Drop Insertion onto the canvas
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const structureId = e.dataTransfer.getData('text/plain');
+    const structure = dsaStructures.find((s) => s.id === structureId);
+    if (!structure || !excalidrawAPI) return;
+
+    // Calculate coordinates relative to the canvas viewport container
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+
+    const appState = excalidrawAPI.getAppState();
+    const zoom = appState.zoom.value || 1;
+    const scrollX = appState.scrollX || 0;
+    const scrollY = appState.scrollY || 0;
+
+    // Translate client coordinates into Canvas zoom space coordinates
+    const canvasX = -scrollX + clientX / zoom;
+    const canvasY = -scrollY + clientY / zoom;
+
+    // Offsets to center the dropped structure under the cursor
+    const startX = canvasX - 100;
+    const startY = canvasY - 20;
+
+    const skeletons = bindTextContainers(structure.generate(startX, startY));
+    const newElements = convertToExcalidrawElements(skeletons, { regenerateIds: false });
+
+    excalidrawAPI.updateScene({
+      elements: [...excalidrawAPI.getSceneElements(), ...newElements],
+      commitToHistory: true,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-zinc-950 text-zinc-400">
+        <div className="text-sm font-mono animate-pulse">Loading canvas...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full bg-zinc-950 flex relative">
+      {/* Custom DSA Structures sidebar panel */}
+      <StructuresPanel />
+
+      {/* Excalidraw canvas container with drop handlers */}
+      <div
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
+        className="flex-1 h-full relative"
+      >
+        <Excalidraw
+          excalidrawAPI={(api) => {
+            setExcalidrawAPI(api);
+            (window as any).excalidrawAPI = api;
+          }}
+          theme="dark"
+          initialData={initialData}
+          onChange={handleCanvasChange}
+          UIOptions={UIOptions}
+        />
+      </div>
+    </div>
+  );
+};
