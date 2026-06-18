@@ -16,11 +16,13 @@ const App: React.FC = () => {
   const initializeWorkspace = useWorkspaceStore((state) => state.initializeWorkspace);
   const saveCurrentWorkspace = useWorkspaceStore((state) => state.saveCurrentWorkspace);
   const createTab = useWorkspaceStore((state) => state.createTab);
+  const activeTabId = useWorkspaceStore((state) => state.activeTabId);
+  const searchOpen = useWorkspaceStore((state) => state.searchOpen);
+  const setSearchOpen = useWorkspaceStore((state) => state.setSearchOpen);
   const isLoading = useWorkspaceStore((state) => state.isLoading);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
@@ -49,10 +51,10 @@ const App: React.FC = () => {
           // Ctrl/Cmd+Shift+F opens the global search palette.
           e.preventDefault();
           setIsPaletteOpen(false);
-          setIsSearchOpen((prev) => !prev);
+          setSearchOpen(!useWorkspaceStore.getState().searchOpen);
         } else if (key === 'k') {
           e.preventDefault();
-          setIsSearchOpen(false);
+          setSearchOpen(false);
           setIsPaletteOpen((prev) => !prev);
         }
       }
@@ -62,7 +64,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleGlobalShortcuts);
     };
-  }, [toggleLayoutMode, saveCurrentWorkspace, createTab]);
+  }, [toggleLayoutMode, saveCurrentWorkspace, createTab, setSearchOpen]);
 
   // Handle dragging the split divider
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -126,7 +128,9 @@ const App: React.FC = () => {
             style={{ width: layoutMode === 'canvas-only' ? '100%' : `${splitWidth}%` }}
             className="h-full overflow-hidden bg-zinc-950"
           >
-            <Canvas />
+            {/* Key by tab so the canvas remounts with each tab's own scene
+                instead of leaking the previous tab's elements via a stale onChange. */}
+            <Canvas key={activeTabId} />
           </div>
         )}
 
@@ -154,8 +158,8 @@ const App: React.FC = () => {
       {/* Global Command Palette triggered by Ctrl+K */}
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
 
-      {/* Global Search Palette triggered by Ctrl+Shift+F */}
-      <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {/* Global Search Palette triggered by Ctrl+Shift+F or the tab-bar search button */}
+      <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Global Toast Notification Popup */}
       <NotificationToast />

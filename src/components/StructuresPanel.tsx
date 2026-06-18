@@ -1,56 +1,30 @@
-import React, { useState } from 'react';
-import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
+import React from 'react';
+import { dsaStructures } from '../config/dsaStructures';
 import type { DSAStructure } from '../config/dsaStructures';
-import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
-import { ChevronLeft, ChevronRight, Boxes, Info } from 'lucide-react';
+import { Boxes, Info } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { insertStructureIntoCanvas } from '../lib/insertStructure';
 
 export const StructuresPanel: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(true);
+  const isOpen = useWorkspaceStore((state) => state.structuresPanelOpen);
   const showNotification = useWorkspaceStore((state) => state.showNotification);
 
-  const insertStructureAtCenter = (structure: DSAStructure) => {
-    const api = (window as any).excalidrawAPI;
-    if (!api) {
-      showNotification('Canvas is not ready yet', 'error');
-      return;
-    }
-
-    const appState = api.getAppState();
-    const zoom = appState.zoom.value || 1;
-    const scrollX = appState.scrollX || 0;
-    const scrollY = appState.scrollY || 0;
-    const width = appState.width || window.innerWidth / 2;
-    const height = appState.height || window.innerHeight;
-
-    // Calculate center of current viewport in canvas coordinates
-    const centerX = -scrollX + (width / 2) / zoom;
-    const centerY = -scrollY + (height / 2) / zoom;
-
-    // Center the template
-    const startX = centerX - 100;
-    const startY = centerY - 50;
-
-    const skeletons = bindTextContainers(structure.generate(startX, startY));
-    const newElements = convertToExcalidrawElements(skeletons, { regenerateIds: false });
-
-    api.updateScene({
-      elements: [...api.getSceneElements(), ...newElements],
-      commitToHistory: true,
-    });
+  const insertStructure = (structure: DSAStructure) => {
+    insertStructureIntoCanvas(structure, (msg) => showNotification(msg, 'error'));
   };
 
   const structures = dsaStructures.filter((s) => s.category === 'structures');
   const algorithms = dsaStructures.filter((s) => s.category === 'algorithms');
 
   return (
-    <div className="flex h-full border-r border-zinc-900 bg-zinc-950 flex-shrink-0 relative select-none z-30 transition-all duration-300">
-      {/* Sidebar Content */}
-      <div
-        className={`flex flex-col h-full bg-zinc-950 overflow-y-auto transition-all duration-300 ${
-          isOpen ? 'w-64 border-r border-zinc-900' : 'w-0 overflow-hidden'
-        }`}
-      >
+    <div
+      style={{ width: isOpen ? '16rem' : '0rem' }}
+      className={`h-full flex-shrink-0 select-none z-30 overflow-hidden bg-zinc-950 transition-[width] duration-300 ease-in-out ${
+        isOpen ? 'border-r border-zinc-900' : 'border-r-0'
+      }`}
+    >
+      {/* Fixed-width inner content so text doesn't reflow while the panel slides */}
+      <div className="flex flex-col h-full w-64 bg-zinc-950 overflow-y-auto">
         <div className="p-4 border-b border-zinc-900 flex items-center gap-2">
           <Boxes size={16} className="text-purple-400" />
           <span className="font-mono text-xs font-bold tracking-wider text-zinc-100">STRUCTURES</span>
@@ -67,7 +41,7 @@ export const StructuresPanel: React.FC = () => {
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', s.id);
                 }}
-                onClick={() => insertStructureAtCenter(s)}
+                onClick={() => insertStructure(s)}
                 className="group p-2.5 rounded bg-zinc-900/60 border border-zinc-900 hover:border-zinc-800 hover:bg-zinc-900 cursor-grab active:cursor-grabbing transition-all text-left"
               >
                 <div className="flex justify-between items-center">
@@ -93,7 +67,7 @@ export const StructuresPanel: React.FC = () => {
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', s.id);
                 }}
-                onClick={() => insertStructureAtCenter(s)}
+                onClick={() => insertStructure(s)}
                 className="group p-2.5 rounded bg-zinc-900/60 border border-zinc-900 hover:border-zinc-800 hover:bg-zinc-900 cursor-grab active:cursor-grabbing transition-all text-left"
               >
                 <div className="flex justify-between items-center">
@@ -110,17 +84,9 @@ export const StructuresPanel: React.FC = () => {
 
         <div className="mt-auto p-3 bg-zinc-950/40 text-[9px] text-zinc-600 font-mono border-t border-zinc-900 flex items-center gap-1.5">
           <Info size={10} />
-          <span>Click to center, drag onto canvas</span>
+          <span>Click to add beside existing, drag onto canvas</span>
         </div>
       </div>
-
-      {/* Collapse Tab handle */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="absolute top-1/2 -translate-y-1/2 -right-3.5 bg-zinc-950 border border-zinc-900 hover:border-zinc-800 text-zinc-500 hover:text-zinc-300 w-3.5 h-12 rounded-r flex items-center justify-center cursor-pointer z-40 transition-colors shadow-lg"
-      >
-        {isOpen ? <ChevronLeft size={10} /> : <ChevronRight size={10} />}
-      </button>
     </div>
   );
 };

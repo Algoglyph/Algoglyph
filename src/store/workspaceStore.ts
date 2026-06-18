@@ -30,6 +30,10 @@ interface WorkspaceState {
   lastImportTime: number; // timestamp to coordinate canvas updates
   notification: Notification | null;
 
+  // UI state (not persisted)
+  structuresPanelOpen: boolean;
+  searchOpen: boolean;
+
   // Actions
   initializeWorkspace: () => Promise<void>;
   updateNotes: (notes: string) => void;
@@ -42,6 +46,11 @@ interface WorkspaceState {
   importWorkspace: (data: WorkspaceData) => Promise<void>;
   showNotification: (message: string, type?: 'info' | 'error' | 'success') => void;
   hideNotification: () => void;
+
+  // UI actions
+  toggleStructuresPanel: () => void;
+  setStructuresPanelOpen: (open: boolean) => void;
+  setSearchOpen: (open: boolean) => void;
 
   // Tab actions
   createTab: () => void;
@@ -121,6 +130,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     activeCanvasTool: 'selection',
     lastImportTime: 0,
     notification: null,
+    structuresPanelOpen: true,
+    searchOpen: false,
 
     initializeWorkspace: async () => {
       try {
@@ -338,6 +349,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     hideNotification: () => {
       if (notificationTimeout) clearTimeout(notificationTimeout);
       set({ notification: null });
+    },
+
+    toggleStructuresPanel: () => {
+      set({ structuresPanelOpen: !get().structuresPanelOpen });
+    },
+
+    setStructuresPanelOpen: (structuresPanelOpen) => {
+      set({ structuresPanelOpen });
+    },
+
+    setSearchOpen: (searchOpen) => {
+      set({ searchOpen });
     },
   };
 });
