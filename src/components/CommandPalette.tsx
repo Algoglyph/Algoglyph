@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
+import { dsaStructures } from '../config/dsaStructures';
 import type { DSAStructure } from '../config/dsaStructures';
-import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import { Search, CornerDownLeft } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { insertStructureIntoCanvas } from '../lib/insertStructure';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -35,32 +35,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   });
 
   const insertStructure = (structure: DSAStructure) => {
-    const api = (window as any).excalidrawAPI;
-    if (!api) {
-      showNotification('Canvas is not ready yet', 'error');
-      return;
-    }
-
-    const appState = api.getAppState();
-    const zoom = appState.zoom.value || 1;
-    const scrollX = appState.scrollX || 0;
-    const scrollY = appState.scrollY || 0;
-    const width = appState.width || window.innerWidth / 2;
-    const height = appState.height || window.innerHeight;
-
-    const centerX = -scrollX + (width / 2) / zoom;
-    const centerY = -scrollY + (height / 2) / zoom;
-
-    const startX = centerX - 100;
-    const startY = centerY - 50;
-
-    const skeletons = bindTextContainers(structure.generate(startX, startY));
-    const newElements = convertToExcalidrawElements(skeletons, { regenerateIds: false });
-
-    api.updateScene({
-      elements: [...api.getSceneElements(), ...newElements],
-      commitToHistory: true,
-    });
+    insertStructureIntoCanvas(structure, (msg) => showNotification(msg, 'error'));
     onClose();
   };
 
