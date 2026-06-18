@@ -32,7 +32,8 @@ interface WorkspaceState {
 
   // UI state (not persisted)
   structuresPanelOpen: boolean;
-  searchOpen: boolean;
+  searchPaletteOpen: boolean; // the search palette overlay
+  searchScope: 'all' | 'current'; // 'current' = Ctrl+F (this tab), 'all' = Ctrl+Shift+F
 
   // Actions
   initializeWorkspace: () => Promise<void>;
@@ -50,7 +51,8 @@ interface WorkspaceState {
   // UI actions
   toggleStructuresPanel: () => void;
   setStructuresPanelOpen: (open: boolean) => void;
-  setSearchOpen: (open: boolean) => void;
+  openSearchPalette: (scope: 'all' | 'current') => void;
+  setSearchPaletteOpen: (open: boolean) => void;
 
   // Tab actions
   createTab: () => void;
@@ -131,7 +133,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     lastImportTime: 0,
     notification: null,
     structuresPanelOpen: true,
-    searchOpen: false,
+    searchPaletteOpen: false,
+    searchScope: 'all',
 
     initializeWorkspace: async () => {
       try {
@@ -359,8 +362,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       set({ structuresPanelOpen });
     },
 
-    setSearchOpen: (searchOpen) => {
-      set({ searchOpen });
+    openSearchPalette: (scope) => {
+      set({ searchScope: scope, searchPaletteOpen: true });
+    },
+
+    setSearchPaletteOpen: (searchPaletteOpen) => {
+      set({ searchPaletteOpen });
     },
   };
 });

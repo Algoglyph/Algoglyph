@@ -11,7 +11,7 @@ export const TabBar: React.FC = () => {
   const renameTab = useWorkspaceStore((state) => state.renameTab);
   const structuresPanelOpen = useWorkspaceStore((state) => state.structuresPanelOpen);
   const toggleStructuresPanel = useWorkspaceStore((state) => state.toggleStructuresPanel);
-  const setSearchOpen = useWorkspaceStore((state) => state.setSearchOpen);
+  const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
   const canvasVisible = layoutMode !== 'notes-only';
 
@@ -60,8 +60,8 @@ export const TabBar: React.FC = () => {
             </button>
           )}
           <button
-            onClick={() => setSearchOpen(true)}
-            title="Search across tabs (Ctrl+Shift+F)"
+            onClick={() => openSearchPalette('all')}
+            title="Search across all tabs (Ctrl+Shift+F)"
             className="p-1.5 rounded-md text-zinc-500 hover:text-purple-300 hover:bg-zinc-900 transition-colors cursor-pointer flex items-center"
           >
             <Search size={15} />

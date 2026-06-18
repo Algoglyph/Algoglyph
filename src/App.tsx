@@ -17,8 +17,9 @@ const App: React.FC = () => {
   const saveCurrentWorkspace = useWorkspaceStore((state) => state.saveCurrentWorkspace);
   const createTab = useWorkspaceStore((state) => state.createTab);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
-  const searchOpen = useWorkspaceStore((state) => state.searchOpen);
-  const setSearchOpen = useWorkspaceStore((state) => state.setSearchOpen);
+  const searchPaletteOpen = useWorkspaceStore((state) => state.searchPaletteOpen);
+  const setSearchPaletteOpen = useWorkspaceStore((state) => state.setSearchPaletteOpen);
+  const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const isLoading = useWorkspaceStore((state) => state.isLoading);
 
   const [isDragging, setIsDragging] = useState(false);
@@ -47,14 +48,15 @@ const App: React.FC = () => {
           // Ctrl/Cmd+T opens a new tab.
           e.preventDefault();
           createTab();
-        } else if (key === 'f' && e.shiftKey) {
-          // Ctrl/Cmd+Shift+F opens the global search palette.
+        } else if (key === 'f') {
+          // Ctrl/Cmd+F → search this tab; Ctrl/Cmd+Shift+F → search all tabs.
+          // Both use the same command-palette UI.
           e.preventDefault();
           setIsPaletteOpen(false);
-          setSearchOpen(!useWorkspaceStore.getState().searchOpen);
+          openSearchPalette(e.shiftKey ? 'all' : 'current');
         } else if (key === 'k') {
           e.preventDefault();
-          setSearchOpen(false);
+          setSearchPaletteOpen(false);
           setIsPaletteOpen((prev) => !prev);
         }
       }
@@ -64,7 +66,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleGlobalShortcuts);
     };
-  }, [toggleLayoutMode, saveCurrentWorkspace, createTab, setSearchOpen]);
+  }, [toggleLayoutMode, saveCurrentWorkspace, createTab, setSearchPaletteOpen, openSearchPalette]);
 
   // Handle dragging the split divider
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -158,8 +160,8 @@ const App: React.FC = () => {
       {/* Global Command Palette triggered by Ctrl+K */}
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
 
-      {/* Global Search Palette triggered by Ctrl+Shift+F or the tab-bar search button */}
-      <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      {/* Cross-tab Search Palette — opened by the tab-bar search icon or Ctrl+Shift+F */}
+      <SearchPalette isOpen={searchPaletteOpen} onClose={() => setSearchPaletteOpen(false)} />
 
       {/* Global Toast Notification Popup */}
       <NotificationToast />

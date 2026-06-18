@@ -17,7 +17,7 @@ It is a local-first desktop application designed for developers, students, and p
 - **Infinite Canvas**: Draw diagrams, construct custom flowcharts, and sketch designs on an unconstrained canvas powered by Excalidraw.
 - **Markdown Notes**: Write structured documentation, tables, and code snippets in a rich markdown pane powered by TipTap.
 - **Workspace Tabs**: Keep multiple scratchpads open in one window. Each tab holds its own notes and canvas, with double-click rename and one-click close.
-- **Search Command Palette**: Search the notes of every open tab from a single palette, then jump straight to a match — automatically switching tabs and selecting the matching text.
+- **Search Palette**: One command-palette UI for finding text across your notes and canvas, then jumping straight to a match — switching tabs, revealing the right pane, and selecting the matched note text or canvas element automatically. `Ctrl/Cmd+F` scopes it to the current tab; `Ctrl/Cmd+Shift+F` (or the tab-bar search icon) searches every open tab.
 - **Local-First Architecture**: Your workspace data is saved entirely on your local machine using client-side storage.
 - **Offline Support**: Fully functional without internet connectivity, ensuring you can work from anywhere.
 - **Import / Export**: Save work as portable JSON files, export notes to Markdown, or save canvas sketches as images.
@@ -39,8 +39,8 @@ It is a local-first desktop application designed for developers, students, and p
 | Command | Action |
 |:---|:---|
 | `Ctrl + K` / `Cmd + K` | Open the DSA structure command palette |
-| `Ctrl + Shift + F` / `Cmd + Shift + F` | Open the search palette (search across all tabs) |
-| `Ctrl + F` / `Cmd + F` | Toggle quick find within the current tab's notes |
+| `Ctrl + F` / `Cmd + F` | Open the search palette scoped to the current tab |
+| `Ctrl + Shift + F` / `Cmd + Shift + F` | Open the search palette across all tabs |
 | `Ctrl + T` / `Cmd + T` | Open a new tab |
 | `Ctrl + B` / `Cmd + B` | Cycle layout modes (Split, Canvas Only, Notes Only) |
 | `Ctrl + S` / `Cmd + S` | Force manual workspace save |
@@ -129,7 +129,6 @@ Scratchpad/
 
 - **Better Structure Templates**: Expand templates for recursion trees, matrix systems, and custom graphs.
 - **Command Palette**: Add direct shortcuts, theme switching, and quick navigation capabilities.
-- **Scoped Search**: Option to restrict the search palette to the current tab only.
 - **Improved Export Options**: Add direct PDF and JSON schema export features, including multi-tab workspace export.
 
 ## Repository Improvements
