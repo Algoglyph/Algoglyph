@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { saveWorkspace, loadWorkspace } from '../db/indexedDB';
-import type { WorkspaceData } from '../db/indexedDB';
+import type { WorkspaceData, TabData } from '../db/indexedDB';
 
 export type LayoutMode = 'split' | 'canvas-only' | 'notes-only';
 export type SaveStatus = 'saved' | 'saving' | 'error' | 'idle';
@@ -11,10 +11,16 @@ export interface Notification {
 }
 
 interface WorkspaceState {
+  // Live data for the ACTIVE tab. Editor/Canvas read these directly.
   notes: string;
   canvasElements: any[];
   canvasAppState: any;
   canvasFiles: Record<string, any>;
+
+  // Multi-tab state.
+  tabs: TabData[];
+  activeTabId: string;
+
   layoutMode: LayoutMode;
   splitWidth: number; // percentage of screen for canvas (0 to 100)
   lastSplitWidth: number; // last split width before toggling to full screens
@@ -36,10 +42,30 @@ interface WorkspaceState {
   importWorkspace: (data: WorkspaceData) => Promise<void>;
   showNotification: (message: string, type?: 'info' | 'error' | 'success') => void;
   hideNotification: () => void;
+
+  // Tab actions
+  createTab: () => void;
+  closeTab: (id: string) => void;
+  switchTab: (id: string) => void;
+  renameTab: (id: string, title: string) => void;
 }
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const genId = () =>
+  `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const makeTab = (partial: Partial<TabData> = {}): TabData => ({
+  id: genId(),
+  title: 'Untitled',
+  notes: '',
+  canvasElements: [],
+  canvasAppState: {},
+  canvasFiles: {},
+  updatedAt: Date.now(),
+  ...partial,
+});
 
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
   const scheduleAutoSave = () => {
@@ -56,11 +82,37 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     }, 1000); // 1-second debounce to keep drawing and typing smooth
   };
 
+  // Fold the live (mirror) data of the active tab back into the tabs array.
+  // The mirror fields are the source of truth for the active tab; the matching
+  // entry in `tabs` may be stale until reconciled here (on save / switch / close).
+  const reconcileTabs = (): TabData[] => {
+    const { tabs, activeTabId, notes, canvasElements, canvasAppState, canvasFiles } = get();
+    return tabs.map((t) =>
+      t.id === activeTabId
+        ? { ...t, notes, canvasElements, canvasAppState, canvasFiles, updatedAt: Date.now() }
+        : t
+    );
+  };
+
+  // Load a tab's content into the live mirror and trigger Canvas/Editor resync.
+  const loadTabIntoMirror = (tab: TabData, extra: Partial<WorkspaceState> = {}) => {
+    set({
+      notes: tab.notes,
+      canvasElements: tab.canvasElements,
+      canvasAppState: tab.canvasAppState,
+      canvasFiles: tab.canvasFiles,
+      lastImportTime: Date.now(),
+      ...extra,
+    });
+  };
+
   return {
     notes: '',
     canvasElements: [],
     canvasAppState: {},
     canvasFiles: {},
+    tabs: [],
+    activeTabId: '',
     layoutMode: 'split',
     splitWidth: 65,
     lastSplitWidth: 65,
@@ -73,22 +125,54 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     initializeWorkspace: async () => {
       try {
         const saved = await loadWorkspace();
-        if (saved) {
-          set({
-            notes: saved.notes || '',
-            canvasElements: saved.canvasElements || [],
-            canvasAppState: saved.canvasAppState || {},
-            canvasFiles: saved.canvasFiles || {},
-            lastImportTime: Date.now(),
-            isLoading: false,
-            saveStatus: 'saved',
-          });
+        let tabs: TabData[];
+        let activeTabId: string;
+
+        if (saved && Array.isArray(saved.tabs) && saved.tabs.length > 0) {
+          // New multi-tab format.
+          tabs = saved.tabs.map((t) => makeTab(t));
+          activeTabId = tabs.some((t) => t.id === saved.activeTabId)
+            ? saved.activeTabId
+            : tabs[0].id;
+        } else if (saved && (saved.notes !== undefined || saved.canvasElements !== undefined)) {
+          // Legacy single-document format → migrate into one tab.
+          tabs = [
+            makeTab({
+              title: 'Scratchpad',
+              notes: saved.notes || '',
+              canvasElements: saved.canvasElements || [],
+              canvasAppState: saved.canvasAppState || {},
+              canvasFiles: saved.canvasFiles || {},
+            }),
+          ];
+          activeTabId = tabs[0].id;
         } else {
-          set({ isLoading: false, saveStatus: 'idle' });
+          // Fresh start.
+          tabs = [makeTab({ title: 'Scratchpad' })];
+          activeTabId = tabs[0].id;
         }
+
+        const active = tabs.find((t) => t.id === activeTabId)!;
+        set({
+          tabs,
+          activeTabId,
+          notes: active.notes,
+          canvasElements: active.canvasElements,
+          canvasAppState: active.canvasAppState,
+          canvasFiles: active.canvasFiles,
+          lastImportTime: Date.now(),
+          isLoading: false,
+          saveStatus: 'saved',
+        });
       } catch (error) {
         console.error('Failed to initialize workspace from database:', error);
-        set({ isLoading: false, saveStatus: 'error' });
+        const tabs = [makeTab({ title: 'Scratchpad' })];
+        set({
+          tabs,
+          activeTabId: tabs[0].id,
+          isLoading: false,
+          saveStatus: 'error',
+        });
       }
     },
 
@@ -161,27 +245,86 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     },
 
     saveCurrentWorkspace: async () => {
-      const state = get();
+      const tabs = reconcileTabs();
       const workspaceData: WorkspaceData = {
-        notes: state.notes,
-        canvasElements: state.canvasElements,
-        canvasAppState: state.canvasAppState,
-        canvasFiles: state.canvasFiles,
+        tabs,
+        activeTabId: get().activeTabId,
         updatedAt: Date.now(),
       };
       await saveWorkspace(workspaceData);
     },
 
     importWorkspace: async (data) => {
-      set({
-        notes: data.notes || '',
-        canvasElements: data.canvasElements || [],
-        canvasAppState: data.canvasAppState || {},
-        canvasFiles: data.canvasFiles || {},
-        lastImportTime: Date.now(),
-        saveStatus: 'saved',
-      });
-      await saveWorkspace(data);
+      if (data && Array.isArray(data.tabs) && data.tabs.length > 0) {
+        // Full multi-tab workspace.
+        const tabs = data.tabs.map((t) => makeTab(t));
+        const activeTabId = tabs.some((t) => t.id === data.activeTabId)
+          ? data.activeTabId
+          : tabs[0].id;
+        const active = tabs.find((t) => t.id === activeTabId)!;
+        loadTabIntoMirror(active, { tabs, activeTabId, saveStatus: 'saved' });
+      } else {
+        // Legacy single-document export → add as a new tab and focus it.
+        const tabs = reconcileTabs();
+        const tab = makeTab({
+          title: 'Imported',
+          notes: data.notes || '',
+          canvasElements: data.canvasElements || [],
+          canvasAppState: data.canvasAppState || {},
+          canvasFiles: data.canvasFiles || {},
+        });
+        loadTabIntoMirror(tab, {
+          tabs: [...tabs, tab],
+          activeTabId: tab.id,
+          saveStatus: 'saved',
+        });
+      }
+      await get().saveCurrentWorkspace();
+    },
+
+    createTab: () => {
+      const tabs = reconcileTabs();
+      const tab = makeTab();
+      loadTabIntoMirror(tab, { tabs: [...tabs, tab], activeTabId: tab.id });
+      scheduleAutoSave();
+    },
+
+    closeTab: (id) => {
+      const tabs = reconcileTabs();
+      if (tabs.length <= 1) {
+        get().showNotification('At least one tab must stay open', 'info');
+        return;
+      }
+
+      const idx = tabs.findIndex((t) => t.id === id);
+      if (idx === -1) return;
+
+      const newTabs = tabs.filter((t) => t.id !== id);
+      const wasActive = id === get().activeTabId;
+
+      if (wasActive) {
+        // Focus the neighbour to the left (or the new first tab).
+        const next = newTabs[Math.max(0, idx - 1)];
+        loadTabIntoMirror(next, { tabs: newTabs, activeTabId: next.id });
+      } else {
+        set({ tabs: newTabs });
+      }
+      scheduleAutoSave();
+    },
+
+    switchTab: (id) => {
+      if (id === get().activeTabId) return;
+      const tabs = reconcileTabs();
+      const target = tabs.find((t) => t.id === id);
+      if (!target) return;
+      loadTabIntoMirror(target, { tabs, activeTabId: id });
+      scheduleAutoSave();
+    },
+
+    renameTab: (id, title) => {
+      const clean = title.trim() || 'Untitled';
+      set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, title: clean } : t)) });
+      scheduleAutoSave();
     },
 
     showNotification: (message, type = 'info') => {

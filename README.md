@@ -16,6 +16,8 @@ It is a local-first desktop application designed for developers, students, and p
 
 - **Infinite Canvas**: Draw diagrams, construct custom flowcharts, and sketch designs on an unconstrained canvas powered by Excalidraw.
 - **Markdown Notes**: Write structured documentation, tables, and code snippets in a rich markdown pane powered by TipTap.
+- **Workspace Tabs**: Keep multiple scratchpads open in one window. Each tab holds its own notes and canvas, with double-click rename and one-click close.
+- **Search Command Palette**: Search the notes of every open tab from a single palette, then jump straight to a match — automatically switching tabs and selecting the matching text.
 - **Local-First Architecture**: Your workspace data is saved entirely on your local machine using client-side storage.
 - **Offline Support**: Fully functional without internet connectivity, ensuring you can work from anywhere.
 - **Import / Export**: Save work as portable JSON files, export notes to Markdown, or save canvas sketches as images.
@@ -36,10 +38,12 @@ It is a local-first desktop application designed for developers, students, and p
 
 | Command | Action |
 |:---|:---|
-| `Ctrl + K` / `Cmd + K` | Open the DSA Command Palette |
+| `Ctrl + K` / `Cmd + K` | Open the DSA structure command palette |
+| `Ctrl + Shift + F` / `Cmd + Shift + F` | Open the search palette (search across all tabs) |
+| `Ctrl + F` / `Cmd + F` | Toggle quick find within the current tab's notes |
+| `Ctrl + T` / `Cmd + T` | Open a new tab |
 | `Ctrl + B` / `Cmd + B` | Cycle layout modes (Split, Canvas Only, Notes Only) |
 | `Ctrl + S` / `Cmd + S` | Force manual workspace save |
-| `Ctrl + F` / `Cmd + F` | Toggle search/find within Notes editor |
 | `T` | Select Text tool (Canvas focused) |
 | `D` | Select Freedraw tool (Canvas focused) |
 | `E` | Select Eraser tool (Canvas focused) |
@@ -105,8 +109,10 @@ Scratchpad/
 │   │   ├── Canvas.tsx          # Excalidraw drawing wrapper
 │   │   ├── Editor.tsx          # TipTap rich-text editor
 │   │   ├── Toolbar.tsx         # Workspace controls and actions
+│   │   ├── TabBar.tsx          # Workspace tab strip (switch/add/rename/close)
 │   │   ├── StructuresPanel.tsx # DSA template sidebar
-│   │   ├── CommandPalette.tsx  # Keyboard-based action overlay
+│   │   ├── CommandPalette.tsx  # DSA structure insertion palette
+│   │   ├── SearchPalette.tsx   # Cross-tab notes search palette
 │   │   └── NotificationToast.tsx # Custom system feedback notifications
 │   ├── config/           # Static configurations and structures
 │   ├── db/               # IndexedDB database wrappers
@@ -121,10 +127,10 @@ Scratchpad/
 
 ## Roadmap
 
-- **Workspace Tabs**: Organize multiple canvas-note sets in a single window context.
 - **Better Structure Templates**: Expand templates for recursion trees, matrix systems, and custom graphs.
 - **Command Palette**: Add direct shortcuts, theme switching, and quick navigation capabilities.
-- **Improved Export Options**: Add direct PDF and JSON schema export features.
+- **Scoped Search**: Option to restrict the search palette to the current tab only.
+- **Improved Export Options**: Add direct PDF and JSON schema export features, including multi-tab workspace export.
 
 ## Repository Improvements
 

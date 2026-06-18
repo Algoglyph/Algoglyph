@@ -3,12 +3,25 @@ const DB_VERSION = 1;
 const STORE_NAME = 'workspace-store';
 const WORKSPACE_KEY = 'current-workspace';
 
-export interface WorkspaceData {
+export interface TabData {
+  id: string;
+  title: string;
   notes: string;
   canvasElements: any[];
   canvasAppState: any;
   canvasFiles: Record<string, any>;
   updatedAt: number;
+}
+
+export interface WorkspaceData {
+  tabs: TabData[];
+  activeTabId: string;
+  updatedAt: number;
+  // Legacy single-document fields kept optional for backward-compatible migration.
+  notes?: string;
+  canvasElements?: any[];
+  canvasAppState?: any;
+  canvasFiles?: Record<string, any>;
 }
 
 function getDB(): Promise<IDBDatabase> {
