@@ -74,10 +74,22 @@ export const Editor: React.FC = () => {
     }
   }, [notes, editor, isLoading]);
 
+  // Expose the editor instance globally so the search palette can jump to matches
+  useEffect(() => {
+    (window as any).notesEditor = editor;
+    return () => {
+      if ((window as any).notesEditor === editor) {
+        (window as any).notesEditor = null;
+      }
+    };
+  }, [editor]);
+
   // Handle Ctrl+F for Search inside Editor
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+      // Ctrl/Cmd+F toggles the quick find bar; Ctrl/Cmd+Shift+F is reserved
+      // for the global search palette (handled in App.tsx).
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         setShowSearch(prev => !prev);
       }
