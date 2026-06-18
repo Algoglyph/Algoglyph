@@ -7,7 +7,6 @@ import {
   Image as ImageIcon,
   Monitor,
   Maximize2,
-  FileText,
   Loader2,
   Check,
   AlertCircle
@@ -236,9 +235,9 @@ export const Toolbar: React.FC = () => {
         <button
           onClick={handleExportNotes}
           className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs cursor-pointer"
-          title="Export Notes as Markdown"
+          title="Download Notes as Markdown"
         >
-          <FileText size={13} />
+          <Download size={13} />
           <span className="hidden sm:inline">Notes (.md)</span>
         </button>
 

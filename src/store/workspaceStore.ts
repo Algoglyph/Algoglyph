@@ -30,6 +30,11 @@ interface WorkspaceState {
   lastImportTime: number; // timestamp to coordinate canvas updates
   notification: Notification | null;
 
+  // UI state (not persisted)
+  structuresPanelOpen: boolean;
+  searchPaletteOpen: boolean; // the search palette overlay
+  searchScope: 'all' | 'current'; // 'current' = Ctrl+F (this tab), 'all' = Ctrl+Shift+F
+
   // Actions
   initializeWorkspace: () => Promise<void>;
   updateNotes: (notes: string) => void;
@@ -42,6 +47,12 @@ interface WorkspaceState {
   importWorkspace: (data: WorkspaceData) => Promise<void>;
   showNotification: (message: string, type?: 'info' | 'error' | 'success') => void;
   hideNotification: () => void;
+
+  // UI actions
+  toggleStructuresPanel: () => void;
+  setStructuresPanelOpen: (open: boolean) => void;
+  openSearchPalette: (scope: 'all' | 'current') => void;
+  setSearchPaletteOpen: (open: boolean) => void;
 
   // Tab actions
   createTab: () => void;
@@ -121,6 +132,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     activeCanvasTool: 'selection',
     lastImportTime: 0,
     notification: null,
+    structuresPanelOpen: true,
+    searchPaletteOpen: false,
+    searchScope: 'all',
 
     initializeWorkspace: async () => {
       try {
@@ -338,6 +352,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     hideNotification: () => {
       if (notificationTimeout) clearTimeout(notificationTimeout);
       set({ notification: null });
+    },
+
+    toggleStructuresPanel: () => {
+      set({ structuresPanelOpen: !get().structuresPanelOpen });
+    },
+
+    setStructuresPanelOpen: (structuresPanelOpen) => {
+      set({ structuresPanelOpen });
+    },
+
+    openSearchPalette: (scope) => {
+      set({ searchScope: scope, searchPaletteOpen: true });
+    },
+
+    setSearchPaletteOpen: (searchPaletteOpen) => {
+      set({ searchPaletteOpen });
     },
   };
 });

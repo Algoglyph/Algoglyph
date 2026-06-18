@@ -16,11 +16,14 @@ const App: React.FC = () => {
   const initializeWorkspace = useWorkspaceStore((state) => state.initializeWorkspace);
   const saveCurrentWorkspace = useWorkspaceStore((state) => state.saveCurrentWorkspace);
   const createTab = useWorkspaceStore((state) => state.createTab);
+  const activeTabId = useWorkspaceStore((state) => state.activeTabId);
+  const searchPaletteOpen = useWorkspaceStore((state) => state.searchPaletteOpen);
+  const setSearchPaletteOpen = useWorkspaceStore((state) => state.setSearchPaletteOpen);
+  const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const isLoading = useWorkspaceStore((state) => state.isLoading);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
@@ -45,14 +48,15 @@ const App: React.FC = () => {
           // Ctrl/Cmd+T opens a new tab.
           e.preventDefault();
           createTab();
-        } else if (key === 'f' && e.shiftKey) {
-          // Ctrl/Cmd+Shift+F opens the global search palette.
+        } else if (key === 'f') {
+          // Ctrl/Cmd+F → search this tab; Ctrl/Cmd+Shift+F → search all tabs.
+          // Both use the same command-palette UI.
           e.preventDefault();
           setIsPaletteOpen(false);
-          setIsSearchOpen((prev) => !prev);
+          openSearchPalette(e.shiftKey ? 'all' : 'current');
         } else if (key === 'k') {
           e.preventDefault();
-          setIsSearchOpen(false);
+          setSearchPaletteOpen(false);
           setIsPaletteOpen((prev) => !prev);
         }
       }
@@ -62,7 +66,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleGlobalShortcuts);
     };
-  }, [toggleLayoutMode, saveCurrentWorkspace, createTab]);
+  }, [toggleLayoutMode, saveCurrentWorkspace, createTab, setSearchPaletteOpen, openSearchPalette]);
 
   // Handle dragging the split divider
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -126,7 +130,9 @@ const App: React.FC = () => {
             style={{ width: layoutMode === 'canvas-only' ? '100%' : `${splitWidth}%` }}
             className="h-full overflow-hidden bg-zinc-950"
           >
-            <Canvas />
+            {/* Key by tab so the canvas remounts with each tab's own scene
+                instead of leaking the previous tab's elements via a stale onChange. */}
+            <Canvas key={activeTabId} />
           </div>
         )}
 
@@ -154,8 +160,8 @@ const App: React.FC = () => {
       {/* Global Command Palette triggered by Ctrl+K */}
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
 
-      {/* Global Search Palette triggered by Ctrl+Shift+F */}
-      <SearchPalette isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {/* Cross-tab Search Palette — opened by the tab-bar search icon or Ctrl+Shift+F */}
+      <SearchPalette isOpen={searchPaletteOpen} onClose={() => setSearchPaletteOpen(false)} />
 
       {/* Global Toast Notification Popup */}
       <NotificationToast />
