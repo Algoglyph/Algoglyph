@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
@@ -21,8 +21,6 @@ import {
   Terminal as TerminalIcon,
   Table as TableIcon,
   Search as SearchIcon,
-  X as XIcon,
-  ChevronDown
 } from 'lucide-react';
 
 const lowlight = createLowlight(common);
@@ -31,9 +29,8 @@ export const Editor: React.FC = () => {
   const notes = useWorkspaceStore((state) => state.notes);
   const updateNotes = useWorkspaceStore((state) => state.updateNotes);
   const isLoading = useWorkspaceStore((state) => state.isLoading);
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Find now uses the search palette UI (Ctrl+F = this tab) instead of a find bar.
+  const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
 
   const editor = useEditor({
     extensions: [
@@ -74,7 +71,8 @@ export const Editor: React.FC = () => {
     }
   }, [notes, editor, isLoading]);
 
-  // Expose the editor instance globally so the search palette can jump to matches
+  // Expose the editor instance globally so the cross-tab search palette can
+  // jump to and highlight matches.
   useEffect(() => {
     (window as any).notesEditor = editor;
     return () => {
@@ -83,44 +81,6 @@ export const Editor: React.FC = () => {
       }
     };
   }, [editor]);
-
-  // Handle Ctrl+F for Search inside Editor
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd+F toggles the quick find bar; Ctrl/Cmd+Shift+F is reserved
-      // for the global search palette (handled in App.tsx).
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        setShowSearch(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Focus search input when shown
-  useEffect(() => {
-    if (showSearch && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [showSearch]);
-
-  const handleSearch = () => {
-    if (!searchTerm) return;
-    // Native window.find: (str, caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog)
-    (window as any).find(searchTerm, false, false, true, false, false, false);
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      setShowSearch(false);
-      editor?.commands.focus();
-    }
-  };
 
   if (!editor) {
     return null;
@@ -241,10 +201,10 @@ export const Editor: React.FC = () => {
           )}
         </div>
 
-        {/* Search icon triggers search bar */}
+        {/* Search icon opens the search palette scoped to this tab */}
         <button
-          onClick={() => setShowSearch(prev => !prev)}
-          className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${showSearch ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+          onClick={() => openSearchPalette('current')}
+          className="p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-400"
           title="Search (Ctrl+F)"
         >
           <SearchIcon size={14} />
@@ -255,38 +215,6 @@ export const Editor: React.FC = () => {
       <div className="flex-1 overflow-y-auto w-full relative">
         <EditorContent editor={editor} className="h-full w-full" />
       </div>
-
-      {/* Floating Find Bar */}
-      {showSearch && (
-        <div className="absolute bottom-4 right-4 bg-zinc-950 border border-zinc-800 rounded-lg shadow-2xl p-2 z-40 flex items-center gap-2 select-none animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <SearchIcon size={14} className="text-zinc-500 ml-1" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Search notes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-purple-500 w-48"
-          />
-          <div className="flex items-center gap-0.5">
-            <button
-              onClick={handleSearch}
-              className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 cursor-pointer"
-              title="Next Match (Enter)"
-            >
-              <ChevronDown size={14} />
-            </button>
-            <button
-              onClick={() => setShowSearch(false)}
-              className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 cursor-pointer"
-              title="Close (Esc)"
-            >
-              <XIcon size={14} />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

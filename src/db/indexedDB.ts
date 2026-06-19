@@ -10,6 +10,8 @@ export interface TabData {
   canvasElements: any[];
   canvasAppState: any;
   canvasFiles: Record<string, any>;
+  code: string;
+  codeLanguage: string;
   updatedAt: number;
 }
 

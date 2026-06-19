@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Monitor,
   Maximize2,
+  Code2,
   Loader2,
   Check,
   AlertCircle
@@ -195,6 +196,18 @@ export const Toolbar: React.FC = () => {
         >
           <Maximize2 size={12} className="-rotate-45" />
           <span>Notes</span>
+        </button>
+        <button
+          onClick={() => setLayoutMode('code')}
+          className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
+            layoutMode === 'code'
+              ? 'bg-zinc-800 text-zinc-100 font-medium'
+              : 'hover:text-zinc-200'
+          }`}
+          title="Code Runner"
+        >
+          <Code2 size={12} />
+          <span>Code</span>
         </button>
       </div>
 

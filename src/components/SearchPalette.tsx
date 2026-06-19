@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, CornerDownLeft, FileText } from 'lucide-react';
+import { Search, CornerDownLeft, FileText, Shapes } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 
 interface SearchPaletteProps {
@@ -10,14 +10,28 @@ interface SearchPaletteProps {
 interface SearchResult {
   tabId: string;
   tabTitle: string;
-  occurrence: number; // 0-based index of this match within the tab
+  source: 'notes' | 'canvas';
+  occurrence: number; // notes: 0-based index of this match within the tab's notes
+  elementId?: string; // canvas: the id of the matched element
   before: string; // snippet text before the match
   match: string; // the matched text (original casing)
   after: string; // snippet text after the match
 }
 
-const MAX_RESULTS = 200;
 const SNIPPET_PAD = 40; // characters of context to show on each side
+
+// Build a "…before [match] after…" snippet around a match in some text.
+const makeSnippet = (text: string, idx: number, len: number) => {
+  const start = Math.max(0, idx - SNIPPET_PAD);
+  const end = Math.min(text.length, idx + len + SNIPPET_PAD);
+  return {
+    before: (start > 0 ? '…' : '') + text.slice(start, idx).replace(/\s+/g, ' '),
+    match: text.slice(idx, idx + len),
+    after: text.slice(idx + len, end).replace(/\s+/g, ' ') + (end < text.length ? '…' : ''),
+  };
+};
+
+const MAX_RESULTS = 200;
 
 export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
@@ -27,9 +41,12 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
   const liveNotes = useWorkspaceStore((state) => state.notes); // active tab's unsaved notes
+  const liveCanvas = useWorkspaceStore((state) => state.canvasElements); // active tab's live canvas
   const switchTab = useWorkspaceStore((state) => state.switchTab);
   const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
+  const scope = useWorkspaceStore((state) => state.searchScope);
+  const currentOnly = scope === 'current';
 
   // Reset state each time the palette opens.
   useEffect(() => {
@@ -40,7 +57,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
     }
   }, [isOpen]);
 
-  // Search every tab's notes for the current query.
+  // Search every tab's notes AND canvas text for the current query.
   const results = useMemo<SearchResult[]>(() => {
     const q = query.trim();
     if (!isOpen || q.length === 0) return [];
@@ -48,33 +65,53 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
     const needle = q.toLowerCase();
     const found: SearchResult[] = [];
 
-    for (const tab of tabs) {
-      if (found.length >= MAX_RESULTS) break;
-      // The active tab's freshest content lives in the mirror, not the tabs array.
-      const text = tab.id === activeTabId ? liveNotes : tab.notes;
-      if (!text) continue;
+    // Ctrl+F scopes to the current tab; Ctrl+Shift+F searches every tab.
+    const searchTabs = currentOnly ? tabs.filter((t) => t.id === activeTabId) : tabs;
 
-      const hay = text.toLowerCase();
-      let idx = hay.indexOf(needle);
-      let occurrence = 0;
-      while (idx !== -1 && found.length < MAX_RESULTS) {
-        const start = Math.max(0, idx - SNIPPET_PAD);
-        const end = Math.min(text.length, idx + q.length + SNIPPET_PAD);
+    for (const tab of searchTabs) {
+      if (found.length >= MAX_RESULTS) break;
+      const isActive = tab.id === activeTabId;
+      // The active tab's freshest content lives in the mirror, not the tabs array.
+      const text = isActive ? liveNotes : tab.notes;
+
+      // --- Notes matches ---
+      if (text) {
+        const hay = text.toLowerCase();
+        let idx = hay.indexOf(needle);
+        let occurrence = 0;
+        while (idx !== -1 && found.length < MAX_RESULTS) {
+          found.push({
+            tabId: tab.id,
+            tabTitle: tab.title,
+            source: 'notes',
+            occurrence,
+            ...makeSnippet(text, idx, q.length),
+          });
+          occurrence += 1;
+          idx = hay.indexOf(needle, idx + q.length);
+        }
+      }
+
+      // --- Canvas text matches (one result per matching text element) ---
+      const elements: any[] = (isActive ? liveCanvas : tab.canvasElements) || [];
+      for (const el of elements) {
+        if (found.length >= MAX_RESULTS) break;
+        if (el.isDeleted || el.type !== 'text' || typeof el.text !== 'string') continue;
+        const idx = el.text.toLowerCase().indexOf(needle);
+        if (idx === -1) continue;
         found.push({
           tabId: tab.id,
           tabTitle: tab.title,
-          occurrence,
-          before: (start > 0 ? '…' : '') + text.slice(start, idx).replace(/\s+/g, ' '),
-          match: text.slice(idx, idx + q.length),
-          after: text.slice(idx + q.length, end).replace(/\s+/g, ' ') + (end < text.length ? '…' : ''),
+          source: 'canvas',
+          occurrence: 0,
+          elementId: el.id,
+          ...makeSnippet(el.text, idx, q.length),
         });
-        occurrence += 1;
-        idx = hay.indexOf(needle, idx + q.length);
       }
     }
 
     return found;
-  }, [query, isOpen, tabs, activeTabId, liveNotes]);
+  }, [query, isOpen, tabs, activeTabId, liveNotes, liveCanvas, currentOnly]);
 
   // Keep the highlighted row within range as results change.
   useEffect(() => {
@@ -82,10 +119,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   }, [results.length]);
 
   // Find and select the Nth occurrence of the query inside the live editor.
-  const selectInEditor = (needle: string, occurrence: number) => {
-    const editor = (window as any).notesEditor;
-    if (!editor) return;
-
+  const selectInEditor = (editor: any, needle: string, occurrence: number) => {
     const matches: { from: number; to: number }[] = [];
     editor.state.doc.descendants((node: any, pos: number) => {
       if (!node.isTextblock) return true;
@@ -106,23 +140,77 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
     editor.chain().focus().setTextSelection({ from: m.from, to: m.to }).scrollIntoView().run();
   };
 
-  const jumpTo = (result: SearchResult) => {
-    const needle = query.trim().toLowerCase();
+  // After switching tab/layout the editor may need a moment to mount (when the
+  // notes pane was hidden) or to re-sync its content. Poll until it's ready.
+  const waitAndSelect = (needle: string, occurrence: number, attempts = 0) => {
+    const editor = (window as any).notesEditor;
+    const ready = editor && editor.getText().toLowerCase().includes(needle);
+    if (ready) {
+      selectInEditor(editor, needle, occurrence);
+      return;
+    }
+    if (attempts >= 40) {
+      // Give up gracefully after ~1s; select whatever the editor has, if anything.
+      if (editor) selectInEditor(editor, needle, occurrence);
+      return;
+    }
+    setTimeout(() => waitAndSelect(needle, occurrence, attempts + 1), 25);
+  };
 
-    // Make sure the notes pane is visible before jumping to it.
+  // Select + reveal a canvas element. Re-applied a few times because the canvas,
+  // when it (re)mounts after a tab/layout change, runs its own scene-load that
+  // would otherwise clear the selection we just set.
+  const applyCanvasSelection = (elementId: string, animate: boolean) => {
+    const api = (window as any).excalidrawAPI;
+    const el = api && api.getSceneElements().find((e: any) => e.id === elementId && !e.isDeleted);
+    if (!api || !el) return;
+    api.updateScene({ appState: { selectedElementIds: { [elementId]: true } } });
+    try {
+      api.scrollToContent([el], { fitToContent: true, animate, duration: 300 });
+    } catch {
+      // best-effort
+    }
+  };
+
+  // Poll until the Excalidraw API has the target element, then select/reveal it.
+  const waitAndSelectOnCanvas = (elementId: string, attempts = 0) => {
+    const api = (window as any).excalidrawAPI;
+    const el = api && api.getSceneElements().find((e: any) => e.id === elementId && !e.isDeleted);
+    if (api && el) {
+      applyCanvasSelection(elementId, true);
+      // Re-apply after the canvas' own mount/scene-load settles.
+      setTimeout(() => applyCanvasSelection(elementId, false), 200);
+      setTimeout(() => applyCanvasSelection(elementId, false), 450);
+      return;
+    }
+    if (attempts >= 40) return; // give up after ~1s
+    setTimeout(() => waitAndSelectOnCanvas(elementId, attempts + 1), 25);
+  };
+
+  const jumpTo = (result: SearchResult) => {
+    if (result.source === 'canvas') {
+      // The target lives on the canvas, so the canvas pane must be visible.
+      if (layoutMode === 'notes-only') {
+        setLayoutMode('split');
+      }
+      if (result.tabId !== activeTabId) {
+        switchTab(result.tabId);
+      }
+      onClose();
+      if (result.elementId) waitAndSelectOnCanvas(result.elementId);
+      return;
+    }
+
+    // Notes result → the find target lives in the editor, so notes must be visible.
+    const needle = query.trim().toLowerCase();
     if (layoutMode === 'canvas-only') {
       setLayoutMode('split');
     }
-
     if (result.tabId !== activeTabId) {
       switchTab(result.tabId);
-      onClose();
-      // Wait for the editor to re-render with the switched tab's content.
-      setTimeout(() => selectInEditor(needle, result.occurrence), 90);
-    } else {
-      onClose();
-      setTimeout(() => selectInEditor(needle, result.occurrence), 0);
     }
+    onClose();
+    waitAndSelect(needle, result.occurrence);
   };
 
   // Keyboard navigation while the palette is open.
@@ -166,7 +254,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search across all tabs..."
+            placeholder={currentOnly ? 'Search notes & canvas in this tab...' : 'Search notes & canvas across all tabs...'}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -185,14 +273,16 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
         <div className="max-h-72 overflow-y-auto p-1.5 bg-zinc-950/40">
           {query.trim() === '' ? (
             <div className="px-4 py-6 text-xs text-zinc-600 text-center">
-              Type to search the notes in every open tab.
+              {currentOnly
+                ? 'Type to search the notes and canvas text in this tab.'
+                : 'Type to search notes and canvas text in every open tab.'}
             </div>
           ) : results.length > 0 ? (
             results.map((r, index) => {
               const isSelected = index === selectedIndex;
               return (
                 <div
-                  key={`${r.tabId}-${r.occurrence}`}
+                  key={`${r.tabId}-${r.source}-${r.elementId ?? r.occurrence}`}
                   onClick={() => jumpTo(r)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded cursor-pointer transition-colors ${
@@ -203,8 +293,9 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
                 >
                   <div className="flex flex-col text-left min-w-0">
                     <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-600 mb-0.5">
-                      <FileText size={9} />
-                      <span className="truncate max-w-[200px]">{r.tabTitle}</span>
+                      {r.source === 'canvas' ? <Shapes size={9} /> : <FileText size={9} />}
+                      <span className="truncate max-w-[160px]">{r.tabTitle}</span>
+                      <span className="text-zinc-700">· {r.source}</span>
                       {r.tabId === activeTabId && <span className="text-purple-700">· current</span>}
                     </span>
                     <span className="text-xs truncate">
@@ -219,7 +310,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
             })
           ) : (
             <div className="px-4 py-6 text-xs text-zinc-600 text-center">
-              No matches found in any tab.
+              {currentOnly ? 'No matches found in this tab.' : 'No matches found in any tab.'}
             </div>
           )}
         </div>

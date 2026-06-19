@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { saveWorkspace, loadWorkspace } from '../db/indexedDB';
 import type { WorkspaceData, TabData } from '../db/indexedDB';
 
-export type LayoutMode = 'split' | 'canvas-only' | 'notes-only';
+export type LayoutMode = 'split' | 'canvas-only' | 'notes-only' | 'code';
 export type SaveStatus = 'saved' | 'saving' | 'error' | 'idle';
 
 export interface Notification {
@@ -11,11 +11,13 @@ export interface Notification {
 }
 
 interface WorkspaceState {
-  // Live data for the ACTIVE tab. Editor/Canvas read these directly.
+  // Live data for the ACTIVE tab. Editor/Canvas/CodeEditor read these directly.
   notes: string;
   canvasElements: any[];
   canvasAppState: any;
   canvasFiles: Record<string, any>;
+  code: string;
+  codeLanguage: string;
 
   // Multi-tab state.
   tabs: TabData[];
@@ -32,11 +34,14 @@ interface WorkspaceState {
 
   // UI state (not persisted)
   structuresPanelOpen: boolean;
-  searchOpen: boolean;
+  searchPaletteOpen: boolean; // the search palette overlay
+  searchScope: 'all' | 'current'; // 'current' = Ctrl+F (this tab), 'all' = Ctrl+Shift+F
 
   // Actions
   initializeWorkspace: () => Promise<void>;
   updateNotes: (notes: string) => void;
+  updateCode: (code: string) => void;
+  setCodeLanguage: (language: string) => void;
   updateCanvas: (elements: any[], appState: any, files?: any) => void;
   setSplitWidth: (width: number) => void;
   setLayoutMode: (mode: LayoutMode) => void;
@@ -50,7 +55,8 @@ interface WorkspaceState {
   // UI actions
   toggleStructuresPanel: () => void;
   setStructuresPanelOpen: (open: boolean) => void;
-  setSearchOpen: (open: boolean) => void;
+  openSearchPalette: (scope: 'all' | 'current') => void;
+  setSearchPaletteOpen: (open: boolean) => void;
 
   // Tab actions
   createTab: () => void;
@@ -72,6 +78,8 @@ const makeTab = (partial: Partial<TabData> = {}): TabData => ({
   canvasElements: [],
   canvasAppState: {},
   canvasFiles: {},
+  code: '',
+  codeLanguage: 'cpp',
   updatedAt: Date.now(),
   ...partial,
 });
@@ -95,10 +103,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
   // The mirror fields are the source of truth for the active tab; the matching
   // entry in `tabs` may be stale until reconciled here (on save / switch / close).
   const reconcileTabs = (): TabData[] => {
-    const { tabs, activeTabId, notes, canvasElements, canvasAppState, canvasFiles } = get();
+    const { tabs, activeTabId, notes, canvasElements, canvasAppState, canvasFiles, code, codeLanguage } = get();
     return tabs.map((t) =>
       t.id === activeTabId
-        ? { ...t, notes, canvasElements, canvasAppState, canvasFiles, updatedAt: Date.now() }
+        ? { ...t, notes, canvasElements, canvasAppState, canvasFiles, code, codeLanguage, updatedAt: Date.now() }
         : t
     );
   };
@@ -110,6 +118,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       canvasElements: tab.canvasElements,
       canvasAppState: tab.canvasAppState,
       canvasFiles: tab.canvasFiles,
+      code: tab.code ?? '',
+      codeLanguage: tab.codeLanguage ?? 'cpp',
       lastImportTime: Date.now(),
       ...extra,
     });
@@ -120,6 +130,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     canvasElements: [],
     canvasAppState: {},
     canvasFiles: {},
+    code: '',
+    codeLanguage: 'cpp',
     tabs: [],
     activeTabId: '',
     layoutMode: 'split',
@@ -131,7 +143,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     lastImportTime: 0,
     notification: null,
     structuresPanelOpen: true,
-    searchOpen: false,
+    searchPaletteOpen: false,
+    searchScope: 'all',
 
     initializeWorkspace: async () => {
       try {
@@ -171,6 +184,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           canvasElements: active.canvasElements,
           canvasAppState: active.canvasAppState,
           canvasFiles: active.canvasFiles,
+          code: active.code ?? '',
+          codeLanguage: active.codeLanguage ?? 'cpp',
           lastImportTime: Date.now(),
           isLoading: false,
           saveStatus: 'saved',
@@ -189,6 +204,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
 
     updateNotes: (notes) => {
       set({ notes });
+      scheduleAutoSave();
+    },
+
+    updateCode: (code) => {
+      set({ code });
+      scheduleAutoSave();
+    },
+
+    setCodeLanguage: (codeLanguage) => {
+      set({ codeLanguage });
       scheduleAutoSave();
     },
 
@@ -235,6 +260,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         set({ layoutMode: mode, splitWidth: 100 });
       } else if (mode === 'notes-only') {
         set({ layoutMode: mode, splitWidth: 0 });
+      } else if (mode === 'code') {
+        // Full-area code editor; split width is irrelevant here.
+        set({ layoutMode: mode });
       } else {
         set({ layoutMode: mode, splitWidth: lastSplitWidth });
       }
@@ -359,8 +387,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       set({ structuresPanelOpen });
     },
 
-    setSearchOpen: (searchOpen) => {
-      set({ searchOpen });
+    openSearchPalette: (scope) => {
+      set({ searchScope: scope, searchPaletteOpen: true });
+    },
+
+    setSearchPaletteOpen: (searchPaletteOpen) => {
+      set({ searchPaletteOpen });
     },
   };
 });
