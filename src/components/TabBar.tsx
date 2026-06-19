@@ -13,7 +13,7 @@ export const TabBar: React.FC = () => {
   const toggleStructuresPanel = useWorkspaceStore((state) => state.toggleStructuresPanel);
   const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
-  const canvasVisible = layoutMode !== 'notes-only';
+  const canvasVisible = layoutMode === 'split' || layoutMode === 'canvas-only';
 
   // Keep the left control cluster exactly as wide as the STRUCTURES sidebar so
   // the tabs begin above the canvas content (to the right of the sidebar),

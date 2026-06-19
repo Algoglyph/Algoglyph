@@ -4,6 +4,7 @@ import { Toolbar } from './components/Toolbar';
 import { TabBar } from './components/TabBar';
 import { Canvas } from './components/Canvas';
 import { Editor } from './components/Editor';
+import { CodeEditor } from './components/CodeEditor';
 import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
@@ -105,9 +106,10 @@ const App: React.FC = () => {
     );
   }
 
-  // Calculate widths based on layoutMode
-  const showCanvas = layoutMode !== 'notes-only';
-  const showNotes = layoutMode !== 'canvas-only';
+  // Calculate which panes to show based on layoutMode
+  const showCode = layoutMode === 'code';
+  const showCanvas = layoutMode === 'split' || layoutMode === 'canvas-only';
+  const showNotes = layoutMode === 'split' || layoutMode === 'notes-only';
 
   return (
     <div className="flex flex-col h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden select-none">
@@ -122,6 +124,14 @@ const App: React.FC = () => {
         {/* Transparent drag overlay to prevent Excalidraw from absorbing events while resizing */}
         {isDragging && (
           <div className="fixed inset-0 z-50 cursor-col-resize select-none bg-transparent" />
+        )}
+
+        {/* Full-area Code Runner */}
+        {showCode && (
+          <div className="h-full w-full overflow-hidden">
+            {/* Key by tab so each tab gets its own code buffer / starter template. */}
+            <CodeEditor key={activeTabId} />
+          </div>
         )}
 
         {/* Left pane: Drawing Canvas */}
