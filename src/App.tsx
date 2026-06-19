@@ -8,23 +8,34 @@ import { CodeEditor } from './components/CodeEditor';
 import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
+import { ProfileModal } from './components/ProfileModal';
+import { AnalyticsView } from './components/AnalyticsView';
+import { ProblemsSidebar } from './components/ProblemsSidebar';
+import { ProblemViewer } from './components/ProblemViewer';
 
-const App: React.FC = () => {
-  const layoutMode = useWorkspaceStore((state) => state.layoutMode);
-  const splitWidth = useWorkspaceStore((state) => state.splitWidth);
-  const setSplitWidth = useWorkspaceStore((state) => state.setSplitWidth);
-  const toggleLayoutMode = useWorkspaceStore((state) => state.toggleLayoutMode);
-  const initializeWorkspace = useWorkspaceStore((state) => state.initializeWorkspace);
-  const saveCurrentWorkspace = useWorkspaceStore((state) => state.saveCurrentWorkspace);
-  const createTab = useWorkspaceStore((state) => state.createTab);
-  const activeTabId = useWorkspaceStore((state) => state.activeTabId);
-  const searchPaletteOpen = useWorkspaceStore((state) => state.searchPaletteOpen);
-  const setSearchPaletteOpen = useWorkspaceStore((state) => state.setSearchPaletteOpen);
-  const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
-  const isLoading = useWorkspaceStore((state) => state.isLoading);
+  const App: React.FC = () => {
+    const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
+    const splitWidth = useWorkspaceStore((state) => state.splitWidth);
+    const setSplitWidth = useWorkspaceStore((state) => state.setSplitWidth);
+    const toggleLayoutMode = useWorkspaceStore((state) => state.toggleLayoutMode);
+    const initializeWorkspace = useWorkspaceStore((state) => state.initializeWorkspace);
+    const saveCurrentWorkspace = useWorkspaceStore((state) => state.saveCurrentWorkspace);
+    const createTab = useWorkspaceStore((state) => state.createTab);
+    const activeTabId = useWorkspaceStore((state) => state.activeTabId);
+    const searchPaletteOpen = useWorkspaceStore((state) => state.searchPaletteOpen);
+    const setSearchPaletteOpen = useWorkspaceStore((state) => state.setSearchPaletteOpen);
+    const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
+    const isLoading = useWorkspaceStore((state) => state.isLoading);
+    const leftPaneView = useWorkspaceStore((state) => state.leftPaneView);
+    const setLeftPaneView = useWorkspaceStore((state) => state.setLeftPaneView);
+    const toggleLeftPaneView = useWorkspaceStore((state) => state.toggleLeftPaneView);
+    const toggleProblemsSidebar = useWorkspaceStore((state) => state.toggleProblemsSidebar);
+    const problemMeta = useWorkspaceStore((state) => state.problemMeta);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
@@ -32,7 +43,7 @@ const App: React.FC = () => {
     (window as any).useWorkspaceStore = useWorkspaceStore;
   }, [initializeWorkspace]);
 
-  // Handle global keyboard shortcuts: Ctrl+B (Toggle views), Ctrl+S (Manual Save), Ctrl+K (Command Palette)
+  // Handle global keyboard shortcuts: Ctrl+B (Toggle views), Ctrl+S (Manual Save), Ctrl+K (Command Palette), Ctrl+Space (Left pane view toggle), Ctrl+1..4 (Layout presets)
   useEffect(() => {
     const handleGlobalShortcuts = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
@@ -59,6 +70,32 @@ const App: React.FC = () => {
           e.preventDefault();
           setSearchPaletteOpen(false);
           setIsPaletteOpen((prev) => !prev);
+        } else if (key === 'p') {
+          e.preventDefault();
+          toggleProblemsSidebar();
+        } else if (e.code === 'Space' || key === ' ') {
+          e.preventDefault();
+          toggleLeftPaneView();
+        } else if (key === '1') {
+          e.preventDefault();
+          setLayoutMode('code');
+        } else if (key === '2') {
+          e.preventDefault();
+          setLeftPaneView('canvas');
+          setLayoutMode('split');
+        } else if (key === '3') {
+          e.preventDefault();
+          setLeftPaneView('notes');
+          setLayoutMode('split');
+        } else if (key === '4') {
+          e.preventDefault();
+          setLayoutMode('notes-only');
+        } else if (key === '5') {
+          e.preventDefault();
+          if (useWorkspaceStore.getState().problemMeta) {
+            setLeftPaneView('description');
+            setLayoutMode('split');
+          }
         }
       }
     };
@@ -67,7 +104,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleGlobalShortcuts);
     };
-  }, [toggleLayoutMode, saveCurrentWorkspace, createTab, setSearchPaletteOpen, openSearchPalette]);
+  }, [toggleLayoutMode, saveCurrentWorkspace, createTab, setSearchPaletteOpen, openSearchPalette, setLayoutMode, setLeftPaneView, toggleLeftPaneView]);
 
   // Handle dragging the split divider
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -106,48 +143,84 @@ const App: React.FC = () => {
     );
   }
 
-  // Calculate which panes to show based on layoutMode
-  const showCode = layoutMode === 'code';
-  const showCanvas = layoutMode === 'split' || layoutMode === 'canvas-only';
-  const showNotes = layoutMode === 'split' || layoutMode === 'notes-only';
-
   return (
     <div className="flex flex-col h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden select-none">
       {/* Top Toolbar */}
-      <Toolbar />
+      <Toolbar onOpenProfile={() => setIsProfileOpen(true)} onOpenAnalytics={() => setIsAnalyticsOpen(true)} />
 
       {/* Tab strip */}
       <TabBar />
 
       {/* Main Workspace Panels */}
       <div className="flex flex-1 w-full overflow-hidden relative">
+        {/* Problems Sidebar */}
+        <ProblemsSidebar />
+
         {/* Transparent drag overlay to prevent Excalidraw from absorbing events while resizing */}
         {isDragging && (
           <div className="fixed inset-0 z-50 cursor-col-resize select-none bg-transparent" />
         )}
 
-        {/* Full-area Code Runner */}
-        {showCode && (
-          <div className="h-full w-full overflow-hidden">
-            {/* Key by tab so each tab gets its own code buffer / starter template. */}
-            <CodeEditor key={activeTabId} />
-          </div>
-        )}
-
-        {/* Left pane: Drawing Canvas */}
-        {showCanvas && (
+        {/* Left pane: tabbed between Notes/Description and Canvas */}
+        {splitWidth > 0 && (
           <div
-            style={{ width: layoutMode === 'canvas-only' ? '100%' : `${splitWidth}%` }}
-            className="h-full overflow-hidden bg-zinc-950"
+            style={{ width: `${splitWidth}%` }}
+            className="h-full flex flex-col overflow-hidden bg-zinc-950"
           >
-            {/* Key by tab so the canvas remounts with each tab's own scene
-                instead of leaking the previous tab's elements via a stale onChange. */}
-            <Canvas key={activeTabId} />
+            {/* Sub-header tab strip for Left Pane view toggling */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-950 border-b border-zinc-900 select-none flex-shrink-0">
+              <div className="flex bg-zinc-900 border border-zinc-800 rounded p-0.5 text-[10px] font-mono">
+                {problemMeta && (
+                  <button
+                    onClick={() => setLeftPaneView('description')}
+                    className={`px-3 py-0.5 rounded transition-colors cursor-pointer ${
+                      leftPaneView === 'description'
+                        ? 'bg-zinc-800 text-zinc-100 font-medium'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    Description
+                  </button>
+                )}
+                <button
+                  onClick={() => setLeftPaneView('notes')}
+                  className={`px-3 py-0.5 rounded transition-colors cursor-pointer ${
+                    leftPaneView === 'notes'
+                      ? 'bg-zinc-800 text-zinc-100 font-medium'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Notes
+                </button>
+                <button
+                  onClick={() => setLeftPaneView('canvas')}
+                  className={`px-3 py-0.5 rounded transition-colors cursor-pointer ${
+                    leftPaneView === 'canvas'
+                      ? 'bg-zinc-800 text-zinc-100 font-medium'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Canvas
+                </button>
+              </div>
+              <span className="text-[9px] text-zinc-600 font-mono">Ctrl+Space to swap</span>
+            </div>
+
+            {/* Pane Content */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              {leftPaneView === 'description' && problemMeta ? (
+                <ProblemViewer />
+              ) : leftPaneView === 'canvas' ? (
+                <Canvas key={activeTabId} />
+              ) : (
+                <Editor />
+              )}
+            </div>
           </div>
         )}
 
         {/* Resizer bar */}
-        {layoutMode === 'split' && (
+        {splitWidth > 0 && splitWidth < 100 && (
           <div
             onMouseDown={handleMouseDown}
             className={`w-1 hover:w-1.5 bg-zinc-900 border-x border-zinc-800/80 hover:bg-purple-500 transition-all cursor-col-resize h-full flex-shrink-0 z-40 relative ${
@@ -156,13 +229,13 @@ const App: React.FC = () => {
           />
         )}
 
-        {/* Right pane: Notes Editor */}
-        {showNotes && (
+        {/* Right pane: Code Editor */}
+        {splitWidth < 100 && (
           <div
-            style={{ width: layoutMode === 'notes-only' ? '100%' : `${100 - splitWidth}%` }}
+            style={{ width: `${100 - splitWidth}%` }}
             className="h-full overflow-hidden"
           >
-            <Editor />
+            <CodeEditor key={activeTabId} />
           </div>
         )}
       </div>
@@ -175,6 +248,12 @@ const App: React.FC = () => {
 
       {/* Global Toast Notification Popup */}
       <NotificationToast />
+
+      {/* User Profile settings window */}
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+
+      {/* User Analytics dashboard window */}
+      <AnalyticsView isOpen={isAnalyticsOpen} onClose={() => setIsAnalyticsOpen(false)} />
     </div>
   );
 };

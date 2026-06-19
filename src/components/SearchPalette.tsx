@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, CornerDownLeft, FileText, Shapes } from 'lucide-react';
+import { Search, CornerDownLeft, FileText, Shapes, Code } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 
 interface SearchPaletteProps {
@@ -10,8 +10,8 @@ interface SearchPaletteProps {
 interface SearchResult {
   tabId: string;
   tabTitle: string;
-  source: 'notes' | 'canvas';
-  occurrence: number; // notes: 0-based index of this match within the tab's notes
+  source: 'notes' | 'canvas' | 'code';
+  occurrence: number; // notes & code: 0-based index of this match within the tab's content
   elementId?: string; // canvas: the id of the matched element
   before: string; // snippet text before the match
   match: string; // the matched text (original casing)
@@ -42,9 +42,11 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
   const liveNotes = useWorkspaceStore((state) => state.notes); // active tab's unsaved notes
   const liveCanvas = useWorkspaceStore((state) => state.canvasElements); // active tab's live canvas
+  const liveCode = useWorkspaceStore((state) => state.code); // active tab's live code
   const switchTab = useWorkspaceStore((state) => state.switchTab);
   const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
+  const setLeftPaneView = useWorkspaceStore((state) => state.setLeftPaneView);
   const scope = useWorkspaceStore((state) => state.searchScope);
   const currentOnly = scope === 'current';
 
@@ -57,7 +59,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
     }
   }, [isOpen]);
 
-  // Search every tab's notes AND canvas text for the current query.
+  // Search every tab's notes, canvas, AND code text for the current query.
   const results = useMemo<SearchResult[]>(() => {
     const q = query.trim();
     if (!isOpen || q.length === 0) return [];
@@ -76,7 +78,9 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
 
       // --- Notes matches ---
       if (text) {
-        const hay = text.toLowerCase();
+        // Unescape backslashes for markdown characters (e.g. \_ -> _) so that search is matching text correctly
+        const cleanText = text.replace(/\\([\\_*`+~|{}()[\]#<>-])/g, '$1');
+        const hay = cleanText.toLowerCase();
         let idx = hay.indexOf(needle);
         let occurrence = 0;
         while (idx !== -1 && found.length < MAX_RESULTS) {
@@ -85,7 +89,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
             tabTitle: tab.title,
             source: 'notes',
             occurrence,
-            ...makeSnippet(text, idx, q.length),
+            ...makeSnippet(cleanText, idx, q.length),
           });
           occurrence += 1;
           idx = hay.indexOf(needle, idx + q.length);
@@ -108,10 +112,29 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
           ...makeSnippet(el.text, idx, q.length),
         });
       }
+
+      // --- Code matches ---
+      const codeText = isActive ? liveCode : (tab.code || '');
+      if (codeText) {
+        const hay = codeText.toLowerCase();
+        let idx = hay.indexOf(needle);
+        let occurrence = 0;
+        while (idx !== -1 && found.length < MAX_RESULTS) {
+          found.push({
+            tabId: tab.id,
+            tabTitle: tab.title,
+            source: 'code',
+            occurrence,
+            ...makeSnippet(codeText, idx, q.length),
+          });
+          occurrence += 1;
+          idx = hay.indexOf(needle, idx + q.length);
+        }
+      }
     }
 
     return found;
-  }, [query, isOpen, tabs, activeTabId, liveNotes, liveCanvas, currentOnly]);
+  }, [query, isOpen, tabs, activeTabId, liveNotes, liveCanvas, liveCode, currentOnly]);
 
   // Keep the highlighted row within range as results change.
   useEffect(() => {
@@ -187,12 +210,55 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
     setTimeout(() => waitAndSelectOnCanvas(elementId, attempts + 1), 25);
   };
 
+  // Find and select the Nth occurrence of the query inside the live code editor.
+  const selectInCodeEditor = (codeEditor: any, needle: string, occurrence: number) => {
+    const view = codeEditor?.view;
+    if (!view) return;
+    const docString = view.state.doc.toString();
+    const hay = docString.toLowerCase();
+
+    const matches: { from: number; to: number }[] = [];
+    let i = hay.indexOf(needle);
+    while (i !== -1) {
+      matches.push({ from: i, to: i + needle.length });
+      i = hay.indexOf(needle, i + needle.length);
+    }
+
+    if (matches.length === 0) return;
+    const m = matches[Math.min(occurrence, matches.length - 1)];
+
+    view.dispatch({
+      selection: { anchor: m.from, head: m.to },
+      scrollIntoView: true,
+    });
+    view.focus();
+  };
+
+  // After switching tab/layout the code editor may need a moment to mount (when the
+  // code pane was hidden) or to re-sync its content. Poll until it's ready.
+  const waitAndSelectInCode = (needle: string, occurrence: number, attempts = 0) => {
+    const codeEditor = (window as any).codeEditor;
+    const ready = codeEditor && codeEditor.view && codeEditor.view.state.doc.toString().toLowerCase().includes(needle);
+    if (ready) {
+      selectInCodeEditor(codeEditor, needle, occurrence);
+      return;
+    }
+    if (attempts >= 40) {
+      if (codeEditor) selectInCodeEditor(codeEditor, needle, occurrence);
+      return;
+    }
+    setTimeout(() => waitAndSelectInCode(needle, occurrence, attempts + 1), 25);
+  };
+
   const jumpTo = (result: SearchResult) => {
+    const needle = query.trim().toLowerCase();
+
     if (result.source === 'canvas') {
       // The target lives on the canvas, so the canvas pane must be visible.
-      if (layoutMode === 'notes-only') {
+      if (layoutMode === 'notes-only' || layoutMode === 'code') {
         setLayoutMode('split');
       }
+      setLeftPaneView('canvas'); // Ensure canvas is visible in left pane
       if (result.tabId !== activeTabId) {
         switchTab(result.tabId);
       }
@@ -201,11 +267,25 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
       return;
     }
 
+    if (result.source === 'code') {
+      // The target lives in the code editor, so the code pane must be visible.
+      // If code pane is currently hidden (notes-only or canvas-only), switch to split view.
+      if (layoutMode === 'notes-only' || layoutMode === 'canvas-only') {
+        setLayoutMode('split');
+      }
+      if (result.tabId !== activeTabId) {
+        switchTab(result.tabId);
+      }
+      onClose();
+      waitAndSelectInCode(needle, result.occurrence);
+      return;
+    }
+
     // Notes result → the find target lives in the editor, so notes must be visible.
-    const needle = query.trim().toLowerCase();
-    if (layoutMode === 'canvas-only') {
+    if (layoutMode === 'canvas-only' || layoutMode === 'code') {
       setLayoutMode('split');
     }
+    setLeftPaneView('notes'); // Ensure notes is visible in left pane
     if (result.tabId !== activeTabId) {
       switchTab(result.tabId);
     }
@@ -254,7 +334,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
           <input
             ref={inputRef}
             type="text"
-            placeholder={currentOnly ? 'Search notes & canvas in this tab...' : 'Search notes & canvas across all tabs...'}
+            placeholder={currentOnly ? 'Search notes, canvas & code in this tab...' : 'Search notes, canvas & code across all tabs...'}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -274,8 +354,8 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
           {query.trim() === '' ? (
             <div className="px-4 py-6 text-xs text-zinc-600 text-center">
               {currentOnly
-                ? 'Type to search the notes and canvas text in this tab.'
-                : 'Type to search notes and canvas text in every open tab.'}
+                ? 'Type to search notes, canvas, and code in this tab.'
+                : 'Type to search notes, canvas, and code in every open tab.'}
             </div>
           ) : results.length > 0 ? (
             results.map((r, index) => {
@@ -287,24 +367,30 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-purple-950/35 text-purple-300 border border-purple-900/40'
+                      ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/80 shadow-sm'
                       : 'border border-transparent text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   <div className="flex flex-col text-left min-w-0">
-                    <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-600 mb-0.5">
-                      {r.source === 'canvas' ? <Shapes size={9} /> : <FileText size={9} />}
+                    <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-500 mb-0.5">
+                      {r.source === 'canvas' ? (
+                        <Shapes size={9} />
+                      ) : r.source === 'code' ? (
+                        <Code size={9} />
+                      ) : (
+                        <FileText size={9} />
+                      )}
                       <span className="truncate max-w-[160px]">{r.tabTitle}</span>
-                      <span className="text-zinc-700">· {r.source}</span>
-                      {r.tabId === activeTabId && <span className="text-purple-700">· current</span>}
+                      <span className="text-zinc-650">· {r.source}</span>
+                      {r.tabId === activeTabId && <span className="text-purple-500">· current</span>}
                     </span>
                     <span className="text-xs truncate">
                       <span className="text-zinc-500">{r.before}</span>
-                      <span className="bg-purple-500/25 text-purple-200 rounded px-0.5">{r.match}</span>
+                      <span className="bg-purple-500/20 text-purple-300 rounded px-0.5">{r.match}</span>
                       <span className="text-zinc-500">{r.after}</span>
                     </span>
                   </div>
-                  {isSelected && <CornerDownLeft size={12} className="text-purple-500 flex-shrink-0" />}
+                  {isSelected && <CornerDownLeft size={12} className="text-purple-400 flex-shrink-0" />}
                 </div>
               );
             })

@@ -1,0 +1,3257 @@
+[
+  {
+    "contestId": 4,
+    "index": "A",
+    "title": "Watermelon",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Watermelon</h3><p>Codeforces Contest 4 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/4/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 71,
+    "index": "A",
+    "title": "Way Too Long Words",
+    "rating": 800,
+    "tags": [
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Way Too Long Words</h3><p>Codeforces Contest 71 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/71/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 231,
+    "index": "A",
+    "title": "Team",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Team</h3><p>Codeforces Contest 231 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/231/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 282,
+    "index": "A",
+    "title": "Bit++",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Bit++</h3><p>Codeforces Contest 282 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/282/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 158,
+    "index": "A",
+    "title": "Next Round",
+    "rating": 800,
+    "tags": [
+      "*special",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Next Round</h3><p>Codeforces Contest 158 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/158/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1,
+    "index": "A",
+    "title": "Theatre Square",
+    "rating": 1000,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Theatre Square</h3><p>Codeforces Contest 1 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 50,
+    "index": "A",
+    "title": "Domino piling",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Domino piling</h3><p>Codeforces Contest 50 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/50/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 263,
+    "index": "A",
+    "title": "Beautiful Matrix",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Beautiful Matrix</h3><p>Codeforces Contest 263 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/263/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 112,
+    "index": "A",
+    "title": "Petya and Strings",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Petya and Strings</h3><p>Codeforces Contest 112 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/112/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 236,
+    "index": "A",
+    "title": "Boy or Girl",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Boy or Girl</h3><p>Codeforces Contest 236 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/236/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 339,
+    "index": "A",
+    "title": "Helpful Maths",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "sortings",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Helpful Maths</h3><p>Codeforces Contest 339 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/339/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 281,
+    "index": "A",
+    "title": "Word Capitalization",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Word Capitalization</h3><p>Codeforces Contest 281 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/281/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 791,
+    "index": "A",
+    "title": "Bear and Big Brother",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Bear and Big Brother</h3><p>Codeforces Contest 791 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/791/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 617,
+    "index": "A",
+    "title": "Elephant",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Elephant</h3><p>Codeforces Contest 617 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/617/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 266,
+    "index": "A",
+    "title": "Stones on the Table",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Stones on the Table</h3><p>Codeforces Contest 266 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/266/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 546,
+    "index": "A",
+    "title": "Soldier and Bananas",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Soldier and Bananas</h3><p>Codeforces Contest 546 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/546/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 118,
+    "index": "A",
+    "title": "String Task",
+    "rating": 1000,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>String Task</h3><p>Codeforces Contest 118 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/118/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 59,
+    "index": "A",
+    "title": "Word",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Word</h3><p>Codeforces Contest 59 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/59/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 977,
+    "index": "A",
+    "title": "Wrong Subtraction",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Wrong Subtraction</h3><p>Codeforces Contest 977 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/977/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 69,
+    "index": "A",
+    "title": "Young Physicist",
+    "rating": 1000,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Young Physicist</h3><p>Codeforces Contest 69 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/69/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 110,
+    "index": "A",
+    "title": "Nearly Lucky Number",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Nearly Lucky Number</h3><p>Codeforces Contest 110 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/110/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 734,
+    "index": "A",
+    "title": "Anton and Danik",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Anton and Danik</h3><p>Codeforces Contest 734 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/734/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 96,
+    "index": "A",
+    "title": "Football",
+    "rating": 900,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Football</h3><p>Codeforces Contest 96 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/96/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 41,
+    "index": "A",
+    "title": "Translation",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Translation</h3><p>Codeforces Contest 41 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/41/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 677,
+    "index": "A",
+    "title": "Vanya and Fence",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vanya and Fence</h3><p>Codeforces Contest 677 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/677/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 271,
+    "index": "A",
+    "title": "Beautiful Year",
+    "rating": 800,
+    "tags": [
+      "brute force"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Beautiful Year</h3><p>Codeforces Contest 271 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/271/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 116,
+    "index": "A",
+    "title": "Tram",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Tram</h3><p>Codeforces Contest 116 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/116/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1030,
+    "index": "A",
+    "title": "In Search of an Easy Problem",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>In Search of an Easy Problem</h3><p>Codeforces Contest 1030 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1030/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 266,
+    "index": "B",
+    "title": "Queue at the School",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "graph matchings",
+      "implementation",
+      "shortest paths"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Queue at the School</h3><p>Codeforces Contest 266 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/266/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 467,
+    "index": "A",
+    "title": "George and Accommodation",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>George and Accommodation</h3><p>Codeforces Contest 467 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/467/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 58,
+    "index": "A",
+    "title": "Chat room",
+    "rating": 1000,
+    "tags": [
+      "greedy",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Chat room</h3><p>Codeforces Contest 58 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/58/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 486,
+    "index": "A",
+    "title": "Calculating Function",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Calculating Function</h3><p>Codeforces Contest 486 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/486/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 344,
+    "index": "A",
+    "title": "Magnets",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Magnets</h3><p>Codeforces Contest 344 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/344/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 122,
+    "index": "A",
+    "title": "Lucky Division",
+    "rating": 1000,
+    "tags": [
+      "brute force",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Lucky Division</h3><p>Codeforces Contest 122 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/122/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 200,
+    "index": "B",
+    "title": "Drinks",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Drinks</h3><p>Codeforces Contest 200 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/200/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 136,
+    "index": "A",
+    "title": "Presents",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Presents</h3><p>Codeforces Contest 136 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/136/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 160,
+    "index": "A",
+    "title": "Twins",
+    "rating": 900,
+    "tags": [
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Twins</h3><p>Codeforces Contest 160 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/160/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 318,
+    "index": "A",
+    "title": "Even Odds",
+    "rating": 900,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Even Odds</h3><p>Codeforces Contest 318 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/318/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 228,
+    "index": "A",
+    "title": "Is your horseshoe on the other hoof?",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Is your horseshoe on the other hoof?</h3><p>Codeforces Contest 228 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/228/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 61,
+    "index": "A",
+    "title": "Ultra-Fast Mathematician",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ultra-Fast Mathematician</h3><p>Codeforces Contest 61 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/61/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1328,
+    "index": "A",
+    "title": "Divisibility Problem",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Divisibility Problem</h3><p>Codeforces Contest 1328 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1328/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 705,
+    "index": "A",
+    "title": "Hulk",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Hulk</h3><p>Codeforces Contest 705 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/705/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 520,
+    "index": "A",
+    "title": "Pangram",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Pangram</h3><p>Codeforces Contest 520 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/520/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 405,
+    "index": "A",
+    "title": "Gravity Flip",
+    "rating": 900,
+    "tags": [
+      "greedy",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Gravity Flip</h3><p>Codeforces Contest 405 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/405/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 133,
+    "index": "A",
+    "title": "HQ9+",
+    "rating": 900,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>HQ9+</h3><p>Codeforces Contest 133 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/133/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 144,
+    "index": "A",
+    "title": "Arrival of the General",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Arrival of the General</h3><p>Codeforces Contest 144 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/144/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 469,
+    "index": "A",
+    "title": "I Wanna Be the Guy",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>I Wanna Be the Guy</h3><p>Codeforces Contest 469 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/469/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 996,
+    "index": "A",
+    "title": "Hit the Lottery",
+    "rating": 800,
+    "tags": [
+      "dp",
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Hit the Lottery</h3><p>Codeforces Contest 996 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/996/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 148,
+    "index": "A",
+    "title": "Insomnia cure",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Insomnia cure</h3><p>Codeforces Contest 148 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/148/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 443,
+    "index": "A",
+    "title": "Anton and Letters",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Anton and Letters</h3><p>Codeforces Contest 443 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/443/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 479,
+    "index": "A",
+    "title": "Expression",
+    "rating": 1000,
+    "tags": [
+      "brute force",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Expression</h3><p>Codeforces Contest 479 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/479/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 785,
+    "index": "A",
+    "title": "Anton and Polyhedrons",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Anton and Polyhedrons</h3><p>Codeforces Contest 785 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/785/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 4,
+    "index": "C",
+    "title": "Registration System",
+    "rating": 1300,
+    "tags": [
+      "data structures",
+      "hashing",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Registration System</h3><p>Codeforces Contest 4 Problem C</p><p>Rating: 1300</p><p><a href=\"https://codeforces.com/problemset/problem/4/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 510,
+    "index": "A",
+    "title": "Fox And Snake",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Fox And Snake</h3><p>Codeforces Contest 510 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/510/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1742,
+    "index": "A",
+    "title": "Sum",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sum</h3><p>Codeforces Contest 1742 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1742/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 580,
+    "index": "A",
+    "title": "Kefa and First Steps",
+    "rating": 900,
+    "tags": [
+      "brute force",
+      "dp",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Kefa and First Steps</h3><p>Codeforces Contest 580 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/580/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 208,
+    "index": "A",
+    "title": "Dubstep",
+    "rating": 900,
+    "tags": [
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Dubstep</h3><p>Codeforces Contest 208 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/208/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1335,
+    "index": "A",
+    "title": "Candies and Two Sisters",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Candies and Two Sisters</h3><p>Codeforces Contest 1335 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1335/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1352,
+    "index": "A",
+    "title": "Sum of Round Numbers",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sum of Round Numbers</h3><p>Codeforces Contest 1352 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1352/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 268,
+    "index": "A",
+    "title": "Games",
+    "rating": 800,
+    "tags": [
+      "brute force"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Games</h3><p>Codeforces Contest 268 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/268/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 158,
+    "index": "B",
+    "title": "Taxi",
+    "rating": 1100,
+    "tags": [
+      "*special",
+      "greedy",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Taxi</h3><p>Codeforces Contest 158 Problem B</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/158/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 25,
+    "index": "A",
+    "title": "IQ test",
+    "rating": 1300,
+    "tags": [
+      "brute force"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>IQ test</h3><p>Codeforces Contest 25 Problem A</p><p>Rating: 1300</p><p><a href=\"https://codeforces.com/problemset/problem/25/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 141,
+    "index": "A",
+    "title": "Amusing Joke",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "sortings",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Amusing Joke</h3><p>Codeforces Contest 141 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/141/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 723,
+    "index": "A",
+    "title": "The New Year: Meeting Friends",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>The New Year: Meeting Friends</h3><p>Codeforces Contest 723 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/723/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 131,
+    "index": "A",
+    "title": "cAPS lOCK",
+    "rating": 1000,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>cAPS lOCK</h3><p>Codeforces Contest 131 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/131/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 230,
+    "index": "A",
+    "title": "Dragons",
+    "rating": 1000,
+    "tags": [
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Dragons</h3><p>Codeforces Contest 230 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/230/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1703,
+    "index": "A",
+    "title": "YES or YES?",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>YES or YES?</h3><p>Codeforces Contest 1703 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1703/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 427,
+    "index": "A",
+    "title": "Police Recruits",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Police Recruits</h3><p>Codeforces Contest 427 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/427/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 230,
+    "index": "B",
+    "title": "T-primes",
+    "rating": 1300,
+    "tags": [
+      "binary search",
+      "implementation",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>T-primes</h3><p>Codeforces Contest 230 Problem B</p><p>Rating: 1300</p><p><a href=\"https://codeforces.com/problemset/problem/230/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1899,
+    "index": "A",
+    "title": "Game with Integers",
+    "rating": 800,
+    "tags": [
+      "games",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Game with Integers</h3><p>Codeforces Contest 1899 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1899/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 151,
+    "index": "A",
+    "title": "Soft Drinking",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Soft Drinking</h3><p>Codeforces Contest 151 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/151/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 337,
+    "index": "A",
+    "title": "Puzzles",
+    "rating": 900,
+    "tags": [
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Puzzles</h3><p>Codeforces Contest 337 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/337/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 630,
+    "index": "A",
+    "title": "Again Twenty Five!",
+    "rating": 800,
+    "tags": [
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Again Twenty Five!</h3><p>Codeforces Contest 630 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/630/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 155,
+    "index": "A",
+    "title": "I_love_\\%username\\%",
+    "rating": 800,
+    "tags": [
+      "brute force"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>I_love_\\%username\\%</h3><p>Codeforces Contest 155 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/155/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 750,
+    "index": "A",
+    "title": "New Year and Hurry",
+    "rating": 800,
+    "tags": [
+      "binary search",
+      "brute force",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>New Year and Hurry</h3><p>Codeforces Contest 750 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/750/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 381,
+    "index": "A",
+    "title": "Sereja and Dima",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sereja and Dima</h3><p>Codeforces Contest 381 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/381/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 492,
+    "index": "B",
+    "title": "Vanya and Lanterns",
+    "rating": 1200,
+    "tags": [
+      "binary search",
+      "implementation",
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vanya and Lanterns</h3><p>Codeforces Contest 492 Problem B</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/492/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1669,
+    "index": "A",
+    "title": "Division?",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Division?</h3><p>Codeforces Contest 1669 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1669/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 732,
+    "index": "A",
+    "title": "Buy a Shovel",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "constructive algorithms",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Buy a Shovel</h3><p>Codeforces Contest 732 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/732/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1475,
+    "index": "A",
+    "title": "Odd Divisor",
+    "rating": 900,
+    "tags": [
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Odd Divisor</h3><p>Codeforces Contest 1475 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1475/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1676,
+    "index": "A",
+    "title": "Lucky?",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Lucky?</h3><p>Codeforces Contest 1676 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1676/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1154,
+    "index": "A",
+    "title": "Restoring Three Numbers",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Restoring Three Numbers</h3><p>Codeforces Contest 1154 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1154/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1692,
+    "index": "A",
+    "title": "Marathon",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Marathon</h3><p>Codeforces Contest 1692 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1692/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 706,
+    "index": "B",
+    "title": "Interesting drink",
+    "rating": 1100,
+    "tags": [
+      "binary search",
+      "dp",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Interesting drink</h3><p>Codeforces Contest 706 Problem B</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/706/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1807,
+    "index": "A",
+    "title": "Plus or Minus",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Plus or Minus</h3><p>Codeforces Contest 1807 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1807/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 581,
+    "index": "A",
+    "title": "Vasya the Hipster",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vasya the Hipster</h3><p>Codeforces Contest 581 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/581/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1999,
+    "index": "A",
+    "title": "A+B Again?",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>A+B Again?</h3><p>Codeforces Contest 1999 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1999/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1903,
+    "index": "A",
+    "title": "Halloumi Boxes",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Halloumi Boxes</h3><p>Codeforces Contest 1903 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1903/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 339,
+    "index": "B",
+    "title": "Xenia and Ringroad",
+    "rating": 1000,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Xenia and Ringroad</h3><p>Codeforces Contest 339 Problem B</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/339/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 189,
+    "index": "A",
+    "title": "Cut Ribbon",
+    "rating": 1300,
+    "tags": [
+      "brute force",
+      "dp"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Cut Ribbon</h3><p>Codeforces Contest 189 Problem A</p><p>Rating: 1300</p><p><a href=\"https://codeforces.com/problemset/problem/189/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1878,
+    "index": "A",
+    "title": "How Much Does Daytona Cost?",
+    "rating": 800,
+    "tags": [
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>How Much Does Daytona Cost?</h3><p>Codeforces Contest 1878 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1878/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1791,
+    "index": "A",
+    "title": "Codeforces Checking",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Codeforces Checking</h3><p>Codeforces Contest 1791 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1791/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1857,
+    "index": "A",
+    "title": "Array Coloring",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Array Coloring</h3><p>Codeforces Contest 1857 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1857/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1399,
+    "index": "A",
+    "title": "Remove Smallest",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Remove Smallest</h3><p>Codeforces Contest 1399 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1399/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1409,
+    "index": "A",
+    "title": "Yet Another Two Integers Problem",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Yet Another Two Integers Problem</h3><p>Codeforces Contest 1409 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1409/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1512,
+    "index": "A",
+    "title": "Spy Detected!",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Spy Detected!</h3><p>Codeforces Contest 1512 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1512/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1915,
+    "index": "A",
+    "title": "Odd One Out",
+    "rating": 800,
+    "tags": [
+      "bitmasks",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Odd One Out</h3><p>Codeforces Contest 1915 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1915/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1760,
+    "index": "A",
+    "title": "Medium Number",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Medium Number</h3><p>Codeforces Contest 1760 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1760/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 32,
+    "index": "B",
+    "title": "Borze",
+    "rating": 800,
+    "tags": [
+      "expression parsing",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Borze</h3><p>Codeforces Contest 32 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/32/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1829,
+    "index": "B",
+    "title": "Blank Space",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Blank Space</h3><p>Codeforces Contest 1829 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1829/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 579,
+    "index": "A",
+    "title": "Raising Bacteria",
+    "rating": 1000,
+    "tags": [
+      "bitmasks"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Raising Bacteria</h3><p>Codeforces Contest 579 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/579/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1901,
+    "index": "A",
+    "title": "Line Trip",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Line Trip</h3><p>Codeforces Contest 1901 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1901/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 466,
+    "index": "A",
+    "title": "Cheap Travel",
+    "rating": 1200,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Cheap Travel</h3><p>Codeforces Contest 466 Problem A</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/466/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1791,
+    "index": "C",
+    "title": "Prepend and Append",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Prepend and Append</h3><p>Codeforces Contest 1791 Problem C</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1791/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 451,
+    "index": "A",
+    "title": "Game With Sticks",
+    "rating": 900,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Game With Sticks</h3><p>Codeforces Contest 451 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/451/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 758,
+    "index": "A",
+    "title": "Holiday Of Equality",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Holiday Of Equality</h3><p>Codeforces Contest 758 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/758/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1850,
+    "index": "A",
+    "title": "To My Critics",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>To My Critics</h3><p>Codeforces Contest 1850 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1850/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 279,
+    "index": "B",
+    "title": "Books",
+    "rating": 1400,
+    "tags": [
+      "binary search",
+      "brute force",
+      "implementation",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Books</h3><p>Codeforces Contest 279 Problem B</p><p>Rating: 1400</p><p><a href=\"https://codeforces.com/problemset/problem/279/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1560,
+    "index": "A",
+    "title": "Dislike of Threes",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Dislike of Threes</h3><p>Codeforces Contest 1560 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1560/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2009,
+    "index": "A",
+    "title": "Minimize!",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Minimize!</h3><p>Codeforces Contest 2009 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2009/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1374,
+    "index": "B",
+    "title": "Multiply by 2, divide by 6",
+    "rating": 900,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Multiply by 2, divide by 6</h3><p>Codeforces Contest 1374 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1374/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1985,
+    "index": "A",
+    "title": "Creating Words",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Creating Words</h3><p>Codeforces Contest 1985 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1985/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 455,
+    "index": "A",
+    "title": "Boredom",
+    "rating": 1500,
+    "tags": [
+      "dp"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Boredom</h3><p>Codeforces Contest 455 Problem A</p><p>Rating: 1500</p><p><a href=\"https://codeforces.com/problemset/problem/455/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 514,
+    "index": "A",
+    "title": "Chewbaсca and Number",
+    "rating": 1200,
+    "tags": [
+      "greedy",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Chewbaсca and Number</h3><p>Codeforces Contest 514 Problem A</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/514/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1873,
+    "index": "C",
+    "title": "Target Practice",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Target Practice</h3><p>Codeforces Contest 1873 Problem C</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1873/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1873,
+    "index": "A",
+    "title": "Short Sort",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Short Sort</h3><p>Codeforces Contest 1873 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1873/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 490,
+    "index": "A",
+    "title": "Team Olympiad",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Team Olympiad</h3><p>Codeforces Contest 490 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/490/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1829,
+    "index": "A",
+    "title": "Love Story",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Love Story</h3><p>Codeforces Contest 1829 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1829/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 472,
+    "index": "A",
+    "title": "Design Tutorial: Learn from Math",
+    "rating": 800,
+    "tags": [
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Design Tutorial: Learn from Math</h3><p>Codeforces Contest 472 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/472/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1352,
+    "index": "C",
+    "title": "K-th Not Divisible by n",
+    "rating": 1200,
+    "tags": [
+      "binary search",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>K-th Not Divisible by n</h3><p>Codeforces Contest 1352 Problem C</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/1352/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 9,
+    "index": "A",
+    "title": "Die Roll",
+    "rating": 800,
+    "tags": [
+      "math",
+      "probabilities"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Die Roll</h3><p>Codeforces Contest 9 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/9/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1950,
+    "index": "A",
+    "title": "Stair, Peak, or Neither?",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Stair, Peak, or Neither?</h3><p>Codeforces Contest 1950 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1950/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 432,
+    "index": "A",
+    "title": "Choosing Teams",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Choosing Teams</h3><p>Codeforces Contest 432 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/432/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 43,
+    "index": "A",
+    "title": "Football",
+    "rating": 1000,
+    "tags": [
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Football</h3><p>Codeforces Contest 43 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/43/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1858,
+    "index": "A",
+    "title": "Buttons",
+    "rating": 800,
+    "tags": [
+      "games",
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Buttons</h3><p>Codeforces Contest 1858 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1858/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 363,
+    "index": "B",
+    "title": "Fence",
+    "rating": 1100,
+    "tags": [
+      "brute force",
+      "dp"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Fence</h3><p>Codeforces Contest 363 Problem B</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/363/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1367,
+    "index": "A",
+    "title": "Short Substrings",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Short Substrings</h3><p>Codeforces Contest 1367 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1367/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1900,
+    "index": "A",
+    "title": "Cover in Water",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "greedy",
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Cover in Water</h3><p>Codeforces Contest 1900 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1900/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 703,
+    "index": "A",
+    "title": "Mishka and Game",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Mishka and Game</h3><p>Codeforces Contest 703 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/703/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1703,
+    "index": "B",
+    "title": "ICPC Balloons",
+    "rating": 800,
+    "tags": [
+      "data structures",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>ICPC Balloons</h3><p>Codeforces Contest 1703 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1703/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 80,
+    "index": "A",
+    "title": "Panoramix's Prediction",
+    "rating": 800,
+    "tags": [
+      "brute force"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Panoramix's Prediction</h3><p>Codeforces Contest 80 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/80/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 34,
+    "index": "B",
+    "title": "Sale",
+    "rating": 900,
+    "tags": [
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sale</h3><p>Codeforces Contest 34 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/34/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 431,
+    "index": "A",
+    "title": "Black Square",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Black Square</h3><p>Codeforces Contest 431 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/431/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1722,
+    "index": "A",
+    "title": "Spell Check",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Spell Check</h3><p>Codeforces Contest 1722 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1722/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1520,
+    "index": "D",
+    "title": "Same Differences",
+    "rating": 1200,
+    "tags": [
+      "data structures",
+      "hashing",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Same Differences</h3><p>Codeforces Contest 1520 Problem D</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/1520/D\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1343,
+    "index": "B",
+    "title": "Balanced Array",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Balanced Array</h3><p>Codeforces Contest 1343 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1343/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1370,
+    "index": "A",
+    "title": "Maximum GCD",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Maximum GCD</h3><p>Codeforces Contest 1370 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1370/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 313,
+    "index": "A",
+    "title": "Ilya and Bank Account",
+    "rating": 900,
+    "tags": [
+      "implementation",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ilya and Bank Account</h3><p>Codeforces Contest 313 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/313/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1374,
+    "index": "C",
+    "title": "Move Brackets",
+    "rating": 1000,
+    "tags": [
+      "greedy",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Move Brackets</h3><p>Codeforces Contest 1374 Problem C</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1374/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1374,
+    "index": "A",
+    "title": "Required Remainder",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Required Remainder</h3><p>Codeforces Contest 1374 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1374/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1367,
+    "index": "B",
+    "title": "Even Array",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Even Array</h3><p>Codeforces Contest 1367 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1367/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 492,
+    "index": "A",
+    "title": "Vanya and Cubes",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vanya and Cubes</h3><p>Codeforces Contest 492 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/492/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 474,
+    "index": "B",
+    "title": "Worms",
+    "rating": 1200,
+    "tags": [
+      "binary search",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Worms</h3><p>Codeforces Contest 474 Problem B</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/474/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 500,
+    "index": "A",
+    "title": "New Year Transportation",
+    "rating": 1000,
+    "tags": [
+      "dfs and similar",
+      "graphs",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>New Year Transportation</h3><p>Codeforces Contest 500 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/500/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 520,
+    "index": "B",
+    "title": "Two Buttons",
+    "rating": 1400,
+    "tags": [
+      "dfs and similar",
+      "graphs",
+      "greedy",
+      "implementation",
+      "math",
+      "shortest paths"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Two Buttons</h3><p>Codeforces Contest 520 Problem B</p><p>Rating: 1400</p><p><a href=\"https://codeforces.com/problemset/problem/520/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1873,
+    "index": "B",
+    "title": "Good Kid",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Good Kid</h3><p>Codeforces Contest 1873 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1873/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1619,
+    "index": "A",
+    "title": "Square String?",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Square String?</h3><p>Codeforces Contest 1619 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1619/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1433,
+    "index": "A",
+    "title": "Boring Apartments",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Boring Apartments</h3><p>Codeforces Contest 1433 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1433/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1850,
+    "index": "D",
+    "title": "Balanced Round",
+    "rating": 900,
+    "tags": [
+      "brute force",
+      "greedy",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Balanced Round</h3><p>Codeforces Contest 1850 Problem D</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1850/D\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1926,
+    "index": "A",
+    "title": "Vlad and the Best of Five",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vlad and the Best of Five</h3><p>Codeforces Contest 1926 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1926/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1881,
+    "index": "A",
+    "title": "Don't Try to Count",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Don't Try to Count</h3><p>Codeforces Contest 1881 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1881/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2044,
+    "index": "A",
+    "title": "Easy Problem",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Easy Problem</h3><p>Codeforces Contest 2044 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2044/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1883,
+    "index": "B",
+    "title": "Chemistry",
+    "rating": 900,
+    "tags": [
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Chemistry</h3><p>Codeforces Contest 1883 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1883/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1742,
+    "index": "B",
+    "title": "Increasing",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Increasing</h3><p>Codeforces Contest 1742 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1742/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1283,
+    "index": "A",
+    "title": "Minutes Before the New Year",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Minutes Before the New Year</h3><p>Codeforces Contest 1283 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1283/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1676,
+    "index": "B",
+    "title": "Equal Candies",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Equal Candies</h3><p>Codeforces Contest 1676 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1676/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1772,
+    "index": "A",
+    "title": "A+B?",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>A+B?</h3><p>Codeforces Contest 1772 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1772/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1624,
+    "index": "A",
+    "title": "Plus One on the Subset",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Plus One on the Subset</h3><p>Codeforces Contest 1624 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1624/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1896,
+    "index": "A",
+    "title": "Jagged Swaps",
+    "rating": 800,
+    "tags": [
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Jagged Swaps</h3><p>Codeforces Contest 1896 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1896/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1472,
+    "index": "B",
+    "title": "Fair Division",
+    "rating": 800,
+    "tags": [
+      "dp",
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Fair Division</h3><p>Codeforces Contest 1472 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1472/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1971,
+    "index": "A",
+    "title": "My First Sorting Problem",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>My First Sorting Problem</h3><p>Codeforces Contest 1971 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1971/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2167,
+    "index": "A",
+    "title": "Square?",
+    "rating": 800,
+    "tags": [
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Square?</h3><p>Codeforces Contest 2167 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2167/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1878,
+    "index": "C",
+    "title": "Vasilije in Cacak",
+    "rating": 900,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vasilije in Cacak</h3><p>Codeforces Contest 1878 Problem C</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1878/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1890,
+    "index": "A",
+    "title": "Doremy's Paint 3",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Doremy's Paint 3</h3><p>Codeforces Contest 1890 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1890/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1520,
+    "index": "A",
+    "title": "Do Not Be Distracted!",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Do Not Be Distracted!</h3><p>Codeforces Contest 1520 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1520/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1807,
+    "index": "D",
+    "title": "Odd Queries",
+    "rating": 900,
+    "tags": [
+      "data structures",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Odd Queries</h3><p>Codeforces Contest 1807 Problem D</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1807/D\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1551,
+    "index": "A",
+    "title": "Polycarp and Coins",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Polycarp and Coins</h3><p>Codeforces Contest 1551 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1551/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1353,
+    "index": "B",
+    "title": "Two Arrays And Swaps",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Two Arrays And Swaps</h3><p>Codeforces Contest 1353 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1353/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1853,
+    "index": "A",
+    "title": "Desorting",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Desorting</h3><p>Codeforces Contest 1853 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1853/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1996,
+    "index": "A",
+    "title": "Legs",
+    "rating": 800,
+    "tags": [
+      "binary search",
+      "math",
+      "ternary search"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Legs</h3><p>Codeforces Contest 1996 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1996/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1475,
+    "index": "B",
+    "title": "New Year's Number",
+    "rating": 900,
+    "tags": [
+      "brute force",
+      "dp",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>New Year's Number</h3><p>Codeforces Contest 1475 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1475/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 749,
+    "index": "A",
+    "title": "Bachgold Problem",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Bachgold Problem</h3><p>Codeforces Contest 749 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/749/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1535,
+    "index": "A",
+    "title": "Fair Playoff",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Fair Playoff</h3><p>Codeforces Contest 1535 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1535/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1862,
+    "index": "B",
+    "title": "Sequence Game",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sequence Game</h3><p>Codeforces Contest 1862 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1862/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 456,
+    "index": "A",
+    "title": "Laptops",
+    "rating": 1100,
+    "tags": [
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Laptops</h3><p>Codeforces Contest 456 Problem A</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/456/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 489,
+    "index": "B",
+    "title": "BerSU Ball",
+    "rating": 1200,
+    "tags": [
+      "dfs and similar",
+      "dp",
+      "graph matchings",
+      "greedy",
+      "sortings",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>BerSU Ball</h3><p>Codeforces Contest 489 Problem B</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/489/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1360,
+    "index": "A",
+    "title": "Minimal Square",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Minimal Square</h3><p>Codeforces Contest 1360 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1360/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1985,
+    "index": "B",
+    "title": "Maximum Multiple Sum",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Maximum Multiple Sum</h3><p>Codeforces Contest 1985 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1985/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2094,
+    "index": "A",
+    "title": "Trippi Troppi",
+    "rating": 800,
+    "tags": [
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Trippi Troppi</h3><p>Codeforces Contest 2094 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2094/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1837,
+    "index": "A",
+    "title": "Grasshopper on a Line",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Grasshopper on a Line</h3><p>Codeforces Contest 1837 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1837/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1722,
+    "index": "B",
+    "title": "Colourblindness",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Colourblindness</h3><p>Codeforces Contest 1722 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1722/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1859,
+    "index": "A",
+    "title": "United We Stand",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>United We Stand</h3><p>Codeforces Contest 1859 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1859/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 580,
+    "index": "C",
+    "title": "Kefa and Park",
+    "rating": 1500,
+    "tags": [
+      "dfs and similar",
+      "graphs",
+      "trees"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Kefa and Park</h3><p>Codeforces Contest 580 Problem C</p><p>Rating: 1500</p><p><a href=\"https://codeforces.com/problemset/problem/580/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2065,
+    "index": "A",
+    "title": "Skibidus and Amog'u",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "constructive algorithms",
+      "greedy",
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Skibidus and Amog'u</h3><p>Codeforces Contest 2065 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2065/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 707,
+    "index": "A",
+    "title": "Brain's Photos",
+    "rating": 800,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Brain's Photos</h3><p>Codeforces Contest 707 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/707/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1669,
+    "index": "B",
+    "title": "Triple",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Triple</h3><p>Codeforces Contest 1669 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1669/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 474,
+    "index": "A",
+    "title": "Keyboard",
+    "rating": 900,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Keyboard</h3><p>Codeforces Contest 474 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/474/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 959,
+    "index": "A",
+    "title": "Mahmoud and Ehab and the even-odd game",
+    "rating": 800,
+    "tags": [
+      "games",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Mahmoud and Ehab and the even-odd game</h3><p>Codeforces Contest 959 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/959/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 702,
+    "index": "A",
+    "title": "Maximum Increase",
+    "rating": 800,
+    "tags": [
+      "dp",
+      "greedy",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Maximum Increase</h3><p>Codeforces Contest 702 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/702/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1788,
+    "index": "A",
+    "title": "One and Two",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>One and Two</h3><p>Codeforces Contest 1788 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1788/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 313,
+    "index": "B",
+    "title": "Ilya and Queries",
+    "rating": 1100,
+    "tags": [
+      "dp",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ilya and Queries</h3><p>Codeforces Contest 313 Problem B</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/313/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1426,
+    "index": "A",
+    "title": "Floor Number",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Floor Number</h3><p>Codeforces Contest 1426 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1426/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1877,
+    "index": "A",
+    "title": "Goals of Victory",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Goals of Victory</h3><p>Codeforces Contest 1877 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1877/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 433,
+    "index": "B",
+    "title": "Kuriyama Mirai's Stones",
+    "rating": 1200,
+    "tags": [
+      "dp",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Kuriyama Mirai's Stones</h3><p>Codeforces Contest 433 Problem B</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/433/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1915,
+    "index": "C",
+    "title": "Can I Square?",
+    "rating": 800,
+    "tags": [
+      "binary search",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Can I Square?</h3><p>Codeforces Contest 1915 Problem C</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1915/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1624,
+    "index": "B",
+    "title": "Make AP",
+    "rating": 900,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Make AP</h3><p>Codeforces Contest 1624 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1624/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1373,
+    "index": "B",
+    "title": "01 Game",
+    "rating": 900,
+    "tags": [
+      "games"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>01 Game</h3><p>Codeforces Contest 1373 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1373/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1360,
+    "index": "B",
+    "title": "Honest Coach",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Honest Coach</h3><p>Codeforces Contest 1360 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1360/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1850,
+    "index": "C",
+    "title": "Word on the Paper",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Word on the Paper</h3><p>Codeforces Contest 1850 Problem C</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1850/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1866,
+    "index": "A",
+    "title": "Ambitious Kid",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ambitious Kid</h3><p>Codeforces Contest 1866 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1866/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1294,
+    "index": "A",
+    "title": "Collecting Coins",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Collecting Coins</h3><p>Codeforces Contest 1294 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1294/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1760,
+    "index": "B",
+    "title": "Atilla's Favorite Problem",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Atilla's Favorite Problem</h3><p>Codeforces Contest 1760 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1760/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1343,
+    "index": "A",
+    "title": "Candies",
+    "rating": 900,
+    "tags": [
+      "brute force",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Candies</h3><p>Codeforces Contest 1343 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1343/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1814,
+    "index": "A",
+    "title": "Coins",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Coins</h3><p>Codeforces Contest 1814 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1814/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 379,
+    "index": "A",
+    "title": "New Year Candles",
+    "rating": 1000,
+    "tags": [
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>New Year Candles</h3><p>Codeforces Contest 379 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/379/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2009,
+    "index": "B",
+    "title": "osu!mania",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>osu!mania</h3><p>Codeforces Contest 2009 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2009/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 731,
+    "index": "A",
+    "title": "Night at the Museum",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Night at the Museum</h3><p>Codeforces Contest 731 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/731/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 451,
+    "index": "B",
+    "title": "Sort the Array",
+    "rating": 1300,
+    "tags": [
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sort the Array</h3><p>Codeforces Contest 451 Problem B</p><p>Rating: 1300</p><p><a href=\"https://codeforces.com/problemset/problem/451/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1913,
+    "index": "B",
+    "title": "Swap and Delete",
+    "rating": 1000,
+    "tags": [
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Swap and Delete</h3><p>Codeforces Contest 1913 Problem B</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1913/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1955,
+    "index": "A",
+    "title": "Yogurt Sale",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Yogurt Sale</h3><p>Codeforces Contest 1955 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1955/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1791,
+    "index": "B",
+    "title": "Following Directions",
+    "rating": 800,
+    "tags": [
+      "geometry",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Following Directions</h3><p>Codeforces Contest 1791 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1791/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 584,
+    "index": "A",
+    "title": "Olesya and Rodion",
+    "rating": 1000,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Olesya and Rodion</h3><p>Codeforces Contest 584 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/584/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2167,
+    "index": "B",
+    "title": "Your Name",
+    "rating": 800,
+    "tags": [
+      "sortings",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Your Name</h3><p>Codeforces Contest 2167 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2167/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2044,
+    "index": "B",
+    "title": "Normal Problem",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Normal Problem</h3><p>Codeforces Contest 2044 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2044/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 742,
+    "index": "A",
+    "title": "Arpa’s hard exam and Mehrdad’s naive cheat",
+    "rating": 1000,
+    "tags": [
+      "implementation",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Arpa’s hard exam and Mehrdad’s naive cheat</h3><p>Codeforces Contest 742 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/742/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 460,
+    "index": "A",
+    "title": "Vasya and Socks",
+    "rating": 900,
+    "tags": [
+      "brute force",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Vasya and Socks</h3><p>Codeforces Contest 460 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/460/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1883,
+    "index": "C",
+    "title": "Raspberries",
+    "rating": 1000,
+    "tags": [
+      "dp",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Raspberries</h3><p>Codeforces Contest 1883 Problem C</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1883/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2126,
+    "index": "A",
+    "title": "Only One Digit",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Only One Digit</h3><p>Codeforces Contest 2126 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2126/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 489,
+    "index": "C",
+    "title": "Given Length and Sum of Digits...",
+    "rating": 1400,
+    "tags": [
+      "dp",
+      "greedy",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Given Length and Sum of Digits...</h3><p>Codeforces Contest 489 Problem C</p><p>Rating: 1400</p><p><a href=\"https://codeforces.com/problemset/problem/489/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 476,
+    "index": "A",
+    "title": "Dreamoon and Stairs",
+    "rating": 1000,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Dreamoon and Stairs</h3><p>Codeforces Contest 476 Problem A</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/476/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1542,
+    "index": "A",
+    "title": "Odd Set",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Odd Set</h3><p>Codeforces Contest 1542 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1542/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1837,
+    "index": "B",
+    "title": "Comparison String",
+    "rating": 900,
+    "tags": [
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Comparison String</h3><p>Codeforces Contest 1837 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1837/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1927,
+    "index": "A",
+    "title": "Make it White",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Make it White</h3><p>Codeforces Contest 1927 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1927/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1371,
+    "index": "A",
+    "title": "Magical Sticks",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Magical Sticks</h3><p>Codeforces Contest 1371 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1371/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 270,
+    "index": "A",
+    "title": "Fancy Fence",
+    "rating": 1100,
+    "tags": [
+      "geometry",
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Fancy Fence</h3><p>Codeforces Contest 270 Problem A</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/270/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1783,
+    "index": "A",
+    "title": "Make it Beautiful",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Make it Beautiful</h3><p>Codeforces Contest 1783 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1783/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1791,
+    "index": "D",
+    "title": "Distinct Split",
+    "rating": 1000,
+    "tags": [
+      "brute force",
+      "greedy",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Distinct Split</h3><p>Codeforces Contest 1791 Problem D</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1791/D\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1915,
+    "index": "B",
+    "title": "Not Quite Latin Square",
+    "rating": 800,
+    "tags": [
+      "bitmasks",
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Not Quite Latin Square</h3><p>Codeforces Contest 1915 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1915/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1850,
+    "index": "B",
+    "title": "Ten Words of Wisdom",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ten Words of Wisdom</h3><p>Codeforces Contest 1850 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1850/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1389,
+    "index": "A",
+    "title": "LCM Problem",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "greedy",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>LCM Problem</h3><p>Codeforces Contest 1389 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1389/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 327,
+    "index": "A",
+    "title": "Flipping Game",
+    "rating": 1200,
+    "tags": [
+      "brute force",
+      "dp",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Flipping Game</h3><p>Codeforces Contest 327 Problem A</p><p>Rating: 1200</p><p><a href=\"https://codeforces.com/problemset/problem/327/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 977,
+    "index": "B",
+    "title": "Two-gram",
+    "rating": 900,
+    "tags": [
+      "implementation",
+      "strings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Two-gram</h3><p>Codeforces Contest 977 Problem B</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/977/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 368,
+    "index": "B",
+    "title": "Sereja and Suffixes",
+    "rating": 1100,
+    "tags": [
+      "data structures",
+      "dp"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sereja and Suffixes</h3><p>Codeforces Contest 368 Problem B</p><p>Rating: 1100</p><p><a href=\"https://codeforces.com/problemset/problem/368/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1520,
+    "index": "B",
+    "title": "Ordinary Numbers",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ordinary Numbers</h3><p>Codeforces Contest 1520 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1520/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1921,
+    "index": "A",
+    "title": "Square",
+    "rating": 800,
+    "tags": [
+      "greedy",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Square</h3><p>Codeforces Contest 1921 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1921/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1845,
+    "index": "A",
+    "title": "Forbidden Integer",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms",
+      "implementation",
+      "math",
+      "number theory"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Forbidden Integer</h3><p>Codeforces Contest 1845 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1845/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1807,
+    "index": "B",
+    "title": "Grab the Candies",
+    "rating": 800,
+    "tags": [
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Grab the Candies</h3><p>Codeforces Contest 1807 Problem B</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1807/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1992,
+    "index": "A",
+    "title": "Only Pluses",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "constructive algorithms",
+      "greedy",
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Only Pluses</h3><p>Codeforces Contest 1992 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1992/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 233,
+    "index": "A",
+    "title": "Perfect Permutation",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Perfect Permutation</h3><p>Codeforces Contest 233 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/233/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1462,
+    "index": "A",
+    "title": "Favorite Sequence",
+    "rating": 800,
+    "tags": [
+      "implementation",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Favorite Sequence</h3><p>Codeforces Contest 1462 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1462/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1840,
+    "index": "C",
+    "title": "Ski Resort",
+    "rating": 1000,
+    "tags": [
+      "combinatorics",
+      "math",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Ski Resort</h3><p>Codeforces Contest 1840 Problem C</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1840/C\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1875,
+    "index": "A",
+    "title": "Jellyfish and Undertale",
+    "rating": 900,
+    "tags": [
+      "brute force",
+      "greedy"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Jellyfish and Undertale</h3><p>Codeforces Contest 1875 Problem A</p><p>Rating: 900</p><p><a href=\"https://codeforces.com/problemset/problem/1875/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1296,
+    "index": "A",
+    "title": "Array with Odd Sum",
+    "rating": 800,
+    "tags": [
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Array with Odd Sum</h3><p>Codeforces Contest 1296 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1296/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1690,
+    "index": "D",
+    "title": "Black and White Stripe",
+    "rating": 1000,
+    "tags": [
+      "implementation",
+      "two pointers"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Black and White Stripe</h3><p>Codeforces Contest 1690 Problem D</p><p>Rating: 1000</p><p><a href=\"https://codeforces.com/problemset/problem/1690/D\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 2148,
+    "index": "A",
+    "title": "Sublime Sequence",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "hashing",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Sublime Sequence</h3><p>Codeforces Contest 2148 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/2148/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1766,
+    "index": "A",
+    "title": "Extremely Round",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "implementation"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Extremely Round</h3><p>Codeforces Contest 1766 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1766/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1986,
+    "index": "A",
+    "title": "X Axis",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "geometry",
+      "math",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>X Axis</h3><p>Codeforces Contest 1986 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1986/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1831,
+    "index": "A",
+    "title": "Twin Permutations",
+    "rating": 800,
+    "tags": [
+      "constructive algorithms"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Twin Permutations</h3><p>Codeforces Contest 1831 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1831/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 459,
+    "index": "B",
+    "title": "Pashmak and Flowers",
+    "rating": 1300,
+    "tags": [
+      "combinatorics",
+      "implementation",
+      "sortings"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Pashmak and Flowers</h3><p>Codeforces Contest 459 Problem B</p><p>Rating: 1300</p><p><a href=\"https://codeforces.com/problemset/problem/459/B\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  },
+  {
+    "contestId": 1941,
+    "index": "A",
+    "title": "Rudolf and the Ticket",
+    "rating": 800,
+    "tags": [
+      "brute force",
+      "math"
+    ],
+    "boilerplate": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write solution here\n    return 0;\n}",
+    "statement": "<h3>Rudolf and the Ticket</h3><p>Codeforces Contest 1941 Problem A</p><p>Rating: 800</p><p><a href=\"https://codeforces.com/problemset/problem/1941/A\" target=\"_blank\">View full description on Codeforces</a></p>",
+    "examples": []
+  }
+]

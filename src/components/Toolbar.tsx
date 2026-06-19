@@ -10,10 +10,17 @@ import {
   Code2,
   Loader2,
   Check,
-  AlertCircle
+  AlertCircle,
+  User,
+  TrendingUp
 } from 'lucide-react';
 
-export const Toolbar: React.FC = () => {
+interface ToolbarProps {
+  onOpenProfile?: () => void;
+  onOpenAnalytics?: () => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({ onOpenProfile, onOpenAnalytics }) => {
   // Subscribe reactively ONLY to layout changes and save states
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
   const saveStatus = useWorkspaceStore((state) => state.saveStatus);
@@ -267,6 +274,28 @@ export const Toolbar: React.FC = () => {
             <ImageIcon size={13} />
           )}
           <span className="hidden sm:inline">Canvas (.png)</span>
+        </button>
+
+        <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+
+        {/* User Profile settings drawer trigger */}
+        <button
+          onClick={onOpenProfile}
+          className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs cursor-pointer text-purple-400 hover:text-purple-300"
+          title="Profile & Settings"
+        >
+          <User size={13} />
+          <span className="hidden sm:inline">Profile</span>
+        </button>
+
+        {/* User Analytics dashboard trigger */}
+        <button
+          onClick={onOpenAnalytics}
+          className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs cursor-pointer text-purple-400 hover:text-purple-300 ml-1"
+          title="Growth & Analytics Stats"
+        >
+          <TrendingUp size={13} />
+          <span className="hidden sm:inline">Stats</span>
         </button>
       </div>
     </header>
