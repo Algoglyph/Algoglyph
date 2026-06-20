@@ -242,15 +242,15 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-start justify-center pt-[15vh]">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[15vh]">
       {/* Backdrop click to close */}
       <div className="absolute inset-0 z-0 cursor-default" onClick={onClose} />
 
       {/* Main Palette Box */}
-      <div className="w-full max-w-lg bg-zinc-950 border border-zinc-900 rounded-lg shadow-2xl overflow-hidden flex flex-col font-mono z-10 mx-4">
+      <div className="w-full max-w-lg bg-canvas border border-hairline rounded-xl shadow-[var(--shadow-modal)] ring-1 ring-hairline overflow-hidden flex flex-col font-mono z-10 mx-4">
         {/* Input area */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-900 bg-zinc-950">
-          <Search size={16} className="text-zinc-500" />
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-hairline bg-transparent">
+          <Search size={16} className="text-body" />
           <input
             ref={inputRef}
             type="text"
@@ -260,19 +260,19 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="flex-1 bg-transparent text-sm text-zinc-100 focus:outline-none placeholder-zinc-700"
+            className="flex-1 bg-transparent text-sm text-ink focus:outline-none placeholder-mute"
           />
           {query.trim() !== '' && (
-            <span className="text-[10px] text-zinc-600 select-none whitespace-nowrap">
+            <span className="text-[10px] text-mute select-none whitespace-nowrap">
               {results.length}{results.length >= MAX_RESULTS ? '+' : ''} match{results.length === 1 ? '' : 'es'}
             </span>
           )}
         </div>
 
         {/* List of matches */}
-        <div className="max-h-72 overflow-y-auto p-1.5 bg-zinc-950/40">
+        <div className="max-h-72 overflow-y-auto p-1.5 bg-transparent">
           {query.trim() === '' ? (
-            <div className="px-4 py-6 text-xs text-zinc-600 text-center">
+            <div className="px-4 py-6 text-xs text-mute text-center">
               {currentOnly
                 ? 'Type to search the notes and canvas text in this tab.'
                 : 'Type to search notes and canvas text in every open tab.'}
@@ -287,36 +287,36 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-purple-950/35 text-purple-300 border border-purple-900/40'
-                      : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+                      ? 'bg-link/10 text-link ring-1 ring-inset ring-link/30'
+                      : 'border border-transparent text-body hover:text-ink'
                   }`}
                 >
                   <div className="flex flex-col text-left min-w-0">
-                    <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-600 mb-0.5">
+                    <span className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-mute mb-0.5">
                       {r.source === 'canvas' ? <Shapes size={9} /> : <FileText size={9} />}
                       <span className="truncate max-w-[160px]">{r.tabTitle}</span>
-                      <span className="text-zinc-700">· {r.source}</span>
-                      {r.tabId === activeTabId && <span className="text-purple-700">· current</span>}
+                      <span className="text-mute">· {r.source}</span>
+                      {r.tabId === activeTabId && <span className="text-link">· current</span>}
                     </span>
                     <span className="text-xs truncate">
-                      <span className="text-zinc-500">{r.before}</span>
-                      <span className="bg-purple-500/25 text-purple-200 rounded px-0.5">{r.match}</span>
-                      <span className="text-zinc-500">{r.after}</span>
+                      <span className="text-body">{r.before}</span>
+                      <span className="bg-link/25 text-link rounded px-0.5">{r.match}</span>
+                      <span className="text-body">{r.after}</span>
                     </span>
                   </div>
-                  {isSelected && <CornerDownLeft size={12} className="text-purple-500 flex-shrink-0" />}
+                  {isSelected && <CornerDownLeft size={12} className="text-link flex-shrink-0" />}
                 </div>
               );
             })
           ) : (
-            <div className="px-4 py-6 text-xs text-zinc-600 text-center">
+            <div className="px-4 py-6 text-xs text-mute text-center">
               {currentOnly ? 'No matches found in this tab.' : 'No matches found in any tab.'}
             </div>
           )}
         </div>
 
         {/* Footer controls */}
-        <div className="p-3 border-t border-zinc-900 bg-zinc-950/20 text-[9px] text-zinc-600 flex justify-between select-none">
+        <div className="p-3 border-t border-hairline bg-transparent text-[9px] text-mute flex justify-between select-none">
           <div className="flex gap-3">
             <span>↑↓ to navigate</span>
             <span>↵ to jump</span>

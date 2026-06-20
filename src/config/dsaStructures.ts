@@ -30,8 +30,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 60,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
           roughness: 1,
@@ -42,7 +42,7 @@ export const dsaStructures: DSAStructure[] = [
           text: values[i],
           containerId: cellId,
           fontSize: 16,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -53,7 +53,7 @@ export const dsaStructures: DSAStructure[] = [
           x: x + i * 60 + 25,
           y: y + 48,
           fontSize: 12,
-          strokeColor: '#a1a1aa',
+          strokeColor: '#666666',
           textAlign: 'center',
         });
       }
@@ -64,7 +64,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x - 55,
         y: y + 48,
         fontSize: 12,
-        strokeColor: '#71717a',
+        strokeColor: '#888888',
       });
       return elements;
     },
@@ -93,8 +93,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 50,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
           roughness: 1,
@@ -104,7 +104,7 @@ export const dsaStructures: DSAStructure[] = [
           text: values[i],
           containerId: valCellId,
           fontSize: 16,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -117,8 +117,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 25,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#27272a',
+          strokeColor: '#171717',
+          backgroundColor: '#f5f5f5',
           fillStyle: 'solid',
           strokeWidth: 1.5,
           roughness: 1,
@@ -128,7 +128,7 @@ export const dsaStructures: DSAStructure[] = [
           text: '•',
           containerId: nextCellId,
           fontSize: 18,
-          strokeColor: '#a855f7',
+          strokeColor: '#0070f3',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -140,7 +140,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + i * 140 + 62,
             y: y + 20,
             points: [[0, 0], [78, 0]],
-            strokeColor: '#a855f7',
+            strokeColor: '#0070f3',
             strokeWidth: 1.5,
             roughness: 1,
           });
@@ -153,7 +153,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 2 * 140 + 62,
         y: y + 20,
         points: [[0, 0], [40, 0]],
-        strokeColor: '#a855f7',
+        strokeColor: '#0070f3',
         strokeWidth: 1.5,
       });
 
@@ -165,7 +165,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 2 * 140 + 107,
         y: y + 12,
         fontSize: 14,
-        strokeColor: '#71717a',
+        strokeColor: '#888888',
       });
 
       return elements;
@@ -194,8 +194,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 25,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#27272a',
+          strokeColor: '#171717',
+          backgroundColor: '#f5f5f5',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -204,7 +204,7 @@ export const dsaStructures: DSAStructure[] = [
           text: 'L',
           containerId: prevId,
           fontSize: 10,
-          strokeColor: '#71717a',
+          strokeColor: '#888888',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -217,8 +217,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 45,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -227,7 +227,7 @@ export const dsaStructures: DSAStructure[] = [
           text: values[i],
           containerId: valId,
           fontSize: 16,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -240,8 +240,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 25,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#27272a',
+          strokeColor: '#171717',
+          backgroundColor: '#f5f5f5',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -250,7 +250,7 @@ export const dsaStructures: DSAStructure[] = [
           text: 'R',
           containerId: nextId,
           fontSize: 10,
-          strokeColor: '#71717a',
+          strokeColor: '#888888',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -263,7 +263,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + i * 180 + 82,
             y: y + 12,
             points: [[0, 0], [98, 0]],
-            strokeColor: '#a855f7',
+            strokeColor: '#0070f3',
             strokeWidth: 1.5,
           });
           // Backward arrow (bottom)
@@ -272,7 +272,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + (i + 1) * 180 + 12,
             y: y + 28,
             points: [[0, 0], [-98, 0]],
-            strokeColor: '#3b82f6',
+            strokeColor: '#7928ca',
             strokeWidth: 1.5,
           });
         }
@@ -301,8 +301,8 @@ export const dsaStructures: DSAStructure[] = [
         y: y,
         width: 40,
         height: 40,
-        strokeColor: '#e4e4e7',
-        backgroundColor: '#1c1917',
+        strokeColor: '#171717',
+        backgroundColor: '#ffffff',
         fillStyle: 'solid',
         strokeWidth: 1.5,
       });
@@ -311,7 +311,7 @@ export const dsaStructures: DSAStructure[] = [
         text: 'Root',
         containerId: rootId,
         fontSize: 14,
-        strokeColor: '#f4f4f5',
+        strokeColor: '#171717',
         textAlign: 'center',
         verticalAlign: 'middle',
       });
@@ -324,8 +324,8 @@ export const dsaStructures: DSAStructure[] = [
         y: y + 80,
         width: 40,
         height: 40,
-        strokeColor: '#e4e4e7',
-        backgroundColor: '#1c1917',
+        strokeColor: '#171717',
+        backgroundColor: '#ffffff',
         fillStyle: 'solid',
         strokeWidth: 1.5,
       });
@@ -334,7 +334,7 @@ export const dsaStructures: DSAStructure[] = [
         text: 'L',
         containerId: leftId,
         fontSize: 14,
-        strokeColor: '#f4f4f5',
+        strokeColor: '#171717',
         textAlign: 'center',
         verticalAlign: 'middle',
       });
@@ -347,8 +347,8 @@ export const dsaStructures: DSAStructure[] = [
         y: y + 80,
         width: 40,
         height: 40,
-        strokeColor: '#e4e4e7',
-        backgroundColor: '#1c1917',
+        strokeColor: '#171717',
+        backgroundColor: '#ffffff',
         fillStyle: 'solid',
         strokeWidth: 1.5,
       });
@@ -357,7 +357,7 @@ export const dsaStructures: DSAStructure[] = [
         text: 'R',
         containerId: rightId,
         fontSize: 14,
-        strokeColor: '#f4f4f5',
+        strokeColor: '#171717',
         textAlign: 'center',
         verticalAlign: 'middle',
       });
@@ -368,7 +368,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 10,
         y: y + 38,
         points: [[0, 0], [-70, 44]],
-        strokeColor: '#a855f7',
+        strokeColor: '#0070f3',
         strokeWidth: 1.5,
         startBinding: { elementId: rootId },
         endBinding: { elementId: leftId },
@@ -378,7 +378,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 30,
         y: y + 38,
         points: [[0, 0], [70, 44]],
-        strokeColor: '#a855f7',
+        strokeColor: '#0070f3',
         strokeWidth: 1.5,
         startBinding: { elementId: rootId },
         endBinding: { elementId: rightId },
@@ -417,8 +417,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + item.y,
           width: 38,
           height: 38,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -427,7 +427,7 @@ export const dsaStructures: DSAStructure[] = [
           text: `${item.val}`,
           containerId: uId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -444,7 +444,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + item.x + 10,
             y: y + item.y + 36,
             points: [[0, 0], [tx - item.x + 10, 34]],
-            strokeColor: '#a855f7',
+            strokeColor: '#0070f3',
             strokeWidth: 1.5,
             startBinding: { elementId: currentUId },
             endBinding: { elementId: targetUId },
@@ -458,7 +458,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + item.x + 28,
             y: y + item.y + 36,
             points: [[0, 0], [tx - item.x - 10, 34]],
-            strokeColor: '#a855f7',
+            strokeColor: '#0070f3',
             strokeWidth: 1.5,
             startBinding: { elementId: currentUId },
             endBinding: { elementId: targetUId },
@@ -497,8 +497,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + item.y,
           width: 38,
           height: 38,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -507,7 +507,7 @@ export const dsaStructures: DSAStructure[] = [
           text: `${item.val}`,
           containerId: uId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -524,7 +524,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + item.x + 10,
             y: y + item.y + 36,
             points: [[0, 0], [tx - item.x + 10, 34]],
-            strokeColor: '#a855f7',
+            strokeColor: '#0070f3',
             strokeWidth: 1.5,
             startBinding: { elementId: currentUId },
             endBinding: { elementId: targetUId },
@@ -538,7 +538,7 @@ export const dsaStructures: DSAStructure[] = [
             x: x + item.x + 28,
             y: y + item.y + 36,
             points: [[0, 0], [tx - item.x - 10, 34]],
-            strokeColor: '#a855f7',
+            strokeColor: '#0070f3',
             strokeWidth: 1.5,
             startBinding: { elementId: currentUId },
             endBinding: { elementId: targetUId },
@@ -566,7 +566,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x,
         y: y,
         points: [[0, 0], [0, stackHeight]],
-        strokeColor: '#e4e4e7',
+        strokeColor: '#171717',
         strokeWidth: 2,
         roughness: 0,
       });
@@ -575,7 +575,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x,
         y: y + stackHeight,
         points: [[0, 0], [stackWidth, 0]],
-        strokeColor: '#e4e4e7',
+        strokeColor: '#171717',
         strokeWidth: 2,
         roughness: 0,
       });
@@ -584,7 +584,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + stackWidth,
         y: y + stackHeight,
         points: [[0, 0], [0, -stackHeight]],
-        strokeColor: '#e4e4e7',
+        strokeColor: '#171717',
         strokeWidth: 2,
         roughness: 0,
       });
@@ -600,8 +600,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + stackHeight - 10 - (i + 1) * 40,
           width: stackWidth - 12,
           height: 36,
-          strokeColor: '#a855f7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#0070f3',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -610,7 +610,7 @@ export const dsaStructures: DSAStructure[] = [
           text: cellVals[i],
           containerId: cellId,
           fontSize: 12,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -636,7 +636,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x,
         y: y,
         points: [[0, 0], [queueWidth, 0]],
-        strokeColor: '#e4e4e7',
+        strokeColor: '#171717',
         strokeWidth: 2,
         roughness: 0,
       });
@@ -646,7 +646,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x,
         y: y + queueHeight,
         points: [[0, 0], [queueWidth, 0]],
-        strokeColor: '#e4e4e7',
+        strokeColor: '#171717',
         strokeWidth: 2,
         roughness: 0,
       });
@@ -661,8 +661,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + 4,
           width: 36,
           height: 32,
-          strokeColor: '#3b82f6',
-          backgroundColor: '#1c1917',
+          strokeColor: '#7928ca',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -671,7 +671,7 @@ export const dsaStructures: DSAStructure[] = [
           text: values[i],
           containerId: cellId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -745,8 +745,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + item.y,
           width: 36,
           height: 36,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -755,14 +755,14 @@ export const dsaStructures: DSAStructure[] = [
           text: item.id,
           containerId: uId,
           fontSize: 16,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
       });
 
       // Add Edges
-      const addEdge = (fromKey: string, toKey: string, directed = true, color = '#a855f7') => {
+      const addEdge = (fromKey: string, toKey: string, directed = true, color = '#0070f3') => {
         const fromId = instanceMap[fromKey];
         const toId = instanceMap[toKey];
         const from = nodeData.find(n => n.id === fromKey)!;
@@ -783,8 +783,8 @@ export const dsaStructures: DSAStructure[] = [
       addEdge('A', 'B', true);
       addEdge('B', 'C', true);
       addEdge('C', 'D', true);
-      addEdge('D', 'A', false, '#3b82f6'); // Undirected back edge
-      addEdge('A', 'C', true, '#a855f7');
+      addEdge('D', 'A', false, '#7928ca'); // Undirected back edge
+      addEdge('A', 'C', true, '#0070f3');
 
       return elements;
     },
@@ -809,8 +809,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 50,
           height: 40,
-          strokeColor: '#a1a1aa',
-          backgroundColor: '#1c1917',
+          strokeColor: '#666666',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -819,7 +819,7 @@ export const dsaStructures: DSAStructure[] = [
           text: values[i],
           containerId: cellId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -832,7 +832,7 @@ export const dsaStructures: DSAStructure[] = [
         y: y - 6,
         width: 158,
         height: 52,
-        strokeColor: '#c084fc', // purple-400
+        strokeColor: '#0070f3', // purple-400
         strokeWidth: 2,
         strokeStyle: 'dashed',
         backgroundColor: 'transparent',
@@ -844,7 +844,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 50 + 20,
         y: y - 35,
         points: [[0, 0], [0, 25]],
-        strokeColor: '#c084fc',
+        strokeColor: '#0070f3',
         strokeWidth: 1.5,
       });
       elements.push({
@@ -853,7 +853,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 50 + 8,
         y: y - 50,
         fontSize: 10,
-        strokeColor: '#c084fc',
+        strokeColor: '#0070f3',
       });
 
       elements.push({
@@ -861,7 +861,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 150 + 20,
         y: y - 35,
         points: [[0, 0], [0, 25]],
-        strokeColor: '#c084fc',
+        strokeColor: '#0070f3',
         strokeWidth: 1.5,
       });
       elements.push({
@@ -870,7 +870,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 150 + 8,
         y: y - 50,
         fontSize: 10,
-        strokeColor: '#c084fc',
+        strokeColor: '#0070f3',
       });
 
       return elements;
@@ -904,8 +904,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + node.y,
           width: 36,
           height: 36,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -914,14 +914,14 @@ export const dsaStructures: DSAStructure[] = [
           text: node.id,
           containerId: uId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
       });
 
       // Linear connections
-      const connect = (fromNode: string, toNode: string, color = '#a855f7') => {
+      const connect = (fromNode: string, toNode: string, color = '#0070f3') => {
         const fromId = instanceMap[fromNode];
         const toId = instanceMap[toNode];
         const from = nodeCoords.find(n => n.id === fromNode)!;
@@ -942,7 +942,7 @@ export const dsaStructures: DSAStructure[] = [
       connect('1', '2');
       connect('2', '3');
       connect('3', '4');
-      connect('4', '2', '#c084fc'); // Loop arrow pointing back to Node 2
+      connect('4', '2', '#0070f3'); // Loop arrow pointing back to Node 2
 
       // Slow & Fast label annotations
       elements.push({
@@ -1012,8 +1012,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + item.y,
           width: 36,
           height: 36,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -1022,7 +1022,7 @@ export const dsaStructures: DSAStructure[] = [
           text: item.val,
           containerId: uId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -1047,7 +1047,7 @@ export const dsaStructures: DSAStructure[] = [
           x: x + f.x + 18,
           y: y + f.y + 18,
           points: [[0, 0], [t.x - f.x, t.y - f.y]],
-          strokeColor: '#71717a',
+          strokeColor: '#888888',
           strokeWidth: 1.5,
         });
       };
@@ -1087,8 +1087,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y + item.y,
           width: 36,
           height: 36,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -1097,7 +1097,7 @@ export const dsaStructures: DSAStructure[] = [
           text: item.val,
           containerId: uId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -1122,7 +1122,7 @@ export const dsaStructures: DSAStructure[] = [
           x: x + f.x + 18,
           y: y + f.y + 18,
           points: [[0, 0], [t.x - f.x, t.y - f.y]],
-          strokeColor: '#71717a',
+          strokeColor: '#888888',
           strokeWidth: 1.5,
         });
       };
@@ -1153,8 +1153,8 @@ export const dsaStructures: DSAStructure[] = [
           y: y,
           width: 50,
           height: 40,
-          strokeColor: '#e4e4e7',
-          backgroundColor: '#1c1917',
+          strokeColor: '#171717',
+          backgroundColor: '#ffffff',
           fillStyle: 'solid',
           strokeWidth: 1.5,
         });
@@ -1163,7 +1163,7 @@ export const dsaStructures: DSAStructure[] = [
           text: values[i],
           containerId: cellId,
           fontSize: 14,
-          strokeColor: '#f4f4f5',
+          strokeColor: '#171717',
           textAlign: 'center',
           verticalAlign: 'middle',
         });
@@ -1175,7 +1175,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 25,
         y: y + 80,
         points: [[0, 0], [0, -32]],
-        strokeColor: '#3b82f6',
+        strokeColor: '#7928ca',
         strokeWidth: 1.5,
       });
       elements.push({
@@ -1184,7 +1184,7 @@ export const dsaStructures: DSAStructure[] = [
         x: x + 5,
         y: y + 88,
         fontSize: 10,
-        strokeColor: '#3b82f6',
+        strokeColor: '#7928ca',
         textAlign: 'center',
       });
 

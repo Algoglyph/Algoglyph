@@ -10,7 +10,9 @@ import {
   Code2,
   Loader2,
   Check,
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export const Toolbar: React.FC = () => {
@@ -20,6 +22,8 @@ export const Toolbar: React.FC = () => {
   const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
   const importWorkspace = useWorkspaceStore((state) => state.importWorkspace);
   const showNotification = useWorkspaceStore((state) => state.showNotification);
+  const theme = useWorkspaceStore((state) => state.theme);
+  const toggleTheme = useWorkspaceStore((state) => state.toggleTheme);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportingCanvas, setExportingCanvas] = useState(false);
@@ -105,7 +109,7 @@ export const Toolbar: React.FC = () => {
         appState: {
           ...appState,
           exportBackground: true,
-          viewBackgroundColor: appState.viewBackgroundColor || '#121214',
+          viewBackgroundColor: appState.viewBackgroundColor || (theme === 'dark' ? '#0a0a0a' : '#ffffff'),
         },
         files,
         mimeType: 'image/png',
@@ -128,37 +132,49 @@ export const Toolbar: React.FC = () => {
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-zinc-950 border-b border-zinc-900 text-zinc-400 select-none h-12 flex-shrink-0 z-40">
-      {/* Title & Status indicator */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-sm font-mono font-bold text-zinc-100 tracking-wider">SCRATCHPAD</h1>
+    <header className="flex items-center justify-between px-4 py-2 bg-canvas/70 backdrop-blur-md border-b border-hairline text-body select-none h-12 flex-shrink-0 z-40">
+      {/* Wordmark & save status */}
+      <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-2">
+          {/* Brand mark — ink square with a crosshair, echoing the canvas grid */}
+          <span className="grid h-5 w-5 place-items-center rounded-[5px] bg-ink text-canvas" aria-hidden>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4">
+              <path d="M6 1.5v9M1.5 6h9" strokeLinecap="round" />
+              <rect x="3.4" y="3.4" width="5.2" height="5.2" rx="0.6" />
+            </svg>
+          </span>
+          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">Scratchpad</h1>
+        </div>
 
-        {/* Save status badge */}
-        <div className="flex items-center gap-1.5 text-xs font-mono border border-zinc-800/80 bg-zinc-900/40 rounded-full px-2.5 py-0.5">
+        <div className="h-3.5 w-px bg-hairline" />
+
+        {/* Save status */}
+        <div className="flex items-center gap-1.5 text-[11px] font-mono">
           {saveStatus === 'saving' && (
             <>
-              <Loader2 size={11} className="animate-spin text-purple-400" />
-              <span className="text-zinc-500">saving...</span>
+              <Loader2 size={11} className="animate-spin text-link" />
+              <span className="text-mute">saving</span>
             </>
           )}
           {saveStatus === 'saved' && (
             <>
-              <Check size={11} className="text-emerald-500" />
-              <span className="text-zinc-500">saved offline</span>
+              <Check size={11} className="text-emerald-400" />
+              <span className="text-mute">saved locally</span>
             </>
           )}
           {saveStatus === 'error' && (
             <>
-              <AlertCircle size={11} className="text-rose-500" />
-              <span className="text-rose-400">save error</span>
+              <AlertCircle size={11} className="text-rose-400" />
+              <span className="text-rose-300">save failed</span>
             </>
           )}
           {saveStatus === 'idle' && (
-            <span className="text-zinc-600">idle</span>
+            <span className="text-mute/70">ready</span>
           )}
         </div>
       </div>
 
+<<<<<<< Updated upstream
       {/* Center Layout Switchers */}
       <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded p-0.5 text-xs">
         <button
@@ -209,6 +225,29 @@ export const Toolbar: React.FC = () => {
           <Code2 size={12} />
           <span>Code</span>
         </button>
+=======
+      {/* Center: layout segmented control — white pill on a soft track */}
+      <div className="flex items-center gap-0.5 bg-canvas-soft border border-hairline rounded-lg p-0.5 text-[13px]">
+        {([
+          ['canvas-only', 'Canvas', <Maximize2 key="c" size={12} className="rotate-45" />, 'Canvas only'],
+          ['split', 'Split', <Monitor key="s" size={12} />, 'Split view  ·  ⌘B'],
+          ['notes-only', 'Notes', <Maximize2 key="n" size={12} className="-rotate-45" />, 'Notes only'],
+        ] as const).map(([mode, label, icon, title]) => (
+          <button
+            key={mode}
+            onClick={() => setLayoutMode(mode)}
+            className={`px-3 py-1 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium ${
+              layoutMode === mode
+                ? 'bg-canvas text-ink shadow-[var(--shadow-soft)] ring-1 ring-hairline'
+                : 'text-body hover:text-ink'
+            }`}
+            title={title}
+          >
+            {icon}
+            <span>{label}</span>
+          </button>
+        ))}
+>>>>>>> Stashed changes
       </div>
 
       {/* Actions (Export, Import) */}
@@ -222,11 +261,22 @@ export const Toolbar: React.FC = () => {
           className="hidden"
         />
 
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center cursor-pointer"
+          title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+
+        <div className="h-3.5 w-px bg-hairline mx-1" />
+
         {/* Import JSON */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs cursor-pointer"
-          title="Import Workspace JSON"
+          className="px-2.5 py-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center gap-1.5 text-xs font-mono cursor-pointer"
+          title="Import workspace JSON"
         >
           <Upload size={13} />
           <span className="hidden sm:inline">Import</span>
@@ -235,38 +285,38 @@ export const Toolbar: React.FC = () => {
         {/* Export JSON */}
         <button
           onClick={handleExportWorkspace}
-          className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs cursor-pointer"
-          title="Export Workspace JSON"
+          className="px-2.5 py-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center gap-1.5 text-xs font-mono cursor-pointer"
+          title="Export workspace JSON"
         >
           <Download size={13} />
-          <span className="hidden sm:inline">Export JSON</span>
+          <span className="hidden sm:inline">Export</span>
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+        <div className="h-3.5 w-px bg-hairline mx-1" />
 
         {/* Export Notes */}
         <button
           onClick={handleExportNotes}
-          className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs cursor-pointer"
-          title="Download Notes as Markdown"
+          className="px-2.5 py-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center gap-1.5 text-xs font-mono cursor-pointer"
+          title="Download notes as Markdown"
         >
           <Download size={13} />
-          <span className="hidden sm:inline">Notes (.md)</span>
+          <span className="hidden sm:inline">.md</span>
         </button>
 
         {/* Export Drawing */}
         <button
           onClick={handleExportCanvas}
           disabled={exportingCanvas}
-          className="p-1.5 rounded hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors flex items-center gap-1.5 text-xs disabled:opacity-50 cursor-pointer"
-          title="Export Canvas as PNG"
+          className="px-2.5 py-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center gap-1.5 text-xs font-mono disabled:opacity-50 cursor-pointer"
+          title="Export canvas as PNG"
         >
           {exportingCanvas ? (
             <Loader2 size={13} className="animate-spin" />
           ) : (
             <ImageIcon size={13} />
           )}
-          <span className="hidden sm:inline">Canvas (.png)</span>
+          <span className="hidden sm:inline">.png</span>
         </button>
       </div>
     </header>

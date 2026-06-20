@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const setSearchPaletteOpen = useWorkspaceStore((state) => state.setSearchPaletteOpen);
   const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const isLoading = useWorkspaceStore((state) => state.isLoading);
+  const theme = useWorkspaceStore((state) => state.theme);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
@@ -31,6 +32,12 @@ const App: React.FC = () => {
     initializeWorkspace();
     (window as any).useWorkspaceStore = useWorkspaceStore;
   }, [initializeWorkspace]);
+
+  // Reflect the active theme onto <html> so the .dark token overrides apply.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
 
   // Handle global keyboard shortcuts: Ctrl+B (Toggle views), Ctrl+S (Manual Save), Ctrl+K (Command Palette)
   useEffect(() => {
@@ -97,22 +104,35 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-zinc-950 text-zinc-400 font-mono">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-500 border-t-transparent"></div>
-          <div className="text-xs tracking-widest animate-pulse uppercase">Opening notebook...</div>
+      <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-link/30 border-t-link"></div>
+          <div className="text-[11px] tracking-[0.3em] uppercase text-mute">Opening workspace</div>
         </div>
       </div>
     );
   }
 
+<<<<<<< Updated upstream
   // Calculate which panes to show based on layoutMode
   const showCode = layoutMode === 'code';
   const showCanvas = layoutMode === 'split' || layoutMode === 'canvas-only';
   const showNotes = layoutMode === 'split' || layoutMode === 'notes-only';
+=======
+  // Calculate widths based on layoutMode.
+  const showCanvas = layoutMode !== 'notes-only';
+  // The notes pane stays mounted so it can slide open/closed; its width animates
+  // to 0 when collapsed instead of unmounting.
+  const canvasWidth = layoutMode === 'canvas-only' ? 100 : splitWidth;
+  const notesWidth =
+    layoutMode === 'canvas-only' ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth;
+  // Animate width changes from layout toggles, but not while dragging the divider
+  // (that needs to track the cursor 1:1).
+  const paneTransition = isDragging ? '' : 'transition-[width] duration-300 ease-in-out';
+>>>>>>> Stashed changes
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden select-none">
+    <div className="flex flex-col h-screen w-screen text-ink overflow-hidden select-none">
       {/* Top Toolbar */}
       <Toolbar />
 
@@ -137,8 +157,8 @@ const App: React.FC = () => {
         {/* Left pane: Drawing Canvas */}
         {showCanvas && (
           <div
-            style={{ width: layoutMode === 'canvas-only' ? '100%' : `${splitWidth}%` }}
-            className="h-full overflow-hidden bg-zinc-950"
+            style={{ width: `${canvasWidth}%` }}
+            className={`h-full overflow-hidden bg-canvas ${paneTransition}`}
           >
             {/* Key by tab so the canvas remounts with each tab's own scene
                 instead of leaking the previous tab's elements via a stale onChange. */}
@@ -150,21 +170,19 @@ const App: React.FC = () => {
         {layoutMode === 'split' && (
           <div
             onMouseDown={handleMouseDown}
-            className={`w-1 hover:w-1.5 bg-zinc-900 border-x border-zinc-800/80 hover:bg-purple-500 transition-all cursor-col-resize h-full flex-shrink-0 z-40 relative ${
-              isDragging ? 'bg-purple-500 w-1.5' : ''
+            className={`w-px hover:w-1 bg-hairline hover:bg-link transition-all cursor-col-resize h-full flex-shrink-0 z-40 relative ${
+              isDragging ? 'bg-link w-1' : ''
             }`}
           />
         )}
 
-        {/* Right pane: Notes Editor */}
-        {showNotes && (
-          <div
-            style={{ width: layoutMode === 'notes-only' ? '100%' : `${100 - splitWidth}%` }}
-            className="h-full overflow-hidden"
-          >
-            <Editor />
-          </div>
-        )}
+        {/* Right pane: Notes Editor — always mounted so it can slide closed */}
+        <div
+          style={{ width: `${notesWidth}%` }}
+          className={`h-full overflow-hidden flex-shrink-0 ${paneTransition}`}
+        >
+          <Editor />
+        </div>
       </div>
 
       {/* Global Command Palette triggered by Ctrl+K */}

@@ -33,7 +33,9 @@ interface WorkspaceState {
   notification: Notification | null;
 
   // UI state (not persisted)
+  theme: 'light' | 'dark';
   structuresPanelOpen: boolean;
+  structuresWidth: number; // px width of the structures sidebar when open
   searchPaletteOpen: boolean; // the search palette overlay
   searchScope: 'all' | 'current'; // 'current' = Ctrl+F (this tab), 'all' = Ctrl+Shift+F
 
@@ -53,8 +55,11 @@ interface WorkspaceState {
   hideNotification: () => void;
 
   // UI actions
+  toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
   toggleStructuresPanel: () => void;
   setStructuresPanelOpen: (open: boolean) => void;
+  setStructuresWidth: (width: number) => void;
   openSearchPalette: (scope: 'all' | 'current') => void;
   setSearchPaletteOpen: (open: boolean) => void;
 
@@ -67,6 +72,31 @@ interface WorkspaceState {
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const THEME_KEY = 'scratchpad-theme';
+
+// Theme defaults to Vercel's dark surface; the user's choice is remembered.
+const readInitialTheme = (): 'light' | 'dark' => {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    // ignore (private mode / no storage)
+  }
+  return 'dark';
+};
+
+// Reflect the theme onto <html> so the .dark token overrides cascade.
+const applyTheme = (theme: 'light' | 'dark') => {
+  const root = document.documentElement;
+  root.classList.toggle('dark', theme === 'dark');
+  root.style.colorScheme = theme;
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // ignore
+  }
+};
 
 const genId = () =>
   `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -142,7 +172,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     activeCanvasTool: 'selection',
     lastImportTime: 0,
     notification: null,
+    theme: readInitialTheme(),
     structuresPanelOpen: true,
+    structuresWidth: 272,
     searchPaletteOpen: false,
     searchScope: 'all',
 
@@ -385,6 +417,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
 
     setStructuresPanelOpen: (structuresPanelOpen) => {
       set({ structuresPanelOpen });
+    },
+
+    setStructuresWidth: (width) => {
+      // Clamp to a usable range so the sidebar can't be dragged off-screen.
+      set({ structuresWidth: Math.max(200, Math.min(440, width)) });
+    },
+
+    setTheme: (theme) => {
+      applyTheme(theme);
+      set({ theme });
+    },
+
+    toggleTheme: () => {
+      const theme = get().theme === 'dark' ? 'light' : 'dark';
+      applyTheme(theme);
+      set({ theme });
     },
 
     openSearchPalette: (scope) => {
