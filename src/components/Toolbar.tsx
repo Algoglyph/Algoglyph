@@ -8,6 +8,7 @@ import {
   Monitor,
   Maximize2,
   Code2,
+  Workflow,
   Loader2,
   Check,
   AlertCircle,
@@ -181,6 +182,7 @@ export const Toolbar: React.FC = () => {
           ['split', 'Split', <Monitor key="s" size={12} />, 'Split view  ·  ⌘B'],
           ['notes-only', 'Notes', <Maximize2 key="n" size={12} className="-rotate-45" />, 'Notes only'],
           ['code', 'Code', <Code2 key="code" size={12} />, 'Code Runner'],
+          ['visualizer', 'Visualizer', <Workflow key="viz" size={12} />, 'Algorithm Visualizer'],
         ] as const).map(([mode, label, icon, title]) => (
           <button
             key={mode}

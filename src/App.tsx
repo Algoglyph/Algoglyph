@@ -5,6 +5,7 @@ import { TabBar } from './components/TabBar';
 import { Canvas } from './components/Canvas';
 import { Editor } from './components/Editor';
 import { CodeEditor } from './components/CodeEditor';
+import { VisualizerWorkspace } from './components/VisualizerWorkspace';
 import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
@@ -116,13 +117,16 @@ const App: React.FC = () => {
 
   // Calculate which panes to show based on layoutMode
   const showCode = layoutMode === 'code';
+  const showVisualizer = layoutMode === 'visualizer';
+  // Full-area modes hide the canvas/notes split entirely.
+  const fullAreaMode = layoutMode === 'code' || layoutMode === 'visualizer';
   // Calculate widths based on layoutMode.
-  const showCanvas = layoutMode !== 'notes-only' && layoutMode !== 'code';
+  const showCanvas = layoutMode !== 'notes-only' && !fullAreaMode;
   // The notes pane stays mounted so it can slide open/closed; its width animates
   // to 0 when collapsed instead of unmounting.
   const canvasWidth = layoutMode === 'canvas-only' ? 100 : splitWidth;
   const notesWidth =
-    layoutMode === 'canvas-only' || layoutMode === 'code' ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth;
+    layoutMode === 'canvas-only' || fullAreaMode ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth;
   // Animate width changes from layout toggles, but not while dragging the divider
   // (that needs to track the cursor 1:1).
   const paneTransition = isDragging ? '' : 'transition-[width] duration-300 ease-in-out';
@@ -133,8 +137,9 @@ const App: React.FC = () => {
       {/* Top Toolbar */}
       <Toolbar />
 
-      {/* Tab strip */}
-      <TabBar />
+      {/* Tab strip — hidden in the Visualizer, whose blocks are a single global
+          workspace rather than per-tab content. */}
+      {!showVisualizer && <TabBar />}
 
       {/* Main Workspace Panels */}
       <div className="flex flex-1 w-full overflow-hidden relative">
@@ -150,6 +155,13 @@ const App: React.FC = () => {
             <CodeEditor key={activeTabId} />
           </div>
         )}
+
+        {/* Full-area Algorithm Visualizer — always mounted (display toggled) so
+            its canvas pan/zoom and each block's playback position survive when
+            switching layouts and coming back. */}
+        <div className={`h-full w-full overflow-hidden ${showVisualizer ? '' : 'hidden'}`}>
+          <VisualizerWorkspace />
+        </div>
 
         {/* Left pane: Drawing Canvas */}
         {showCanvas && (

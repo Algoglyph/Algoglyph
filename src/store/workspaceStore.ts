@@ -2,12 +2,22 @@ import { create } from 'zustand';
 import { saveWorkspace, loadWorkspace } from '../db/indexedDB';
 import type { WorkspaceData, TabData } from '../db/indexedDB';
 
-export type LayoutMode = 'split' | 'canvas-only' | 'notes-only' | 'code';
+export type LayoutMode = 'split' | 'canvas-only' | 'notes-only' | 'code' | 'visualizer';
 export type SaveStatus = 'saved' | 'saving' | 'error' | 'idle';
 
 export interface Notification {
   message: string;
   type: 'info' | 'error' | 'success';
+}
+
+// One algorithm block dropped onto the visualizer canvas. Only identity +
+// position lives here; each node's playback state (current step) is kept in
+// the node's own local state so a running animation never re-renders siblings.
+export interface VisualizerNodeData {
+  id: string;
+  algorithmId: string;
+  x: number;
+  y: number;
 }
 
 interface WorkspaceState {
@@ -31,6 +41,9 @@ interface WorkspaceState {
   activeCanvasTool: string;
   lastImportTime: number; // timestamp to coordinate canvas updates
   notification: Notification | null;
+
+  // Visualizer canvas — node-based algorithm workspace (session state).
+  visualizerNodes: VisualizerNodeData[];
 
   // UI state (not persisted)
   theme: 'light' | 'dark';
@@ -62,6 +75,12 @@ interface WorkspaceState {
   setStructuresWidth: (width: number) => void;
   openSearchPalette: (scope: 'all' | 'current') => void;
   setSearchPaletteOpen: (open: boolean) => void;
+
+  // Visualizer actions
+  addVisualizerNode: (algorithmId: string, x: number, y: number) => void;
+  moveVisualizerNode: (id: string, x: number, y: number) => void;
+  removeVisualizerNode: (id: string) => void;
+  clearVisualizerNodes: () => void;
 
   // Tab actions
   createTab: () => void;
@@ -124,7 +143,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         set({ saveStatus: 'saved' });
       } catch (error) {
         console.error('Failed to auto-save:', error);
+        const wasError = get().saveStatus === 'error';
         set({ saveStatus: 'error' });
+        // Surface the real reason once per failure streak (avoid spamming on
+        // each debounce) so the user can act / report instead of a blank "failed".
+        if (!wasError) {
+          const name = (error as any)?.name;
+          const msg =
+            name === 'QuotaExceededError'
+              ? 'Local storage is full — export your work to free up space'
+              : `Could not save locally (${name || (error as any)?.message || 'unknown error'})`;
+          get().showNotification(msg, 'error');
+        }
       }
     }, 1000); // 1-second debounce to keep drawing and typing smooth
   };
@@ -172,6 +202,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     activeCanvasTool: 'selection',
     lastImportTime: 0,
     notification: null,
+    visualizerNodes: [],
     theme: readInitialTheme(),
     structuresPanelOpen: true,
     structuresWidth: 272,
@@ -292,8 +323,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         set({ layoutMode: mode, splitWidth: 100 });
       } else if (mode === 'notes-only') {
         set({ layoutMode: mode, splitWidth: 0 });
-      } else if (mode === 'code') {
-        // Full-area code editor; split width is irrelevant here.
+      } else if (mode === 'code' || mode === 'visualizer') {
+        // Full-area panes (code runner / algorithm visualizer); split width
+        // is irrelevant here.
         set({ layoutMode: mode });
       } else {
         set({ layoutMode: mode, splitWidth: lastSplitWidth });
@@ -442,5 +474,29 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     setSearchPaletteOpen: (searchPaletteOpen) => {
       set({ searchPaletteOpen });
     },
+
+    addVisualizerNode: (algorithmId, x, y) => {
+      const node: VisualizerNodeData = {
+        id: `vis-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        algorithmId,
+        x,
+        y,
+      };
+      set({ visualizerNodes: [...get().visualizerNodes, node] });
+    },
+
+    moveVisualizerNode: (id, x, y) => {
+      set({
+        visualizerNodes: get().visualizerNodes.map((n) =>
+          n.id === id ? { ...n, x, y } : n
+        ),
+      });
+    },
+
+    removeVisualizerNode: (id) => {
+      set({ visualizerNodes: get().visualizerNodes.filter((n) => n.id !== id) });
+    },
+
+    clearVisualizerNodes: () => set({ visualizerNodes: [] }),
   };
 });
