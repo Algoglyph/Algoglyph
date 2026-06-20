@@ -14,16 +14,12 @@ export const TabBar: React.FC = () => {
   const toggleStructuresPanel = useWorkspaceStore((state) => state.toggleStructuresPanel);
   const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
-<<<<<<< Updated upstream
-  const canvasVisible = layoutMode === 'split' || layoutMode === 'canvas-only';
-=======
   const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
-  const canvasVisible = layoutMode !== 'notes-only';
-  const notesVisible = layoutMode !== 'canvas-only';
+  const canvasVisible = layoutMode !== 'notes-only' && layoutMode !== 'code';
+  const notesVisible = layoutMode !== 'canvas-only' && layoutMode !== 'code';
   // The notes toggle mirrors the structures collapse: hide the notes pane from
   // split view, or bring it back when it's collapsed.
   const toggleNotes = () => setLayoutMode(layoutMode === 'split' ? 'canvas-only' : 'split');
->>>>>>> Stashed changes
 
   // Keep the left control cluster exactly as wide as the STRUCTURES sidebar so
   // the tabs begin above the canvas content (to the right of the sidebar),

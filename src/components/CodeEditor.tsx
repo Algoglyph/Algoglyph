@@ -3,6 +3,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { Play, Loader2, RotateCcw, ChevronUp, ChevronDown, Trash2, Globe } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { LANGUAGES, getLanguage } from '../config/languages';
+import { vscodeDark } from '../config/editorTheme';
 import { runCode } from '../lib/wandbox';
 import type { RunResult } from '../lib/wandbox';
 
@@ -78,7 +79,7 @@ export const CodeEditor: React.FC = () => {
           <select
             value={codeLanguage}
             onChange={(e) => setCodeLanguage(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 font-mono focus:outline-none focus:border-purple-500 cursor-pointer"
+            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 font-mono focus:outline-none focus:border-emerald-500/60 cursor-pointer"
             title="Language"
           >
             {LANGUAGES.map((l) => (
@@ -91,7 +92,7 @@ export const CodeEditor: React.FC = () => {
           <button
             onClick={handleRun}
             disabled={running}
-            className="flex items-center gap-1.5 px-3 py-1 rounded bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors cursor-pointer shadow-sm shadow-emerald-900/40"
             title="Run (sends code to the Wandbox runner)"
           >
             {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
@@ -118,7 +119,7 @@ export const CodeEditor: React.FC = () => {
         <CodeMirror
           value={code}
           height="100%"
-          theme="dark"
+          theme={vscodeDark}
           extensions={[lang.cm()]}
           onChange={(value) => updateCode(value)}
           basicSetup={{ lineNumbers: true, highlightActiveLine: true, autocompletion: true }}

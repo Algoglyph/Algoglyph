@@ -174,68 +174,17 @@ export const Toolbar: React.FC = () => {
         </div>
       </div>
 
-<<<<<<< Updated upstream
-      {/* Center Layout Switchers */}
-      <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded p-0.5 text-xs">
-        <button
-          onClick={() => setLayoutMode('canvas-only')}
-          className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-            layoutMode === 'canvas-only'
-              ? 'bg-zinc-800 text-zinc-100 font-medium'
-              : 'hover:text-zinc-200'
-          }`}
-          title="Canvas Only"
-        >
-          <Maximize2 size={12} className="rotate-45" />
-          <span>Canvas</span>
-        </button>
-        <button
-          onClick={() => setLayoutMode('split')}
-          className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-            layoutMode === 'split'
-              ? 'bg-zinc-800 text-zinc-100 font-medium'
-              : 'hover:text-zinc-200'
-          }`}
-          title="Split View (Ctrl+B)"
-        >
-          <Monitor size={12} />
-          <span>Split</span>
-        </button>
-        <button
-          onClick={() => setLayoutMode('notes-only')}
-          className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-            layoutMode === 'notes-only'
-              ? 'bg-zinc-800 text-zinc-100 font-medium'
-              : 'hover:text-zinc-200'
-          }`}
-          title="Notes Only"
-        >
-          <Maximize2 size={12} className="-rotate-45" />
-          <span>Notes</span>
-        </button>
-        <button
-          onClick={() => setLayoutMode('code')}
-          className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 cursor-pointer ${
-            layoutMode === 'code'
-              ? 'bg-zinc-800 text-zinc-100 font-medium'
-              : 'hover:text-zinc-200'
-          }`}
-          title="Code Runner"
-        >
-          <Code2 size={12} />
-          <span>Code</span>
-        </button>
-=======
       {/* Center: layout segmented control — white pill on a soft track */}
       <div className="flex items-center gap-0.5 bg-canvas-soft border border-hairline rounded-lg p-0.5 text-[13px]">
         {([
           ['canvas-only', 'Canvas', <Maximize2 key="c" size={12} className="rotate-45" />, 'Canvas only'],
           ['split', 'Split', <Monitor key="s" size={12} />, 'Split view  ·  ⌘B'],
           ['notes-only', 'Notes', <Maximize2 key="n" size={12} className="-rotate-45" />, 'Notes only'],
+          ['code', 'Code', <Code2 key="code" size={12} />, 'Code Runner'],
         ] as const).map(([mode, label, icon, title]) => (
           <button
             key={mode}
-            onClick={() => setLayoutMode(mode)}
+            onClick={() => setLayoutMode(mode as any)}
             className={`px-3 py-1 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer font-medium ${
               layoutMode === mode
                 ? 'bg-canvas text-ink shadow-[var(--shadow-soft)] ring-1 ring-hairline'
@@ -247,7 +196,6 @@ export const Toolbar: React.FC = () => {
             <span>{label}</span>
           </button>
         ))}
->>>>>>> Stashed changes
       </div>
 
       {/* Actions (Export, Import) */}

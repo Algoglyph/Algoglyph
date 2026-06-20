@@ -113,23 +113,20 @@ const App: React.FC = () => {
     );
   }
 
-<<<<<<< Updated upstream
+
   // Calculate which panes to show based on layoutMode
   const showCode = layoutMode === 'code';
-  const showCanvas = layoutMode === 'split' || layoutMode === 'canvas-only';
-  const showNotes = layoutMode === 'split' || layoutMode === 'notes-only';
-=======
   // Calculate widths based on layoutMode.
-  const showCanvas = layoutMode !== 'notes-only';
+  const showCanvas = layoutMode !== 'notes-only' && layoutMode !== 'code';
   // The notes pane stays mounted so it can slide open/closed; its width animates
   // to 0 when collapsed instead of unmounting.
   const canvasWidth = layoutMode === 'canvas-only' ? 100 : splitWidth;
   const notesWidth =
-    layoutMode === 'canvas-only' ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth;
+    layoutMode === 'canvas-only' || layoutMode === 'code' ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth;
   // Animate width changes from layout toggles, but not while dragging the divider
   // (that needs to track the cursor 1:1).
   const paneTransition = isDragging ? '' : 'transition-[width] duration-300 ease-in-out';
->>>>>>> Stashed changes
+
 
   return (
     <div className="flex flex-col h-screen w-screen text-ink overflow-hidden select-none">
