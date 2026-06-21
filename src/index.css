@@ -294,6 +294,13 @@ body {
 .excalidraw .welcome-screen__heading,
 .excalidraw .welcome-screen__menu { display: none !important; }
 
+/* Hide the shape-styling palette (Stroke / Background / Fill / Stroke width …).
+   It pops in on the left whenever an element is selected or a drawing tool is
+   active. Structures are inserted pre-styled and the canvas is meant as a clean
+   diagramming surface, so this panel reads as clutter "appearing for no reason"
+   when you just want to select and move things. */
+.excalidraw .App-menu__left { display: none !important; }
+
 .resize-active::after {
   content: '';
   position: absolute;
