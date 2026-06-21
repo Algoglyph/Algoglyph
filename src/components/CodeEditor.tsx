@@ -3,7 +3,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { Play, Loader2, RotateCcw, ChevronUp, ChevronDown, Trash2, Globe } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { LANGUAGES, getLanguage } from '../config/languages';
-import { vscodeDark } from '../config/editorTheme';
+import { vscodeDark, vscodeLight } from '../config/editorTheme';
 import { runCode } from '../lib/wandbox';
 import type { RunResult } from '../lib/wandbox';
 
@@ -12,6 +12,7 @@ export const CodeEditor: React.FC = () => {
   const codeLanguage = useWorkspaceStore((state) => state.codeLanguage);
   const updateCode = useWorkspaceStore((state) => state.updateCode);
   const setCodeLanguage = useWorkspaceStore((state) => state.setCodeLanguage);
+  const theme = useWorkspaceStore((state) => state.theme);
 
   const [stdin, setStdin] = useState('');
   const [showStdin, setShowStdin] = useState(false);
@@ -72,14 +73,14 @@ export const CodeEditor: React.FC = () => {
   const exitCode = result && result.status !== '' ? Number(result.status) : null;
 
   return (
-    <div className="flex flex-col h-full w-full bg-zinc-900 text-zinc-300 select-text">
+    <div className={`flex flex-col h-full w-full select-text ${theme === 'dark' ? 'bg-zinc-900 text-zinc-300' : 'bg-zinc-50 text-zinc-800'}`}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-zinc-950/80 border-b border-zinc-800 select-none">
+      <div className={`flex items-center justify-between gap-2 px-3 py-1.5 border-b select-none ${theme === 'dark' ? 'bg-zinc-950/80 border-zinc-800' : 'bg-zinc-100 border-zinc-200'}`}>
         <div className="flex items-center gap-2">
           <select
             value={codeLanguage}
             onChange={(e) => setCodeLanguage(e.target.value)}
-            className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-200 font-mono focus:outline-none focus:border-emerald-500/60 cursor-pointer"
+            className={`rounded px-2 py-1 text-xs font-mono focus:outline-none focus:border-emerald-500/60 cursor-pointer ${theme === 'dark' ? 'bg-zinc-900 border border-zinc-800 text-zinc-200' : 'bg-white border border-zinc-200 text-zinc-800'}`}
             title="Language"
           >
             {LANGUAGES.map((l) => (
@@ -101,14 +102,14 @@ export const CodeEditor: React.FC = () => {
 
           <button
             onClick={resetTemplate}
-            className="flex items-center gap-1 px-2 py-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 text-xs transition-colors cursor-pointer"
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors cursor-pointer ${theme === 'dark' ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200'}`}
             title="Reset to template"
           >
             <RotateCcw size={12} />
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[10px] text-zinc-600 font-mono" title="Code runs on the public Wandbox API (requires internet)">
+        <div className={`flex items-center gap-1.5 text-[10px] font-mono ${theme === 'dark' ? 'text-zinc-600' : 'text-zinc-400'}`} title="Code runs on the public Wandbox API (requires internet)">
           <Globe size={11} />
           <span className="hidden sm:inline">runs online via Wandbox</span>
         </div>
@@ -119,7 +120,7 @@ export const CodeEditor: React.FC = () => {
         <CodeMirror
           value={code}
           height="100%"
-          theme={vscodeDark}
+          theme={theme === 'dark' ? vscodeDark : vscodeLight}
           extensions={[lang.cm()]}
           onChange={(value) => updateCode(value)}
           basicSetup={{ lineNumbers: true, highlightActiveLine: true, autocompletion: true }}
@@ -128,10 +129,10 @@ export const CodeEditor: React.FC = () => {
       </div>
 
       {/* stdin (collapsible) */}
-      <div className="border-t border-zinc-800 bg-zinc-950/40 select-none">
+      <div className={`border-t select-none ${theme === 'dark' ? 'border-zinc-800 bg-zinc-950/40' : 'border-zinc-200 bg-zinc-100/50'}`}>
         <button
           onClick={() => setShowStdin((s) => !s)}
-          className="flex items-center gap-1 px-3 py-1 text-[10px] font-mono uppercase tracking-wide text-zinc-500 hover:text-zinc-300 cursor-pointer"
+          className={`flex items-center gap-1 px-3 py-1 text-[10px] font-mono uppercase tracking-wide cursor-pointer ${theme === 'dark' ? 'text-zinc-500 hover:text-zinc-300' : 'text-zinc-500 hover:text-zinc-800'}`}
         >
           {showStdin ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
           Input (stdin)
@@ -141,14 +142,14 @@ export const CodeEditor: React.FC = () => {
             value={stdin}
             onChange={(e) => setStdin(e.target.value)}
             placeholder="Standard input passed to your program…"
-            className="w-full h-20 bg-zinc-950 border-t border-zinc-800 px-3 py-2 text-xs font-mono text-zinc-200 placeholder-zinc-700 resize-none focus:outline-none select-text"
+            className={`w-full h-20 border-t px-3 py-2 text-xs font-mono resize-none focus:outline-none select-text ${theme === 'dark' ? 'bg-zinc-950 border-zinc-800 text-zinc-200 placeholder-zinc-700' : 'bg-white border-zinc-200 text-zinc-800 placeholder-zinc-400'}`}
           />
         )}
       </div>
 
       {/* Output console */}
-      <div className="h-[30%] min-h-[120px] flex flex-col border-t border-zinc-800 bg-zinc-950">
-        <div className="flex items-center justify-between px-3 py-1 border-b border-zinc-900 select-none">
+      <div className={`h-[30%] min-h-[120px] flex flex-col border-t ${theme === 'dark' ? 'border-zinc-800 bg-zinc-950' : 'border-zinc-200 bg-zinc-50'}`}>
+        <div className={`flex items-center justify-between px-3 py-1 border-b select-none ${theme === 'dark' ? 'border-zinc-900 bg-zinc-950' : 'border-zinc-200 bg-zinc-100'}`}>
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">Output</span>
             {exitCode !== undefined && exitCode !== null && (
@@ -170,7 +171,7 @@ export const CodeEditor: React.FC = () => {
           </div>
           <button
             onClick={clearOutput}
-            className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 cursor-pointer"
+            className={`p-1 rounded cursor-pointer ${theme === 'dark' ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800' : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200'}`}
             title="Clear output"
           >
             <Trash2 size={12} />
@@ -179,20 +180,20 @@ export const CodeEditor: React.FC = () => {
 
         <div className="flex-1 overflow-auto px-3 py-2 font-mono text-xs leading-relaxed whitespace-pre-wrap">
           {running ? (
-            <span className="text-zinc-500">Running on the remote runner…</span>
+            <span className={theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400'}>Running on the remote runner…</span>
           ) : error ? (
             <span className="text-rose-400">{error}</span>
           ) : result ? (
             <>
-              {compileErr && <div className="text-amber-400 mb-2">{compileErr}</div>}
+              {compileErr && <div className="text-amber-500 mb-2">{compileErr}</div>}
               {runOut ? (
-                <span className="text-zinc-200">{runOut}</span>
+                <span className={theme === 'dark' ? 'text-zinc-200' : 'text-zinc-900'}>{runOut}</span>
               ) : (
-                !compileErr && <span className="text-zinc-600">(no output)</span>
+                !compileErr && <span className={theme === 'dark' ? 'text-zinc-600' : 'text-zinc-400'}>(no output)</span>
               )}
             </>
           ) : (
-            <span className="text-zinc-600">Run your code to see the output here.</span>
+            <span className={theme === 'dark' ? 'text-zinc-600' : 'text-zinc-400'}>Run your code to see the output here.</span>
           )}
         </div>
       </div>

@@ -144,7 +144,7 @@ export const Toolbar: React.FC = () => {
               <rect x="3.4" y="3.4" width="5.2" height="5.2" rx="0.6" />
             </svg>
           </span>
-          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">Scratchpad</h1>
+          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">dsadelta</h1>
         </div>
 
         <div className="h-3.5 w-px bg-hairline" />

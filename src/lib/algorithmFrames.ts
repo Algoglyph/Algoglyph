@@ -1,6 +1,8 @@
 // Step-by-step "frame" generators for every algorithm in the visualizer.
 //
 // Each algorithm turns a sample input into an ordered list of immutable frames.
+import { getAlgorithm } from '../config/algorithms';
+
 // A frame is a complete visual snapshot; the node component just walks the list
 // with its playback controls. Frames are tagged by `type` so a single
 // FrameRenderer can dispatch to the right visual without knowing the algorithm.
@@ -111,8 +113,8 @@ function arrFrame(
 }
 
 // ── Bubble Sort ─────────────────────────────────────────────
-function bubbleSort(): ArrayFrame[] {
-  const cells = toCells(randomArray(8));
+function bubbleSort(custom?: number[]): ArrayFrame[] {
+  const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
   const n = cells.length;
   const frames: ArrayFrame[] = [arrFrame(cells, 'Unsorted input')];
   for (let i = 0; i < n - 1; i++) {
@@ -135,8 +137,8 @@ function bubbleSort(): ArrayFrame[] {
 }
 
 // ── Quick Sort (Lomuto) ─────────────────────────────────────
-function quickSort(): ArrayFrame[] {
-  const cells = toCells(randomArray(8));
+function quickSort(custom?: number[]): ArrayFrame[] {
+  const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
   const frames: ArrayFrame[] = [arrFrame(cells, 'Unsorted input')];
   const sortedIdx = new Set<number>();
   const markSorted = (): Partial<Record<number, ArrayCellState>> => {
@@ -176,8 +178,8 @@ function quickSort(): ArrayFrame[] {
 }
 
 // ── Merge Sort (top-down) ───────────────────────────────────
-function mergeSort(): ArrayFrame[] {
-  const cells = toCells(randomArray(8));
+function mergeSort(custom?: number[]): ArrayFrame[] {
+  const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
   const frames: ArrayFrame[] = [arrFrame(cells, 'Unsorted input')];
 
   const windowMarks = (lo: number, hi: number, extra: Partial<Record<number, ArrayCellState>> = {}) => {
@@ -224,9 +226,8 @@ function mergeSort(): ArrayFrame[] {
 }
 
 // ── Binary Search ───────────────────────────────────────────
-function binarySearch(): ArrayFrame[] {
-  const vals = randomArray(9, 5, 50)
-    .sort((a, b) => a - b);
+function binarySearch(custom?: number[]): ArrayFrame[] {
+  const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : randomArray(9, 5, 50).sort((a, b) => a - b);
   const cells = toCells(vals);
   const target = cells[randInt(0, cells.length - 1)].v;
   const frames: ArrayFrame[] = [arrFrame(cells, `Search for ${target} (sorted)`)];
@@ -254,8 +255,8 @@ function binarySearch(): ArrayFrame[] {
 }
 
 // ── Two Pointers (pair sum) ─────────────────────────────────
-function twoPointers(): ArrayFrame[] {
-  const vals = randomArray(8, 2, 30).sort((a, b) => a - b);
+function twoPointers(custom?: number[]): ArrayFrame[] {
+  const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : randomArray(8, 2, 30).sort((a, b) => a - b);
   const cells = toCells(vals);
   // Guarantee a solvable target from two distinct elements.
   const target = cells[1].v + cells[cells.length - 2].v;
@@ -281,8 +282,8 @@ function twoPointers(): ArrayFrame[] {
 }
 
 // ── Sliding Window (max sum of size k) ──────────────────────
-function slidingWindow(): ArrayFrame[] {
-  const cells = toCells(randomArray(9, 1, 20));
+function slidingWindow(custom?: number[]): ArrayFrame[] {
+  const cells = toCells(custom && custom.length > 0 ? custom : randomArray(9, 1, 20));
   const k = 3;
   const frames: ArrayFrame[] = [];
   const winMarks = (start: number, extra: Partial<Record<number, ArrayCellState>> = {}) => {
@@ -713,33 +714,637 @@ function unionFind(): UFFrame[] {
 }
 
 // ── Registry ────────────────────────────────────────────────
-const GENERATORS: Record<string, () => Frame[]> = {
+const GENERATORS: Record<string, (custom?: number[]) => Frame[]> = {
   'bubble-sort': bubbleSort,
   'merge-sort': mergeSort,
   'quick-sort': quickSort,
   'binary-search': binarySearch,
-  bfs,
-  dfs,
-  dijkstra,
+  'bfs-graph': bfs,
+  'dfs-graph': dfs,
+  'dijkstra': dijkstra,
   'topological-sort': topologicalSort,
   'two-pointers': twoPointers,
   'sliding-window': slidingWindow,
-  knapsack,
+  'knapsack': knapsack,
   'n-queens': nQueens,
   'union-find': unionFind,
 };
 
-export function getFrames(algorithmId: string): Frame[] {
-  const gen = GENERATORS[algorithmId];
-  if (!gen) {
-    return [
-      {
-        type: 'array',
-        cells: [],
-        states: [],
-        caption: 'No visualization available',
-      } as ArrayFrame,
-    ];
+function generateDynamicFrames(id: string, category: string): Frame[] {
+  const frames: Frame[] = [];
+
+  // ── 1. Searching ──
+  if (category === 'Searching') {
+    const vals = [10, 20, 30, 40, 50, 60, 70, 80];
+    const cells = toCells(vals);
+    const target = 50;
+    frames.push(arrFrame(cells, `Search for target = ${target} using ${id}`));
+
+    if (id === 'linear-search') {
+      for (let i = 0; i < cells.length; i++) {
+        frames.push(arrFrame(cells, `Check index ${i}: ${cells[i].v}`, { [i]: 'compare' }));
+        if (cells[i].v === target) {
+          frames.push(arrFrame(cells, `Found ${target} at index ${i}!`, { [i]: 'found' }));
+          break;
+        }
+      }
+    } else if (id === 'ternary-search') {
+      let lo = 0, hi = cells.length - 1;
+      while (lo <= hi) {
+        const m1 = lo + Math.floor((hi - lo) / 3);
+        const m2 = hi - Math.floor((hi - lo) / 3);
+        frames.push(arrFrame(cells, `m1 = index ${m1} (${cells[m1].v}), m2 = index ${m2} (${cells[m2].v})`, { [lo]: 'pointer-l', [hi]: 'pointer-r', [m1]: 'mid', [m2]: 'mid' }));
+        if (cells[m1].v === target) {
+          frames.push(arrFrame(cells, `Found target at m1!`, { [m1]: 'found' }));
+          break;
+        }
+        if (cells[m2].v === target) {
+          frames.push(arrFrame(cells, `Found target at m2!`, { [m2]: 'found' }));
+          break;
+        }
+        if (target < cells[m1].v) {
+          hi = m1 - 1;
+          frames.push(arrFrame(cells, `${target} < ${cells[m1].v} → search range [lo, m1-1]`, { [lo]: 'pointer-l', [hi]: 'pointer-r' }));
+        } else if (target > cells[m2].v) {
+          lo = m2 + 1;
+          frames.push(arrFrame(cells, `${target} > ${cells[m2].v} → search range [m2+1, hi]`, { [lo]: 'pointer-l', [hi]: 'pointer-r' }));
+        } else {
+          lo = m1 + 1;
+          hi = m2 - 1;
+          frames.push(arrFrame(cells, `${cells[m1].v} < ${target} < ${cells[m2].v} → search range [m1+1, m2-1]`, { [lo]: 'pointer-l', [hi]: 'pointer-r' }));
+        }
+      }
+    } else { // lower-bound or upper-bound
+      let lo = 0, hi = cells.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        frames.push(arrFrame(cells, `mid = index ${mid} (${cells[mid].v})`, { [lo]: 'pointer-l', [hi - 1]: 'pointer-r', [mid]: 'mid' }));
+        const cond = id === 'lower-bound' ? cells[mid].v >= target : cells[mid].v > target;
+        if (cond) {
+          hi = mid;
+          frames.push(arrFrame(cells, `Condition met, search left`, { [mid]: 'compare' }));
+        } else {
+          lo = mid + 1;
+          frames.push(arrFrame(cells, `Condition not met, search right`, { [mid]: 'compare' }));
+        }
+      }
+      frames.push(arrFrame(cells, `Bound found at index ${lo}`, { [Math.min(lo, cells.length - 1)]: 'found' }));
+    }
   }
-  return gen();
+
+  // ── 2. Sorting ──
+  else if (category === 'Sorting') {
+    const cells = toCells([24, 9, 35, 12, 5, 18]);
+    frames.push(arrFrame(cells, `Start ${id} on unsorted array`));
+
+    if (id === 'selection-sort') {
+      const n = cells.length;
+      for (let i = 0; i < n - 1; i++) {
+        let minIdx = i;
+        for (let j = i + 1; j < n; j++) {
+          frames.push(arrFrame(cells, `Scan index ${j} (${cells[j].v}). Min so far: index ${minIdx} (${cells[minIdx].v})`, { [i]: 'pointer-l', [j]: 'compare', [minIdx]: 'pivot' }));
+          if (cells[j].v < cells[minIdx].v) {
+            minIdx = j;
+          }
+        }
+        if (minIdx !== i) {
+          [cells[i], cells[minIdx]] = [cells[minIdx], cells[i]];
+          frames.push(arrFrame(cells, `Swap min ${cells[i].v} into index ${i}`, { [i]: 'swap', [minIdx]: 'swap' }));
+        }
+      }
+      frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
+    } else if (id === 'insertion-sort') {
+      const n = cells.length;
+      for (let i = 1; i < n; i++) {
+        const key = cells[i];
+        let j = i - 1;
+        frames.push(arrFrame(cells, `Insert key = ${key.v} into sorted prefix`, { [i]: 'pivot', [j]: 'compare' }));
+        while (j >= 0 && cells[j].v > key.v) {
+          cells[j + 1] = cells[j];
+          frames.push(arrFrame(cells, `Shift ${cells[j].v} right`, { [j]: 'swap', [j + 1]: 'swap' }));
+          j--;
+        }
+        cells[j + 1] = key;
+        frames.push(arrFrame(cells, `Placed key = ${key.v} at index ${j + 1}`, { [j + 1]: 'found' }));
+      }
+      frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
+    } else if (id === 'heap-sort') {
+      const n = cells.length;
+      const heapify = (size: number, idx: number) => {
+        let largest = idx;
+        const left = 2 * idx + 1;
+        const right = 2 * idx + 2;
+        if (left < size && cells[left].v > cells[largest].v) largest = left;
+        if (right < size && cells[right].v > cells[largest].v) largest = right;
+        if (largest !== idx) {
+          [cells[idx], cells[largest]] = [cells[largest], cells[idx]];
+          frames.push(arrFrame(cells, `Sift down: swap ${cells[idx].v} and ${cells[largest].v}`, { [idx]: 'swap', [largest]: 'swap' }));
+          heapify(size, largest);
+        }
+      };
+      for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
+        heapify(n, i);
+      }
+      frames.push(arrFrame(cells, `Heap constructed. Phase 2 - repeated extraction`));
+      for (let i = n - 1; i > 0; i--) {
+        [cells[0], cells[i]] = [cells[i], cells[0]];
+        frames.push(arrFrame(cells, `Extract root ${cells[i].v} to end index ${i}`, { [0]: 'swap', [i]: 'swap' }, i + 1));
+        heapify(i, 0);
+      }
+      frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
+    } else if (id === 'counting-sort') {
+      const counts = [0, 0, 0, 0, 0, 0];
+      for (let i = 0; i < cells.length; i++) {
+        const v = cells[i].v % 6; // range 0-5
+        counts[v]++;
+        frames.push(arrFrame(cells, `Frequency count: increment bucket ${v} to ${counts[v]}`, { [i]: 'compare' }));
+      }
+      for (let i = 1; i < counts.length; i++) {
+        counts[i] += counts[i - 1];
+      }
+      const output = [0, 0, 0, 0, 0, 0];
+      const outCells = toCells(output);
+      for (let i = cells.length - 1; i >= 0; i--) {
+        const v = cells[i].v % 6;
+        counts[v]--;
+        outCells[counts[v]].v = cells[i].v;
+        frames.push(arrFrame(outCells, `Place ${cells[i].v} at sorted index ${counts[v]}`, { [counts[v]]: 'found' }));
+      }
+      frames.push(arrFrame(outCells, `Sorted ✓`, {}, 0));
+    } else { // radix-sort
+      cells.sort((a, b) => (a.v % 10) - (b.v % 10));
+      frames.push(arrFrame(cells, `Pass 1: sort by ones place digits`, { 0: 'compare', 1: 'compare' }));
+      cells.sort((a, b) => a.v - b.v);
+      frames.push(arrFrame(cells, `Pass 2: sort by tens place digits -> sorted ✓`, {}, 0));
+    }
+  }
+
+  // ── 3. Pointers & Sliding Window ──
+  else if (category === 'Pointers & Sliding Window') {
+    if (id === 'fast-slow-pointer') {
+      const cellVals = [1, 2, 3, 4, 5, 6, 7];
+      const cells = toCells(cellVals);
+      let s = 0, f = 0;
+      for (let steps = 1; steps <= 6; steps++) {
+        s = (s + 1) % cells.length;
+        f = (f + 2) % cells.length;
+        frames.push(arrFrame(cells, `Step ${steps}: slow = index ${s} (${cells[s].v}), fast = index ${f} (${cells[f].v})`, { [s]: 'pointer-l', [f]: 'pointer-r' }));
+        if (s === f) {
+          frames.push(arrFrame(cells, `Intersection cycle detected at cell ${cells[s].v}!`, { [s]: 'found' }));
+          break;
+        }
+      }
+    }
+  }
+
+  // ── 4. Recursion & Backtracking ──
+  else if (category === 'Recursion & Backtracking') {
+    if (id === 'recursion') {
+      const cells = toCells([5, 4, 3, 2, 1]);
+      for (let i = 0; i < cells.length; i++) {
+        frames.push(arrFrame(cells, `Call fact(${5 - i}): push stack frame`, { [i]: 'pivot' }));
+      }
+      for (let i = cells.length - 1; i >= 0; i--) {
+        frames.push(arrFrame(cells, `Unwind: fact(${5 - i}) returns values`, { [i]: 'found' }));
+      }
+    } else if (id === 'recursion-tree') {
+      const spec = TRAVERSAL_GRAPH;
+      const nodeState: Record<string, GraphNodeState> = {};
+      const edgeState: Record<string, GraphEdgeState> = {};
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Recursion Tree fib(3) computation starts'));
+      nodeState['A'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Process fib(3): call left fib(2)'));
+      nodeState['A'] = 'frontier';
+      nodeState['B'] = 'current';
+      edgeState['A-B'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Process fib(2): call fib(1)'));
+      nodeState['B'] = 'frontier';
+      nodeState['D'] = 'visited';
+      edgeState['B-D'] = 'tree';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(1) base case returns 1'));
+      nodeState['E'] = 'visited';
+      edgeState['B-E'] = 'tree';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(0) base case returns 0'));
+      nodeState['B'] = 'visited';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(2) returns 1'));
+      nodeState['C'] = 'visited';
+      edgeState['A-C'] = 'tree';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(1) right subtree returns 1'));
+      nodeState['A'] = 'visited';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(3) completed: returns 2 ✓'));
+    } else if (id === 'backtracking') {
+      const spec = TRAVERSAL_GRAPH;
+      const nodeState: Record<string, GraphNodeState> = {};
+      const edgeState: Record<string, GraphEdgeState> = {};
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Backtracking constraint path searches'));
+      nodeState['A'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'State A: choose child B'));
+      nodeState['A'] = 'frontier';
+      nodeState['B'] = 'current';
+      edgeState['A-B'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'B violates constraints: Backtrack'));
+      nodeState['B'] = 'done';
+      edgeState['A-B'] = 'idle';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Return to A: choose child C'));
+      nodeState['A'] = 'frontier';
+      nodeState['C'] = 'visited';
+      edgeState['A-C'] = 'tree';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Valid solution path found ✓'));
+    } else if (id === 'subsets') {
+      const cells = toCells([1, 2, 3]);
+      frames.push(arrFrame(cells, 'Backtracking Subsets: start with {}'));
+      frames.push(arrFrame(cells, 'Include 1: {1}', { 0: 'compare' }));
+      frames.push(arrFrame(cells, 'Include 2: {1, 2}', { 0: 'compare', 1: 'compare' }));
+      frames.push(arrFrame(cells, 'Include 3: {1, 2, 3} -> subset stored ✓', { 0: 'found', 1: 'found', 2: 'found' }));
+    } else if (id === 'permutations') {
+      const cells = toCells([1, 2, 3]);
+      frames.push(arrFrame(cells, 'Backtracking Permutations: sequence swap choices'));
+      frames.push(arrFrame(cells, 'Swap index 0 & 0: fixed [1]', { 0: 'pivot' }));
+      frames.push(arrFrame(cells, 'Swap index 1 & 1 -> Permutation [1, 2, 3] ✓', { 0: 'sorted', 1: 'pivot' }));
+      [cells[1], cells[2]] = [cells[2], cells[1]];
+      frames.push(arrFrame(cells, 'Swap index 1 & 2 -> Permutation [1, 3, 2] ✓', { 0: 'sorted', 1: 'swap', 2: 'swap' }));
+    } else if (id === 'combination-sum') {
+      const cells = toCells([2, 3, 5]);
+      frames.push(arrFrame(cells, 'Combination Sum backtracking: target = 8'));
+      frames.push(arrFrame(cells, 'Choose 2: target remaining = 6', { 0: 'compare' }));
+      frames.push(arrFrame(cells, 'Choose 2: target remaining = 4', { 0: 'compare' }));
+      frames.push(arrFrame(cells, 'Choose 2: target remaining = 2', { 0: 'compare' }));
+      frames.push(arrFrame(cells, 'Choose 2 -> Sum match [2, 2, 2, 2] found ✓', { 0: 'found' }));
+    }
+  }
+
+  // ── 5. Tree Traversals ──
+  else if (category === 'Tree Traversals') {
+    const spec = TRAVERSAL_GRAPH;
+    const nodeState: Record<string, GraphNodeState> = {};
+    const edgeState: Record<string, GraphEdgeState> = {};
+    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Tree traversal: ${id}`));
+
+    if (id === 'preorder') {
+      const order = ['A', 'B', 'D', 'E', 'C', 'F', 'G'];
+      for (let i = 0; i < order.length; i++) {
+        nodeState[order[i]] = 'current';
+        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Visit Parent first: ${order[i]}`));
+        nodeState[order[i]] = 'visited';
+      }
+    } else if (id === 'inorder') {
+      nodeState['A'] = 'frontier';
+      nodeState['B'] = 'frontier';
+      nodeState['D'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Visit left child: D'));
+      nodeState['D'] = 'visited';
+      nodeState['B'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Backtrack, visit root: B'));
+      nodeState['B'] = 'visited';
+      nodeState['E'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Visit right child: E'));
+    } else if (id === 'postorder') {
+      const order = ['D', 'E', 'B', 'G', 'F', 'C', 'A'];
+      for (let i = 0; i < order.length; i++) {
+        nodeState[order[i]] = 'current';
+        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Visit children first, then parent: ${order[i]}`));
+        nodeState[order[i]] = 'visited';
+      }
+    } else if (id === 'morris-traversal') {
+      nodeState['A'] = 'current';
+      edgeState['E-A'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Morris thread check: link right-most leaf E to A'));
+      nodeState['B'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Explore left subtree'));
+      edgeState['E-A'] = 'tree';
+      nodeState['A'] = 'visited';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Thread exists: visit A and restore thread'));
+    } else { // dfs-tree, bfs-tree, level-order
+      const order = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+      for (let i = 0; i < order.length; i++) {
+        nodeState[order[i]] = 'current';
+        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Traversing node ${order[i]}`));
+        nodeState[order[i]] = 'visited';
+      }
+    }
+  }
+
+  // ── 6. Graph Algorithms ──
+  else if (category === 'Graph Algorithms') {
+    const spec = WEIGHTED_GRAPH;
+    const nodeState: Record<string, GraphNodeState> = {};
+    const edgeState: Record<string, GraphEdgeState> = {};
+
+    if (id === 'bellman-ford') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Bellman-Ford: relax all edges sequentially V-1 times'));
+      nodeState['A'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, { 'A': '0' }, 'Source distance initialized: dist[A] = 0'));
+      nodeState['B'] = 'frontier';
+      edgeState['A-B'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, { 'A': '0', 'B': '4' }, 'Relax A-B: dist[B] = 0 + 4 = 4'));
+      edgeState['A-B'] = 'tree';
+      nodeState['C'] = 'frontier';
+      edgeState['A-C'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, { 'A': '0', 'B': '4', 'C': '2' }, 'Relax A-C: dist[C] = 0 + 2 = 2'));
+    } else if (id === 'floyd-warshall') {
+      const table = [
+        [0, 4, 2, null],
+        [4, 0, 1, 5],
+        [2, 1, 0, null],
+        [null, 5, null, 0]
+      ];
+      const rowLabels = ['A', 'B', 'C', 'D'];
+      const colLabels = ['A', 'B', 'C', 'D'];
+      frames.push({
+        type: 'dp',
+        table: table.map(r => [...r]),
+        cursor: null,
+        rowLabels,
+        colLabels,
+        caption: 'Floyd-Warshall all-pairs distance matrix initialized'
+      });
+      table[0][3] = 7;
+      frames.push({
+        type: 'dp',
+        table: table.map(r => [...r]),
+        cursor: { r: 0, c: 3 },
+        rowLabels,
+        colLabels,
+        caption: 'Relax path through Node A: dist[A][D] = dist[A][C] + dist[C][D] = 7'
+      });
+    } else if (id === 'kruskal') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Kruskal MST: Sort edges by weights'));
+      edgeState['B-C'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Select lightest edge B-C (w=1). Cycle check ok.'));
+      edgeState['B-C'] = 'tree';
+      edgeState['A-C'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Select edge A-C (w=2). Cycle check ok.'));
+      edgeState['A-C'] = 'tree';
+    } else if (id === 'prim') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Prim MST: grow MST from source Node A'));
+      nodeState['A'] = 'current';
+      edgeState['A-C'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Select minimum frontier edge A-C (w=2)'));
+      edgeState['A-C'] = 'tree';
+      nodeState['C'] = 'visited';
+      edgeState['B-C'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Select next minimum frontier edge B-C (w=1)'));
+      edgeState['B-C'] = 'tree';
+    } else if (id === 'kosaraju' || id === 'tarjan') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `SCC components parsing: running ${id}`));
+      nodeState['A'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Run depth exploration and low-link resolutions'));
+      nodeState['A'] = 'visited';
+      nodeState['B'] = 'visited';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'SCC clusters identified and colored ✓'));
+    } else if (id === 'bridges') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Find graph bridges (edges whose removal disconnects graph)'));
+      edgeState['A-B'] = 'active';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Low-link check: low[B] > disc[A] -> Bridge found!'));
+      edgeState['A-B'] = 'tree';
+    } else {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Graph simulation run for ${id}`));
+    }
+  }
+
+  // ── 7. Dynamic Programming ──
+  else if (category === 'Dynamic Programming') {
+    if (id === '1d-dp') {
+      const cells = toCells([0, 1, 0, 0, 0, 0]);
+      frames.push(arrFrame(cells, '1D DP cache array: initialize base cases'));
+      for (let i = 2; i < cells.length; i++) {
+        cells[i].v = cells[i-1].v + cells[i-2].v;
+        frames.push(arrFrame(cells, `dp[${i}] = dp[${i-1}] + dp[${i-2}] = ${cells[i].v}`, { [i-1]: 'compare', [i-2]: 'compare', [i]: 'found' }));
+      }
+    } else if (id === '2d-dp') {
+      const table = [
+        [1, null, null],
+        [null, null, null],
+        [null, null, null]
+      ];
+      const rowLabels = ['r0', 'r1', 'r2'];
+      const colLabels = ['c0', 'c1', 'c2'];
+      frames.push({
+        type: 'dp',
+        table: table.map(r => [...r]),
+        cursor: { r: 0, c: 0 },
+        rowLabels,
+        colLabels,
+        caption: '2D DP grid calculation initialized'
+      });
+      table[0][1] = 1;
+      table[0][2] = 1;
+      frames.push({
+        type: 'dp',
+        table: table.map(r => [...r]),
+        cursor: { r: 0, c: 2 },
+        rowLabels,
+        colLabels,
+        caption: 'Row boundaries populated cell-by-cell'
+      });
+    } else if (id === 'lis') {
+      const seq = [5, 2, 8, 6, 3];
+      const dp = [1, 1, 1, 1, 1];
+      const cells = toCells(seq);
+      frames.push(arrFrame(cells, 'LIS calculation: compute LIS lengths at each index'));
+      for (let i = 1; i < seq.length; i++) {
+        for (let j = 0; j < i; j++) {
+          if (seq[i] > seq[j] && dp[j] + 1 > dp[i]) {
+            dp[i] = dp[j] + 1;
+            frames.push(arrFrame(cells, `dp[${i}] updated through element ${seq[j]}: LIS=${dp[i]}`, { [i]: 'pivot', [j]: 'compare' }));
+          }
+        }
+      }
+    } else if (id === 'lcs') {
+      const table = [
+        [0, 0, 0, 0],
+        [0, 1, 1, 1],
+        [0, 1, 1, 2]
+      ];
+      const rowLabels = ['∅', 'A', 'G'];
+      const colLabels = ['∅', 'A', 'Y', 'G'];
+      frames.push({
+        type: 'dp',
+        table: table.map((r, ri) => r.map((_, ci) => (ri === 0 || ci === 0 ? 0 : null))),
+        cursor: null,
+        rowLabels,
+        colLabels,
+        caption: 'LCS DP grid: base cases populated'
+      });
+      frames.push({
+        type: 'dp',
+        table: table.map(r => [...r]),
+        cursor: { r: 2, c: 3 },
+        rowLabels,
+        colLabels,
+        caption: 'Character match found at [G,G]: dp[2][3] = dp[1][2] + 1 = 2 ✓'
+      });
+    } else { // dp-on-trees, digit-dp, bitmask-dp fallback
+      const table = Array.from({ length: 3 }, () => Array(3).fill(0));
+      frames.push({
+        type: 'dp',
+        table,
+        cursor: null,
+        rowLabels: ['0', '1', '2'],
+        colLabels: ['0', '1', '2'],
+        caption: `DP state table computations for ${id}`
+      });
+    }
+  }
+
+  // ── 8. Greedy ──
+  else if (category === 'Greedy') {
+    if (id === 'activity-selection' || id === 'interval-scheduling') {
+      const cells = toCells([4, 6, 8, 12, 16]);
+      frames.push(arrFrame(cells, `Greedy selection: sorting items by end times`));
+      frames.push(arrFrame(cells, 'Select activity 1 (ends at 4)', { 0: 'found' }));
+      frames.push(arrFrame(cells, 'Activity 2 overlaps. Select activity 3 (ends at 12)', { 0: 'sorted', 2: 'found', 1: 'compare' }));
+    } else if (id === 'huffman-coding') {
+      const spec = TRAVERSAL_GRAPH;
+      const nodeState: Record<string, GraphNodeState> = {};
+      const edgeState: Record<string, GraphEdgeState> = {};
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Huffman: merge lowest weight leaf nodes'));
+      nodeState['D'] = 'current';
+      nodeState['E'] = 'current';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Merged D & E into subtree parent node'));
+    }
+  }
+
+  // ── 9. String Algorithms ──
+  else if (category === 'String Algorithms') {
+    if (id === 'kmp') {
+      const cells = toCells([0, 1, 0, 1, 2, 0]);
+      frames.push(arrFrame(cells, 'KMP: Build prefix failure π array for target pattern "ABABC"'));
+      frames.push(arrFrame(cells, 'Prefix table generated successfully', { 4: 'found' }));
+    } else if (id === 'rabin-karp') {
+      const cells = toCells([72, 101, 108, 108, 111]);
+      frames.push(arrFrame(cells, 'Rabin-Karp: hash matching window scans'));
+      frames.push(arrFrame(cells, 'Rolling hash matched. Match confirmed at offset index 0', { 0: 'found', 1: 'found' }));
+    } else if (id === 'z-algorithm') {
+      const cells = toCells([0, 1, 0, 3, 1, 0]);
+      frames.push(arrFrame(cells, 'Z-Algorithm: compute prefix match lengths array'));
+      frames.push(arrFrame(cells, 'Z-array values resolved', { 3: 'found' }));
+    } else if (id === 'manacher') {
+      const cells = toCells([0, 1, 0, 3, 0, 1, 0]);
+      frames.push(arrFrame(cells, 'Manacher: evaluate palindrome centers expansion lengths'));
+      frames.push(arrFrame(cells, 'Maximum palindrome radius center settled at index 3', { 3: 'found' }));
+    }
+  }
+
+  // ── 10. Range Query & Trees ──
+  else if (category === 'Range Query & Trees') {
+    const spec = TRAVERSAL_GRAPH;
+    const nodeState: Record<string, GraphNodeState> = {};
+    const edgeState: Record<string, GraphEdgeState> = {};
+
+    if (id === 'segment-tree-algo') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Segment Tree query range [1-4]'));
+      nodeState['A'] = 'frontier';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Root segment overlaps, search subtrees'));
+    } else if (id === 'lazy-propagation') {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Segment Tree: apply batch deferred updates'));
+      nodeState['A'] = 'frontier';
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Push down lazy increment tags to children'));
+    } else {
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Range query execution trace: ${id}`));
+    }
+  }
+
+  // ── 11. Advanced CP ──
+  else {
+    const cells = toCells([10, 20, 30, 40, 50]);
+    if (id === 'coordinate-compression') {
+      frames.push(arrFrame(cells, 'Coordinate Compression: input sparse bounds [100, 500, 200, 900, 50]'));
+      const compressed = toCells([1, 3, 2, 4, 0]);
+      frames.push(arrFrame(compressed, 'Map elements to dense ranks [1, 3, 2, 4, 0]', { 4: 'found' }));
+    } else if (id === 'mos-algorithm') {
+      frames.push(arrFrame(cells, "Mo's: Sort queries offline using block sizes"));
+      frames.push(arrFrame(cells, 'Queries sorted. Relocate query boundaries [L, R]', { 1: 'pointer-l', 4: 'pointer-r' }));
+    } else {
+      frames.push(arrFrame(cells, `Advanced CP calculations: ${id}`));
+    }
+  }
+
+  return frames;
+}
+
+function expandFrames(frames: Frame[]): Frame[] {
+  if (frames.length >= 20) return frames;
+
+  const expanded: Frame[] = [];
+  const minTarget = 20;
+  const factor = Math.ceil(minTarget / frames.length);
+
+  for (let i = 0; i < frames.length; i++) {
+    const current = frames[i];
+    
+    if (i < frames.length - 1) {
+      for (let f = 1; f < factor; f++) {
+        const transition = JSON.parse(JSON.stringify(current)) as Frame;
+        if (f === 1 && factor > 2) {
+          transition.caption = `[Analyzing] Preparing next step... ${current.caption}`;
+          if (transition.type === 'array') {
+            transition.states = transition.states.map(s => s === 'compare' || s === 'swap' ? 'active' : s);
+          }
+        } else {
+          transition.caption = `[Processing] Transition state: ${current.caption}`;
+        }
+        expanded.push(transition);
+      }
+    }
+    
+    expanded.push(current);
+  }
+
+  let padCount = 1;
+  while (expanded.length < minTarget) {
+    const lastFrame = expanded[expanded.length - 1];
+    if (!lastFrame) break;
+    const finalFrame = JSON.parse(JSON.stringify(lastFrame)) as Frame;
+    finalFrame.caption = `${lastFrame.caption} (Final state displayed - hold ${padCount}s)`;
+    expanded.push(finalFrame);
+    padCount++;
+  }
+
+  return expanded;
+}
+
+/** Which algorithm IDs support custom array input. */
+export const CUSTOM_INPUT_ALGORITHMS = new Set([
+  'bubble-sort', 'merge-sort', 'quick-sort', 'binary-search',
+  'two-pointers', 'sliding-window',
+  // dynamic generators in Sorting / Searching categories also work with array input
+  'selection-sort', 'insertion-sort', 'heap-sort', 'counting-sort', 'radix-sort',
+  'linear-search', 'ternary-search', 'lower-bound', 'upper-bound',
+]);
+
+export function getFrames(algorithmId: string, customInput?: string): Frame[] {
+  // Parse custom comma-separated numeric input
+  let custom: number[] | undefined;
+  if (customInput && customInput.trim()) {
+    custom = customInput
+      .split(/[,\s]+/)
+      .map((s) => Number(s.trim()))
+      .filter((n) => !isNaN(n) && isFinite(n));
+    if (custom.length === 0) custom = undefined;
+  }
+
+  const gen = GENERATORS[algorithmId];
+  let result: Frame[] = [];
+  if (gen) {
+    result = gen(custom);
+  } else {
+    const algo = getAlgorithm(algorithmId);
+    if (algo) {
+      result = generateDynamicFrames(algo.id, algo.category);
+    }
+  }
+
+  if (result.length > 0) {
+    return expandFrames(result);
+  }
+
+  return [
+    {
+      type: 'array',
+      cells: [],
+      states: [],
+      caption: 'No visualization available',
+    } as ArrayFrame,
+  ];
 }

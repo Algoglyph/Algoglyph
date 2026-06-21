@@ -225,7 +225,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           // Legacy single-document format → migrate into one tab.
           tabs = [
             makeTab({
-              title: 'Scratchpad',
+              title: 'dsadelta',
               notes: saved.notes || '',
               canvasElements: saved.canvasElements || [],
               canvasAppState: saved.canvasAppState || {},
@@ -235,7 +235,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           activeTabId = tabs[0].id;
         } else {
           // Fresh start.
-          tabs = [makeTab({ title: 'Scratchpad' })];
+          tabs = [makeTab({ title: 'dsadelta' })];
           activeTabId = tabs[0].id;
         }
 
@@ -255,7 +255,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         });
       } catch (error) {
         console.error('Failed to initialize workspace from database:', error);
-        const tabs = [makeTab({ title: 'Scratchpad' })];
+        const tabs = [makeTab({ title: 'dsadelta' })];
         set({
           tabs,
           activeTabId: tabs[0].id,

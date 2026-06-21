@@ -16,6 +16,7 @@ export const Canvas: React.FC = () => {
 
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [localLastImportTime, setLocalLastImportTime] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Capture the initial data only once when the canvas mount occurs (after loading completes)
   const initialElements = useRef<any[]>([]);
@@ -201,6 +202,7 @@ export const Canvas: React.FC = () => {
 
       {/* Excalidraw canvas container with drop handlers */}
       <div
+        ref={containerRef}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
         className="flex-1 h-full relative"

@@ -113,3 +113,108 @@ export const vscodeDark: Extension = [
   vscodeDarkTheme,
   syntaxHighlighting(vscodeHighlightStyle),
 ];
+
+const lightBg = '#ffffff';
+const lightFg = '#000000';
+const lightCaret = '#000000';
+const lightSelection = '#add6ff';
+const lightSelectionMatch = '#add6ff50';
+const lightLineHighlight = '#00000005';
+const lightGutterFg = '#a0a0a0';
+const lightGutterActiveFg = '#333333';
+
+const vsLightThemeBlue = '#0451a5';
+const lightPurple = '#af00db';
+const lightVarBlue = '#001080';
+const lightTeal = '#267f99';
+const lightYellow = '#795e26';
+const lightRedOrange = '#a31515';
+const lightGreen = '#008000';
+const lightNumberGreen = '#098658';
+const lightConstantBlue = '#0070c1';
+
+const vscodeLightTheme = EditorView.theme(
+  {
+    '&': {
+      color: lightFg,
+      backgroundColor: lightBg,
+    },
+    '.cm-content': {
+      caretColor: lightCaret,
+      fontFamily:
+        '"Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace',
+    },
+    '.cm-cursor, .cm-dropCursor': { borderLeftColor: lightCaret },
+    '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection':
+      { backgroundColor: lightSelection },
+    '.cm-selectionMatch': { backgroundColor: lightSelectionMatch },
+    '&.cm-focused .cm-matchingBracket': {
+      backgroundColor: '#dbebff',
+      outline: '1px solid #999',
+    },
+    '.cm-activeLine': { backgroundColor: lightLineHighlight },
+    '.cm-gutters': {
+      backgroundColor: lightBg,
+      color: lightGutterFg,
+      border: 'none',
+    },
+    '.cm-activeLineGutter': {
+      backgroundColor: 'transparent',
+      color: lightGutterActiveFg,
+    },
+    '.cm-foldPlaceholder': {
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: lightGutterActiveFg,
+    },
+    '.cm-tooltip': {
+      backgroundColor: '#f3f3f3',
+      border: '1px solid #ccc',
+      color: lightFg,
+    },
+    '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+      backgroundColor: '#2b5b84',
+      color: '#ffffff',
+    },
+    '.cm-panels': { backgroundColor: '#f3f3f3', color: lightFg },
+    '.cm-searchMatch': { backgroundColor: '#ffe9a6' },
+    '.cm-searchMatch.cm-searchMatch-selected': { backgroundColor: '#fccb44' },
+  },
+  { dark: false },
+);
+
+const vscodeLightHighlightStyle = HighlightStyle.define([
+  { tag: [t.keyword, t.operatorKeyword, t.modifier, t.self, t.null], color: vsLightThemeBlue },
+  {
+    tag: [t.controlKeyword, t.moduleKeyword, t.definitionKeyword],
+    color: lightPurple,
+  },
+  { tag: [t.name, t.variableName, t.propertyName, t.attributeName], color: lightVarBlue },
+  {
+    tag: [t.function(t.variableName), t.function(t.propertyName), t.labelName],
+    color: lightYellow,
+  },
+  {
+    tag: [t.typeName, t.className, t.namespace, t.macroName],
+    color: lightTeal,
+  },
+  { tag: [t.string, t.special(t.string), t.docString], color: lightRedOrange },
+  { tag: [t.escape, t.character], color: lightRedOrange },
+  { tag: [t.number, t.integer, t.float], color: lightNumberGreen },
+  { tag: [t.bool, t.atom, t.constant(t.variableName)], color: lightConstantBlue },
+  { tag: [t.comment, t.lineComment, t.blockComment, t.docComment], color: lightGreen, fontStyle: 'italic' },
+  { tag: [t.meta, t.processingInstruction], color: lightPurple },
+  { tag: [t.regexp], color: '#ee0000' },
+  { tag: [t.operator, t.punctuation, t.separator, t.bracket], color: '#333333' },
+  { tag: [t.invalid], color: '#ee0000' },
+  { tag: [t.heading], color: vsLightThemeBlue, fontWeight: 'bold' },
+  { tag: [t.link, t.url], color: lightVarBlue, textDecoration: 'underline' },
+  { tag: [t.strong], fontWeight: 'bold' },
+  { tag: [t.emphasis], fontStyle: 'italic' },
+  { tag: [t.strikethrough], textDecoration: 'line-through' },
+]);
+
+export const vscodeLight: Extension = [
+  vscodeLightTheme,
+  syntaxHighlighting(vscodeLightHighlightStyle),
+];

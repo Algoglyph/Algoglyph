@@ -21,6 +21,7 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
   const nodes = useWorkspaceStore((s) => s.visualizerNodes);
   const addNode = useWorkspaceStore((s) => s.addVisualizerNode);
   const clearNodes = useWorkspaceStore((s) => s.clearVisualizerNodes);
+  const theme = useWorkspaceStore((s) => s.theme);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ tx: 0, ty: 0, scale: 1 });
@@ -124,10 +125,11 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
         e.dataTransfer.dropEffect = 'copy';
       }}
       onDrop={onDrop}
-      className={`relative h-full flex-1 overflow-hidden bg-[#0c0c0e] ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
+      className={`relative h-full flex-1 overflow-hidden transition-colors ${theme === 'dark' ? 'bg-[#0c0c0e]' : 'bg-[#fafafa]'} ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
-        backgroundImage:
-          'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
+        backgroundImage: theme === 'dark'
+          ? 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)'
+          : 'radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)',
         backgroundSize: `${24 * view.scale}px ${24 * view.scale}px`,
         backgroundPosition: `${view.tx}px ${view.ty}px`,
       }}
@@ -145,11 +147,11 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
       {/* Empty state */}
       {nodes.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <div className="flex flex-col items-center gap-3 text-zinc-600">
+          <div className={`flex flex-col items-center gap-3 ${theme === 'dark' ? 'text-zinc-600' : 'text-zinc-400'}`}>
             <MousePointer2 size={26} />
             <div>
-              <p className="text-[15px] font-medium text-zinc-400">Drop an algorithm to begin</p>
-              <p className="mt-1 text-[12px] text-zinc-600">
+              <p className={`text-[15px] font-medium ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-700'}`}>Drop an algorithm to begin</p>
+              <p className={`mt-1 text-[12px] ${theme === 'dark' ? 'text-zinc-600' : 'text-zinc-400'}`}>
                 Drag from the sidebar, or click a card. Each block plays on its own.
               </p>
             </div>
@@ -158,18 +160,18 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
       )}
 
       {/* Zoom / view controls */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-lg border border-white/10 bg-black/60 p-1 backdrop-blur-md">
-        <button onClick={() => zoomBy(1 / 1.2)} className="flex h-7 w-7 items-center justify-center rounded text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer" title="Zoom out">
+      <div className={`absolute bottom-4 right-4 flex items-center gap-1 rounded-lg border p-1 backdrop-blur-md ${theme === 'dark' ? 'border-white/10 bg-black/60' : 'border-zinc-200 bg-white/80 shadow-sm'}`}>
+        <button onClick={() => zoomBy(1 / 1.2)} className={`flex h-7 w-7 items-center justify-center rounded cursor-pointer transition-colors ${theme === 'dark' ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'}`} title="Zoom out">
           <Minus size={14} />
         </button>
-        <button onClick={resetView} className="flex h-7 min-w-[44px] items-center justify-center rounded px-1 font-mono text-[10px] text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer" title="Reset view">
+        <button onClick={resetView} className={`flex h-7 min-w-[44px] items-center justify-center rounded px-1 font-mono text-[10px] cursor-pointer transition-colors ${theme === 'dark' ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'}`} title="Reset view">
           {Math.round(view.scale * 100)}%
         </button>
-        <button onClick={() => zoomBy(1.2)} className="flex h-7 w-7 items-center justify-center rounded text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer" title="Zoom in">
+        <button onClick={() => zoomBy(1.2)} className={`flex h-7 w-7 items-center justify-center rounded cursor-pointer transition-colors ${theme === 'dark' ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'}`} title="Zoom in">
           <Plus size={14} />
         </button>
-        <div className="mx-0.5 h-4 w-px bg-white/10" />
-        <button onClick={resetView} className="flex h-7 w-7 items-center justify-center rounded text-zinc-300 hover:bg-white/10 hover:text-white cursor-pointer" title="Center view">
+        <div className={`mx-0.5 h-4 w-px ${theme === 'dark' ? 'bg-white/10' : 'bg-zinc-200'}`} />
+        <button onClick={resetView} className={`flex h-7 w-7 items-center justify-center rounded cursor-pointer transition-colors ${theme === 'dark' ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'}`} title="Center view">
           <Maximize size={13} />
         </button>
       </div>
@@ -178,7 +180,7 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
       {nodes.length > 0 && (
         <button
           onClick={clearNodes}
-          className="absolute bottom-4 left-4 flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/60 px-2.5 py-1.5 text-[11px] text-zinc-400 backdrop-blur-md transition-colors hover:border-rose-500/40 hover:text-rose-400 cursor-pointer"
+          className={`absolute bottom-4 left-4 flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] backdrop-blur-md transition-colors cursor-pointer ${theme === 'dark' ? 'border-white/10 bg-black/60 text-zinc-400 hover:border-rose-500/40 hover:text-rose-400' : 'border-zinc-200 bg-white/80 text-zinc-500 hover:border-rose-300 hover:text-rose-600 shadow-sm'}`}
           title="Remove all blocks"
         >
           <Trash2 size={13} />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useWorkspaceStore } from '../../store/workspaceStore';
 import type {
   Frame,
   ArrayFrame,
@@ -10,7 +11,7 @@ import type {
   UFFrame,
 } from '../../lib/algorithmFrames';
 
-// Self-contained palette tuned for the dark glass node surface.
+// Self-contained palette tuned for the dark glass surface.
 const ARRAY_COLORS: Record<ArrayCellState, string> = {
   idle: '#3f3f46',
   compare: '#f5a623',
@@ -34,14 +35,23 @@ const POINTER_LABEL: Partial<Record<ArrayCellState, string>> = {
 
 const spring = { type: 'spring' as const, stiffness: 520, damping: 34 };
 
+const getArrayColor = (state: ArrayCellState, isDark: boolean): string => {
+  if (isDark) return ARRAY_COLORS[state];
+  if (state === 'idle') return '#e4e4e7'; // light zinc-200
+  return ARRAY_COLORS[state];
+};
+
 // ── Array bars ──────────────────────────────────────────────
 const ArrayBars: React.FC<{ frame: ArrayFrame }> = ({ frame }) => {
+  const theme = useWorkspaceStore((state) => state.theme);
+  const isDark = theme === 'dark';
   const max = Math.max(1, ...frame.cells.map((c) => c.v));
+  
   return (
     <div className="flex h-[170px] items-end justify-center gap-[6px] px-1">
       {frame.cells.map((cell, i) => {
         const state = frame.states[i] ?? 'idle';
-        const color = ARRAY_COLORS[state];
+        const color = getArrayColor(state, isDark);
         const label = POINTER_LABEL[state];
         return (
           <motion.div
@@ -65,7 +75,7 @@ const ArrayBars: React.FC<{ frame: ArrayFrame }> = ({ frame }) => {
               className="w-full rounded-t-[3px]"
               animate={{ backgroundColor: color, height: `${(cell.v / max) * 130 + 14}px` }}
             />
-            <span className="mt-1 text-[9px] font-mono tabular-nums text-zinc-400">{cell.v}</span>
+            <span className={`mt-1 text-[9px] font-mono tabular-nums ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{cell.v}</span>
           </motion.div>
         );
       })}
@@ -89,22 +99,60 @@ const GRAPH_NODE_STROKE: Record<string, string> = {
   done: '#34d399',
 };
 
+const getGraphNodeColors = (state: string, isDark: boolean) => {
+  if (isDark) {
+    return {
+      fill: GRAPH_NODE_FILL[state] || '#27272a',
+      stroke: GRAPH_NODE_STROKE[state] || '#52525b',
+      text: '#f4f4f5',
+    };
+  }
+  const fillMap: Record<string, string> = {
+    idle: '#f4f4f5',
+    frontier: '#e0f2fe',
+    current: '#f3e8ff',
+    visited: '#d1fae5',
+    done: '#d1fae5',
+  };
+  const strokeMap: Record<string, string> = {
+    idle: '#cbd5e1',
+    frontier: '#3b82f6',
+    current: '#a855f7',
+    visited: '#10b981',
+    done: '#10b981',
+  };
+  const textMap: Record<string, string> = {
+    idle: '#27272a',
+    frontier: '#1e40af',
+    current: '#6b21a8',
+    visited: '#065f46',
+    done: '#065f46',
+  };
+  return {
+    fill: fillMap[state] || '#f4f4f5',
+    stroke: strokeMap[state] || '#cbd5e1',
+    text: textMap[state] || '#27272a',
+  };
+};
+
 const GraphView: React.FC<{ frame: GraphFrame }> = ({ frame }) => {
+  const theme = useWorkspaceStore((state) => state.theme);
+  const isDark = theme === 'dark';
   const pos = Object.fromEntries(frame.nodes.map((n) => [n.id, n]));
+  
   return (
     <svg viewBox="0 0 330 205" className="h-[180px] w-full">
       <defs>
         <marker id="vis-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="#71717a" />
+          <path d="M0,0 L10,5 L0,10 z" fill={isDark ? '#71717a' : '#94a3b8'} />
         </marker>
       </defs>
       {frame.edges.map((e, i) => {
         const a = pos[e.from];
         const b = pos[e.to];
         if (!a || !b) return null;
-        const color = e.state === 'tree' ? '#10b981' : e.state === 'active' ? '#f5a623' : '#3f3f46';
+        const color = e.state === 'tree' ? '#10b981' : e.state === 'active' ? '#f5a623' : (isDark ? '#3f3f46' : '#cbd5e1');
         const w = e.state === 'idle' ? 1.5 : 2.5;
-        // Pull directed arrowheads back to the node rim.
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const len = Math.hypot(dx, dy) || 1;
@@ -124,12 +172,12 @@ const GraphView: React.FC<{ frame: GraphFrame }> = ({ frame }) => {
             />
             {e.weight !== undefined && (
               <g>
-                <circle cx={(a.x + b.x) / 2} cy={(a.y + b.y) / 2} r="8" fill="#0a0a0a" />
+                <circle cx={(a.x + b.x) / 2} cy={(a.y + b.y) / 2} r="8" fill={isDark ? '#0a0a0a' : '#ffffff'} stroke={isDark ? 'transparent' : '#cbd5e1'} strokeWidth={isDark ? 0 : 1} />
                 <text
                   x={(a.x + b.x) / 2}
                   y={(a.y + b.y) / 2 + 3}
                   textAnchor="middle"
-                  className="fill-zinc-300 font-mono"
+                  className={isDark ? 'fill-zinc-300 font-mono' : 'fill-zinc-700 font-mono'}
                   fontSize="9"
                 >
                   {e.weight}
@@ -139,28 +187,31 @@ const GraphView: React.FC<{ frame: GraphFrame }> = ({ frame }) => {
           </g>
         );
       })}
-      {frame.nodes.map((n) => (
-        <g key={n.id}>
-          <motion.circle
-            cx={n.x}
-            cy={n.y}
-            r="14"
-            animate={{ fill: GRAPH_NODE_FILL[n.state], stroke: GRAPH_NODE_STROKE[n.state] }}
-            strokeWidth="2"
-          />
-          <text x={n.x} y={n.y + 4} textAnchor="middle" className="fill-zinc-100 font-semibold" fontSize="11">
-            {n.id}
-          </text>
-          {n.badge !== undefined && (
-            <g>
-              <rect x={n.x + 8} y={n.y - 22} width={Math.max(14, n.badge.length * 7)} height="13" rx="3" fill="#3291ff" />
-              <text x={n.x + 8 + Math.max(14, n.badge.length * 7) / 2} y={n.y - 12} textAnchor="middle" className="fill-white font-mono" fontSize="8">
-                {n.badge}
-              </text>
-            </g>
-          )}
-        </g>
-      ))}
+      {frame.nodes.map((n) => {
+        const colors = getGraphNodeColors(n.state, isDark);
+        return (
+          <g key={n.id}>
+            <motion.circle
+              cx={n.x}
+              cy={n.y}
+              r="14"
+              animate={{ fill: colors.fill, stroke: colors.stroke }}
+              strokeWidth="2"
+            />
+            <text x={n.x} y={n.y + 4} textAnchor="middle" fill={colors.text} className="font-semibold" fontSize="11">
+              {n.id}
+            </text>
+            {n.badge !== undefined && (
+              <g>
+                <rect x={n.x + 8} y={n.y - 22} width={Math.max(14, n.badge.length * 7)} height="13" rx="3" fill="#3291ff" />
+                <text x={n.x + 8 + Math.max(14, n.badge.length * 7) / 2} y={n.y - 12} textAnchor="middle" className="fill-white font-mono" fontSize="8">
+                  {n.badge}
+                </text>
+              </g>
+            )}
+          </g>
+        );
+      })}
     </svg>
   );
 };
@@ -168,10 +219,13 @@ const GraphView: React.FC<{ frame: GraphFrame }> = ({ frame }) => {
 // ── Grid (N-Queens) ─────────────────────────────────────────
 const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
   const { n, queens, trying } = frame;
+  const theme = useWorkspaceStore((state) => state.theme);
+  const isDark = theme === 'dark';
+  
   return (
     <div className="flex h-[180px] items-center justify-center">
       <div
-        className="grid overflow-hidden rounded-md border border-white/10"
+        className={`grid overflow-hidden rounded-md border ${isDark ? 'border-white/10' : 'border-zinc-300'}`}
         style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}
       >
         {Array.from({ length: n * n }).map((_, idx) => {
@@ -181,6 +235,18 @@ const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
           const hasQueen = queens[r] === c;
           const isTrying = trying && trying.r === r && trying.c === c;
           const conflict = isTrying && frame.conflict;
+          
+          let cellBg = '';
+          if (conflict) {
+            cellBg = 'rgba(244,63,94,0.45)';
+          } else if (isTrying) {
+            cellBg = 'rgba(50,145,255,0.45)';
+          } else {
+            cellBg = dark 
+              ? (isDark ? '#18181b' : '#e4e4e7') 
+              : (isDark ? '#27272a' : '#ffffff');
+          }
+
           return (
             <div
               key={idx}
@@ -188,13 +254,7 @@ const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
               style={{
                 width: 26,
                 height: 26,
-                background: conflict
-                  ? 'rgba(244,63,94,0.45)'
-                  : isTrying
-                    ? 'rgba(50,145,255,0.45)'
-                    : dark
-                      ? '#18181b'
-                      : '#27272a',
+                background: cellBg,
               }}
             >
               {hasQueen && (
@@ -203,7 +263,7 @@ const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={spring}
-                  style={{ color: frame.solved ? '#10b981' : '#ededed' }}
+                  style={{ color: frame.solved ? '#10b981' : (isDark ? '#ededed' : '#27272a') }}
                 >
                   ♛
                 </motion.span>
@@ -219,6 +279,9 @@ const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
 // ── DP table (Knapsack) ─────────────────────────────────────
 const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
   const { table, cursor, rowLabels, colLabels } = frame;
+  const theme = useWorkspaceStore((state) => state.theme);
+  const isDark = theme === 'dark';
+  
   return (
     <div className="flex h-[180px] items-center justify-center overflow-auto">
       <table className="border-collapse font-mono text-[9px]">
@@ -226,7 +289,7 @@ const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
           <tr>
             <th className="p-0.5" />
             {colLabels.map((c, i) => (
-              <th key={i} className="px-1 py-0.5 text-zinc-500 font-normal">
+              <th key={i} className={`px-1 py-0.5 font-normal ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
                 {c}
               </th>
             ))}
@@ -235,7 +298,7 @@ const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
         <tbody>
           {table.map((row, r) => (
             <tr key={r}>
-              <td className="pr-1.5 text-right text-zinc-500 whitespace-nowrap">{rowLabels[r]}</td>
+              <td className={`pr-1.5 text-right whitespace-nowrap ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{rowLabels[r]}</td>
               {row.map((val, c) => {
                 const isCursor = cursor && cursor.r === r && cursor.c === c;
                 return (
@@ -245,9 +308,17 @@ const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
                       style={{
                         width: 22,
                         height: 18,
-                        background: isCursor ? '#3291ff' : val === null ? 'transparent' : '#27272a',
-                        color: isCursor ? '#fff' : val === null ? '#3f3f46' : '#e4e4e7',
-                        border: '1px solid rgba(255,255,255,0.06)',
+                        background: isCursor 
+                          ? '#3291ff' 
+                          : val === null 
+                            ? 'transparent' 
+                            : (isDark ? '#27272a' : '#f4f4f5'),
+                        color: isCursor 
+                          ? '#fff' 
+                          : val === null 
+                            ? (isDark ? '#3f3f46' : '#cbd5e1') 
+                            : (isDark ? '#e4e4e7' : '#18181b'),
+                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
                       }}
                     >
                       {val === null ? '·' : val}
@@ -266,10 +337,13 @@ const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
 // ── Union-Find ──────────────────────────────────────────────
 const UnionFindView: React.FC<{ frame: UFFrame }> = ({ frame }) => {
   const { parent, highlight } = frame;
+  const theme = useWorkspaceStore((state) => state.theme);
+  const isDark = theme === 'dark';
   const n = parent.length;
   const gap = 300 / n;
   const xOf = (i: number) => gap * i + gap / 2;
   const baseY = 150;
+  
   return (
     <svg viewBox="0 0 300 180" className="h-[180px] w-full">
       {parent.map((p, i) => {
@@ -283,7 +357,7 @@ const UnionFindView: React.FC<{ frame: UFFrame }> = ({ frame }) => {
             key={`e${i}`}
             d={`M ${x1} ${baseY - 14} Q ${midX} ${archeight} ${x2} ${baseY - 14}`}
             fill="none"
-            stroke={highlight.includes(i) ? '#f5a623' : '#52525b'}
+            stroke={highlight.includes(i) ? '#f5a623' : (isDark ? '#52525b' : '#cbd5e1')}
             strokeWidth="1.8"
             markerEnd="url(#vis-arrow)"
             animate={{ opacity: 1 }}
@@ -292,12 +366,28 @@ const UnionFindView: React.FC<{ frame: UFFrame }> = ({ frame }) => {
       })}
       <defs>
         <marker id="vis-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M0,0 L10,5 L0,10 z" fill="#71717a" />
+          <path d="M0,0 L10,5 L0,10 z" fill={isDark ? '#71717a' : '#94a3b8'} />
         </marker>
       </defs>
       {parent.map((p, i) => {
         const isRoot = p === i;
         const hot = highlight.includes(i);
+        let nodeFill = '';
+        let nodeStroke = '';
+        if (hot) {
+          nodeStroke = '#f5a623';
+        } else if (isRoot) {
+          nodeStroke = '#3291ff';
+        } else {
+          nodeStroke = isDark ? '#52525b' : '#cbd5e1';
+        }
+        
+        if (isRoot) {
+          nodeFill = isDark ? '#1e3a5f' : '#eff6ff';
+        } else {
+          nodeFill = isDark ? '#27272a' : '#f4f4f5';
+        }
+        
         return (
           <g key={i}>
             <motion.circle
@@ -305,12 +395,12 @@ const UnionFindView: React.FC<{ frame: UFFrame }> = ({ frame }) => {
               cy={baseY}
               r="13"
               animate={{
-                fill: isRoot ? '#1e3a5f' : '#27272a',
-                stroke: hot ? '#f5a623' : isRoot ? '#3291ff' : '#52525b',
+                fill: nodeFill,
+                stroke: nodeStroke,
               }}
               strokeWidth="2"
             />
-            <text x={xOf(i)} y={baseY + 4} textAnchor="middle" className="fill-zinc-100 font-semibold" fontSize="11">
+            <text x={xOf(i)} y={baseY + 4} textAnchor="middle" fill={isRoot && !isDark ? '#1e40af' : (isDark ? '#f4f4f5' : '#27272a')} className="font-semibold" fontSize="11">
               {i}
             </text>
           </g>
