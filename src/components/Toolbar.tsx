@@ -31,14 +31,11 @@ export const Toolbar: React.FC = () => {
 
   // Trigger JSON download for workspace
   const handleExportWorkspace = () => {
-    // Retrieve static workspace details from store without subscribing the render loop to changes
+    // Export the FULL multi-tab workspace (reconciled), not just the active tab.
     const state = useWorkspaceStore.getState();
     const data = {
-      notes: state.notes,
-      canvasElements: state.canvasElements,
-      canvasAppState: state.canvasAppState,
-      canvasFiles: state.canvasFiles,
-      version: 1,
+      ...state.getExportData(),
+      version: 2,
       exportedAt: Date.now(),
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -59,7 +56,7 @@ export const Toolbar: React.FC = () => {
     reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (data && (data.notes !== undefined || data.canvasElements !== undefined)) {
+        if (data && (data.notes !== undefined || data.canvasElements !== undefined || (Array.isArray(data.tabs) && data.tabs.length > 0))) {
           await importWorkspace(data);
           showNotification('Workspace imported successfully', 'success');
         } else {

@@ -63,7 +63,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredStructures, selectedIndex]);
+  }, [isOpen, filteredStructures, selectedIndex, onClose, showNotification]);
 
   if (!isOpen) return null;
 

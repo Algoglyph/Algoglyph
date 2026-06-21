@@ -19,7 +19,10 @@ export const TabBar: React.FC = () => {
   const notesVisible = layoutMode !== 'canvas-only' && layoutMode !== 'code';
   // The notes toggle mirrors the structures collapse: hide the notes pane from
   // split view, or bring it back when it's collapsed.
-  const toggleNotes = () => setLayoutMode(layoutMode === 'split' ? 'canvas-only' : 'split');
+  const toggleNotes = () => {
+    if (layoutMode === 'code' || layoutMode === 'visualizer') return;
+    setLayoutMode(layoutMode === 'split' ? 'canvas-only' : 'split');
+  };
 
   // Keep the left control cluster exactly as wide as the STRUCTURES sidebar so
   // the tabs begin above the canvas content (to the right of the sidebar),

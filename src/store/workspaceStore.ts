@@ -63,6 +63,7 @@ interface WorkspaceState {
   toggleLayoutMode: () => void;
   setActiveCanvasTool: (tool: string) => void;
   saveCurrentWorkspace: () => Promise<void>;
+  getExportData: () => WorkspaceData;
   importWorkspace: (data: WorkspaceData) => Promise<void>;
   showNotification: (message: string, type?: 'info' | 'error' | 'success') => void;
   hideNotification: () => void;
@@ -292,10 +293,26 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         zoom: appState.zoom,
       };
 
+      // Merge new files into the pool, then prune any files no longer
+      // referenced by the current set of elements so deleted images
+      // don't accumulate in storage indefinitely.
+      const mergedFiles = { ...get().canvasFiles, ...files };
+      const referencedIds = new Set(
+        elements
+          .filter((el: any) => !el.isDeleted && el.fileId)
+          .map((el: any) => el.fileId)
+      );
+      const prunedFiles: Record<string, any> = {};
+      for (const [id, file] of Object.entries(mergedFiles)) {
+        if (referencedIds.has(id)) {
+          prunedFiles[id] = file;
+        }
+      }
+
       set({
         canvasElements: elements,
         canvasAppState: persistedAppState,
-        canvasFiles: { ...get().canvasFiles, ...files },
+        canvasFiles: prunedFiles,
       });
       scheduleAutoSave();
     },
@@ -355,6 +372,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         updatedAt: Date.now(),
       };
       await saveWorkspace(workspaceData);
+    },
+
+    getExportData: () => {
+      const tabs = reconcileTabs();
+      return {
+        tabs,
+        activeTabId: get().activeTabId,
+        updatedAt: Date.now(),
+      };
     },
 
     importWorkspace: async (data) => {

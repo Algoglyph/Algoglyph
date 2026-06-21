@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { StructuresPanel } from './StructuresPanel';
@@ -17,31 +17,21 @@ export const Canvas: React.FC = () => {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [localLastImportTime, setLocalLastImportTime] = useState(0);
 
-  // Capture the initial data only once when the canvas mount occurs (after loading completes)
-  const initialElements = useRef<any[]>([]);
-  const initialAppState = useRef<any>({});
-  const initialFiles = useRef<any>({});
-  const hasLoadedInitialData = useRef(false);
-
-  if (!isLoading && !hasLoadedInitialData.current) {
-    const state = useWorkspaceStore.getState();
-    initialElements.current = state.canvasElements || [];
-    initialAppState.current = state.canvasAppState || {};
-    initialFiles.current = state.canvasFiles || {};
-    hasLoadedInitialData.current = true;
-  }
-
-  // Stable references for Excalidraw configuration to prevent prop-change loops
+  // Capture the scene present when the canvas first mounts, reading the store
+  // directly (not via a side-effect in the render body) so React Strict Mode's
+  // double-render can't skip the capture and blank the canvas. The canvas is
+  // keyed by tab and only mounts once loading completes, so the store already
+  // holds this tab's data here. Computed once; live theme changes sync below.
   const initialData = useMemo(() => {
+    const state = useWorkspaceStore.getState();
     return {
-      elements: initialElements.current,
+      elements: state.canvasElements || [],
       appState: {
-        ...initialAppState.current,
+        ...(state.canvasAppState || {}),
         theme,
       },
-      files: initialFiles.current,
+      files: state.canvasFiles || {},
     };
-    // Capture the theme present at mount; live changes are handled below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

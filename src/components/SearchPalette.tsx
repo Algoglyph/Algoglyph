@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, CornerDownLeft, FileText, Shapes } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 
@@ -37,6 +37,8 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Set when the palette closes so in-flight polls (waitAndSelect*) stop.
+  const cancelledRef = useRef(false);
 
   const tabs = useWorkspaceStore((state) => state.tabs);
   const activeTabId = useWorkspaceStore((state) => state.activeTabId);
@@ -51,9 +53,12 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   // Reset state each time the palette opens.
   useEffect(() => {
     if (isOpen) {
+      cancelledRef.current = false;
       setQuery('');
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      cancelledRef.current = true;
     }
   }, [isOpen]);
 
@@ -143,6 +148,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
   // After switching tab/layout the editor may need a moment to mount (when the
   // notes pane was hidden) or to re-sync its content. Poll until it's ready.
   const waitAndSelect = (needle: string, occurrence: number, attempts = 0) => {
+    if (cancelledRef.current) return;
     const editor = (window as any).notesEditor;
     const ready = editor && editor.getText().toLowerCase().includes(needle);
     if (ready) {
@@ -174,20 +180,21 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
 
   // Poll until the Excalidraw API has the target element, then select/reveal it.
   const waitAndSelectOnCanvas = (elementId: string, attempts = 0) => {
+    if (cancelledRef.current) return;
     const api = (window as any).excalidrawAPI;
     const el = api && api.getSceneElements().find((e: any) => e.id === elementId && !e.isDeleted);
     if (api && el) {
       applyCanvasSelection(elementId, true);
       // Re-apply after the canvas' own mount/scene-load settles.
-      setTimeout(() => applyCanvasSelection(elementId, false), 200);
-      setTimeout(() => applyCanvasSelection(elementId, false), 450);
+      setTimeout(() => { if (!cancelledRef.current) applyCanvasSelection(elementId, false); }, 200);
+      setTimeout(() => { if (!cancelledRef.current) applyCanvasSelection(elementId, false); }, 450);
       return;
     }
     if (attempts >= 40) return; // give up after ~1s
     setTimeout(() => waitAndSelectOnCanvas(elementId, attempts + 1), 25);
   };
 
-  const jumpTo = (result: SearchResult) => {
+  const jumpTo = useCallback((result: SearchResult) => {
     if (result.source === 'canvas') {
       // The target lives on the canvas, so the canvas pane must be visible.
       if (layoutMode === 'notes-only') {
@@ -211,7 +218,8 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
     }
     onClose();
     waitAndSelect(needle, result.occurrence);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, layoutMode, activeTabId, switchTab, setLayoutMode, onClose]);
 
   // Keyboard navigation while the palette is open.
   useEffect(() => {
@@ -237,7 +245,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, results, selectedIndex]);
+  }, [isOpen, results, selectedIndex, jumpTo]);
 
   if (!isOpen) return null;
 
