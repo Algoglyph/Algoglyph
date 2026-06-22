@@ -56,7 +56,7 @@ export const Canvas: React.FC = () => {
   const UIOptions = useMemo(() => {
     return {
       canvasActions: {
-        changeViewBackgroundColor: true,
+        changeViewBackgroundColor: false,
         clearCanvas: true,
         export: false,
         loadScene: false,
@@ -150,6 +150,17 @@ export const Canvas: React.FC = () => {
       }
     }
 
+    // Show Excalidraw's style ("color palette") panel only once elements are
+    // selected — but NOT mid-gesture while a marquee selection box is still being
+    // dragged (appState.selectionElement is set throughout that drag, and clears on
+    // release). Toggled imperatively to keep this component render-independent.
+    if (containerRef.current) {
+      const hasSelection = Object.values(appState.selectedElementIds || {}).some(Boolean);
+      const isMarqueeSelecting = !!appState.selectionElement;
+      const showPanel = hasSelection && !isMarqueeSelecting;
+      containerRef.current.classList.toggle('canvas-no-selection', !showPanel);
+    }
+
     updateCanvas([...elements], appState, files);
   };
 
@@ -205,7 +216,7 @@ export const Canvas: React.FC = () => {
         ref={containerRef}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
-        className="flex-1 h-full relative"
+        className="flex-1 h-full relative canvas-no-selection"
       >
         <Excalidraw
           excalidrawAPI={(api) => {
