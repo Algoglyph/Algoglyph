@@ -7,6 +7,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
+import { TableColumnWidths } from '../lib/tableColumnWidths';
 import { common, createLowlight } from 'lowlight';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import {
@@ -47,6 +48,7 @@ export const Editor: React.FC = () => {
       TableRow,
       TableHeader,
       TableCell,
+      TableColumnWidths,
     ],
     content: notes,
     // The stored notes are a markdown string — tell the markdown extension to
