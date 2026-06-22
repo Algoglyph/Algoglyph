@@ -1,16 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { dsaStructures } from '../config/dsaStructures';
 import type { DSAStructure } from '../config/dsaStructures';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export const StructuresPanel: React.FC = () => {
   const isOpen = useWorkspaceStore((state) => state.structuresPanelOpen);
   const width = useWorkspaceStore((state) => state.structuresWidth);
   const setStructuresWidth = useWorkspaceStore((state) => state.setStructuresWidth);
+  const setStructuresPanelOpen = useWorkspaceStore((state) => state.setStructuresPanelOpen);
   const showNotification = useWorkspaceStore((state) => state.showNotification);
+  const isMobile = useIsMobile();
 
   const [isDragging, setIsDragging] = useState(false);
+
+  // The panel defaults open for the desktop sidebar. On mobile it's a modal
+  // drawer, so close it when entering mobile so it doesn't cover the screen on
+  // load. useLayoutEffect runs before paint to avoid a visible slide-out flash.
+  useLayoutEffect(() => {
+    if (isMobile && isOpen) setStructuresPanelOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile]);
 
   // Drag the right edge to resize. The panel's left edge sits at viewport x=0,
   // so the pointer's clientX is the new width.
@@ -28,6 +39,9 @@ export const StructuresPanel: React.FC = () => {
 
   const insertStructure = (structure: DSAStructure) => {
     insertStructureIntoCanvas(structure, (msg) => showNotification(msg, 'error'));
+    // On mobile the panel is a modal drawer — close it after inserting so the
+    // canvas is visible again.
+    if (isMobile) setStructuresPanelOpen(false);
   };
 
   const structures = dsaStructures.filter((s) => s.category === 'structures');
@@ -57,6 +71,61 @@ export const StructuresPanel: React.FC = () => {
     </button>
   );
 
+  // The scrollable index body, shared between the desktop sidebar and the
+  // mobile drawer. `widthStyle` pins the inner width on desktop so text doesn't
+  // reflow while the sidebar animates open/closed.
+  const body = (widthStyle?: React.CSSProperties) => (
+    <div style={widthStyle} className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
+      {/* Panel heading */}
+      <div className="px-4 pt-4 pb-3 flex items-baseline justify-between">
+        <span className="font-display text-[15px] font-semibold tracking-[-0.02em] text-ink">
+          Structures
+        </span>
+        <span className="font-mono text-[11px] text-mute">
+          {structures.length + algorithms.length}
+        </span>
+      </div>
+
+      {/* Data structures */}
+      <Section label="data structures" count={structures.length}>
+        {structures.map(Row)}
+      </Section>
+
+      {/* Algorithms */}
+      <Section label="algorithms" count={algorithms.length}>
+        {algorithms.map(Row)}
+      </Section>
+
+      <div className="mt-auto px-4 py-3 text-[11px] leading-relaxed text-mute border-t border-hairline">
+        <span className="text-ink font-medium">Click</span> to place beside your work,
+        or <span className="text-ink font-medium">drag</span> onto the canvas.
+      </div>
+    </div>
+  );
+
+  // Mobile: overlay drawer that slides in from the left over the canvas.
+  if (isMobile) {
+    return (
+      <>
+        {/* Click-away backdrop */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40"
+            onClick={() => setStructuresPanelOpen(false)}
+          />
+        )}
+        <div
+          className={`fixed left-0 top-0 z-50 h-full w-[min(82vw,300px)] bg-canvas border-r border-hairline shadow-[var(--shadow-soft)] select-none transition-transform duration-300 ease-in-out ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {body()}
+        </div>
+      </>
+    );
+  }
+
+  // Desktop: inline, resizable sidebar.
   return (
     <div
       style={{ width: isOpen ? width : 0 }}
@@ -87,32 +156,7 @@ export const StructuresPanel: React.FC = () => {
         </div>
       )}
 
-      <div style={{ width }} className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
-        {/* Panel heading */}
-        <div className="px-4 pt-4 pb-3 flex items-baseline justify-between">
-          <span className="font-display text-[15px] font-semibold tracking-[-0.02em] text-ink">
-            Structures
-          </span>
-          <span className="font-mono text-[11px] text-mute">
-            {structures.length + algorithms.length}
-          </span>
-        </div>
-
-        {/* Data structures */}
-        <Section label="data structures" count={structures.length}>
-          {structures.map(Row)}
-        </Section>
-
-        {/* Algorithms */}
-        <Section label="algorithms" count={algorithms.length}>
-          {algorithms.map(Row)}
-        </Section>
-
-        <div className="mt-auto px-4 py-3 text-[11px] leading-relaxed text-mute border-t border-hairline">
-          <span className="text-ink font-medium">Click</span> to place beside your work,
-          or <span className="text-ink font-medium">drag</span> onto the canvas.
-        </div>
-      </div>
+      {body({ width })}
     </div>
   );
 };

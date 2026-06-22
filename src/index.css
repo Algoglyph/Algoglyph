@@ -385,6 +385,19 @@ body {
 .excalidraw .welcome-screen__heading,
 .excalidraw .welcome-screen__menu { display: none !important; }
 
+/* Hide the stroke/background/fill style ("color palette") panel UNLESS shapes are
+   selected. The `canvas-no-selection` class is toggled on the canvas container from
+   Canvas.tsx based on the live selection, so the panel appears for editing a selected
+   element but stays hidden when nothing is selected / a tool is active. */
+.canvas-no-selection .selected-shape-actions,
+.canvas-no-selection .App-menu__left { display: none !important; }
+
+/* When the canvas gets narrow (e.g. dragging the Notes pane wide), Excalidraw swaps
+   to its mobile layout, which renders the style palette + an extra action toolbar
+   inside `.App-bottom-bar`. That container only exists in mobile mode, so hiding it
+   suppresses both without affecting the desktop panels. */
+.excalidraw .App-bottom-bar { display: none !important; }
+
 .resize-active::after {
   content: '';
   position: absolute;

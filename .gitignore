@@ -29,6 +29,8 @@ release/
 .env.*
 !.env.example
 
-# Agent & Claude settings / skills
-.agents/
-.claude/
+
+#agents and CLI
+.agents/*
+!.agents/AGENTS.md
+.claude
