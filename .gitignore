@@ -28,3 +28,6 @@ release/
 .env
 .env.*
 !.env.example
+
+.claude
+.agents
