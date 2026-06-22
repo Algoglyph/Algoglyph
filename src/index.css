@@ -1,5 +1,4 @@
-@import '@fontsource-variable/geist';
-@import '@fontsource-variable/geist-mono';
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 /* ────────────────────────────────────────────────────────────
@@ -25,9 +24,9 @@
   --color-code-bg: #171717;       /* dark code block on the light surface */
   --color-code-border: #171717;   /* matches bg in light (invisible frame)  */
 
-  --font-sans: "Geist Variable", Inter, system-ui, -apple-system, sans-serif;
-  --font-display: "Geist Variable", Inter, system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
   --font-reading: "Geist Variable", Inter, system-ui, -apple-system, sans-serif;
 
   /* Vercel's stacked, low-opacity elevation — never one heavy drop */
@@ -57,6 +56,98 @@
 :root.dark ::selection { background: #ededed; color: #0a0a0a; }
 :root.dark ::-webkit-scrollbar-thumb { background: #333333; background-clip: padding-box; }
 :root.dark ::-webkit-scrollbar-thumb:hover { background: #4d4d4d; background-clip: padding-box; }
+
+/* ── Landing page theme tokens ───────────────────────────── */
+[data-landing-theme="dark"] {
+  --lp-bg: #000000;
+  --lp-surface: #09090b;
+  --lp-card: #0d0d0f;
+  --lp-card-alt: #0c0d12;
+  --lp-code-bg: #0a0a0c;
+  --lp-text: #ffffff;
+  --lp-text-2: #a1a1a1;
+  --lp-text-3: #666666;
+  --lp-text-4: #555555;
+  --lp-text-body: #ededed;
+  --lp-accent: #3291ff;
+  --lp-border: rgba(255,255,255,0.06);
+  --lp-border-subtle: rgba(255,255,255,0.04);
+  --lp-border-strong: rgba(255,255,255,0.10);
+  --lp-fill-subtle: rgba(255,255,255,0.02);
+  --lp-fill-hover: rgba(255,255,255,0.03);
+  --lp-node-bg: #0d0d10;
+  --lp-node-border: rgba(255,255,255,0.15);
+  --lp-nav-bg: rgba(0,0,0,0.6);
+  --lp-shadow-card: 0 8px 30px rgba(0,0,0,0.3);
+  --lp-shadow-heavy: 0 24px 60px rgba(0,0,0,0.7);
+  --lp-dot-color: rgba(255,255,255,0.015);
+  --lp-glow-color: rgba(255,255,255,0.012);
+  --lp-selection-bg: #ededed;
+  --lp-selection-text: #000000;
+  --lp-pill-active-bg: #ffffff;
+  --lp-pill-active-text: #000000;
+  --lp-pill-inactive-text: #666666;
+  --lp-cta-bg: #ffffff;
+  --lp-cta-text: #000000;
+  --lp-cta-hover: #ededed;
+  --lp-footer-bg: #070709;
+  --lp-rose: #f87171;
+  --lp-rose-border: rgba(239,68,68,0.2);
+  --lp-rose-bg: rgba(239,68,68,0.05);
+  --lp-emerald: rgba(52,211,153,0.9);
+  --lp-code-comment: rgba(255,255,255,0.20);
+  --lp-code-text: rgba(255,255,255,0.70);
+  --lp-grid-dot: rgba(255,255,255,0.03);
+  --lp-viz-glow: rgba(50,145,255,0.06);
+}
+
+[data-landing-theme="light"] {
+  --lp-bg: #ffffff;
+  --lp-surface: #f7f7f8;
+  --lp-card: #ffffff;
+  --lp-card-alt: #f0f3ff;
+  --lp-code-bg: #f5f5f5;
+  --lp-text: #0a0a0a;
+  --lp-text-2: #525252;
+  --lp-text-3: #737373;
+  --lp-text-4: #a3a3a3;
+  --lp-text-body: #171717;
+  --lp-accent: #0066ff;
+  --lp-border: rgba(0,0,0,0.08);
+  --lp-border-subtle: rgba(0,0,0,0.04);
+  --lp-border-strong: rgba(0,0,0,0.12);
+  --lp-fill-subtle: rgba(0,0,0,0.02);
+  --lp-fill-hover: rgba(0,0,0,0.04);
+  --lp-node-bg: #f8f8fa;
+  --lp-node-border: rgba(0,0,0,0.12);
+  --lp-nav-bg: rgba(255,255,255,0.75);
+  --lp-shadow-card: 0 2px 12px rgba(0,0,0,0.06);
+  --lp-shadow-heavy: 0 8px 30px rgba(0,0,0,0.08);
+  --lp-dot-color: rgba(0,0,0,0.04);
+  --lp-glow-color: rgba(0,0,0,0.02);
+  --lp-selection-bg: #0066ff;
+  --lp-selection-text: #ffffff;
+  --lp-pill-active-bg: #0a0a0a;
+  --lp-pill-active-text: #ffffff;
+  --lp-pill-inactive-text: #737373;
+  --lp-cta-bg: #0a0a0a;
+  --lp-cta-text: #ffffff;
+  --lp-cta-hover: #262626;
+  --lp-footer-bg: #f7f7f8;
+  --lp-rose: #dc2626;
+  --lp-rose-border: rgba(220,38,38,0.2);
+  --lp-rose-bg: rgba(220,38,38,0.05);
+  --lp-emerald: rgba(22,163,74,0.9);
+  --lp-code-comment: rgba(0,0,0,0.30);
+  --lp-code-text: rgba(0,0,0,0.70);
+  --lp-grid-dot: rgba(0,0,0,0.04);
+  --lp-viz-glow: rgba(0,102,255,0.06);
+}
+
+[data-landing-theme] ::selection {
+  background: var(--lp-selection-bg);
+  color: var(--lp-selection-text);
+}
 
 body {
   margin: 0;
@@ -302,10 +393,30 @@ body {
   cursor: col-resize;
 }
 
+/* ── View Transitions Animation Recipes ─────────────────────── */
+:root {
+  --duration-exit: 150ms;
+  --duration-enter: 210ms;
+  --duration-move: 400ms;
+}
+
+@keyframes fade {
+  from { filter: blur(3px); opacity: 0; }
+  to { filter: blur(0); opacity: 1; }
+}
+
+::view-transition-old(root) {
+  animation: var(--duration-exit) ease-in fade reverse;
+}
+::view-transition-new(root) {
+  animation: var(--duration-enter) ease-out var(--duration-exit) both fade;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

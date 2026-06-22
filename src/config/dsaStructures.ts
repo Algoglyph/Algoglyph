@@ -316,7 +316,7 @@ const renderCanvasLayout = (id: string, name: string, category: string, x: numbe
     }
   }
 
-  // 7. Advanced CP & Range Query (fallback/details)
+  // Advanced CP & Range Query (fallback/details)
   else if (category === 'Advanced CP' || category === 'Range Query & Trees') {
     if (id === 'mos-algorithm') {
       elements.push(createLabel(`${name} Queries Block (Block Size = √N):`, x, y - 24, '#4f46e5', 13));
@@ -382,7 +382,7 @@ const renderCanvasLayout = (id: string, name: string, category: string, x: numbe
     }
   }
 
-  // 8. Default Fallback
+  // Default Fallback
   else {
     const blockId = `algo-block-${id}-${makeId()}`;
     elements.push(...createRect(blockId, x, y, 220, 50, name, '#f8fafc', '#64748b'));

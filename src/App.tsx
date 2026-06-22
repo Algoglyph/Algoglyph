@@ -9,6 +9,7 @@ import { VisualizerWorkspace } from './components/VisualizerWorkspace';
 import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
+import { LandingPage } from './components/LandingPage';
 
 const App: React.FC = () => {
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
@@ -27,6 +28,8 @@ const App: React.FC = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const isElectron = typeof window !== 'undefined' && /electron/i.test(navigator.userAgent);
+  const [isLandingActive, setIsLandingActive] = useState(!isElectron);
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
@@ -111,6 +114,22 @@ const App: React.FC = () => {
           <div className="text-[11px] tracking-[0.3em] uppercase text-mute">Opening workspace</div>
         </div>
       </div>
+    );
+  }
+
+  if (isLandingActive) {
+    return (
+      <LandingPage
+        onLaunch={() => {
+          if (document.startViewTransition) {
+            document.startViewTransition(() => {
+              setIsLandingActive(false);
+            });
+          } else {
+            setIsLandingActive(false);
+          }
+        }}
+      />
     );
   }
 
