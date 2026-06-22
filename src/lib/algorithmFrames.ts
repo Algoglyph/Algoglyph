@@ -730,14 +730,14 @@ const GENERATORS: Record<string, (custom?: number[]) => Frame[]> = {
   'union-find': unionFind,
 };
 
-function generateDynamicFrames(id: string, category: string): Frame[] {
+function generateDynamicFrames(id: string, category: string, custom?: number[]): Frame[] {
   const frames: Frame[] = [];
 
   // ── 1. Searching ──
   if (category === 'Searching') {
-    const vals = [10, 20, 30, 40, 50, 60, 70, 80];
+    const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : [10, 20, 30, 40, 50, 60, 70, 80];
     const cells = toCells(vals);
-    const target = 50;
+    const target = custom && custom.length > 0 ? vals[Math.floor(vals.length / 2)] : 50;
     frames.push(arrFrame(cells, `Search for target = ${target} using ${id}`));
 
     if (id === 'linear-search') {
@@ -794,7 +794,7 @@ function generateDynamicFrames(id: string, category: string): Frame[] {
 
   // ── 2. Sorting ──
   else if (category === 'Sorting') {
-    const cells = toCells([24, 9, 35, 12, 5, 18]);
+    const cells = toCells(custom && custom.length > 0 ? custom : [24, 9, 35, 12, 5, 18]);
     frames.push(arrFrame(cells, `Start ${id} on unsorted array`));
 
     if (id === 'selection-sort') {
@@ -882,7 +882,7 @@ function generateDynamicFrames(id: string, category: string): Frame[] {
   // ── 3. Pointers & Sliding Window ──
   else if (category === 'Pointers & Sliding Window') {
     if (id === 'fast-slow-pointer') {
-      const cellVals = [1, 2, 3, 4, 5, 6, 7];
+      const cellVals = custom && custom.length > 0 ? custom : [1, 2, 3, 4, 5, 6, 7];
       const cells = toCells(cellVals);
       let s = 0, f = 0;
       for (let steps = 1; steps <= 6; steps++) {
@@ -951,25 +951,34 @@ function generateDynamicFrames(id: string, category: string): Frame[] {
       edgeState['A-C'] = 'tree';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Valid solution path found ✓'));
     } else if (id === 'subsets') {
-      const cells = toCells([1, 2, 3]);
+      const vals = custom && custom.length > 0 ? custom : [1, 2, 3];
+      const cells = toCells(vals);
       frames.push(arrFrame(cells, 'Backtracking Subsets: start with {}'));
-      frames.push(arrFrame(cells, 'Include 1: {1}', { 0: 'compare' }));
-      frames.push(arrFrame(cells, 'Include 2: {1, 2}', { 0: 'compare', 1: 'compare' }));
-      frames.push(arrFrame(cells, 'Include 3: {1, 2, 3} -> subset stored ✓', { 0: 'found', 1: 'found', 2: 'found' }));
+      if (vals.length > 0) frames.push(arrFrame(cells, `Include ${vals[0]}: {${vals[0]}}`, { 0: 'compare' }));
+      if (vals.length > 1) frames.push(arrFrame(cells, `Include ${vals[1]}: {${vals[0]}, ${vals[1]}}`, { 0: 'compare', 1: 'compare' }));
+      if (vals.length > 2) frames.push(arrFrame(cells, `Include ${vals[2]}: {${vals.slice(0, 3).join(', ')}} -> subset stored ✓`, { 0: 'found', 1: 'found', 2: 'found' }));
     } else if (id === 'permutations') {
-      const cells = toCells([1, 2, 3]);
+      const vals = custom && custom.length > 0 ? custom : [1, 2, 3];
+      const cells = toCells(vals);
       frames.push(arrFrame(cells, 'Backtracking Permutations: sequence swap choices'));
-      frames.push(arrFrame(cells, 'Swap index 0 & 0: fixed [1]', { 0: 'pivot' }));
-      frames.push(arrFrame(cells, 'Swap index 1 & 1 -> Permutation [1, 2, 3] ✓', { 0: 'sorted', 1: 'pivot' }));
-      [cells[1], cells[2]] = [cells[2], cells[1]];
-      frames.push(arrFrame(cells, 'Swap index 1 & 2 -> Permutation [1, 3, 2] ✓', { 0: 'sorted', 1: 'swap', 2: 'swap' }));
+      frames.push(arrFrame(cells, `Swap index 0 & 0: fixed [${vals[0]}]`, { 0: 'pivot' }));
+      if (vals.length > 1) {
+        frames.push(arrFrame(cells, `Swap index 1 & 1 -> Permutation [${vals.join(', ')}] ✓`, { 0: 'sorted', 1: 'pivot' }));
+        if (vals.length > 2) {
+          const swapped = [...cells];
+          [swapped[1], swapped[2]] = [swapped[2], swapped[1]];
+          frames.push(arrFrame(swapped, `Swap index 1 & 2 -> Permutation [${swapped.map(c=>c.v).join(', ')}] ✓`, { 0: 'sorted', 1: 'swap', 2: 'swap' }));
+        }
+      }
     } else if (id === 'combination-sum') {
-      const cells = toCells([2, 3, 5]);
-      frames.push(arrFrame(cells, 'Combination Sum backtracking: target = 8'));
-      frames.push(arrFrame(cells, 'Choose 2: target remaining = 6', { 0: 'compare' }));
-      frames.push(arrFrame(cells, 'Choose 2: target remaining = 4', { 0: 'compare' }));
-      frames.push(arrFrame(cells, 'Choose 2: target remaining = 2', { 0: 'compare' }));
-      frames.push(arrFrame(cells, 'Choose 2 -> Sum match [2, 2, 2, 2] found ✓', { 0: 'found' }));
+      const vals = custom && custom.length > 0 ? custom : [2, 3, 5];
+      const cells = toCells(vals);
+      const target = vals[0] * 4;
+      frames.push(arrFrame(cells, `Combination Sum backtracking: target = ${target}`));
+      frames.push(arrFrame(cells, `Choose ${vals[0]}: target remaining = ${target - vals[0]}`, { 0: 'compare' }));
+      frames.push(arrFrame(cells, `Choose ${vals[0]}: target remaining = ${target - vals[0]*2}`, { 0: 'compare' }));
+      frames.push(arrFrame(cells, `Choose ${vals[0]}: target remaining = ${target - vals[0]*3}`, { 0: 'compare' }));
+      frames.push(arrFrame(cells, `Choose ${vals[0]} -> Sum match [${Array(4).fill(vals[0]).join(', ')}] found ✓`, { 0: 'found' }));
     }
   }
 
@@ -1247,11 +1256,15 @@ function generateDynamicFrames(id: string, category: string): Frame[] {
 
   // ── 11. Advanced CP ──
   else {
-    const cells = toCells([10, 20, 30, 40, 50]);
+    const cells = toCells(custom && custom.length > 0 ? custom : [10, 20, 30, 40, 50]);
     if (id === 'coordinate-compression') {
-      frames.push(arrFrame(cells, 'Coordinate Compression: input sparse bounds [100, 500, 200, 900, 50]'));
-      const compressed = toCells([1, 3, 2, 4, 0]);
-      frames.push(arrFrame(compressed, 'Map elements to dense ranks [1, 3, 2, 4, 0]', { 4: 'found' }));
+      const vals = custom && custom.length > 0 ? custom : [100, 500, 200, 900, 50];
+      const origCells = toCells(vals);
+      frames.push(arrFrame(origCells, `Coordinate Compression: input sparse bounds [${vals.join(', ')}]`));
+      const sortedUnique = [...new Set(vals)].sort((a, b) => a - b);
+      const ranks = vals.map((v) => sortedUnique.indexOf(v));
+      const compressed = toCells(ranks);
+      frames.push(arrFrame(compressed, `Map elements to dense ranks [${ranks.join(', ')}]`, { [ranks.length - 1]: 'found' }));
     } else if (id === 'mos-algorithm') {
       frames.push(arrFrame(cells, "Mo's: Sort queries offline using block sizes"));
       frames.push(arrFrame(cells, 'Queries sorted. Relocate query boundaries [L, R]', { 1: 'pointer-l', 4: 'pointer-r' }));
@@ -1311,6 +1324,8 @@ export const CUSTOM_INPUT_ALGORITHMS = new Set([
   // dynamic generators in Sorting / Searching categories also work with array input
   'selection-sort', 'insertion-sort', 'heap-sort', 'counting-sort', 'radix-sort',
   'linear-search', 'ternary-search', 'lower-bound', 'upper-bound',
+  // additional array-based algorithms that can work with custom input
+  'fast-slow-pointer', 'subsets', 'permutations', 'combination-sum', 'coordinate-compression',
 ]);
 
 export function getFrames(algorithmId: string, customInput?: string): Frame[] {
@@ -1331,7 +1346,7 @@ export function getFrames(algorithmId: string, customInput?: string): Frame[] {
   } else {
     const algo = getAlgorithm(algorithmId);
     if (algo) {
-      result = generateDynamicFrames(algo.id, algo.category);
+      result = generateDynamicFrames(algo.id, algo.category, custom);
     }
   }
 

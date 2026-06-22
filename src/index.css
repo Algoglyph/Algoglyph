@@ -109,7 +109,7 @@ body {
 .ProseMirror {
   outline: none;
   min-height: 100%;
-  max-width: 44rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 3rem 2.5rem 6rem;
   font-family: var(--font-reading);

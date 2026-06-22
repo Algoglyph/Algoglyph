@@ -135,16 +135,15 @@ export const Toolbar: React.FC = () => {
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-canvas/70 backdrop-blur-md border-b border-hairline text-body select-none h-12 flex-shrink-0 z-40">
       {/* Wordmark & save status */}
-      <div className="flex items-center gap-3.5">
+      <div className="flex items-center gap-3.5 flex-1 basis-0 min-w-0">
         <div className="flex items-center gap-2">
-          {/* Brand mark — ink square with a crosshair, echoing the canvas grid */}
+          {/* Brand mark — ink square with a delta symbol, echoing the DSADelta brand */}
           <span className="grid h-5 w-5 place-items-center rounded-[5px] bg-ink text-canvas" aria-hidden>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4">
-              <path d="M6 1.5v9M1.5 6h9" strokeLinecap="round" />
-              <rect x="3.4" y="3.4" width="5.2" height="5.2" rx="0.6" />
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="6,2 10.5,10 1.5,10" />
             </svg>
           </span>
-          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">dsadelta</h1>
+          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">DSADelta</h1>
         </div>
 
         <div className="h-3.5 w-px bg-hairline" />
@@ -201,7 +200,7 @@ export const Toolbar: React.FC = () => {
       </div>
 
       {/* Actions (Export, Import) */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-1 basis-0 min-w-0 justify-end">
         {/* Hidden File Input for Import */}
         <input
           ref={fileInputRef}
