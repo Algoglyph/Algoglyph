@@ -1,15 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { PanelLeftClose } from 'lucide-react';
 import { ALGORITHMS, ALGORITHM_CATEGORIES } from '../config/algorithms';
 import type { AlgorithmDef } from '../config/algorithms';
 import { useWorkspaceStore } from '../store/workspaceStore';
 
 interface Props {
   onAdd: (algorithmId: string) => void;
+  isOpen: boolean;
+  isMobile: boolean;
+  onClose: () => void;
 }
 
-export const AlgorithmSidebar: React.FC<Props> = ({ onAdd }) => {
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 420;
+
+export const AlgorithmSidebar: React.FC<Props> = ({ onAdd, isOpen, isMobile, onClose }) => {
   const theme = useWorkspaceStore((state) => state.theme);
   const isDark = theme === 'dark';
+
+  // Desktop sidebar width is drag-resizable. The sidebar's left edge sits at
+  // viewport x=0 (the Visualizer fills the width), so the pointer's clientX is
+  // the new width.
+  const [width, setWidth] = useState(244);
+  const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const onMove = (e: MouseEvent) => setWidth(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, e.clientX)));
+    const onUp = () => setIsResizing(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [isResizing]);
 
   const Card = (a: AlgorithmDef) => (
     <button
@@ -19,7 +44,12 @@ export const AlgorithmSidebar: React.FC<Props> = ({ onAdd }) => {
         e.dataTransfer.setData('application/x-algorithm', a.id);
         e.dataTransfer.effectAllowed = 'copy';
       }}
-      onClick={() => onAdd(a.id)}
+      onClick={() => {
+        onAdd(a.id);
+        // On mobile the sidebar is a modal drawer — close it after dropping a
+        // block so the canvas is visible again.
+        if (isMobile) onClose();
+      }}
       className={`group w-full rounded-lg border px-2.5 py-2 text-left transition-colors cursor-grab active:cursor-grabbing ${
         isDark
           ? 'border-white/[0.06] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.06]'
@@ -34,13 +64,25 @@ export const AlgorithmSidebar: React.FC<Props> = ({ onAdd }) => {
     </button>
   );
 
-  return (
-    <aside className={`flex h-full w-[244px] flex-shrink-0 flex-col border-r ${
-      isDark ? 'border-white/10 bg-[#0a0a0a] text-zinc-300' : 'border-zinc-200 bg-zinc-50 text-zinc-600'
-    }`}>
-      <div className="flex items-baseline justify-between px-4 pb-3 pt-4">
-        <span className={`text-[15px] font-semibold tracking-[-0.02em] ${isDark ? 'text-zinc-100' : 'text-zinc-800'}`}>Algorithms</span>
-        <span className={`font-mono text-[11px] ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>{ALGORITHMS.length}</span>
+  const surface = isDark
+    ? 'border-white/10 bg-[#0a0a0a] text-zinc-300'
+    : 'border-zinc-200 bg-zinc-50 text-zinc-600';
+
+  // Shared inner content for both the desktop sidebar and the mobile drawer.
+  const body = (
+    <>
+      <div className="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
+        <div className="flex items-baseline gap-2">
+          <span className={`text-[15px] font-semibold tracking-[-0.02em] ${isDark ? 'text-zinc-100' : 'text-zinc-800'}`}>Algorithms</span>
+          <span className={`font-mono text-[11px] ${isDark ? 'text-zinc-600' : 'text-zinc-400'}`}>{ALGORITHMS.length}</span>
+        </div>
+        <button
+          onClick={onClose}
+          title={isMobile ? 'Close' : 'Collapse sidebar'}
+          className={`flex items-center rounded-md p-1 cursor-pointer transition-colors ${isDark ? 'text-zinc-400 hover:bg-white/10 hover:text-white' : 'text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900'}`}
+        >
+          <PanelLeftClose size={15} />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 pb-4">
@@ -63,6 +105,61 @@ export const AlgorithmSidebar: React.FC<Props> = ({ onAdd }) => {
         <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>Drag</span> onto the canvas, or{' '}
         <span className={`font-medium ${isDark ? 'text-zinc-300' : 'text-zinc-700'}`}>click</span> to drop a block. Each runs on its own.
       </div>
-    </aside>
+    </>
+  );
+
+  // Mobile: overlay drawer that slides in from the left over the canvas.
+  if (isMobile) {
+    return (
+      <>
+        {isOpen && (
+          <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
+        )}
+        <aside
+          className={`fixed left-0 top-0 z-50 flex h-full w-[min(82vw,280px)] flex-col border-r pb-14 shadow-[var(--shadow-soft)] ${surface} transition-transform duration-300 ease-in-out ${
+            isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {body}
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop: inline sidebar that slides open/closed (negative margin-left, so the
+  // canvas reflows and the panel clips off-screen — animating a flex item's width
+  // fights flexbox sizing) and is resizable by dragging its right edge.
+  return (
+    <>
+      {/* Transparent overlay so the canvas doesn't swallow the drag */}
+      {isResizing && <div className="fixed inset-0 z-50 cursor-col-resize" />}
+
+      <aside
+        style={{ width, marginLeft: isOpen ? 0 : -width }}
+        className={`relative flex h-full shrink-0 flex-col border-r ${surface} ${
+          isResizing ? '' : 'transition-[margin] duration-300 ease-in-out'
+        }`}
+      >
+        {body}
+
+        {/* Resize handle on the right edge */}
+        {isOpen && (
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+            title="Drag to resize"
+            className="group absolute top-0 right-0 z-40 flex h-full w-1.5 translate-x-1/2 cursor-col-resize justify-center"
+          >
+            <span
+              className={`h-full w-px transition-colors ${
+                isResizing ? 'bg-link' : 'bg-transparent group-hover:bg-link'
+              }`}
+            />
+          </div>
+        )}
+      </aside>
+    </>
   );
 };

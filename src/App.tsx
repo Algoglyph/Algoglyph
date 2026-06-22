@@ -9,6 +9,8 @@ import { VisualizerWorkspace } from './components/VisualizerWorkspace';
 import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
+import { MobileNav } from './components/MobileNav';
+import { useIsMobile } from './hooks/useIsMobile';
 
 const App: React.FC = () => {
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
@@ -27,6 +29,7 @@ const App: React.FC = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
@@ -124,9 +127,15 @@ const App: React.FC = () => {
   const showCanvas = layoutMode !== 'notes-only' && !fullAreaMode;
   // The notes pane stays mounted so it can slide open/closed; its width animates
   // to 0 when collapsed instead of unmounting.
-  const canvasWidth = layoutMode === 'canvas-only' ? 100 : splitWidth;
-  const notesWidth =
-    layoutMode === 'canvas-only' || fullAreaMode ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth;
+  // On mobile there's only ever one pane: the active view fills the width and the
+  // divider is hidden (Split collapses to the Canvas pane). On desktop the split
+  // percentage applies as before.
+  const canvasWidth = isMobile
+    ? (showCanvas ? 100 : 0)
+    : (layoutMode === 'canvas-only' ? 100 : splitWidth);
+  const notesWidth = isMobile
+    ? (layoutMode === 'notes-only' ? 100 : 0)
+    : (layoutMode === 'canvas-only' || fullAreaMode ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth);
   // Animate width changes from layout toggles, but not while dragging the divider
   // (that needs to track the cursor 1:1).
   const paneTransition = isDragging ? '' : 'transition-[width] duration-300 ease-in-out';
@@ -141,8 +150,8 @@ const App: React.FC = () => {
           workspace rather than per-tab content. */}
       {!showVisualizer && <TabBar />}
 
-      {/* Main Workspace Panels */}
-      <div className="flex flex-1 w-full overflow-hidden relative">
+      {/* Main Workspace Panels — leave room for the fixed bottom nav on mobile. */}
+      <div className="flex flex-1 w-full overflow-hidden relative pb-14 md:pb-0">
         {/* Transparent drag overlay to prevent Excalidraw from absorbing events while resizing */}
         {isDragging && (
           <div className="fixed inset-0 z-50 cursor-col-resize select-none bg-transparent" />
@@ -175,8 +184,8 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Resizer bar */}
-        {layoutMode === 'split' && (
+        {/* Resizer bar — desktop only; mobile is single-pane with no divider. */}
+        {layoutMode === 'split' && !isMobile && (
           <div
             onMouseDown={handleMouseDown}
             className={`w-px hover:w-1 bg-hairline hover:bg-link transition-all cursor-col-resize h-full flex-shrink-0 z-40 relative ${
@@ -202,6 +211,9 @@ const App: React.FC = () => {
 
       {/* Global Toast Notification Popup */}
       <NotificationToast />
+
+      {/* Mobile-only bottom navigation for switching views */}
+      {isMobile && <MobileNav />}
     </div>
   );
 };

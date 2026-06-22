@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, X, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose, Search } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export const TabBar: React.FC = () => {
   const tabs = useWorkspaceStore((state) => state.tabs);
@@ -20,11 +21,13 @@ export const TabBar: React.FC = () => {
   // The notes toggle mirrors the structures collapse: hide the notes pane from
   // split view, or bring it back when it's collapsed.
   const toggleNotes = () => setLayoutMode(layoutMode === 'split' ? 'canvas-only' : 'split');
+  const isMobile = useIsMobile();
 
   // Keep the left control cluster exactly as wide as the STRUCTURES sidebar so
   // the tabs begin above the canvas content (to the right of the sidebar),
   // Obsidian-style. Tracks the sidebar's live (resizable) width when open.
-  const clusterWidth = !canvasVisible ? 44 : structuresPanelOpen ? structuresWidth : 68;
+  // On mobile the sidebar is an overlay drawer, so the cluster stays compact.
+  const clusterWidth = isMobile ? 44 : !canvasVisible ? 44 : structuresPanelOpen ? structuresWidth : 68;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -140,8 +143,9 @@ export const TabBar: React.FC = () => {
       </div>
 
       {/* Right control cluster: collapse / expand the notes pane — mirrors the
-          structures collapse on the left. */}
-      <div className="flex items-center px-1.5 border-l border-hairline flex-shrink-0">
+          structures collapse on the left. Hidden on mobile (the bottom nav owns
+          canvas/notes switching there). */}
+      <div className="hidden md:flex items-center px-1.5 border-l border-hairline flex-shrink-0">
         <button
           onClick={toggleNotes}
           title={layoutMode === 'split' ? 'Collapse notes' : 'Show notes'}

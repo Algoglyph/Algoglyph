@@ -96,7 +96,7 @@ export const Editor: React.FC = () => {
     <div className="flex flex-col h-full w-full bg-canvas border-l border-hairline text-ink select-text relative">
       {/* Editor Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-canvas/70 border-b border-hairline backdrop-blur-md sticky top-0 z-30 select-none">
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1 flex-nowrap overflow-x-auto min-w-0 [&>*]:shrink-0">
           {/* Format actions */}
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
