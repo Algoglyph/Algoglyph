@@ -9,6 +9,7 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { common, createLowlight } from 'lowlight';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { InlineMath, BlockMath } from '../extensions/mathematics';
 import {
   Bold as BoldIcon,
   Italic as ItalicIcon,
@@ -21,6 +22,7 @@ import {
   Terminal as TerminalIcon,
   Table as TableIcon,
   Search as SearchIcon,
+  Sigma as SigmaIcon,
 } from 'lucide-react';
 
 const lowlight = createLowlight(common);
@@ -47,6 +49,8 @@ export const Editor: React.FC = () => {
       TableRow,
       TableHeader,
       TableCell,
+      InlineMath,
+      BlockMath,
     ],
     content: notes,
     // The stored notes are a markdown string — tell the markdown extension to
@@ -168,6 +172,24 @@ export const Editor: React.FC = () => {
             title="Code Block"
           >
             <TerminalIcon size={14} />
+          </button>
+
+          <div className="h-4 w-[1px] bg-hairline mx-1" />
+
+          {/* Math (LaTeX) actions */}
+          <button
+            onClick={() => editor.chain().focus().insertInlineMath().run()}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('inlineMath') ? 'text-link bg-canvas-soft' : 'text-body'}`}
+            title="Inline Math ($…$)"
+          >
+            <SigmaIcon size={14} />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().insertBlockMath().run()}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('blockMath') ? 'text-link bg-canvas-soft' : 'text-body'}`}
+            title="Block Math ($$…$$)"
+          >
+            <span className="flex items-center text-[11px] font-semibold leading-none px-0.5">∑∑</span>
           </button>
 
           <div className="h-4 w-[1px] bg-hairline mx-1" />

@@ -17,7 +17,12 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 
-export const Toolbar: React.FC = () => {
+interface ToolbarProps {
+  /** Return to the marketing hero / landing page (header wordmark click). */
+  onReturnToLanding?: () => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({ onReturnToLanding }) => {
   // Subscribe reactively ONLY to layout changes and save states
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
   const saveStatus = useWorkspaceStore((state) => state.saveStatus);
@@ -196,13 +201,19 @@ ${JSON.stringify(data, null, 2)}
     <header className="flex md:grid md:grid-cols-[1fr_auto_1fr] items-center justify-between px-4 py-2 bg-canvas/70 backdrop-blur-md border-b border-hairline text-body select-none h-12 flex-shrink-0 z-40">
       {/* Wordmark & save status */}
       <div className="flex items-center gap-3.5 flex-1 basis-0 min-w-0">
-        <div className="flex items-center gap-2">
-          {/* Brand mark — using the original favicon */}
+        {/* Brand mark — click returns to the hero / landing page */}
+        <button
+          type="button"
+          onClick={onReturnToLanding}
+          className="flex items-center gap-2 rounded-md -mx-1 px-1 py-0.5 hover:bg-canvas-soft transition-colors cursor-pointer group"
+          title="Back to home"
+          aria-label="Back to home"
+        >
           <span className="grid h-5 w-5 place-items-center" aria-hidden>
             <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
           </span>
-          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">DSADelta</h1>
-        </div>
+          <span className="font-display text-sm font-semibold tracking-[-0.02em] text-ink group-hover:text-link transition-colors">DSADelta</span>
+        </button>
 
         <div className="h-3.5 w-px bg-hairline" />
 

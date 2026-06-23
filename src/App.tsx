@@ -109,6 +109,23 @@ const App: React.FC = () => {
     };
   }, [isDragging, setSplitWidth]);
 
+  // Navigate between the marketing hero (LandingPage) and the workspace, using a
+  // View Transition for a smooth cross-fade where supported.
+  const withViewTransition = (mutate: () => void) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(mutate);
+    } else {
+      mutate();
+    }
+  };
+  // Clicking the header wordmark returns to the hero, reset to the top.
+  const returnToLanding = () => {
+    withViewTransition(() => {
+      setIsLandingActive(true);
+      window.scrollTo(0, 0);
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
@@ -123,15 +140,7 @@ const App: React.FC = () => {
   if (isLandingActive) {
     return (
       <LandingPage
-        onLaunch={() => {
-          if (document.startViewTransition) {
-            document.startViewTransition(() => {
-              setIsLandingActive(false);
-            });
-          } else {
-            setIsLandingActive(false);
-          }
-        }}
+        onLaunch={() => withViewTransition(() => setIsLandingActive(false))}
       />
     );
   }
@@ -163,7 +172,7 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen w-screen text-ink overflow-hidden select-none">
       {/* Top Toolbar */}
-      <Toolbar />
+      <Toolbar onReturnToLanding={returnToLanding} />
 
       {/* Tab strip — hidden in the Visualizer, whose blocks are a single global
           workspace rather than per-tab content. */}
