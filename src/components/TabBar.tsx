@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, X, PanelLeft, PanelLeftClose, Search } from 'lucide-react';
+import { Plus, X, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose, Search } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export const TabBar: React.FC = () => {
   const tabs = useWorkspaceStore((state) => state.tabs);
@@ -10,15 +11,23 @@ export const TabBar: React.FC = () => {
   const closeTab = useWorkspaceStore((state) => state.closeTab);
   const renameTab = useWorkspaceStore((state) => state.renameTab);
   const structuresPanelOpen = useWorkspaceStore((state) => state.structuresPanelOpen);
+  const structuresWidth = useWorkspaceStore((state) => state.structuresWidth);
   const toggleStructuresPanel = useWorkspaceStore((state) => state.toggleStructuresPanel);
   const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
-  const canvasVisible = layoutMode !== 'notes-only';
+  const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
+  const canvasVisible = layoutMode !== 'notes-only' && layoutMode !== 'code';
+  const notesVisible = layoutMode !== 'canvas-only' && layoutMode !== 'code';
+  // The notes toggle mirrors the structures collapse: hide the notes pane from
+  // split view, or bring it back when it's collapsed.
+  const toggleNotes = () => setLayoutMode(layoutMode === 'split' ? 'canvas-only' : 'split');
+  const isMobile = useIsMobile();
 
   // Keep the left control cluster exactly as wide as the STRUCTURES sidebar so
   // the tabs begin above the canvas content (to the right of the sidebar),
-  // Obsidian-style. 256px == the sidebar's 16rem width (border-box).
-  const clusterWidth = !canvasVisible ? 44 : structuresPanelOpen ? 256 : 68;
+  // Obsidian-style. Tracks the sidebar's live (resizable) width when open.
+  // On mobile the sidebar is an overlay drawer, so the cluster stays compact.
+  const clusterWidth = isMobile ? 44 : !canvasVisible ? 44 : structuresPanelOpen ? structuresWidth : 68;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -42,27 +51,27 @@ export const TabBar: React.FC = () => {
   };
 
   return (
-    <div className="flex items-stretch h-9 bg-zinc-950 border-b border-zinc-900 select-none flex-shrink-0">
+    <div className="flex items-stretch h-9 bg-canvas/70 backdrop-blur-md border-b border-hairline select-none flex-shrink-0">
       {/* Left control cluster: collapse sidebar + search. Width tracks the
           sidebar so the tabs align above the canvas content (Obsidian-style). */}
       <div
         style={{ width: clusterWidth }}
-        className="flex items-center overflow-hidden border-r border-zinc-900 flex-shrink-0 transition-[width] duration-300 ease-in-out"
+        className="flex items-center overflow-hidden border-r border-hairline flex-shrink-0 transition-[width] duration-300 ease-in-out"
       >
         <div className="flex items-center gap-0.5 px-1.5 flex-shrink-0">
           {canvasVisible && (
             <button
               onClick={toggleStructuresPanel}
               title={structuresPanelOpen ? 'Collapse structures panel' : 'Expand structures panel'}
-              className="p-1.5 rounded-md text-zinc-500 hover:text-purple-300 hover:bg-zinc-900 transition-colors cursor-pointer flex items-center"
+              className="p-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer flex items-center"
             >
               {structuresPanelOpen ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
             </button>
           )}
           <button
             onClick={() => openSearchPalette('all')}
-            title="Search across all tabs (Ctrl+Shift+F)"
-            className="p-1.5 rounded-md text-zinc-500 hover:text-purple-300 hover:bg-zinc-900 transition-colors cursor-pointer flex items-center"
+            title="Search across all tabs (⌘⇧F)"
+            className="p-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer flex items-center"
           >
             <Search size={15} />
           </button>
@@ -79,10 +88,10 @@ export const TabBar: React.FC = () => {
               onClick={() => !isEditing && switchTab(tab.id)}
               onDoubleClick={() => startRename(tab.id, tab.title)}
               title={tab.title}
-              className={`group flex flex-shrink-0 items-center gap-1.5 pl-3 pr-1.5 rounded-md border text-xs font-mono cursor-pointer transition-colors whitespace-nowrap max-w-[180px] ${
+              className={`group relative flex flex-shrink-0 items-center gap-1.5 pl-3 pr-1.5 rounded-md text-xs font-mono cursor-pointer transition-colors whitespace-nowrap max-w-[180px] ${
                 isActive
-                  ? 'bg-zinc-900 border-purple-900/50 text-purple-300'
-                  : 'bg-transparent border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                  ? 'bg-canvas-soft-2 text-ink font-medium border border-hairline'
+                  : 'bg-transparent text-body hover:text-ink hover:bg-canvas-soft border border-transparent'
               }`}
             >
               {isEditing ? (
@@ -101,7 +110,7 @@ export const TabBar: React.FC = () => {
                       setEditingId(null);
                     }
                   }}
-                  className="bg-zinc-800 text-zinc-100 text-xs rounded px-1 py-0.5 w-28 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="bg-canvas text-ink text-xs rounded px-1 py-0.5 w-28 focus:outline-none focus:ring-1 focus:ring-link"
                 />
               ) : (
                 <span className="truncate">{tab.title}</span>
@@ -113,7 +122,7 @@ export const TabBar: React.FC = () => {
                   closeTab(tab.id);
                 }}
                 title="Close tab"
-                className={`p-0.5 rounded hover:bg-zinc-700 transition-opacity ${
+                className={`p-0.5 rounded hover:bg-canvas-soft-2 transition-opacity ${
                   isActive ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover:opacity-70 hover:!opacity-100'
                 }`}
               >
@@ -127,9 +136,22 @@ export const TabBar: React.FC = () => {
         <button
           onClick={() => createTab()}
           title="New tab"
-          className="flex-shrink-0 px-1.5 rounded-md text-zinc-500 hover:text-purple-300 hover:bg-zinc-900 transition-colors cursor-pointer flex items-center"
+          className="flex-shrink-0 px-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer flex items-center"
         >
           <Plus size={14} />
+        </button>
+      </div>
+
+      {/* Right control cluster: collapse / expand the notes pane — mirrors the
+          structures collapse on the left. Hidden on mobile (the bottom nav owns
+          canvas/notes switching there). */}
+      <div className="hidden md:flex items-center px-1.5 border-l border-hairline flex-shrink-0">
+        <button
+          onClick={toggleNotes}
+          title={layoutMode === 'split' ? 'Collapse notes' : 'Show notes'}
+          className="p-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer flex items-center"
+        >
+          {notesVisible ? <PanelRightClose size={15} /> : <PanelRight size={15} />}
         </button>
       </div>
     </div>

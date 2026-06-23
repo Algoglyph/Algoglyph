@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { dsaStructures } from '../config/dsaStructures';
 import type { DSAStructure } from '../config/dsaStructures';
-import { Search, CornerDownLeft } from 'lucide-react';
+import { getAlgorithm } from '../config/algorithms';
+import { Search, CornerDownLeft, Shapes, Play, Info } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
 
@@ -15,6 +16,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const showNotification = useWorkspaceStore((state) => state.showNotification);
+  const addVisualizerNode = useWorkspaceStore((state) => state.addVisualizerNode);
+  const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
 
   // Reset state when opening
   useEffect(() => {
@@ -34,8 +37,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     );
   });
 
-  const insertStructure = (structure: DSAStructure) => {
+  const handleInsert = (structure: DSAStructure) => {
     insertStructureIntoCanvas(structure, (msg) => showNotification(msg, 'error'));
+    showNotification(`Inserted ${structure.name} onto canvas`, 'success');
+    onClose();
+  };
+
+  const handleVisualize = (structure: DSAStructure) => {
+    // Check if there's a registered algorithm for it
+    const id = structure.id;
+    // We support visualizer for all structures that have algorithm frames,
+    // fallbacking to id if needed because all 66 items are mapped in algorithmFrames.ts.
+    const algoId = getAlgorithm(id) ? id : (getAlgorithm(id.replace('-structure', '')) ? id.replace('-structure', '') : id);
+    
+    // Add visualizer block at center coordinates (100, 100) or similar
+    addVisualizerNode(algoId, 100, 100);
+    setLayoutMode('visualizer');
+    showNotification(`Loading visualization for ${structure.name}`, 'success');
     onClose();
   };
 
@@ -52,8 +70,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         setSelectedIndex((prev) => (prev - 1 + filteredStructures.length) % Math.max(1, filteredStructures.length));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (filteredStructures[selectedIndex]) {
-          insertStructure(filteredStructures[selectedIndex]);
+        const selected = filteredStructures[selectedIndex];
+        if (selected) {
+          if (e.shiftKey) {
+            handleVisualize(selected);
+          } else {
+            handleInsert(selected);
+          }
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -68,71 +91,110 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-start justify-center pt-[15vh]">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-[15vh]">
       {/* Backdrop click to close */}
       <div className="absolute inset-0 z-0 cursor-default" onClick={onClose} />
 
       {/* Main Palette Box */}
-      <div className="w-full max-w-lg bg-zinc-950 border border-zinc-900 rounded-lg shadow-2xl overflow-hidden flex flex-col font-mono z-10 mx-4">
+      <div className="w-full max-w-xl bg-canvas border border-hairline rounded-xl shadow-[var(--shadow-modal)] ring-1 ring-hairline overflow-hidden flex flex-col font-mono z-10 mx-4">
         {/* Input area */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-900 bg-zinc-950">
-          <Search size={16} className="text-zinc-500" />
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-hairline bg-transparent">
+          <Search size={16} className="text-body" />
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type a structure command (e.g. tree, bst, list)..."
+            placeholder="Search any DSA structure or algorithm..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="flex-1 bg-transparent text-sm text-zinc-100 focus:outline-none placeholder-zinc-700"
+            className="flex-1 bg-transparent text-sm text-ink focus:outline-none placeholder-mute"
           />
         </div>
 
         {/* List of matches */}
-        <div className="max-h-64 overflow-y-auto p-1.5 bg-zinc-950/40">
+        <div className="max-h-[340px] overflow-y-auto p-1.5 bg-transparent">
           {filteredStructures.length > 0 ? (
             filteredStructures.map((s, index) => {
               const isSelected = index === selectedIndex;
+              
               return (
                 <div
                   key={s.id}
-                  onClick={() => insertStructure(s)}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2 rounded cursor-pointer transition-colors ${
                     isSelected
-                      ? 'bg-purple-950/35 text-purple-400 border border-purple-900/40'
-                      : 'border border-transparent text-zinc-400 hover:text-zinc-200'
+                      ? 'bg-link/10 text-link ring-1 ring-inset ring-link/30'
+                      : 'border border-transparent text-body hover:text-ink'
                   }`}
                 >
-                  <div className="flex flex-col text-left">
-                    <span className="text-xs font-semibold">{s.name}</span>
-                    <span className="text-[10px] text-zinc-500 mt-0.5">{s.description}</span>
+                  <div className="flex flex-col text-left max-w-[65%]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold truncate">{s.name}</span>
+                      <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border border-hairline tracking-wider text-mute select-none`}>
+                        {s.category}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-body mt-0.5 truncate">{s.description}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 select-none">
-                    <span className="text-[9px] font-semibold font-mono bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-500 uppercase">
-                      {s.commands[0]}
-                    </span>
-                    {isSelected && <CornerDownLeft size={10} className="text-purple-500" />}
+
+                  {/* Actions buttons */}
+                  <div className="flex items-center gap-2 select-none">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInsert(s);
+                      }}
+                      className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-1 rounded transition-colors border cursor-pointer ${
+                        isSelected 
+                          ? 'border-link/30 bg-link/10 text-link hover:bg-link/25' 
+                          : 'border-hairline bg-canvas hover:bg-canvas-soft text-body'
+                      }`}
+                      title="Insert on Drawing Canvas"
+                    >
+                      <Shapes size={10} />
+                      Insert
+                    </button>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleVisualize(s);
+                      }}
+                      className={`flex items-center gap-1 text-[9px] font-semibold px-2 py-1 rounded transition-colors border cursor-pointer ${
+                        isSelected 
+                          ? 'border-link/30 bg-link/15 text-link hover:bg-link/30' 
+                          : 'border-hairline bg-canvas hover:bg-canvas-soft text-body'
+                      }`}
+                      title="Visualize in Workspace"
+                    >
+                      <Play size={10} />
+                      Visualize
+                    </button>
+                    {isSelected && <CornerDownLeft size={10} className="text-link" />}
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="px-4 py-6 text-xs text-zinc-600 text-center">
-              No matching structure commands found.
+            <div className="px-4 py-6 text-xs text-mute text-center">
+              No matching algorithms or data structures found.
             </div>
           )}
         </div>
 
         {/* Footer controls */}
-        <div className="p-3 border-t border-zinc-900 bg-zinc-950/20 text-[9px] text-zinc-600 flex justify-between select-none">
-          <div className="flex gap-3">
+        <div className="p-3 border-t border-hairline bg-transparent text-[9px] text-mute flex justify-between select-none items-center">
+          <div className="flex gap-4">
             <span>↑↓ to navigate</span>
             <span>↵ to insert</span>
+            <span>shift + ↵ to visualize</span>
           </div>
-          <span>esc to close</span>
+          <span className="flex items-center gap-1">
+            <Info size={10} />
+            esc to close
+          </span>
         </div>
       </div>
     </div>

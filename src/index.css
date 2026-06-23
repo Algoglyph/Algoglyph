@@ -1,20 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
-/* Base variables & overrides */
-:root {
-  --color-zinc-900: #09090b;
-  --color-zinc-950: #030303;
-  --color-zinc-800: #18181b;
-  --color-zinc-700: #27272a;
+/* ────────────────────────────────────────────────────────────
+   Design tokens — Vercel / Geist (see .claude/skills/DESIGN.md)
+   A stark ink-on-white system: near-white canvas, ink-near-black
+   text, hairline dividers, a single #0070f3 link-blue accent.
+   ──────────────────────────────────────────────────────────── */
+@theme {
+  --color-canvas: #ffffff;          /* pure-white cards/dialogs   */
+  --color-canvas-soft: #fafafa;     /* default page background    */
+  --color-canvas-soft-2: #f5f5f5;   /* inset / hover surface      */
+  --color-ink: #171717;             /* headings, body, primary    */
+  --color-body: #4d4d4d;            /* secondary text             */
+  --color-mute: #888888;            /* tertiary / placeholder     */
+  --color-hairline: #ebebeb;        /* 1px dividers & borders     */
+  --color-hairline-strong: #a1a1a1; /* stronger divider / deemph  */
+  --color-link: #0070f3;            /* accent: links, active, focus*/
+  --color-link-deep: #0761d1;       /* pressed link               */
+  --color-link-soft: #d3e5ff;       /* soft accent fill           */
+  --color-error: #ee0000;
+  --color-warning: #f5a623;
+  --color-success: #0070f3;
+  --color-code-bg: #171717;       /* dark code block on the light surface */
+  --color-code-border: #171717;   /* matches bg in light (invisible frame)  */
+
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-reading: "Geist Variable", Inter, system-ui, -apple-system, sans-serif;
+
+  /* Vercel's stacked, low-opacity elevation — never one heavy drop */
+  --shadow-soft: 0px 1px 1px #00000005, 0px 2px 2px #0000000a;
+  --shadow-stack: 0px 2px 2px #0000000a, 0px 8px 8px -8px #0000000a;
+  --shadow-float: 0px 2px 2px #0000000a, 0px 8px 16px -4px #0000000a;
+  --shadow-modal: 0px 1px 1px #00000005, 0px 8px 16px -4px #0000000a, 0px 24px 32px -8px #0000000f;
+}
+
+/* ── Dark theme — Vercel / Geist dark surface ───────────────── */
+:root.dark {
+  --color-canvas: #0a0a0a;          /* raised card / dialog surface */
+  --color-canvas-soft: #000000;     /* page background             */
+  --color-canvas-soft-2: #1f1f1f;   /* inset / hover surface        */
+  --color-ink: #ededed;             /* primary text                 */
+  --color-body: #a1a1a1;            /* secondary text               */
+  --color-mute: #6f6f6f;            /* tertiary / placeholder       */
+  --color-hairline: #2a2a2a;        /* 1px dividers & borders       */
+  --color-hairline-strong: #4d4d4d;
+  --color-link: #3291ff;            /* brighter blue for dark       */
+  --color-link-deep: #0070f3;
+  --color-link-soft: rgba(50, 145, 255, 0.18);
+  --color-code-bg: #161616;         /* code block, distinct on #0a0a0a */
+  --color-code-border: #2a2a2a;
+}
+
+:root.dark ::selection { background: #ededed; color: #0a0a0a; }
+:root.dark ::-webkit-scrollbar-thumb { background: #333333; background-clip: padding-box; }
+:root.dark ::-webkit-scrollbar-thumb:hover { background: #4d4d4d; background-clip: padding-box; }
+
+/* ── Landing page theme tokens ───────────────────────────── */
+[data-landing-theme="dark"] {
+  --lp-bg: #000000;
+  --lp-surface: #09090b;
+  --lp-card: #0d0d0f;
+  --lp-card-alt: #0c0d12;
+  --lp-code-bg: #0a0a0c;
+  --lp-text: #ffffff;
+  --lp-text-2: #a1a1a1;
+  --lp-text-3: #666666;
+  --lp-text-4: #555555;
+  --lp-text-body: #ededed;
+  --lp-accent: #3291ff;
+  --lp-border: rgba(255,255,255,0.06);
+  --lp-border-subtle: rgba(255,255,255,0.04);
+  --lp-border-strong: rgba(255,255,255,0.10);
+  --lp-fill-subtle: rgba(255,255,255,0.02);
+  --lp-fill-hover: rgba(255,255,255,0.03);
+  --lp-node-bg: #0d0d10;
+  --lp-node-border: rgba(255,255,255,0.15);
+  --lp-nav-bg: rgba(0,0,0,0.6);
+  --lp-shadow-card: 0 8px 30px rgba(0,0,0,0.3);
+  --lp-shadow-heavy: 0 24px 60px rgba(0,0,0,0.7);
+  --lp-dot-color: rgba(255,255,255,0.015);
+  --lp-glow-color: rgba(255,255,255,0.012);
+  --lp-selection-bg: #ededed;
+  --lp-selection-text: #000000;
+  --lp-pill-active-bg: #ffffff;
+  --lp-pill-active-text: #000000;
+  --lp-pill-inactive-text: #666666;
+  --lp-cta-bg: #ffffff;
+  --lp-cta-text: #000000;
+  --lp-cta-hover: #ededed;
+  --lp-footer-bg: #070709;
+  --lp-rose: #f87171;
+  --lp-rose-border: rgba(239,68,68,0.2);
+  --lp-rose-bg: rgba(239,68,68,0.05);
+  --lp-emerald: rgba(52,211,153,0.9);
+  --lp-code-comment: rgba(255,255,255,0.20);
+  --lp-code-text: rgba(255,255,255,0.70);
+  --lp-grid-dot: rgba(255,255,255,0.03);
+  --lp-viz-glow: rgba(50,145,255,0.06);
+}
+
+[data-landing-theme="light"] {
+  --lp-bg: #ffffff;
+  --lp-surface: #f7f7f8;
+  --lp-card: #ffffff;
+  --lp-card-alt: #f0f3ff;
+  --lp-code-bg: #f5f5f5;
+  --lp-text: #0a0a0a;
+  --lp-text-2: #525252;
+  --lp-text-3: #737373;
+  --lp-text-4: #a3a3a3;
+  --lp-text-body: #171717;
+  --lp-accent: #0066ff;
+  --lp-border: rgba(0,0,0,0.08);
+  --lp-border-subtle: rgba(0,0,0,0.04);
+  --lp-border-strong: rgba(0,0,0,0.12);
+  --lp-fill-subtle: rgba(0,0,0,0.02);
+  --lp-fill-hover: rgba(0,0,0,0.04);
+  --lp-node-bg: #f8f8fa;
+  --lp-node-border: rgba(0,0,0,0.12);
+  --lp-nav-bg: rgba(255,255,255,0.75);
+  --lp-shadow-card: 0 2px 12px rgba(0,0,0,0.06);
+  --lp-shadow-heavy: 0 8px 30px rgba(0,0,0,0.08);
+  --lp-dot-color: rgba(0,0,0,0.04);
+  --lp-glow-color: rgba(0,0,0,0.02);
+  --lp-selection-bg: #0066ff;
+  --lp-selection-text: #ffffff;
+  --lp-pill-active-bg: #0a0a0a;
+  --lp-pill-active-text: #ffffff;
+  --lp-pill-inactive-text: #737373;
+  --lp-cta-bg: #0a0a0a;
+  --lp-cta-text: #ffffff;
+  --lp-cta-hover: #262626;
+  --lp-footer-bg: #f7f7f8;
+  --lp-rose: #dc2626;
+  --lp-rose-border: rgba(220,38,38,0.2);
+  --lp-rose-bg: rgba(220,38,38,0.05);
+  --lp-emerald: rgba(22,163,74,0.9);
+  --lp-code-comment: rgba(0,0,0,0.30);
+  --lp-code-text: rgba(0,0,0,0.70);
+  --lp-grid-dot: rgba(0,0,0,0.04);
+  --lp-viz-glow: rgba(0,102,255,0.06);
+}
+
+[data-landing-theme] ::selection {
+  background: var(--lp-selection-bg);
+  color: var(--lp-selection-text);
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #0c0c0e; /* Obsidian-like dark background */
-  color: #e4e4e7; /* Zinc 200 */
-  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  overflow: hidden; /* Prevent body scroll, everything scrolls inside its panel */
+  background-color: var(--color-canvas-soft);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "ss02", "cv01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
+  overflow: hidden;
   height: 100vh;
   width: 100vw;
 }
@@ -26,327 +171,265 @@ body {
   flex-direction: column;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #18181b; /* zinc-900 */
-}
-::-webkit-scrollbar-thumb {
-  background: #3f3f46; /* zinc-700 */
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #52525b; /* zinc-600 */
+::selection {
+  background: #171717;
+  color: #f2f2f2;
 }
 
-/* TipTap Editor Styles */
+:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+/* Scrollbar — light, unobtrusive */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 5px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-hairline-strong);
+  background-clip: padding-box;
+}
+
+/* ── TipTap / notes editor ──────────────────────────────────── */
 .ProseMirror {
   outline: none;
   min-height: 100%;
-  padding: 2rem 2.5rem;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 3rem 2.5rem 6rem;
+  font-family: var(--font-reading);
   font-size: 1rem;
-  line-height: 1.625;
-  color: #d4d4d8; /* zinc-300 */
+  line-height: 1.75;
+  color: var(--color-ink);
 }
 
-/* Placeholders */
 .ProseMirror p.is-editor-empty:first-child::before {
-  color: #52525b;
+  color: var(--color-mute);
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
 }
 
-/* Headings */
-.ProseMirror h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  color: #f4f4f5; /* zinc-100 */
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-  border-bottom: 1px solid #27272a;
-  padding-bottom: 0.375rem;
-}
-
-.ProseMirror h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #f4f4f5;
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
+.ProseMirror h1,
+.ProseMirror h2,
 .ProseMirror h3 {
-  font-size: 1.25rem;
+  font-family: var(--font-sans);
   font-weight: 600;
-  color: #e4e4e7;
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
+  color: var(--color-ink);
+}
+.ProseMirror h1 {
+  font-size: 1.75rem;
+  line-height: 2rem;
+  letter-spacing: -0.04em;
+  margin: 1.75rem 0 0.75rem;
+}
+.ProseMirror h2 {
+  font-size: 1.375rem;
+  line-height: 1.75rem;
+  letter-spacing: -0.03em;
+  margin: 1.6rem 0 0.5rem;
+}
+.ProseMirror h3 {
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  letter-spacing: -0.02em;
+  margin: 1.3rem 0 0.5rem;
 }
 
-.ProseMirror p {
-  margin-top: 0;
-  margin-bottom: 1rem;
-}
+.ProseMirror p { margin: 0 0 1rem; }
 
-/* Lists */
-.ProseMirror ul {
-  list-style-type: disc;
-  padding-left: 1.5rem;
-  margin-bottom: 1rem;
-}
+.ProseMirror ul { list-style-type: disc; padding-left: 1.4rem; margin-bottom: 1rem; }
+.ProseMirror ol { list-style-type: decimal; padding-left: 1.4rem; margin-bottom: 1rem; }
+.ProseMirror li { margin-bottom: 0.25rem; }
+.ProseMirror li p { margin: 0; }
+.ProseMirror ul li::marker { color: var(--color-hairline-strong); }
+.ProseMirror ol li::marker { color: var(--color-mute); }
 
-.ProseMirror ol {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.ProseMirror li {
-  margin-bottom: 0.25rem;
-}
-
-.ProseMirror li p {
-  margin: 0;
-}
-
-/* Code Blocks & Inline Code */
+/* Inline code — light chip */
 .ProseMirror code {
-  background-color: #18181b; /* zinc-900 */
-  color: #f43f5e; /* rose-500 */
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.875em;
+  background-color: var(--color-canvas-soft-2);
+  border: 1px solid var(--color-hairline);
+  color: var(--color-ink);
+  padding: 0.08rem 0.34rem;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
 }
 
+/* Code block — the Vercel "dark code mockup" signature */
 .ProseMirror pre {
-  background-color: #18181b; /* zinc-900 */
-  border: 1px solid #27272a; /* zinc-800 */
-  padding: 1rem;
-  border-radius: 0.375rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.875rem;
-  line-height: 1.5;
+  background-color: var(--color-code-bg);
+  border: 1px solid var(--color-code-border);
+  color: #ededed;
+  padding: 1rem 1.15rem;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
   overflow-x: auto;
   margin-bottom: 1.25rem;
 }
-
 .ProseMirror pre code {
   background-color: transparent;
+  border: 0;
   color: inherit;
   padding: 0;
   border-radius: 0;
   font-size: inherit;
 }
 
-/* Blockquotes */
 .ProseMirror blockquote {
-  border-left: 4px solid #3f3f46; /* zinc-700 */
+  border-left: 2px solid var(--color-ink);
   padding-left: 1rem;
-  color: #a1a1aa; /* zinc-400 */
-  font-style: italic;
-  margin-left: 0;
-  margin-right: 0;
-  margin-bottom: 1.25rem;
+  color: var(--color-body);
+  margin: 0 0 1.25rem;
 }
 
-/* Tables */
 .ProseMirror table {
   border-collapse: collapse;
-  margin: 0;
-  overflow: hidden;
+  margin: 0 0 1.25rem;
   table-layout: fixed;
   width: 100%;
-  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
 }
-
 .ProseMirror td,
 .ProseMirror th {
-  border: 1px solid #27272a; /* zinc-800 */
+  border: 1px solid var(--color-hairline);
   box-sizing: border-box;
   min-width: 1em;
-  padding: 6px 8px;
+  padding: 7px 10px;
   position: relative;
   vertical-align: top;
 }
-
 .ProseMirror th {
-  background-color: #18181b; /* zinc-900 */
-  font-weight: bold;
+  background-color: var(--color-canvas-soft);
+  font-weight: 600;
   text-align: left;
+  color: var(--color-ink);
 }
-
 .ProseMirror .selectedCell:after {
-  background: rgba(200, 200, 255, 0.4);
+  background: rgba(0, 112, 243, 0.1);
   content: "";
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  inset: 0;
   pointer-events: none;
   position: absolute;
   z-index: 2;
 }
-
 .ProseMirror .column-resize-handle {
-  background-color: #a855f7; /* purple-500 */
+  background-color: var(--color-link);
   bottom: -2px;
   position: absolute;
   right: -2px;
   pointer-events: none;
   top: 0;
-  width: 4px;
+  width: 3px;
   z-index: 20;
 }
+.tableWrapper { overflow-x: auto; }
+.resize-cursor { cursor: ew-resize; cursor: col-resize; }
 
-.tableWrapper {
-  overflow-x: auto;
-}
+.ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
+.ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; }
+.ProseMirror ul[data-type="taskList"] li > label { flex: 0 0 auto; margin-right: 0.5rem; user-select: none; }
+.ProseMirror ul[data-type="taskList"] li > div { flex: 1 1 auto; }
+.ProseMirror ul[data-type="taskList"] input[type="checkbox"] { cursor: pointer; accent-color: var(--color-link); }
 
-.resize-cursor {
-  cursor: ew-resize;
-  cursor: col-resize;
-}
+/* ── Syntax highlighting — tuned for the dark code block ─────── */
+.hljs-comment, .hljs-quote { color: #8b949e; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #ff7b72; }
+.hljs-number, .hljs-literal, .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #79c0ff; }
+.hljs-string, .hljs-doctag { color: #a5d6ff; }
+.hljs-title, .hljs-section, .hljs-selector-id { color: #d2a8ff; }
+.hljs-subst { font-weight: normal; }
+.hljs-type, .hljs-class .hljs-title { color: #ffa657; }
+.hljs-params { color: #ededed; }
+.hljs-attribute { color: #79c0ff; }
 
-/* Task lists */
-.ProseMirror ul[data-type="taskList"] {
-  list-style: none;
-  padding: 0;
-}
-
-.ProseMirror ul[data-type="taskList"] li {
-  display: flex;
-  align-items: flex-start;
-}
-
-.ProseMirror ul[data-type="taskList"] li > label {
-  flex: 0 0 auto;
-  margin-right: 0.5rem;
-  user-select: none;
-}
-
-.ProseMirror ul[data-type="taskList"] li > div {
-  flex: 1 1 auto;
-}
-
-.ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
-  cursor: pointer;
-  accent-color: #a855f7;
-}
-
-/* Syntax Highlighting Styles (HLJS) */
-.hljs-comment,
-.hljs-quote {
-  color: #71717a; /* zinc-500 */
-  font-style: italic;
-}
-
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-subst {
-  color: #f43f5e; /* rose-500 */
-  font-weight: bold;
-}
-
-.hljs-number,
-.hljs-literal,
-.hljs-variable,
-.hljs-template-variable,
-.hljs-tag .hljs-attr {
-  color: #f97316; /* orange-500 */
-}
-
-.hljs-string,
-.hljs-doctag {
-  color: #10b981; /* emerald-500 */
-}
-
-.hljs-title,
-.hljs-section,
-.hljs-selector-id {
-  color: #eab308; /* yellow-500 */
-  font-weight: bold;
-}
-
-.hljs-subst {
-  font-weight: normal;
-}
-
-.hljs-type,
-.hljs-class .hljs-title {
-  color: #3b82f6; /* blue-500 */
-  font-weight: bold;
-}
-
-.hljs-params {
-  color: #d4d4d8;
-}
-
-.hljs-attribute {
-  color: #a855f7; /* purple-500 */
-}
-
-/* Excalidraw custom theme styling */
+/* ── Excalidraw — light theme, blue primary ─────────────────── */
 .excalidraw {
-  --color-primary: #a855f7 !important;
-  --color-primary-darker: #c084fc !important;
-  --color-primary-darkest: #e9d5ff !important;
+  --color-primary: #0070f3 !important;
+  --color-primary-darker: #0761d1 !important;
+  --color-primary-darkest: #06367a !important;
+  --color-primary-light: rgba(0, 112, 243, 0.16) !important;
 }
 
-/* Hide default library button and excalidraw branding/traces */
 .excalidraw button[data-testid="sidebar-trigger-library"],
 .excalidraw label.sidebar-trigger__label-element,
 .excalidraw label[title="Library"],
 .excalidraw [title="Library"],
-.excalidraw [data-testid="sidebar-trigger-library"] {
-  display: none !important;
-}
+.excalidraw [data-testid="sidebar-trigger-library"] { display: none !important; }
 
-/* Hide help question-mark button and social buttons in the bottom right/footer */
 .excalidraw .layer-ui__wrapper__footer-right,
 .excalidraw button[data-testid="help-button"],
 .excalidraw .help-icon,
-.excalidraw .footer-socials {
-  display: none !important;
-}
+.excalidraw .footer-socials { display: none !important; }
 
-/* Hide excalidraw logo inside menus/screens */
 .excalidraw .dropdown-menu-container .excalidraw-logo,
 .excalidraw .excalidraw-logo,
-.excalidraw .logo {
-  display: none !important;
-}
+.excalidraw .logo { display: none !important; }
 
-/* Hide hamburger menu button in Excalidraw to prevent accessing menus with excalidraw links */
 .excalidraw .main-menu-trigger,
 .excalidraw button.main-menu-trigger,
-.excalidraw [data-testid="main-menu-trigger"] {
-  display: none !important;
-}
+.excalidraw [data-testid="main-menu-trigger"] { display: none !important; }
 
-/* Hide welcome screen completely */
 .excalidraw .welcome-screen,
 .excalidraw .welcome-screen__center,
 .excalidraw .welcome-screen__logo,
 .excalidraw .welcome-screen__heading,
-.excalidraw .welcome-screen__menu {
-  display: none !important;
-}
+.excalidraw .welcome-screen__menu { display: none !important; }
 
-/* Dragging divider overlay to prevent iframe / excalidraw mouse capture issues */
+/* Hide the stroke/background/fill style ("color palette") panel UNLESS shapes are
+   selected. The `canvas-no-selection` class is toggled on the canvas container from
+   Canvas.tsx based on the live selection, so the panel appears for editing a selected
+   element but stays hidden when nothing is selected / a tool is active. */
+.canvas-no-selection .selected-shape-actions,
+.canvas-no-selection .App-menu__left { display: none !important; }
+
+/* When the canvas gets narrow (e.g. dragging the Notes pane wide), Excalidraw swaps
+   to its mobile layout, which renders the style palette + an extra action toolbar
+   inside `.App-bottom-bar`. That container only exists in mobile mode, so hiding it
+   suppresses both without affecting the desktop panels. */
+.excalidraw .App-bottom-bar { display: none !important; }
+
 .resize-active::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 50;
   cursor: col-resize;
+}
+
+/* ── View Transitions Animation Recipes ─────────────────────── */
+:root {
+  --duration-exit: 150ms;
+  --duration-enter: 210ms;
+  --duration-move: 400ms;
+}
+
+@keyframes fade {
+  from { filter: blur(3px); opacity: 0; }
+  to { filter: blur(0); opacity: 1; }
+}
+
+::view-transition-old(root) {
+  animation: var(--duration-exit) ease-in fade reverse;
+}
+::view-transition-new(root) {
+  animation: var(--duration-enter) ease-out var(--duration-exit) both fade;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

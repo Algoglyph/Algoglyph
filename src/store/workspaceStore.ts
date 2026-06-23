@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { saveWorkspace, loadWorkspace } from '../db/indexedDB';
 import type { WorkspaceData, TabData } from '../db/indexedDB';
 
-export type LayoutMode = 'split' | 'canvas-only' | 'notes-only';
+export type LayoutMode = 'split' | 'canvas-only' | 'notes-only' | 'code' | 'visualizer';
 export type SaveStatus = 'saved' | 'saving' | 'error' | 'idle';
 
 export interface Notification {
@@ -10,12 +10,24 @@ export interface Notification {
   type: 'info' | 'error' | 'success';
 }
 
+// One algorithm block dropped onto the visualizer canvas. Only identity +
+// position lives here; each node's playback state (current step) is kept in
+// the node's own local state so a running animation never re-renders siblings.
+export interface VisualizerNodeData {
+  id: string;
+  algorithmId: string;
+  x: number;
+  y: number;
+}
+
 interface WorkspaceState {
-  // Live data for the ACTIVE tab. Editor/Canvas read these directly.
+  // Live data for the ACTIVE tab. Editor/Canvas/CodeEditor read these directly.
   notes: string;
   canvasElements: any[];
   canvasAppState: any;
   canvasFiles: Record<string, any>;
+  code: string;
+  codeLanguage: string;
 
   // Multi-tab state.
   tabs: TabData[];
@@ -30,14 +42,21 @@ interface WorkspaceState {
   lastImportTime: number; // timestamp to coordinate canvas updates
   notification: Notification | null;
 
+  // Visualizer canvas — node-based algorithm workspace (session state).
+  visualizerNodes: VisualizerNodeData[];
+
   // UI state (not persisted)
+  theme: 'light' | 'dark';
   structuresPanelOpen: boolean;
+  structuresWidth: number; // px width of the structures sidebar when open
   searchPaletteOpen: boolean; // the search palette overlay
   searchScope: 'all' | 'current'; // 'current' = Ctrl+F (this tab), 'all' = Ctrl+Shift+F
 
   // Actions
   initializeWorkspace: () => Promise<void>;
   updateNotes: (notes: string) => void;
+  updateCode: (code: string) => void;
+  setCodeLanguage: (language: string) => void;
   updateCanvas: (elements: any[], appState: any, files?: any) => void;
   setSplitWidth: (width: number) => void;
   setLayoutMode: (mode: LayoutMode) => void;
@@ -49,10 +68,19 @@ interface WorkspaceState {
   hideNotification: () => void;
 
   // UI actions
+  toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
   toggleStructuresPanel: () => void;
   setStructuresPanelOpen: (open: boolean) => void;
+  setStructuresWidth: (width: number) => void;
   openSearchPalette: (scope: 'all' | 'current') => void;
   setSearchPaletteOpen: (open: boolean) => void;
+
+  // Visualizer actions
+  addVisualizerNode: (algorithmId: string, x: number, y: number) => void;
+  moveVisualizerNode: (id: string, x: number, y: number) => void;
+  removeVisualizerNode: (id: string) => void;
+  clearVisualizerNodes: () => void;
 
   // Tab actions
   createTab: () => void;
@@ -64,6 +92,31 @@ interface WorkspaceState {
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let notificationTimeout: ReturnType<typeof setTimeout> | null = null;
 
+const THEME_KEY = 'scratchpad-theme';
+
+// Theme defaults to Vercel's dark surface; the user's choice is remembered.
+const readInitialTheme = (): 'light' | 'dark' => {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    // ignore (private mode / no storage)
+  }
+  return 'dark';
+};
+
+// Reflect the theme onto <html> so the .dark token overrides cascade.
+const applyTheme = (theme: 'light' | 'dark') => {
+  const root = document.documentElement;
+  root.classList.toggle('dark', theme === 'dark');
+  root.style.colorScheme = theme;
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // ignore
+  }
+};
+
 const genId = () =>
   `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -74,6 +127,8 @@ const makeTab = (partial: Partial<TabData> = {}): TabData => ({
   canvasElements: [],
   canvasAppState: {},
   canvasFiles: {},
+  code: '',
+  codeLanguage: 'cpp',
   updatedAt: Date.now(),
   ...partial,
 });
@@ -88,7 +143,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         set({ saveStatus: 'saved' });
       } catch (error) {
         console.error('Failed to auto-save:', error);
+        const wasError = get().saveStatus === 'error';
         set({ saveStatus: 'error' });
+        // Surface the real reason once per failure streak (avoid spamming on
+        // each debounce) so the user can act / report instead of a blank "failed".
+        if (!wasError) {
+          const name = (error as any)?.name;
+          const msg =
+            name === 'QuotaExceededError'
+              ? 'Local storage is full — export your work to free up space'
+              : `Could not save locally (${name || (error as any)?.message || 'unknown error'})`;
+          get().showNotification(msg, 'error');
+        }
       }
     }, 1000); // 1-second debounce to keep drawing and typing smooth
   };
@@ -97,10 +163,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
   // The mirror fields are the source of truth for the active tab; the matching
   // entry in `tabs` may be stale until reconciled here (on save / switch / close).
   const reconcileTabs = (): TabData[] => {
-    const { tabs, activeTabId, notes, canvasElements, canvasAppState, canvasFiles } = get();
+    const { tabs, activeTabId, notes, canvasElements, canvasAppState, canvasFiles, code, codeLanguage } = get();
     return tabs.map((t) =>
       t.id === activeTabId
-        ? { ...t, notes, canvasElements, canvasAppState, canvasFiles, updatedAt: Date.now() }
+        ? { ...t, notes, canvasElements, canvasAppState, canvasFiles, code, codeLanguage, updatedAt: Date.now() }
         : t
     );
   };
@@ -112,6 +178,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       canvasElements: tab.canvasElements,
       canvasAppState: tab.canvasAppState,
       canvasFiles: tab.canvasFiles,
+      code: tab.code ?? '',
+      codeLanguage: tab.codeLanguage ?? 'cpp',
       lastImportTime: Date.now(),
       ...extra,
     });
@@ -122,6 +190,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     canvasElements: [],
     canvasAppState: {},
     canvasFiles: {},
+    code: '',
+    codeLanguage: 'cpp',
     tabs: [],
     activeTabId: '',
     layoutMode: 'split',
@@ -132,7 +202,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     activeCanvasTool: 'selection',
     lastImportTime: 0,
     notification: null,
+    visualizerNodes: [],
+    theme: readInitialTheme(),
     structuresPanelOpen: true,
+    structuresWidth: 272,
     searchPaletteOpen: false,
     searchScope: 'all',
 
@@ -152,7 +225,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           // Legacy single-document format → migrate into one tab.
           tabs = [
             makeTab({
-              title: 'Scratchpad',
+              title: 'DSADelta',
               notes: saved.notes || '',
               canvasElements: saved.canvasElements || [],
               canvasAppState: saved.canvasAppState || {},
@@ -162,7 +235,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           activeTabId = tabs[0].id;
         } else {
           // Fresh start.
-          tabs = [makeTab({ title: 'Scratchpad' })];
+          tabs = [makeTab({ title: 'DSADelta' })];
           activeTabId = tabs[0].id;
         }
 
@@ -174,13 +247,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           canvasElements: active.canvasElements,
           canvasAppState: active.canvasAppState,
           canvasFiles: active.canvasFiles,
+          code: active.code ?? '',
+          codeLanguage: active.codeLanguage ?? 'cpp',
           lastImportTime: Date.now(),
           isLoading: false,
           saveStatus: 'saved',
         });
       } catch (error) {
         console.error('Failed to initialize workspace from database:', error);
-        const tabs = [makeTab({ title: 'Scratchpad' })];
+        const tabs = [makeTab({ title: 'DSADelta' })];
         set({
           tabs,
           activeTabId: tabs[0].id,
@@ -192,6 +267,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
 
     updateNotes: (notes) => {
       set({ notes });
+      scheduleAutoSave();
+    },
+
+    updateCode: (code) => {
+      set({ code });
+      scheduleAutoSave();
+    },
+
+    setCodeLanguage: (codeLanguage) => {
+      set({ codeLanguage });
       scheduleAutoSave();
     },
 
@@ -238,6 +323,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         set({ layoutMode: mode, splitWidth: 100 });
       } else if (mode === 'notes-only') {
         set({ layoutMode: mode, splitWidth: 0 });
+      } else if (mode === 'code' || mode === 'visualizer') {
+        // Full-area panes (code runner / algorithm visualizer); split width
+        // is irrelevant here.
+        set({ layoutMode: mode });
       } else {
         set({ layoutMode: mode, splitWidth: lastSplitWidth });
       }
@@ -362,6 +451,22 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
       set({ structuresPanelOpen });
     },
 
+    setStructuresWidth: (width) => {
+      // Clamp to a usable range so the sidebar can't be dragged off-screen.
+      set({ structuresWidth: Math.max(200, Math.min(440, width)) });
+    },
+
+    setTheme: (theme) => {
+      applyTheme(theme);
+      set({ theme });
+    },
+
+    toggleTheme: () => {
+      const theme = get().theme === 'dark' ? 'light' : 'dark';
+      applyTheme(theme);
+      set({ theme });
+    },
+
     openSearchPalette: (scope) => {
       set({ searchScope: scope, searchPaletteOpen: true });
     },
@@ -369,5 +474,29 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     setSearchPaletteOpen: (searchPaletteOpen) => {
       set({ searchPaletteOpen });
     },
+
+    addVisualizerNode: (algorithmId, x, y) => {
+      const node: VisualizerNodeData = {
+        id: `vis-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+        algorithmId,
+        x,
+        y,
+      };
+      set({ visualizerNodes: [...get().visualizerNodes, node] });
+    },
+
+    moveVisualizerNode: (id, x, y) => {
+      set({
+        visualizerNodes: get().visualizerNodes.map((n) =>
+          n.id === id ? { ...n, x, y } : n
+        ),
+      });
+    },
+
+    removeVisualizerNode: (id) => {
+      set({ visualizerNodes: get().visualizerNodes.filter((n) => n.id !== id) });
+    },
+
+    clearVisualizerNodes: () => set({ visualizerNodes: [] }),
   };
 });

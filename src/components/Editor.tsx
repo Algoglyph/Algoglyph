@@ -49,6 +49,10 @@ export const Editor: React.FC = () => {
       TableCell,
     ],
     content: notes,
+    // The stored notes are a markdown string — tell the markdown extension to
+    // parse it as such, otherwise a remounted editor (e.g. after collapsing and
+    // re-opening the notes pane) renders the raw markdown source as plain text.
+    contentType: 'markdown',
     onUpdate: ({ editor }) => {
       const markdown = (editor as any).getMarkdown();
       updateNotes(markdown);
@@ -66,7 +70,9 @@ export const Editor: React.FC = () => {
     if (editor && !isLoading) {
       const currentMarkdown = (editor as any).getMarkdown();
       if (currentMarkdown !== notes) {
-        (editor as any).commands.setContent(notes, false);
+        // v3 setContent takes an options object; parse the incoming notes as
+        // markdown and don't echo the change back through onUpdate.
+        (editor as any).commands.setContent(notes, { emitUpdate: false, contentType: 'markdown' });
       }
     }
   }, [notes, editor, isLoading]);
@@ -87,112 +93,112 @@ export const Editor: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-zinc-900 border-l border-zinc-800 text-zinc-300 select-text relative">
+    <div className="flex flex-col h-full w-full bg-canvas border-l border-hairline text-ink select-text relative">
       {/* Editor Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-950/80 border-b border-zinc-800 backdrop-blur-sm sticky top-0 z-30 select-none">
-        <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-canvas/70 border-b border-hairline backdrop-blur-md sticky top-0 z-30 select-none">
+        <div className="flex items-center gap-1 flex-nowrap overflow-x-auto min-w-0 [&>*]:shrink-0">
           {/* Format actions */}
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('bold') ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('bold') ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Bold"
           >
             <BoldIcon size={14} />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('italic') ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('italic') ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Italic"
           >
             <ItalicIcon size={14} />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleCode().run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('code') ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('code') ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Inline Code"
           >
             <CodeIcon size={14} />
           </button>
 
-          <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+          <div className="h-4 w-[1px] bg-hairline mx-1" />
 
           {/* Heading actions */}
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('heading', { level: 1 }) ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('heading', { level: 1 }) ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Heading 1"
           >
             <H1Icon size={14} />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('heading', { level: 2 }) ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('heading', { level: 2 }) ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Heading 2"
           >
             <H2Icon size={14} />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('heading', { level: 3 }) ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('heading', { level: 3 }) ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Heading 3"
           >
             <H3Icon size={14} />
           </button>
 
-          <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+          <div className="h-4 w-[1px] bg-hairline mx-1" />
 
           {/* List actions */}
           <button
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('bulletList') ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('bulletList') ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Bullet List"
           >
             <ListIcon size={14} />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('orderedList') ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('orderedList') ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Ordered List"
           >
             <ListOrderedIcon size={14} />
           </button>
           <button
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${editor.isActive('codeBlock') ? 'text-purple-400 bg-zinc-800' : 'text-zinc-400'}`}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('codeBlock') ? 'text-link bg-canvas-soft' : 'text-body'}`}
             title="Code Block"
           >
             <TerminalIcon size={14} />
           </button>
 
-          <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+          <div className="h-4 w-[1px] bg-hairline mx-1" />
 
           {/* Table Actions */}
           <button
             onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-            className="p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-400 hover:text-zinc-300"
+            className="p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer text-body hover:text-ink"
             title="Insert Table (3x3)"
           >
             <TableIcon size={14} />
           </button>
           {editor.isActive('table') && (
-            <div className="flex items-center gap-0.5 border border-zinc-800 bg-zinc-900 rounded p-0.5 ml-1">
+            <div className="flex items-center gap-0.5 border border-hairline bg-canvas rounded p-0.5 ml-1">
               <button
                 onClick={() => editor.chain().focus().addColumnAfter().run()}
-                className="px-1 text-[10px] rounded hover:bg-zinc-800 text-zinc-300 cursor-pointer"
+                className="px-1 text-[10px] rounded hover:bg-canvas-soft text-ink cursor-pointer"
                 title="Add Column"
               >
                 +Col
               </button>
               <button
                 onClick={() => editor.chain().focus().addRowAfter().run()}
-                className="px-1 text-[10px] rounded hover:bg-zinc-800 text-zinc-300 cursor-pointer"
+                className="px-1 text-[10px] rounded hover:bg-canvas-soft text-ink cursor-pointer"
                 title="Add Row"
               >
                 +Row
               </button>
               <button
                 onClick={() => editor.chain().focus().deleteTable().run()}
-                className="px-1 text-[10px] rounded hover:bg-zinc-800 text-red-400 hover:text-red-300 cursor-pointer"
+                className="px-1 text-[10px] rounded hover:bg-canvas-soft text-rose-400 hover:text-rose-300 cursor-pointer"
                 title="Delete Table"
               >
                 Del
@@ -204,7 +210,7 @@ export const Editor: React.FC = () => {
         {/* Search icon opens the search palette scoped to this tab */}
         <button
           onClick={() => openSearchPalette('current')}
-          className="p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-400"
+          className="p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer text-body"
           title="Search (Ctrl+F)"
         >
           <SearchIcon size={14} />

@@ -12,9 +12,11 @@ export const Canvas: React.FC = () => {
   const lastImportTime = useWorkspaceStore((state) => state.lastImportTime);
   const updateCanvas = useWorkspaceStore((state) => state.updateCanvas);
   const setActiveCanvasTool = useWorkspaceStore((state) => state.setActiveCanvasTool);
+  const theme = useWorkspaceStore((state) => state.theme);
 
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [localLastImportTime, setLocalLastImportTime] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Capture the initial data only once when the canvas mount occurs (after loading completes)
   const initialElements = useRef<any[]>([]);
@@ -36,16 +38,25 @@ export const Canvas: React.FC = () => {
       elements: initialElements.current,
       appState: {
         ...initialAppState.current,
-        theme: 'dark',
+        theme,
       },
       files: initialFiles.current,
     };
+    // Capture the theme present at mount; live changes are handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep Excalidraw's theme in sync with the app theme toggle.
+  useEffect(() => {
+    if (excalidrawAPI) {
+      excalidrawAPI.updateScene({ appState: { theme } });
+    }
+  }, [excalidrawAPI, theme]);
 
   const UIOptions = useMemo(() => {
     return {
       canvasActions: {
-        changeViewBackgroundColor: true,
+        changeViewBackgroundColor: false,
         clearCanvas: true,
         export: false,
         loadScene: false,
@@ -64,13 +75,13 @@ export const Canvas: React.FC = () => {
         elements: state.canvasElements,
         appState: {
           ...state.canvasAppState,
-          theme: 'dark', // Force dark theme
+          theme, // follow the app theme
         },
         files: state.canvasFiles,
       });
       setLocalLastImportTime(lastImportTime);
     }
-  }, [excalidrawAPI, isLoading, lastImportTime, localLastImportTime]);
+  }, [excalidrawAPI, isLoading, lastImportTime, localLastImportTime, theme]);
 
   // Handle global keyboard shortcuts for tool switching
   useEffect(() => {
@@ -139,6 +150,17 @@ export const Canvas: React.FC = () => {
       }
     }
 
+    // Show Excalidraw's style ("color palette") panel only once elements are
+    // selected — but NOT mid-gesture while a marquee selection box is still being
+    // dragged (appState.selectionElement is set throughout that drag, and clears on
+    // release). Toggled imperatively to keep this component render-independent.
+    if (containerRef.current) {
+      const hasSelection = Object.values(appState.selectedElementIds || {}).some(Boolean);
+      const isMarqueeSelecting = !!appState.selectionElement;
+      const showPanel = hasSelection && !isMarqueeSelecting;
+      containerRef.current.classList.toggle('canvas-no-selection', !showPanel);
+    }
+
     updateCanvas([...elements], appState, files);
   };
 
@@ -178,29 +200,30 @@ export const Canvas: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-zinc-950 text-zinc-400">
-        <div className="text-sm font-mono animate-pulse">Loading canvas...</div>
+      <div className="flex h-full w-full items-center justify-center bg-canvas text-mute">
+        <div className="text-xs font-mono tracking-widest uppercase animate-pulse">Loading canvas</div>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full bg-zinc-950 flex relative">
-      {/* Custom DSA Structures sidebar panel */}
+    <div className="h-full w-full bg-canvas flex relative">
+      {/* Custom DSA Structures sidebar canvas-soft */}
       <StructuresPanel />
 
       {/* Excalidraw canvas container with drop handlers */}
       <div
+        ref={containerRef}
         onDragOver={(e) => e.preventDefault()}
         onDrop={handleDrop}
-        className="flex-1 h-full relative"
+        className="flex-1 h-full relative canvas-no-selection"
       >
         <Excalidraw
           excalidrawAPI={(api) => {
             setExcalidrawAPI(api);
             (window as any).excalidrawAPI = api;
           }}
-          theme="dark"
+          theme={theme}
           initialData={initialData}
           onChange={handleCanvasChange}
           UIOptions={UIOptions}
