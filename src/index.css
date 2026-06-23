@@ -341,49 +341,6 @@ body {
 .ProseMirror ul[data-type="taskList"] li > div { flex: 1 1 auto; }
 .ProseMirror ul[data-type="taskList"] input[type="checkbox"] { cursor: pointer; accent-color: var(--color-link); }
 
-/* ── LaTeX math (KaTeX) — inline $…$ and block $$…$$ ─────────── */
-.math-node { color: var(--color-ink); }
-.math-node.math-inline { display: inline-block; vertical-align: middle; }
-.math-node.math-block {
-  display: block;
-  margin: 1rem 0;
-  text-align: center;
-  overflow-x: auto;
-}
-.math-rendered { cursor: pointer; border-radius: 4px; }
-.math-node.math-inline .math-rendered { padding: 0 0.1rem; }
-.math-node.math-block .math-rendered { display: block; padding: 0.35rem 0.25rem; }
-.math-rendered:hover { background-color: var(--color-canvas-soft-2); }
-.math-empty {
-  color: var(--color-hairline-strong);
-  font-family: var(--font-mono);
-  font-size: 0.82em;
-  font-style: italic;
-}
-.math-selected .math-rendered { background-color: var(--color-link-soft); }
-.math-input {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  color: var(--color-ink);
-  background-color: var(--color-canvas-soft-2);
-  border: 1px solid var(--color-link);
-  border-radius: 5px;
-  padding: 0.15rem 0.4rem;
-  outline: none;
-}
-.math-node.math-inline .math-input { min-width: 6ch; }
-.math-node.math-block .math-input {
-  display: block;
-  width: 100%;
-  min-height: 3.5rem;
-  margin: 0 auto;
-  resize: vertical;
-  line-height: 1.5;
-  text-align: left;
-}
-/* KaTeX should follow the editor's text color in both themes. */
-.math-node .katex { color: var(--color-ink); }
-
 /* ── Syntax highlighting — tuned for the dark code block ─────── */
 .hljs-comment, .hljs-quote { color: #8b949e; font-style: italic; }
 .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #ff7b72; }
@@ -435,12 +392,11 @@ body {
 .canvas-no-selection .selected-shape-actions,
 .canvas-no-selection .App-menu__left { display: none !important; }
 
-/* When the canvas gets narrow (e.g. dragging the Notes pane wide) Excalidraw swaps
-   to its mobile layout. Keep the bottom action bar (undo / redo) visible — the
-   selected-shape style palette inside it is still gated by `.canvas-no-selection`
-   above — but hide the lock + hand tools that detach into a floating panel pinned
-   to the canvas edge, which otherwise drift next to the notes pane. */
-.excalidraw .mobile-misc-tools-container { display: none !important; }
+/* When the canvas gets narrow (e.g. dragging the Notes pane wide), Excalidraw swaps
+   to its mobile layout, which renders the style palette + an extra action toolbar
+   inside `.App-bottom-bar`. That container only exists in mobile mode, so hiding it
+   suppresses both without affecting the desktop panels. */
+.excalidraw .App-bottom-bar { display: none !important; }
 
 .resize-active::after {
   content: '';
