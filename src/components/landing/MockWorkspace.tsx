@@ -125,11 +125,9 @@ Process finished with exit code 0.`);
         {/* Wordmark & save status */}
         <div className="flex items-center gap-3 flex-1 basis-0 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="grid h-5 w-5 place-items-center rounded-[5px] bg-[#ffffff] text-black" aria-hidden>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="6,2 10.5,10 1.5,10" />
-              </svg>
-            </span>
+            <div className="w-5 h-5 shrink-0">
+              <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
+            </div>
             <span className="font-display text-sm font-semibold tracking-[-0.02em] text-white">DSADelta</span>
           </div>
 

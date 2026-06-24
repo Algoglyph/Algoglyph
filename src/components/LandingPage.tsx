@@ -161,11 +161,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
       {/* Premium Minimal Navigation */}
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center justify-between px-6 sm:px-12">
         <div className="flex items-center gap-3">
-          <span className="grid h-6 w-6 place-items-center rounded-[6px] bg-[#ffffff] text-[#000000]" aria-hidden>
-            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="6,2 10.5,10 1.5,10" />
-            </svg>
-          </span>
+          <div className="w-6 h-6 shrink-0">
+            <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
+          </div>
           <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">DSADelta</span>
         </div>
 

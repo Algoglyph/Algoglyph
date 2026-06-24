@@ -29,8 +29,11 @@ release/
 .env.*
 !.env.example
 
-
 #agents and CLI
 .agents/*
 !.agents/AGENTS.md
 .claude
+
+.debugs
+.output
+CLAUDE.md

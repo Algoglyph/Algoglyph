@@ -38,6 +38,13 @@ const App: React.FC = () => {
   useEffect(() => {
     initializeWorkspace();
     (window as any).useWorkspaceStore = useWorkspaceStore;
+    (window as any).goToLanding = () => {
+      if (document.startViewTransition) {
+        document.startViewTransition(() => setIsLandingActive(true));
+      } else {
+        setIsLandingActive(true);
+      }
+    };
   }, [initializeWorkspace]);
 
   // Reflect the active theme onto <html> so the .dark token overrides apply.

@@ -1,0 +1,26 @@
+{
+  "name": "dsadelta-launch",
+  "version": "1.0.0",
+  "description": "DSADelta product launch animation",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "npx remotion studio",
+    "build": "npx remotion bundle",
+    "render": "npx remotion render",
+    "upgrade": "npx remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.482",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.482"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "typescript": "5.9.3"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
+}
