@@ -25,7 +25,7 @@ export const AlgorithmSidebar: React.FC<Props> = ({ onAdd, onOpenDoc, isOpen, is
   // Desktop sidebar width is drag-resizable. The sidebar's left edge sits at
   // viewport x=0 (the Visualizer fills the width), so the pointer's clientX is
   // the new width.
-  const [width, setWidth] = useState(244);
+  const [width, setWidth] = useState(272);
   const [isResizing, setIsResizing] = useState(false);
   const [query, setQuery] = useState('');
 

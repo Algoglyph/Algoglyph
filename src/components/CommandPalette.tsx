@@ -88,7 +88,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="flex-1 bg-transparent text-sm text-ink focus:outline-none placeholder-mute"
+            className="flex-1 bg-transparent text-sm text-ink !outline-none focus-visible:!outline-none placeholder-mute"
           />
         </div>
 
