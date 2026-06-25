@@ -392,6 +392,15 @@ body {
 .canvas-no-selection .selected-shape-actions,
 .canvas-no-selection .App-menu__left { display: none !important; }
 
+/* Dock the style ("color palette") panel on the side opposite the current
+   selection so it never sits on top of the selected object. `panel-dock-right`
+   is toggled on the canvas container from Canvas.tsx based on where the
+   selection sits; with no class the panel keeps Excalidraw's native left dock. */
+.panel-dock-right .App-menu__left {
+  left: auto !important;
+  right: 0 !important;
+}
+
 /* When the canvas gets narrow (e.g. dragging the Notes pane wide), Excalidraw swaps
    to its mobile layout, which renders the style palette + an extra action toolbar
    inside `.App-bottom-bar`. That container only exists in mobile mode, so hiding it
