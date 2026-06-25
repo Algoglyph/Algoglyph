@@ -112,6 +112,25 @@ function arrFrame(
   return { type: 'array', cells: cloneCells(cells), states, caption };
 }
 
+// Binary/ternary/bound searches are only correct on sorted input. The graph now
+// starts in random order (see the searching generators), so we first animate a
+// selection sort: each placement reorders `cells` in place and pushes a frame, and
+// because ArrayCell ids are stable framer-motion slides the bars into their sorted
+// positions before the search begins. Mutates `cells` so it ends fully sorted.
+function sortForSearch(cells: ArrayCell[], frames: Frame[]): void {
+  const n = cells.length;
+  frames.push(arrFrame(cells, 'Unsorted — sort first (search needs sorted data)'));
+  for (let i = 0; i < n - 1; i++) {
+    let min = i;
+    for (let j = i + 1; j < n; j++) if (cells[j].v < cells[min].v) min = j;
+    if (min !== i) [cells[i], cells[min]] = [cells[min], cells[i]];
+    const marks: Partial<Record<number, ArrayCellState>> = {};
+    for (let k = 0; k <= i; k++) marks[k] = 'sorted'; // locked prefix
+    frames.push(arrFrame(cells, `Sorting… placed ${cells[i].v}`, marks));
+  }
+  frames.push(arrFrame(cells, 'Sorted ✓ — now searching', {}, 0));
+}
+
 // ── Bubble Sort ─────────────────────────────────────────────
 function bubbleSort(custom?: number[]): ArrayFrame[] {
   const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
@@ -227,10 +246,12 @@ function mergeSort(custom?: number[]): ArrayFrame[] {
 
 // ── Binary Search ───────────────────────────────────────────
 function binarySearch(custom?: number[]): ArrayFrame[] {
-  const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : randomArray(9, 5, 50).sort((a, b) => a - b);
+  // Start in random/given order; sortForSearch animates the sort before searching.
+  const vals = custom && custom.length > 0 ? [...custom] : randomArray(9, 5, 50);
   const cells = toCells(vals);
   const target = cells[randInt(0, cells.length - 1)].v;
-  const frames: ArrayFrame[] = [arrFrame(cells, `Search for ${target} (sorted)`)];
+  const frames: ArrayFrame[] = [arrFrame(cells, `Search for ${target}`)];
+  sortForSearch(cells, frames);
   let lo = 0,
     hi = cells.length - 1;
   while (lo <= hi) {
@@ -735,10 +756,13 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
 
   // ── 1. Searching ──
   if (category === 'Searching') {
-    const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : [10, 20, 30, 40, 50, 60, 70, 80];
+    // Start in random/given order. Linear search scans any order, so it stays
+    // unsorted; the others need sorted input, so animate the sort first.
+    const vals = custom && custom.length > 0 ? [...custom] : randomArray(9, 5, 50);
     const cells = toCells(vals);
-    const target = custom && custom.length > 0 ? vals[Math.floor(vals.length / 2)] : 50;
+    const target = cells[randInt(0, cells.length - 1)].v;
     frames.push(arrFrame(cells, `Search for target = ${target} using ${id}`));
+    if (id !== 'linear-search') sortForSearch(cells, frames);
 
     if (id === 'linear-search') {
       for (let i = 0; i < cells.length; i++) {
@@ -794,7 +818,7 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
 
   // ── 2. Sorting ──
   else if (category === 'Sorting') {
-    const cells = toCells(custom && custom.length > 0 ? custom : [24, 9, 35, 12, 5, 18]);
+    const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
     frames.push(arrFrame(cells, `Start ${id} on unsorted array`));
 
     if (id === 'selection-sort') {
@@ -815,17 +839,24 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
       frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
     } else if (id === 'insertion-sort') {
       const n = cells.length;
+      // Mark the already-sorted prefix [0..upTo) on every frame, plus any extras.
+      const prefix = (upTo: number, extra: Partial<Record<number, ArrayCellState>> = {}) => {
+        const m: Partial<Record<number, ArrayCellState>> = {};
+        for (let k = 0; k < upTo; k++) m[k] = 'sorted';
+        return { ...m, ...extra };
+      };
       for (let i = 1; i < n; i++) {
-        const key = cells[i];
-        let j = i - 1;
-        frames.push(arrFrame(cells, `Insert key = ${key.v} into sorted prefix`, { [i]: 'pivot', [j]: 'compare' }));
-        while (j >= 0 && cells[j].v > key.v) {
-          cells[j + 1] = cells[j];
-          frames.push(arrFrame(cells, `Shift ${cells[j].v} right`, { [j]: 'swap', [j + 1]: 'swap' }));
+        const keyVal = cells[i].v;
+        frames.push(arrFrame(cells, `Insert ${keyVal} into the sorted prefix`, prefix(i, { [i]: 'pivot' })));
+        // Walk the key left via adjacent swaps so every cell id stays unique
+        // (a copy-shift duplicated ids, which made bars ghost out of the card).
+        let j = i;
+        while (j > 0 && cells[j - 1].v > cells[j].v) {
+          frames.push(arrFrame(cells, `${cells[j].v} < ${cells[j - 1].v} → shift left`, prefix(i + 1, { [j - 1]: 'swap', [j]: 'swap' })));
+          [cells[j - 1], cells[j]] = [cells[j], cells[j - 1]];
           j--;
         }
-        cells[j + 1] = key;
-        frames.push(arrFrame(cells, `Placed key = ${key.v} at index ${j + 1}`, { [j + 1]: 'found' }));
+        frames.push(arrFrame(cells, `Placed ${keyVal} at index ${j}`, prefix(i + 1, { [j]: 'found' })));
       }
       frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
     } else if (id === 'heap-sort') {
@@ -853,29 +884,50 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
       }
       frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
     } else if (id === 'counting-sort') {
-      const counts = [0, 0, 0, 0, 0, 0];
+      // Count by the actual value (offset by min so any range works) — the old
+      // code bucketed by `value % 6`, which sorted by remainder, not by value.
+      const minV = Math.min(...cells.map((c) => c.v));
+      const maxV = Math.max(...cells.map((c) => c.v));
+      const counts = new Array(maxV - minV + 1).fill(0);
       for (let i = 0; i < cells.length; i++) {
-        const v = cells[i].v % 6; // range 0-5
-        counts[v]++;
-        frames.push(arrFrame(cells, `Frequency count: increment bucket ${v} to ${counts[v]}`, { [i]: 'compare' }));
+        counts[cells[i].v - minV]++;
+        frames.push(arrFrame(cells, `Count ${cells[i].v} (bucket ${cells[i].v - minV})`, { [i]: 'compare' }));
       }
       for (let i = 1; i < counts.length; i++) {
         counts[i] += counts[i - 1];
       }
-      const output = [0, 0, 0, 0, 0, 0];
+      const output = new Array(cells.length).fill(0);
       const outCells = toCells(output);
       for (let i = cells.length - 1; i >= 0; i--) {
-        const v = cells[i].v % 6;
-        counts[v]--;
-        outCells[counts[v]].v = cells[i].v;
-        frames.push(arrFrame(outCells, `Place ${cells[i].v} at sorted index ${counts[v]}`, { [counts[v]]: 'found' }));
+        const v = cells[i].v;
+        counts[v - minV]--;
+        outCells[counts[v - minV]].v = v;
+        frames.push(arrFrame(outCells, `Place ${v} at sorted index ${counts[v - minV]}`, { [counts[v - minV]]: 'found' }));
       }
       frames.push(arrFrame(outCells, `Sorted ✓`, {}, 0));
     } else { // radix-sort
-      cells.sort((a, b) => (a.v % 10) - (b.v % 10));
-      frames.push(arrFrame(cells, `Pass 1: sort by ones place digits`, { 0: 'compare', 1: 'compare' }));
-      cells.sort((a, b) => a.v - b.v);
-      frames.push(arrFrame(cells, `Pass 2: sort by tens place digits -> sorted ✓`, {}, 0));
+      // Real LSD radix sort: a stable bucket pass per digit. Reorders the cell
+      // objects (ids stay unique) so bars slide, and emits enough genuine frames
+      // that no synthetic padding/caption is ever needed.
+      const maxV = Math.max(...cells.map((c) => c.v));
+      let exp = 1;
+      let pass = 1;
+      while (Math.floor(maxV / exp) > 0) {
+        const place = exp === 1 ? 'ones' : exp === 10 ? 'tens' : exp === 100 ? 'hundreds' : `10^${Math.round(Math.log10(exp))}`;
+        frames.push(arrFrame(cells, `Pass ${pass}: bucket by ${place} digit`));
+        const buckets: ArrayCell[][] = Array.from({ length: 10 }, () => []);
+        for (let i = 0; i < cells.length; i++) {
+          const d = Math.floor(cells[i].v / exp) % 10;
+          buckets[d].push(cells[i]);
+          frames.push(arrFrame(cells, `${cells[i].v}: ${place} digit is ${d}`, { [i]: 'compare' }));
+        }
+        let k = 0;
+        for (let d = 0; d < 10; d++) for (const c of buckets[d]) cells[k++] = c;
+        frames.push(arrFrame(cells, `Collected in ${place}-digit order (stable)`));
+        exp *= 10;
+        pass++;
+      }
+      frames.push(arrFrame(cells, `Sorted ✓`, {}, 0));
     }
   }
 
@@ -1283,35 +1335,23 @@ function expandFrames(frames: Frame[]): Frame[] {
   const minTarget = 20;
   const factor = Math.ceil(minTarget / frames.length);
 
+  // Hold each step for a few extra ticks so short sequences play smoothly.
+  // Duplicates keep the original caption (no decoration), so the displayed text
+  // always matches the real step — the old code appended "(hold Ns)" onto an
+  // already-appended caption, which piled up endlessly (e.g. on radix sort).
   for (let i = 0; i < frames.length; i++) {
-    const current = frames[i];
-    
+    expanded.push(frames[i]);
     if (i < frames.length - 1) {
-      for (let f = 1; f < factor; f++) {
-        const transition = JSON.parse(JSON.stringify(current)) as Frame;
-        if (f === 1 && factor > 2) {
-          transition.caption = `[Analyzing] Preparing next step... ${current.caption}`;
-          if (transition.type === 'array') {
-            transition.states = transition.states.map(s => s === 'compare' || s === 'swap' ? 'active' : s);
-          }
-        } else {
-          transition.caption = `[Processing] Transition state: ${current.caption}`;
-        }
-        expanded.push(transition);
+      for (let f = 1; f < factor && expanded.length < minTarget; f++) {
+        expanded.push(JSON.parse(JSON.stringify(frames[i])) as Frame);
       }
     }
-    
-    expanded.push(current);
   }
 
-  let padCount = 1;
-  while (expanded.length < minTarget) {
-    const lastFrame = expanded[expanded.length - 1];
-    if (!lastFrame) break;
-    const finalFrame = JSON.parse(JSON.stringify(lastFrame)) as Frame;
-    finalFrame.caption = `${lastFrame.caption} (Final state displayed - hold ${padCount}s)`;
-    expanded.push(finalFrame);
-    padCount++;
+  // If still short, hold the final frame unchanged until we reach the target.
+  const last = frames[frames.length - 1];
+  while (expanded.length < minTarget && last) {
+    expanded.push(JSON.parse(JSON.stringify(last)) as Frame);
   }
 
   return expanded;

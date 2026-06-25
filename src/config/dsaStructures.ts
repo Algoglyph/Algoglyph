@@ -11,21 +11,19 @@ export interface DSAStructure {
 
 const makeId = () => Math.random().toString(36).substring(2, 9);
 
-const autoFontSize = (text: string, maxW: number, maxH: number, baseFontSize = 14): number => {
+// Only shrinks vertically to fit the container height. Horizontal fitting is
+// Excalidraw's job now: bound `label` text wraps/centers to the box width.
+// `_text`/`_maxW` are kept so callers can pass (text, width, height) positionally.
+const autoFontSize = (_text: string, _maxW: number, maxH: number, baseFontSize = 14): number => {
   const padding = 6;
-  const availW = maxW - padding;
   const availH = maxH - padding;
   let fs = baseFontSize;
-  // Shrink until text fits: approximate width = text.length * fontSize * 0.6
-  while (fs > 8 && text.length * fs * 0.6 > availW) fs--;
-  // Also ensure line height fits the container
-  while (fs > 8 && fs * 1.3 > availH) fs--;
+  while (fs > 10 && fs * 1.3 > availH) fs--;
   return fs;
 };
 
 const createRect = (id: string, x: number, y: number, width: number, height: number, textVal?: string, bg = '#ffffff', stroke = '#171717', borderStyle = 'solid' as any) => {
-  const els: any[] = [];
-  els.push({
+  const rect: any = {
     type: 'rectangle',
     id,
     x,
@@ -38,31 +36,56 @@ const createRect = (id: string, x: number, y: number, width: number, height: num
     strokeWidth: 1.5,
     roughness: 1,
     strokeStyle: borderStyle,
-  });
+  };
   if (textVal) {
-    const fs = autoFontSize(textVal, width, height);
-    els.push({
-      type: 'text',
+    // Use Excalidraw's native container `label` so it measures the text with the
+    // real font and centers it inside the box itself. Hand-computing the text
+    // geometry (length × fontSize estimates) never matches the real font width,
+    // which is what caused the off-centre / overflowing labels.
+    rect.label = {
       text: textVal,
-      containerId: id,
+      fontSize: autoFontSize(textVal, width, height),
+      strokeColor: stroke,
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    };
+  }
+  return [rect];
+};
+
+// Fraction of an ellipse's diameter that bound text can actually occupy.
+// Excalidraw confines a container `label` to the ellipse's inscribed box
+// (~1/√2 of the diameter) and then wraps anything wider one glyph per line.
+const ELLIPSE_TEXT_FRACTION = 0.707;
+const BOUND_TEXT_PADDING = 10; // Excalidraw's per-container text padding (both sides)
+
+const createCircle = (id: string, x: number, y: number, r: number, textVal?: string, bg = '#ffffff', stroke = '#171717') => {
+  // (x, y) is the node centre; the diameter may grow below to fit the label, but
+  // the centre stays put so the layout coordinates and bound arrows still line up.
+  let diameter = r * 2;
+  let label: any;
+  if (textVal) {
+    // Pick the font from the requested size first so node sizing keeps the look.
+    const fs = autoFontSize(textVal, diameter * ELLIPSE_TEXT_FRACTION, diameter * ELLIPSE_TEXT_FRACTION);
+    // Grow the circle until the whole label fits on one line inside the inscribed
+    // box, otherwise Excalidraw wraps "Root" → R/o/o/t and "20" → 2/0. The width
+    // estimate only needs to be generous; Excalidraw still does the exact centering.
+    const estTextW = textVal.length * fs * 0.65;
+    const neededDiameter = (estTextW + BOUND_TEXT_PADDING) / ELLIPSE_TEXT_FRACTION + 8;
+    diameter = Math.max(diameter, Math.ceil(neededDiameter));
+    label = {
+      text: textVal,
       fontSize: fs,
       strokeColor: stroke,
       textAlign: 'center',
       verticalAlign: 'middle',
-    });
+    };
   }
-  return els;
-};
-
-const createCircle = (id: string, x: number, y: number, r: number, textVal?: string, bg = '#ffffff', stroke = '#171717') => {
-  const els: any[] = [];
-  // For circles the usable width is roughly 70% of the diameter (inscribed rectangle)
-  const diameter = r * 2;
-  els.push({
+  const ellipse: any = {
     type: 'ellipse',
     id,
-    x: x - r,
-    y: y - r,
+    x: x - diameter / 2,
+    y: y - diameter / 2,
     width: diameter,
     height: diameter,
     strokeColor: stroke,
@@ -70,22 +93,41 @@ const createCircle = (id: string, x: number, y: number, r: number, textVal?: str
     fillStyle: 'solid',
     strokeWidth: 1.5,
     roughness: 1,
-  });
-  if (textVal) {
-    const usableW = diameter * 0.7;
-    const usableH = diameter * 0.7;
-    const fs = autoFontSize(textVal, usableW, usableH);
-    els.push({
-      type: 'text',
-      text: textVal,
-      containerId: id,
-      fontSize: fs,
-      strokeColor: stroke,
-      textAlign: 'center',
-      verticalAlign: 'middle',
-    });
+  };
+  if (label) ellipse.label = label;
+  return [ellipse];
+};
+
+// Smallest circle diameter that fits the widest of `labels` on one line, using
+// the same fit math as createCircle. Pass the result (as a radius) to every node
+// in a tree so they all come out the same size. Iterated to a fixpoint because a
+// bigger circle lets autoFontSize pick a bigger font, which needs more width.
+const uniformNodeDiameter = (labels: string[], baseDiameter: number): number => {
+  const maxLen = Math.max(1, ...labels.map((l) => l.length));
+  let diameter = baseDiameter;
+  for (let i = 0; i < 6; i++) {
+    const fs = autoFontSize('', diameter * ELLIPSE_TEXT_FRACTION, diameter * ELLIPSE_TEXT_FRACTION);
+    const estTextW = maxLen * fs * 0.65;
+    const needed = Math.ceil((estTextW + BOUND_TEXT_PADDING) / ELLIPSE_TEXT_FRACTION + 8);
+    if (needed <= diameter) break;
+    diameter = needed;
   }
-  return els;
+  return diameter;
+};
+
+// Arrow between two circular nodes, trimmed to each node's edge so the head
+// rests on the boundary instead of the centre (where it would cover the label).
+const nodeArrow = (
+  from: { x: number; y: number; r: number; id: string },
+  to: { x: number; y: number; r: number; id: string },
+  color?: string,
+) => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  return createArrow(from.x + ux * from.r, from.y + uy * from.r, to.x - ux * to.r, to.y - uy * to.r, color, from.id, to.id);
 };
 
 const createArrow = (x1: number, y1: number, x2: number, y2: number, color = '#0070f3', startEl?: string, endEl?: string) => {
@@ -305,14 +347,22 @@ const renderCanvasLayout = (id: string, name: string, category: string, x: numbe
       const rootId = `rec-root-${makeId()}`;
       const child1 = `rec-c1-${makeId()}`;
       const child2 = `rec-c2-${makeId()}`;
-      elements.push(createLabel(`${name} Recursion Tree:`, x - 30, y - 30, '#b45309', 13));
-      elements.push(...createCircle(rootId, x, y, 18, 'solve(N)', '#fef3c7', '#b45309'));
-      elements.push(...createCircle(child1, x - 55, y + 55, 18, 'N-1', '#fef3c7', '#b45309'));
-      elements.push(...createCircle(child2, x + 55, y + 55, 18, 'N-2', '#fef3c7', '#b45309'));
-      elements.push(
-        createArrow(x - 5, y + 16, x - 45, y + 45, '#b45309', rootId, child1),
-        createArrow(x + 5, y + 16, x + 45, y + 45, '#b45309', rootId, child2)
-      );
+      // "solve(N)" grows the root circle a lot, so derive the real radii and lay
+      // the heading + children out around them. Fixed offsets would otherwise be
+      // swallowed by the enlarged root (heading hidden, children overlapping).
+      const rootR = uniformNodeDiameter(['solve(N)'], 36) / 2;
+      const childR = uniformNodeDiameter(['N-1', 'N-2'], 36) / 2;
+      const dx = Math.round(rootR * 1.1);
+      const dy = Math.round(rootR + childR + 24);
+      const root = { x, y, r: rootR, id: rootId };
+      const c1 = { x: x - dx, y: y + dy, r: childR, id: child1 };
+      const c2 = { x: x + dx, y: y + dy, r: childR, id: child2 };
+      // Heading sits a clear gap above the (enlarged) root circle.
+      elements.push(createLabel(`${name} Recursion Tree:`, x - rootR, y - rootR - 24, '#b45309', 13));
+      elements.push(...createCircle(rootId, root.x, root.y, rootR, 'solve(N)', '#fef3c7', '#b45309'));
+      elements.push(...createCircle(child1, c1.x, c1.y, childR, 'N-1', '#fef3c7', '#b45309'));
+      elements.push(...createCircle(child2, c2.x, c2.y, childR, 'N-2', '#fef3c7', '#b45309'));
+      elements.push(nodeArrow(root, c1, '#b45309'), nodeArrow(root, c2, '#b45309'));
     }
   }
 
@@ -798,11 +848,15 @@ export const dsaStructures: DSAStructure[] = [
       const rootId = `tree-root-${makeId()}`;
       const leftId = `tree-left-${makeId()}`;
       const rightId = `tree-right-${makeId()}`;
-      elements.push(...createCircle(rootId, x, y, 20, 'Root'));
-      elements.push(...createCircle(leftId, x - 80, y + 80, 20, 'L'));
-      elements.push(...createCircle(rightId, x + 80, y + 80, 20, 'R'));
-      elements.push(createArrow(x - 5, y + 20, x - 65, y + 65, '#0070f3', rootId, leftId));
-      elements.push(createArrow(x + 5, y + 20, x + 65, y + 65, '#0070f3', rootId, rightId));
+      // One radius for every node, sized to the widest label ("Root").
+      const r = uniformNodeDiameter(['Root', 'L', 'R'], 40) / 2;
+      const root = { x, y, r, id: rootId };
+      const left = { x: x - 95, y: y + 90, r, id: leftId };
+      const right = { x: x + 95, y: y + 90, r, id: rightId };
+      elements.push(...createCircle(rootId, root.x, root.y, r, 'Root'));
+      elements.push(...createCircle(leftId, left.x, left.y, r, 'L'));
+      elements.push(...createCircle(rightId, right.x, right.y, r, 'R'));
+      elements.push(nodeArrow(root, left, '#0070f3'), nodeArrow(root, right, '#0070f3'));
       return elements;
     },
   },
@@ -822,11 +876,12 @@ export const dsaStructures: DSAStructure[] = [
         { id: '12', val: 12, x: -40, y: 140, left: null, right: null },
         { id: '25', val: 25, x: 120, y: 140, left: null, right: null },
       ];
+      const r = uniformNodeDiameter(nodeData.map((n) => `${n.val}`), 38) / 2;
       const instanceMap: Record<string, string> = {};
       nodeData.forEach((item) => {
         const uId = `bst-${item.id}-${makeId()}`;
         instanceMap[item.id] = uId;
-        elements.push(...createCircle(uId, x + item.x, y + item.y, 19, `${item.val}`));
+        elements.push(...createCircle(uId, x + item.x, y + item.y, r, `${item.val}`));
       });
       nodeData.forEach((item) => {
         const currentUId = instanceMap[item.id];
@@ -857,12 +912,14 @@ export const dsaStructures: DSAStructure[] = [
         { id: '20', val: '20', bal: '0', x: -70, y: 70, left: null, right: null },
         { id: '40', val: '40', bal: '0', x: 70, y: 70, left: null, right: null },
       ];
+      const r = uniformNodeDiameter(nodeData.map((n) => n.val), 36) / 2;
       const instanceMap: Record<string, string> = {};
       nodeData.forEach((item) => {
         const uId = `avl-${item.id}-${makeId()}`;
         instanceMap[item.id] = uId;
-        elements.push(...createCircle(uId, x + item.x, y + item.y, 18, item.val, '#eff6ff', '#1e40af'));
-        elements.push(createLabel(`bal:${item.bal}`, x + item.x - 15, y + item.y - 30, '#1e40af', 10));
+        elements.push(...createCircle(uId, x + item.x, y + item.y, r, item.val, '#eff6ff', '#1e40af'));
+        // Keep the balance factor a clear gap above the node, never touching it.
+        elements.push(createLabel(`bal:${item.bal}`, x + item.x - 15, y + item.y - r - 18, '#1e40af', 10));
       });
       elements.push(
         createArrow(x - 10, y + 15, x - 55, y + 55, '#0070f3', instanceMap['30'], instanceMap['20']),
@@ -884,11 +941,12 @@ export const dsaStructures: DSAStructure[] = [
         { id: '2', val: '5', color: '#fee2e2', stroke: '#ef4444', x: -60, y: 60 },
         { id: '3', val: '15', color: '#fee2e2', stroke: '#ef4444', x: 60, y: 60 },
       ];
+      const r = uniformNodeDiameter(nodes.map((n) => n.val), 36) / 2;
       const instanceMap: Record<string, string> = {};
       nodes.forEach((n) => {
         const uId = `rbt-${n.id}-${makeId()}`;
         instanceMap[n.id] = uId;
-        elements.push(...createCircle(uId, x + n.x, y + n.y, 18, n.val, n.color, n.stroke));
+        elements.push(...createCircle(uId, x + n.x, y + n.y, r, n.val, n.color, n.stroke));
       });
       elements.push(
         createArrow(x - 10, y + 15, x - 50, y + 50, '#ef4444', instanceMap['1'], instanceMap['2']),
@@ -905,24 +963,28 @@ export const dsaStructures: DSAStructure[] = [
     commands: ['trie', 'prefix-tree'],
     generate: (x, y) => {
       const elements: any[] = [];
+      // "root" forces large uniform nodes, so space the levels out to match.
       const nodeData = [
         { id: 'root', label: 'root', x: 0, y: 0 },
-        { id: 'c', label: 'c', x: -40, y: 60 },
-        { id: 'a', label: 'a', x: -40, y: 120 },
-        { id: 't', label: 't', x: -40, y: 180 },
-        { id: 'o', label: 'o', x: 40, y: 60 },
+        { id: 'c', label: 'c', x: -55, y: 100 },
+        { id: 'a', label: 'a', x: -55, y: 200 },
+        { id: 't', label: 't', x: -55, y: 300 },
+        { id: 'o', label: 'o', x: 55, y: 100 },
       ];
+      const r = uniformNodeDiameter(nodeData.map((n) => n.label), 32) / 2;
       const instanceMap: Record<string, string> = {};
+      const node: Record<string, { x: number; y: number; r: number; id: string }> = {};
       nodeData.forEach((item) => {
         const uId = `trie-${item.id}-${makeId()}`;
         instanceMap[item.id] = uId;
-        elements.push(...createCircle(uId, x + item.x, y + item.y, 16, item.label, '#faf5ff', '#6b21a8'));
+        node[item.id] = { x: x + item.x, y: y + item.y, r, id: uId };
+        elements.push(...createCircle(uId, x + item.x, y + item.y, r, item.label, '#faf5ff', '#6b21a8'));
       });
       elements.push(
-        createArrow(x - 10, y + 15, x - 30, y + 45, '#6b21a8', instanceMap['root'], instanceMap['c']),
-        createArrow(x - 40, y + 76, x - 40, y + 104, '#6b21a8', instanceMap['c'], instanceMap['a']),
-        createArrow(x - 40, y + 136, x - 40, y + 164, '#6b21a8', instanceMap['a'], instanceMap['t']),
-        createArrow(x + 10, y + 15, x + 30, y + 45, '#6b21a8', instanceMap['root'], instanceMap['o'])
+        nodeArrow(node['root'], node['c'], '#6b21a8'),
+        nodeArrow(node['c'], node['a'], '#6b21a8'),
+        nodeArrow(node['a'], node['t'], '#6b21a8'),
+        nodeArrow(node['root'], node['o'], '#6b21a8'),
       );
       return elements;
     },
@@ -1438,40 +1500,11 @@ missingGenerators.forEach(([id, name]) => {
   }
 });
 
-export const bindTextContainers = (skeletons: any[]) => {
-  const containerMap = new Map<string, any>();
-  skeletons.forEach((s) => {
-    if (s.id) {
-      containerMap.set(s.id, s);
-    }
-  });
-
-  skeletons.forEach((s) => {
-    if (s.type === 'text' && s.containerId) {
-      const container = containerMap.get(s.containerId);
-      if (container) {
-        s.id = s.id || `${s.containerId}-text-${Math.random().toString(36).substring(2, 6)}`;
-        container.boundElements = container.boundElements || [];
-        if (!container.boundElements.some((be: any) => be.id === s.id)) {
-          container.boundElements.push({ type: 'text', id: s.id });
-        }
-        const textStr = String(s.text || '');
-        const fontSize = s.fontSize || 14;
-        const textWidth = textStr.length * fontSize * 0.6;
-        const textHeight = fontSize * 1.25;
-
-        // Clamp text dimensions to never exceed container bounds (with 4px padding)
-        const maxTextW = Math.max(8, container.width - 4);
-        const maxTextH = Math.max(8, container.height - 4);
-        const clampedW = Math.min(textWidth, maxTextW);
-        const clampedH = Math.min(textHeight, maxTextH);
-
-        s.x = container.x + (container.width - clampedW) / 2;
-        s.y = container.y + (container.height - clampedH) / 2;
-        s.width = clampedW;
-        s.height = clampedH;
-      }
-    }
-  });
-  return skeletons;
-};
+/**
+ * Container text is now bound declaratively via each shape's `label` property
+ * (see `createRect` / `createCircle`), which lets `convertToExcalidrawElements`
+ * measure the real font and center the text itself. No skeleton ships a raw
+ * `{ type: 'text', containerId }` element anymore, so this is a pass-through —
+ * kept as the canonical hook for any future post-generation skeleton fixups.
+ */
+export const bindTextContainers = (skeletons: any[]) => skeletons;

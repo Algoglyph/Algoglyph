@@ -4,6 +4,8 @@ import type { DSAStructure } from '../config/dsaStructures';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { SearchField } from './SearchField';
+import { matchesQuery } from '../lib/search';
 
 export const StructuresPanel: React.FC = () => {
   const isOpen = useWorkspaceStore((state) => state.structuresPanelOpen);
@@ -14,6 +16,7 @@ export const StructuresPanel: React.FC = () => {
   const isMobile = useIsMobile();
 
   const [isDragging, setIsDragging] = useState(false);
+  const [query, setQuery] = useState('');
 
   // The panel defaults open for the desktop sidebar. On mobile it's a modal
   // drawer, so close it when entering mobile so it doesn't cover the screen on
@@ -44,8 +47,11 @@ export const StructuresPanel: React.FC = () => {
     if (isMobile) setStructuresPanelOpen(false);
   };
 
-  const structures = dsaStructures.filter((s) => s.category === 'structures');
-  const algorithms = dsaStructures.filter((s) => s.category === 'algorithms');
+  const visible = (s: DSAStructure) =>
+    matchesQuery(`${s.name} ${s.description} ${s.commands.join(' ')} ${s.id}`, query);
+    
+  const structures = dsaStructures.filter((s) => s.category === 'structures' && visible(s));
+  const algorithms = dsaStructures.filter((s) => s.category === 'algorithms' && visible(s));
 
   // One index row. A left-edge indicator bar marks hover/active (ex-app-shell-row);
   // the name reads in Geist, the insert command sits in a mono tag.
@@ -82,19 +88,29 @@ export const StructuresPanel: React.FC = () => {
           Structures
         </span>
         <span className="font-mono text-[11px] text-mute">
-          {structures.length + algorithms.length}
+          {dsaStructures.length}
         </span>
       </div>
 
-      {/* Data structures */}
-      <Section label="data structures" count={structures.length}>
-        {structures.map(Row)}
-      </Section>
+      <div className="px-4 pb-2">
+        <SearchField value={query} onChange={setQuery} placeholder="Search structures…" />
+      </div>
 
-      {/* Algorithms */}
-      <Section label="algorithms" count={algorithms.length}>
-        {algorithms.map(Row)}
-      </Section>
+      {structures.length > 0 && (
+        <Section label="data structures" count={structures.length}>
+          {structures.map(Row)}
+        </Section>
+      )}
+
+      {algorithms.length > 0 && (
+        <Section label="algorithms" count={algorithms.length}>
+          {algorithms.map(Row)}
+        </Section>
+      )}
+
+      {structures.length === 0 && algorithms.length === 0 && (
+        <p className="px-4 py-6 text-[12px] text-mute">Nothing matches “{query}”.</p>
+      )}
 
       <div className="mt-auto px-4 py-3 text-[11px] leading-relaxed text-mute border-t border-hairline">
         <span className="text-ink font-medium">Click</span> to place beside your work,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
   Pause,
@@ -18,6 +18,10 @@ import type { VisualizerNodeData } from '../store/workspaceStore';
 import { getAlgorithm } from '../config/algorithms';
 import { getFrames, CUSTOM_INPUT_ALGORITHMS } from '../lib/algorithmFrames';
 import { FrameRenderer } from './visualizers/Visualizers';
+import { ALGORITHM_SNIPPETS } from '../config/algorithmSnippets';
+import CodeMirror from '@uiw/react-codemirror';
+import { cpp } from '@codemirror/lang-cpp';
+import { vscodeDark, vscodeLight } from '../config/editorTheme';
 
 // ── Compound primitives (Vercel composition pattern) ────────
 // Kept as discrete pieces so the node shell stays declarative and a future
@@ -54,12 +58,16 @@ const VisHeader: React.FC<{
   complexity: string;
   onPointerDown: (e: React.PointerEvent) => void;
   onRemove: () => void;
-}> = ({ title, complexity, onPointerDown, onRemove }) => {
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
+}> = ({ title, complexity, onPointerDown, onRemove, onPointerEnter, onPointerLeave }) => {
   const theme = useWorkspaceStore((state) => state.theme);
   const isDark = theme === 'dark';
   return (
     <div
       onPointerDown={onPointerDown}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       className={`flex cursor-grab items-center gap-2 border-b px-3 py-2 active:cursor-grabbing ${
         isDark ? 'border-white/10' : 'border-black/5'
       }`}
@@ -102,7 +110,13 @@ const SPEEDS = [
 ];
 
 // ── The composed, draggable algorithm node ──────────────────
-const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> = ({ node, scale }) => {
+const VisualizerNodeImpl: React.FC<{
+  node: VisualizerNodeData;
+  // A *ref* to the live view (not the scalar) so the memoised node never
+  // re-renders on zoom — re-rendering mid-zoom is what made Framer Motion
+  // re-measure the bars against scaled coordinates and drift them out of the card.
+  scaleRef: React.MutableRefObject<{ tx: number; ty: number; scale: number }>;
+}> = ({ node, scaleRef }) => {
   const moveNode = useWorkspaceStore((s) => s.moveVisualizerNode);
   const removeNode = useWorkspaceStore((s) => s.removeVisualizerNode);
   const theme = useWorkspaceStore((s) => s.theme);
@@ -115,6 +129,10 @@ const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> 
   const [editingInput, setEditingInput] = useState(false);
   const [appliedInput, setAppliedInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+
+  const snippet = ALGORITHM_SNIPPETS[node.algorithmId];
 
   // `seed` lets Regenerate produce a fresh random input without remounting.
   const [seed, setSeed] = useState(0);
@@ -185,15 +203,18 @@ const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> 
     (e: React.PointerEvent) => {
       if ((e.target as HTMLElement).closest('button')) return;
       e.preventDefault();
+      setIsDragging(true);
       dragRef.current = { startX: e.clientX, startY: e.clientY, nodeX: node.x, nodeY: node.y };
 
       const onMove = (ev: PointerEvent) => {
         if (!dragRef.current) return;
-        const dx = (ev.clientX - dragRef.current.startX) / scale;
-        const dy = (ev.clientY - dragRef.current.startY) / scale;
+        const s = scaleRef.current.scale || 1;
+        const dx = (ev.clientX - dragRef.current.startX) / s;
+        const dy = (ev.clientY - dragRef.current.startY) / s;
         moveNode(node.id, dragRef.current.nodeX + dx, dragRef.current.nodeY + dy);
       };
       const onUp = () => {
+        setIsDragging(false);
         dragRef.current = null;
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
@@ -201,7 +222,7 @@ const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> 
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
     },
-    [node.id, node.x, node.y, scale, moveNode]
+    [node.id, node.x, node.y, scaleRef, moveNode]
   );
 
   const frame = frames[index];
@@ -215,12 +236,47 @@ const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> 
       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
     >
       <VisNodeRoot>
-        <VisHeader
-          title={algo?.name ?? node.algorithmId}
-          complexity={algo?.complexity ?? ''}
-          onPointerDown={onHeaderPointerDown}
-          onRemove={() => removeNode(node.id)}
-        />
+        <div
+          onPointerEnter={() => setIsHeaderHovered(true)}
+          onPointerLeave={() => setIsHeaderHovered(false)}
+          className="relative"
+        >
+          <AnimatePresence>
+            {isHeaderHovered && snippet && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 5, scale: 0.98 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="absolute bottom-full left-0 w-[calc(100%+4rem)] -translate-x-8 z-50 pb-3"
+              >
+                <div className={`overflow-hidden rounded-xl border shadow-2xl ${
+                  isDark ? 'border-white/10 bg-[#0c0c0e]' : 'border-black/10 bg-slate-50'
+                }`}>
+                  <div className={`p-1 [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!border-r-0 ${
+                    isDark ? '[&_.cm-gutters]:!bg-[#0c0c0e]' : '[&_.cm-gutters]:!bg-slate-50'
+                  }`}>
+                    <CodeMirror
+                      value={snippet}
+                      readOnly
+                      theme={isDark ? vscodeDark : vscodeLight}
+                      extensions={[cpp()]}
+                      basicSetup={{ lineNumbers: true, highlightActiveLine: false, foldGutter: false, autocompletion: false, highlightSelectionMatches: false }}
+                      className="text-[12px] font-mono max-h-[400px] overflow-auto"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <VisHeader
+            title={algo?.name ?? node.algorithmId}
+            complexity={algo?.complexity ?? ''}
+            onPointerDown={onHeaderPointerDown}
+            onRemove={() => removeNode(node.id)}
+          />
+        </div>
 
         {/* Custom input row */}
         {supportsCustomInput && (
@@ -276,7 +332,7 @@ const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> 
 
         <VisBody>
           <div className={`rounded-lg ring-1 ${isDark ? 'bg-black/30 ring-white/5' : 'bg-white/50 ring-black/5'}`}>
-            {frame && <FrameRenderer frame={frame} />}
+            {frame && <FrameRenderer frame={frame} isDragging={isDragging} />}
           </div>
           {/* Caption + progress */}
           <div className="mt-2 px-1">
@@ -332,8 +388,9 @@ const VisualizerNodeImpl: React.FC<{ node: VisualizerNodeData; scale: number }> 
   );
 };
 
-// Memoized: a node only re-renders when its own data or the zoom scale change,
-// so playback inside one node never touches the others.
+// Memoized: a node only re-renders on its own data changes (zoom is passed as a
+// stable ref, so panning/zooming the canvas never re-renders the cards), which
+// keeps playback isolated and stops Framer Motion re-measuring bars mid-zoom.
 export const VisualizerNode = React.memo(VisualizerNodeImpl);
 
 // Re-export the compound primitives for composition elsewhere if needed.

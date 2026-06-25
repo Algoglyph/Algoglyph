@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
-import { exportToBlob } from '@excalidraw/excalidraw';
+import { serializeAsJSON } from '@excalidraw/excalidraw';
 import {
   Upload,
   Download,
@@ -32,8 +32,19 @@ export const Toolbar: React.FC = () => {
   // Mobile-only overflow menu holding the Import/Export actions.
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Helper to get the current tab's title for file naming
+  const getActiveTabTitle = () => {
+    const state = useWorkspaceStore.getState();
+    const activeTab = state.tabs.find(t => t.id === state.activeTabId);
+    return activeTab?.title || 'Untitled';
+  };
+
   // Trigger MD download for workspace
   const handleExportWorkspace = () => {
+    if (layoutMode === 'visualizer') {
+      showNotification('Switch to canvas or notes to export workspace.', 'info');
+      return;
+    }
     // Retrieve static workspace details from store without subscribing the render loop to changes
     const state = useWorkspaceStore.getState();
     const data = {
@@ -64,12 +75,20 @@ ${JSON.stringify(data, null, 2)}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scratchpad-workspace-${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = `${getActiveTabTitle()}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   // Trigger MD upload/import
+  const handleImportClick = () => {
+    if (layoutMode === 'visualizer') {
+      showNotification('Switch to canvas or notes to import workspace.', 'info');
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
   const handleImportWorkspace = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -136,18 +155,27 @@ ${JSON.stringify(data, null, 2)}
 
   // Trigger MD download for notes
   const handleExportNotes = () => {
+    if (layoutMode === 'visualizer') {
+      showNotification('Switch to canvas or notes to download notes.', 'info');
+      return;
+    }
     const state = useWorkspaceStore.getState();
     const blob = new Blob([state.notes], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scratchpad-notes-${new Date().toISOString().slice(0, 10)}.md`;
+    a.download = `${getActiveTabTitle()}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // Export Excalidraw canvas as PNG
+  // Export Excalidraw canvas as .excalidraw file
   const handleExportCanvas = async () => {
+    if (layoutMode === 'visualizer') {
+      showNotification('Switch to canvas to export drawing.', 'info');
+      return;
+    }
+
     const api = (window as any).excalidrawAPI;
     if (!api) {
       showNotification('Canvas is not ready for export yet', 'error');
@@ -165,25 +193,21 @@ ${JSON.stringify(data, null, 2)}
       const appState = api.getAppState();
       const files = api.getFiles();
 
-      const blob = await exportToBlob({
+      const json = serializeAsJSON(
         elements,
-        appState: {
-          ...appState,
-          exportBackground: true,
-          viewBackgroundColor: appState.viewBackgroundColor || (theme === 'dark' ? '#0a0a0a' : '#ffffff'),
-        },
+        appState,
         files,
-        mimeType: 'image/png',
-        exportPadding: 20,
-      });
+        'local'
+      );
+      const blob = new Blob([json], { type: 'application/json' });
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `scratchpad-canvas-${new Date().toISOString().slice(0, 10)}.png`;
+      a.download = `${getActiveTabTitle()}.excalidraw`;
       a.click();
       URL.revokeObjectURL(url);
-      showNotification('Canvas exported as PNG', 'success');
+      showNotification('Canvas exported as .excalidraw', 'success');
     } catch (err) {
       console.error('Canvas export error:', err);
       showNotification('Failed to export canvas', 'error');
@@ -196,13 +220,17 @@ ${JSON.stringify(data, null, 2)}
     <header className="flex md:grid md:grid-cols-[1fr_auto_1fr] items-center justify-between px-4 py-2 bg-canvas/70 backdrop-blur-md border-b border-hairline text-body select-none h-12 flex-shrink-0 z-40">
       {/* Wordmark & save status */}
       <div className="flex items-center gap-3.5 flex-1 basis-0 min-w-0">
-        <div className="flex items-center gap-2">
+        <button
+          onClick={() => (window as any).goToLanding?.()}
+          className="flex items-center gap-2 hover:opacity-70 transition-opacity cursor-pointer"
+          title="Back to home"
+        >
           {/* Brand mark — using the original favicon */}
           <span className="grid h-5 w-5 place-items-center" aria-hidden>
             <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
           </span>
           <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">DSADelta</h1>
-        </div>
+        </button>
 
         <div className="h-3.5 w-px bg-hairline" />
 
@@ -283,7 +311,7 @@ ${JSON.stringify(data, null, 2)}
 
           {/* Import MD */}
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleImportClick}
             className="px-2.5 py-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center gap-1.5 text-xs font-mono cursor-pointer"
             title="Import workspace MD"
           >
@@ -318,14 +346,14 @@ ${JSON.stringify(data, null, 2)}
             onClick={handleExportCanvas}
             disabled={exportingCanvas}
             className="px-2.5 py-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center gap-1.5 text-xs font-mono disabled:opacity-50 cursor-pointer"
-            title="Export canvas as PNG"
+            title="Export canvas as .excalidraw"
           >
             {exportingCanvas ? (
               <Loader2 size={13} className="animate-spin" />
             ) : (
               <ImageIcon size={13} />
             )}
-            <span>.png</span>
+            <span>.excali</span>
           </button>
         </div>
 
@@ -353,7 +381,7 @@ ${JSON.stringify(data, null, 2)}
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false);
-                    fileInputRef.current?.click();
+                    handleImportClick();
                   }}
                   className="w-full px-3 py-2 flex items-center gap-2 text-body hover:text-ink hover:bg-canvas-soft transition-colors cursor-pointer"
                 >
@@ -388,7 +416,7 @@ ${JSON.stringify(data, null, 2)}
                   disabled={exportingCanvas}
                   className="w-full px-3 py-2 flex items-center gap-2 text-body hover:text-ink hover:bg-canvas-soft transition-colors disabled:opacity-50 cursor-pointer"
                 >
-                  <ImageIcon size={13} /> Export canvas (.png)
+                  <ImageIcon size={13} /> Export canvas (.excali)
                 </button>
               </div>
             </>

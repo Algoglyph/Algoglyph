@@ -139,8 +139,9 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
         className="absolute left-0 top-0 origin-top-left"
         style={{ transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})` }}
       >
+        
         {nodes.map((n) => (
-          <VisualizerNode key={n.id} node={n} scale={view.scale} />
+          <VisualizerNode key={n.id} node={n} scaleRef={viewRef} />
         ))}
       </div>
 

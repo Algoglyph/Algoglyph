@@ -45,12 +45,12 @@ interface WorkspaceState {
   // Visualizer canvas — node-based algorithm workspace (session state).
   visualizerNodes: VisualizerNodeData[];
 
-  // UI state (not persisted)
   theme: 'light' | 'dark';
   structuresPanelOpen: boolean;
   structuresWidth: number; // px width of the structures sidebar when open
   searchPaletteOpen: boolean; // the search palette overlay
   searchScope: 'all' | 'current'; // 'current' = Ctrl+F (this tab), 'all' = Ctrl+Shift+F
+  roadmapProgress: Record<string, 'Not Started' | 'In Progress' | 'Completed'>;
 
   // Actions
   initializeWorkspace: () => Promise<void>;
@@ -81,6 +81,7 @@ interface WorkspaceState {
   moveVisualizerNode: (id: string, x: number, y: number) => void;
   removeVisualizerNode: (id: string) => void;
   clearVisualizerNodes: () => void;
+  updateRoadmapProgress: (key: string, status: 'Not Started' | 'In Progress' | 'Completed') => void;
 
   // Tab actions
   createTab: () => void;
@@ -208,6 +209,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     structuresWidth: 272,
     searchPaletteOpen: false,
     searchScope: 'all',
+    roadmapProgress: {},
 
     initializeWorkspace: async () => {
       try {
@@ -252,6 +254,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           lastImportTime: Date.now(),
           isLoading: false,
           saveStatus: 'saved',
+          roadmapProgress: saved?.roadmapProgress || {},
         });
       } catch (error) {
         console.error('Failed to initialize workspace from database:', error);
@@ -261,6 +264,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           activeTabId: tabs[0].id,
           isLoading: false,
           saveStatus: 'error',
+          roadmapProgress: {},
         });
       }
     },
@@ -353,6 +357,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         tabs,
         activeTabId: get().activeTabId,
         updatedAt: Date.now(),
+        roadmapProgress: get().roadmapProgress,
       };
       await saveWorkspace(workspaceData);
     },
@@ -498,5 +503,15 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
     },
 
     clearVisualizerNodes: () => set({ visualizerNodes: [] }),
+
+    updateRoadmapProgress: (key, status) => {
+      set({
+        roadmapProgress: {
+          ...get().roadmapProgress,
+          [key]: status,
+        },
+      });
+      scheduleAutoSave();
+    },
   };
 });
