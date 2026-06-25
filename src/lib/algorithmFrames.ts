@@ -112,6 +112,25 @@ function arrFrame(
   return { type: 'array', cells: cloneCells(cells), states, caption };
 }
 
+// Binary/ternary/bound searches are only correct on sorted input. The graph now
+// starts in random order (see the searching generators), so we first animate a
+// selection sort: each placement reorders `cells` in place and pushes a frame, and
+// because ArrayCell ids are stable framer-motion slides the bars into their sorted
+// positions before the search begins. Mutates `cells` so it ends fully sorted.
+function sortForSearch(cells: ArrayCell[], frames: Frame[]): void {
+  const n = cells.length;
+  frames.push(arrFrame(cells, 'Unsorted — sort first (search needs sorted data)'));
+  for (let i = 0; i < n - 1; i++) {
+    let min = i;
+    for (let j = i + 1; j < n; j++) if (cells[j].v < cells[min].v) min = j;
+    if (min !== i) [cells[i], cells[min]] = [cells[min], cells[i]];
+    const marks: Partial<Record<number, ArrayCellState>> = {};
+    for (let k = 0; k <= i; k++) marks[k] = 'sorted'; // locked prefix
+    frames.push(arrFrame(cells, `Sorting… placed ${cells[i].v}`, marks));
+  }
+  frames.push(arrFrame(cells, 'Sorted ✓ — now searching', {}, 0));
+}
+
 // ── Bubble Sort ─────────────────────────────────────────────
 function bubbleSort(custom?: number[]): ArrayFrame[] {
   const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
@@ -227,10 +246,12 @@ function mergeSort(custom?: number[]): ArrayFrame[] {
 
 // ── Binary Search ───────────────────────────────────────────
 function binarySearch(custom?: number[]): ArrayFrame[] {
-  const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : randomArray(9, 5, 50).sort((a, b) => a - b);
+  // Start in random/given order; sortForSearch animates the sort before searching.
+  const vals = custom && custom.length > 0 ? [...custom] : randomArray(9, 5, 50);
   const cells = toCells(vals);
   const target = cells[randInt(0, cells.length - 1)].v;
-  const frames: ArrayFrame[] = [arrFrame(cells, `Search for ${target} (sorted)`)];
+  const frames: ArrayFrame[] = [arrFrame(cells, `Search for ${target}`)];
+  sortForSearch(cells, frames);
   let lo = 0,
     hi = cells.length - 1;
   while (lo <= hi) {
@@ -735,10 +756,13 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
 
   // ── 1. Searching ──
   if (category === 'Searching') {
-    const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : [10, 20, 30, 40, 50, 60, 70, 80];
+    // Start in random/given order. Linear search scans any order, so it stays
+    // unsorted; the others need sorted input, so animate the sort first.
+    const vals = custom && custom.length > 0 ? [...custom] : randomArray(9, 5, 50);
     const cells = toCells(vals);
-    const target = custom && custom.length > 0 ? vals[Math.floor(vals.length / 2)] : 50;
+    const target = cells[randInt(0, cells.length - 1)].v;
     frames.push(arrFrame(cells, `Search for target = ${target} using ${id}`));
+    if (id !== 'linear-search') sortForSearch(cells, frames);
 
     if (id === 'linear-search') {
       for (let i = 0; i < cells.length; i++) {
@@ -794,7 +818,7 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
 
   // ── 2. Sorting ──
   else if (category === 'Sorting') {
-    const cells = toCells(custom && custom.length > 0 ? custom : [24, 9, 35, 12, 5, 18]);
+    const cells = toCells(custom && custom.length > 0 ? custom : randomArray(8));
     frames.push(arrFrame(cells, `Start ${id} on unsorted array`));
 
     if (id === 'selection-sort') {
@@ -862,7 +886,7 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
       for (let i = 1; i < counts.length; i++) {
         counts[i] += counts[i - 1];
       }
-      const output = [0, 0, 0, 0, 0, 0];
+      const output = new Array(cells.length).fill(0);
       const outCells = toCells(output);
       for (let i = cells.length - 1; i >= 0; i--) {
         const v = cells[i].v % 6;

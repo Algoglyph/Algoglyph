@@ -14,9 +14,10 @@ npm run electron       # launch Electron against a RUNNING dev server (see below
 npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg)
 ```
 
-- **Running the desktop app in dev requires two processes**: `main.cjs` loads `http://localhost:5173` when not packaged, so run `npm run dev` first, then `npm run electron` in a second shell. The packaged build instead loads `dist/index.html`.
+- **Running the desktop app in dev requires two processes**: `main.cjs` loads `http://localhost:5173` when not packaged, so run `npm run dev` first, then `npm run electron` in a second shell. The packaged build instead loads `dist/index.html`. The dev URL in `main.cjs` is **hardcoded to 5173** even though `vite.config.ts` honors a `PORT` env var — so don't override `PORT`, or Electron will point at the wrong (empty) port.
 - **There is no test runner.** "Verification" here means `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build.
 - `vite.config.ts` sets `base: './'` (relative asset paths) so the same build works under Electron's `file://`.
+- **`build/icon.png` is a committed *source* asset, not generated output** — it's the electron-builder app icon (`package.json` → `build.{win,mac}.icon`). The generated outputs are `dist/` (web bundle) and `release/` (packaged installers); only those are gitignored. Don't delete or gitignore `build/`.
 
 ## Architecture
 
@@ -27,7 +28,7 @@ npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg
 - Theme is persisted separately in `localStorage` (`scratchpad-theme`) and reflected onto `<html class="dark">`.
 
 ### Layout (`src/App.tsx`)
-`layoutMode` ∈ `split | canvas-only | notes-only | code | visualizer`. Split mode resizes the Canvas/Notes panes via `splitWidth` (a draggable divider); `code` and `visualizer` are full-area panes. Global shortcuts are registered here (Ctrl/Cmd: B=cycle layout, S=save, T=new tab, K=DSA command palette, F=search this tab, Shift+F=search all tabs). On mobile (`useIsMobile`) it collapses to one pane + `MobileNav`. The **landing page** (`LandingPage.tsx`) only shows in the browser, never in Electron (`isLandingActive = !isElectron`).
+`layoutMode` ∈ `split | canvas-only | notes-only | code | visualizer`. Split mode resizes the Canvas/Notes panes via `splitWidth` (a draggable divider); `code` and `visualizer` are full-area panes. Global shortcuts are registered here (Ctrl/Cmd: B=cycle layout, S=save, T=new tab, K=DSA command palette, F=search this tab, Shift+F=search all tabs). **Bare single-key tool shortcuts** (no modifier) are registered separately in `Canvas.tsx` and only fire when the canvas is focused: T=text, D=freedraw, E=eraser, A=arrow, L=line, R=rectangle. On mobile (`useIsMobile`) it collapses to one pane + `MobileNav`. The **landing page** (`LandingPage.tsx`) only shows in the browser, never in Electron (`isLandingActive = !isElectron`).
 
 ### Cross-component coordination via `window` globals
 Several modules talk through globals instead of props: `window.excalidrawAPI` (set by `Canvas.tsx`, used by structure insertion + search), `window.notesEditor` (TipTap instance, used by search), `window.useWorkspaceStore`, and `window.goToLanding`. The `SearchPalette` drives both of these to jump to and highlight matches across tabs.

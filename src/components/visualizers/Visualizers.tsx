@@ -42,7 +42,7 @@ const getArrayColor = (state: ArrayCellState, isDark: boolean): string => {
 };
 
 // ── Array bars ──────────────────────────────────────────────
-const ArrayBars: React.FC<{ frame: ArrayFrame }> = ({ frame }) => {
+const ArrayBars: React.FC<{ frame: ArrayFrame, isDragging?: boolean }> = ({ frame, isDragging }) => {
   const theme = useWorkspaceStore((state) => state.theme);
   const isDark = theme === 'dark';
   const max = Math.max(1, ...frame.cells.map((c) => c.v));
@@ -56,7 +56,7 @@ const ArrayBars: React.FC<{ frame: ArrayFrame }> = ({ frame }) => {
         return (
           <motion.div
             key={cell.id}
-            layout
+            layout={!isDragging}
             transition={spring}
             className="relative flex flex-1 flex-col items-center justify-end"
             style={{ maxWidth: 34 }}
@@ -70,7 +70,7 @@ const ArrayBars: React.FC<{ frame: ArrayFrame }> = ({ frame }) => {
               </span>
             )}
             <motion.div
-              layout
+              layout={!isDragging}
               transition={spring}
               className="w-full rounded-t-[3px]"
               animate={{ backgroundColor: color, height: `${(cell.v / max) * 130 + 14}px` }}
@@ -217,7 +217,7 @@ const GraphView: React.FC<{ frame: GraphFrame }> = ({ frame }) => {
 };
 
 // ── Grid (N-Queens) ─────────────────────────────────────────
-const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
+const GridBoard: React.FC<{ frame: GridFrame, isDragging?: boolean }> = ({ frame, isDragging }) => {
   const { n, queens, trying } = frame;
   const theme = useWorkspaceStore((state) => state.theme);
   const isDark = theme === 'dark';
@@ -259,7 +259,7 @@ const GridBoard: React.FC<{ frame: GridFrame }> = ({ frame }) => {
             >
               {hasQueen && (
                 <motion.span
-                  layout
+                  layout={!isDragging}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={spring}
@@ -411,14 +411,14 @@ const UnionFindView: React.FC<{ frame: UFFrame }> = ({ frame }) => {
 };
 
 // ── Dispatcher ──────────────────────────────────────────────
-export const FrameRenderer: React.FC<{ frame: Frame }> = ({ frame }) => {
+export const FrameRenderer: React.FC<{ frame: Frame, isDragging?: boolean }> = ({ frame, isDragging }) => {
   switch (frame.type) {
     case 'array':
-      return <ArrayBars frame={frame} />;
+      return <ArrayBars frame={frame} isDragging={isDragging} />;
     case 'graph':
       return <GraphView frame={frame} />;
     case 'grid':
-      return <GridBoard frame={frame} />;
+      return <GridBoard frame={frame} isDragging={isDragging} />;
     case 'dp':
       return <DPTable frame={frame} />;
     case 'uf':

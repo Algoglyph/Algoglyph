@@ -159,6 +159,26 @@ export const Canvas: React.FC = () => {
       const isMarqueeSelecting = !!appState.selectionElement;
       const showPanel = hasSelection && !isMarqueeSelecting;
       containerRef.current.classList.toggle('canvas-no-selection', !showPanel);
+
+      if (showPanel) {
+        // Dock the style panel on the side opposite the selection so it never
+        // covers the selected object. Compare the selection's centre (mapped to
+        // screen space) against the canvas midpoint: object on the left half →
+        // panel docks right, and vice-versa.
+        const selected = elements.filter((el) => appState.selectedElementIds[el.id] && !el.isDeleted);
+        if (selected.length) {
+          let minX = Infinity;
+          let maxX = -Infinity;
+          for (const el of selected) {
+            minX = Math.min(minX, el.x);
+            maxX = Math.max(maxX, el.x + (el.width || 0));
+          }
+          const zoom = appState.zoom?.value || 1;
+          const selCenterScreenX = ((minX + maxX) / 2 + appState.scrollX) * zoom;
+          const dockRight = selCenterScreenX < (appState.width || 0) / 2;
+          containerRef.current.classList.toggle('panel-dock-right', dockRight);
+        }
+      }
     }
 
     updateCanvas([...elements], appState, files);
