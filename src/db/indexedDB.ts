@@ -18,6 +18,7 @@ export interface WorkspaceData {
   tabs: TabData[];
   activeTabId: string;
   updatedAt: number;
+  roadmapProgress?: Record<string, 'Not Started' | 'In Progress' | 'Completed'>;
   // Legacy single-document fields kept optional for backward-compatible migration.
   notes?: string;
   canvasElements?: any[];

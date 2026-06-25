@@ -10,6 +10,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
 import { LandingPage } from './components/LandingPage';
+import { RoadmapPage } from './components/RoadmapPage';
 import { MobileNav } from './components/MobileNav';
 import { useIsMobile } from './hooks/useIsMobile';
 
@@ -31,7 +32,7 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isElectron = typeof window !== 'undefined' && /electron/i.test(navigator.userAgent);
-  const [isLandingActive, setIsLandingActive] = useState(!isElectron);
+  const [view, setView] = useState<'landing' | 'roadmap' | 'workspace'>(isElectron ? 'workspace' : 'landing');
   const isMobile = useIsMobile();
 
   // Initialize workspace from IndexedDB on load
@@ -40,9 +41,9 @@ const App: React.FC = () => {
     (window as any).useWorkspaceStore = useWorkspaceStore;
     (window as any).goToLanding = () => {
       if (document.startViewTransition) {
-        document.startViewTransition(() => setIsLandingActive(true));
+        document.startViewTransition(() => setView('landing'));
       } else {
-        setIsLandingActive(true);
+        setView('landing');
       }
     };
   }, [initializeWorkspace]);
@@ -127,16 +128,50 @@ const App: React.FC = () => {
     );
   }
 
-  if (isLandingActive) {
+  if (view === 'landing') {
     return (
       <LandingPage
         onLaunch={() => {
           if (document.startViewTransition) {
             document.startViewTransition(() => {
-              setIsLandingActive(false);
+              setView('workspace');
             });
           } else {
-            setIsLandingActive(false);
+            setView('workspace');
+          }
+        }}
+        onViewRoadmap={() => {
+          if (document.startViewTransition) {
+            document.startViewTransition(() => {
+              setView('roadmap');
+            });
+          } else {
+            setView('roadmap');
+          }
+        }}
+      />
+    );
+  }
+
+  if (view === 'roadmap') {
+    return (
+      <RoadmapPage
+        onBack={() => {
+          if (document.startViewTransition) {
+            document.startViewTransition(() => {
+              setView('landing');
+            });
+          } else {
+            setView('landing');
+          }
+        }}
+        onLaunch={() => {
+          if (document.startViewTransition) {
+            document.startViewTransition(() => {
+              setView('workspace');
+            });
+          } else {
+            setView('workspace');
           }
         }}
       />

@@ -18,6 +18,7 @@ import { MorphingArena } from './landing/MorphingArena';
 
 interface LandingPageProps {
   onLaunch: () => void;
+  onViewRoadmap: () => void;
 }
 
 interface StageDetail {
@@ -129,7 +130,7 @@ const listItemVariants: Variants = {
   },
 };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) => {
   const [activeStage, setActiveStage] = useState(1); // 1 (Array) to 5 (Graph)
   const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py' | 'java' | 'js'>('py');
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
@@ -172,7 +173,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
           <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="hover:text-white transition-colors">Features</a>
           <a href="#visualizer" onClick={(e) => handleScrollTo(e, 'visualizer')} className="hover:text-white transition-colors">Visualizers</a>
           <a href="#usecases" onClick={(e) => handleScrollTo(e, 'usecases')} className="hover:text-white transition-colors">Use Cases</a>
-          <a href="#roadmap" onClick={(e) => handleScrollTo(e, 'roadmap')} className="hover:text-white transition-colors font-mono tracking-wider bg-white/[0.04] px-2 py-0.5 rounded border border-white/5 uppercase text-[11px] text-white/80">Roadmap</a>
+          <button 
+            onClick={onViewRoadmap} 
+            className="hover:text-white transition-colors font-mono tracking-wider bg-white/[0.04] px-2 py-0.5 rounded border border-white/5 uppercase text-[11px] text-white/80 cursor-pointer"
+          >
+            Roadmap
+          </button>
         </div>
 
         <nav className="flex items-center gap-4">
@@ -207,7 +213,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
             DSADelta is a spatial workspace integrating engineering notebooks, infinite drawing canvases, interactive compilers, and state visualizers. It replaces disconnected tabs with a unified feedback loop to help developers build spatial mental models.
           </motion.p>
 
-          <motion.div variants={heroItemVariants} className="flex flex-col sm:flex-row gap-6 sm:gap-14 mt-8 justify-center">
+          <motion.div variants={heroItemVariants} className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
             <button
               onClick={onLaunch}
               className="px-7.5 py-3.5 rounded-lg bg-white hover:bg-neutral-200 text-black text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer font-sans shadow-[0_1px_2px_rgba(255,255,255,0.15)]"
@@ -215,13 +221,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
               <span>Launch Free Workspace</span>
               <ArrowRight size={14} />
             </button>
+            <button
+              onClick={onViewRoadmap}
+              className="px-6.5 py-3.5 rounded-lg border border-white/10 hover:border-white/20 bg-white/[0.01] text-[15px] font-semibold text-white hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer font-sans"
+            >
+              <span>Explore CS Roadmap</span>
+              <ArrowRight size={14} className="opacity-60" />
+            </button>
             <div className="relative">
               <button
                 onClick={() => setDownloadMenuOpen((prev) => !prev)}
-                className="px-6.5 py-3.5 rounded-lg border border-white/10 hover:border-white/20 bg-white/[0.01] text-[15px] font-semibold text-white/60 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer font-sans"
+                className="px-6.5 py-3.5 rounded-lg border border-white/10 hover:border-white/25 bg-white/[0.02] text-[15px] font-semibold text-white/60 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer font-sans w-full"
               >
                 <Download size={14} />
-                <span>Download Desktop App</span>
+                <span>Get App</span>
                 <ChevronDown size={14} className={`transition-transform duration-200 ${downloadMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
