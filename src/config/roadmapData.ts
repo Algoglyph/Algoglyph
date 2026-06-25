@@ -122,7 +122,9 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         difficulty: 'Hard',
         hours: 8,
         learningStatus: 'Not Started',
-        keyPoints: ['Mark & Sweep', 'Generational GC', 'Memory Leaks']
+        keyPoints: ['Mark & Sweep', 'Generational GC', 'Memory Leaks'],
+        codePreview: `// Manual Reclamation (C++)\nclass Node {\npublic:\n  ~Node() { \n    // destructor \n  }\n};\nvoid cleanup() {\n  Node* n = new Node();\n  delete n; // explicit free\n}`,
+        codePreviewPython: `# Reference counting & GC (Python)\nimport gc\nclass Node:\n    def __del__(self):\n        pass\n\nn = Node()\ndel n # Decrements ref count\ngc.collect() # Force mark-and-sweep`
       },
       {
         name: 'Memory Leak Profiling & Valgrind',
@@ -130,7 +132,9 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         difficulty: 'Hard',
         hours: 8,
         learningStatus: 'Not Started',
-        keyPoints: ['Valgrind Audits', 'Double Frees', 'Heap Profiling']
+        keyPoints: ['Valgrind Audits', 'Double Frees', 'Heap Profiling'],
+        codePreview: `// Valgrind memory leak demonstration\nvoid memoryLeak() {\n  int* data = (int*)malloc(100 * sizeof(int));\n  // Forgot to call free(data);\n  // Valgrind: "definitely lost: 400 bytes in 1 blocks"\n}`,
+        codePreviewPython: `# tracemalloc for memory profiling\nimport tracemalloc\n\ntracemalloc.start()\n# ... allocating memory ...\nsnapshot = tracemalloc.take_snapshot()\ntop_stats = snapshot.statistics('lineno')\nfor stat in top_stats[:5]:\n    print(stat)`
       }
     ]
   },
@@ -172,7 +176,9 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         hours: 10,
         visualizerId: 'sliding-window',
         learningStatus: 'Not Started',
-        keyPoints: ['Subarray Windows', 'Linear Traversal', 'Dynamic Resize']
+        keyPoints: ['Subarray Windows', 'Linear Traversal', 'Dynamic Resize'],
+        codePreview: `// Variable-size sliding window\nint left = 0, right = 0, currentSum = 0, maxLength = 0;\nwhile (right < n) {\n  currentSum += arr[right];\n  while (currentSum > target) {\n    currentSum -= arr[left];\n    left++;\n  }\n  maxLength = max(maxLength, right - left + 1);\n  right++;\n}`,
+        codePreviewPython: `# Variable-size sliding window\nleft = right = current_sum = max_length = 0\nwhile right < len(arr):\n    current_sum += arr[right]\n    while current_sum > target:\n        current_sum -= arr[left]\n        left += 1\n    max_length = max(max_length, right - left + 1)\n    right += 1`
       },
       {
         name: 'Prefix Sums & Range Queries',
@@ -223,7 +229,9 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         hours: 8,
         visualizerId: 'fast-slow-pointer',
         learningStatus: 'Not Started',
-        keyPoints: ['Runner Traversal', 'Cycle Proving', 'Collision Intersection']
+        keyPoints: ['Runner Traversal', 'Cycle Proving', 'Collision Intersection'],
+        codePreview: `// Floyd's Cycle Detection\nNode* slow = head;\nNode* fast = head;\nwhile (fast && fast->next) {\n  slow = slow->next;\n  fast = fast->next->next;\n  if (slow == fast) return true; // Cycle detected\n}\nreturn false;`,
+        codePreviewPython: `# Floyd's Cycle Detection\nslow = fast = head\nwhile fast and fast.next:\n    slow = slow.next\n    fast = fast.next.next\n    if slow == fast:\n        return True # Cycle detected\nreturn False`
       },
       {
         name: 'Skip Lists & Multi-level Indexing',
@@ -328,7 +336,9 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         hours: 18,
         visualizerId: 'segment-tree-algo',
         learningStatus: 'Not Started',
-        keyPoints: ['Segment Division', 'Binary Index BIT', 'Sparse Tables']
+        keyPoints: ['Segment Division', 'Binary Index BIT', 'Sparse Tables'],
+        codePreview: `// Segment Tree Range Sum Query\nint query(int node, int start, int end, int L, int R) {\n  if (R < start || end < L) return 0;\n  if (L <= start && end <= R) return tree[node];\n  int mid = (start + end) / 2;\n  return query(2*node, start, mid, L, R) + \n         query(2*node+1, mid+1, end, L, R);\n}`,
+        codePreviewPython: `# Segment Tree Range Sum Query\ndef query(node: int, start: int, end: int, L: int, R: int) -> int:\n    if R < start or end < L:\n        return 0\n    if L <= start and end <= R:\n        return tree[node]\n    mid = (start + end) // 2\n    return query(2*node, start, mid, L, R) + \\\n           query(2*node+1, mid+1, end, L, R)`
       },
       {
         name: 'Tries & Prefix Compression Trees',
