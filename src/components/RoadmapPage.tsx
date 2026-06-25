@@ -15,6 +15,10 @@ import {
 import { ROADMAP_ZONES } from '../config/roadmapData';
 import type { SubConcept } from '../config/roadmapData';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import CodeMirror from '@uiw/react-codemirror';
+import { cpp } from '@codemirror/lang-cpp';
+import { python } from '@codemirror/lang-python';
+import { vscodeDark } from '../config/editorTheme';
 
 interface RoadmapPageProps {
   onBack: () => void;
@@ -870,14 +874,19 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                                         </button>
                                       </div>
                                     </div>
-                                    <div className="relative rounded-xl border border-white/5 bg-black/60 p-3 font-mono text-[10.5px] leading-[1.5] text-white/80 max-h-[300px] overflow-auto custom-scrollbar">
-                                      <Code className="absolute top-2.5 right-2.5 text-white/10" size={12} />
-                                      <pre className="text-left">
-                                        {selectedLanguage === 'cpp' 
+                                    <div className="relative rounded-xl border border-white/5 bg-black/60 p-2 text-[10.5px] leading-[1.5] text-left max-h-[300px] overflow-auto custom-scrollbar [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!bg-transparent">
+                                      <Code className="absolute top-2.5 right-2.5 text-white/10 z-10" size={12} />
+                                      <CodeMirror
+                                        value={selectedLanguage === 'cpp' 
                                           ? concept.codePreview 
                                           : (concept.codePreviewPython || concept.codePreview)
                                         }
-                                      </pre>
+                                        readOnly={true}
+                                        editable={false}
+                                        theme={vscodeDark}
+                                        extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
+                                        basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }}
+                                      />
                                     </div>
                                   </div>
                                 )}

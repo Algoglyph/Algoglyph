@@ -15,6 +15,12 @@ import {
 } from 'lucide-react';
 import { MockWorkspace } from './landing/MockWorkspace';
 import { MorphingArena } from './landing/MorphingArena';
+import CodeMirror from '@uiw/react-codemirror';
+import { cpp } from '@codemirror/lang-cpp';
+import { python } from '@codemirror/lang-python';
+import { java } from '@codemirror/lang-java';
+import { javascript } from '@codemirror/lang-javascript';
+import { vscodeDark } from '../config/editorTheme';
 
 interface LandingPageProps {
   onLaunch: () => void;
@@ -531,14 +537,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                 We load parameters sequentially onto operating system memory stack frames:
               </p>
               
-              <pre className="p-3 rounded-lg bg-black/40 border border-white/5 font-mono text-[11.5px] text-white/70 overflow-x-auto leading-normal">
-{`void preOrder(Node* root) {
-  if (!root) return;
-  visit(root);
-  preOrder(root->left);
-  preOrder(root->right);
-}`}
-              </pre>
+              <div className="p-2 rounded-lg bg-black/40 border border-white/5 text-[11.5px] [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!bg-transparent">
+                <CodeMirror
+                  value={`void preOrder(Node* root) {\n  if (!root) return;\n  visit(root);\n  preOrder(root->left);\n  preOrder(root->right);\n}`}
+                  readOnly={true}
+                  editable={false}
+                  theme={vscodeDark}
+                  extensions={[cpp()]}
+                  basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -584,9 +592,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </div>
             
-            <div className="p-3.5 font-mono text-[12px] text-white/70 bg-[#0a0a0c] leading-relaxed min-h-[120px] overflow-y-auto">
-              <pre className="text-white/20 font-mono text-[11px] mb-1.5">// Code execution runner</pre>
-              <pre className="text-[#3291ff] font-mono">{codeSnippets[selectedLanguage]}</pre>
+            <div className="p-3.5 font-mono text-[12px] text-white/70 bg-[#0a0a0c] leading-relaxed min-h-[120px] overflow-y-auto [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!bg-transparent">
+              <div className="text-white/20 font-mono text-[11px] mb-1.5">// Code execution runner</div>
+              <CodeMirror
+                value={codeSnippets[selectedLanguage]}
+                readOnly={true}
+                editable={false}
+                theme={vscodeDark}
+                extensions={[
+                  selectedLanguage === 'cpp' ? cpp() :
+                  selectedLanguage === 'py' ? python() :
+                  selectedLanguage === 'java' ? java() :
+                  javascript()
+                ]}
+                basicSetup={{ lineNumbers: false, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }}
+              />
             </div>
             
             <div className="border-t border-white/[0.04] p-3 bg-[#060608] font-mono text-[11px] text-emerald-400/90">
@@ -897,53 +917,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         </motion.div>
       </section>
 
-      <section className="py-28 border-t border-white/[0.04] bg-[#09090b]/40 relative z-10 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 text-center flex flex-col items-center gap-10">
-          <div className="max-w-2xl flex flex-col gap-3">
-            <span className="text-[11px] font-mono tracking-[0.2em] text-[#3291ff] font-bold uppercase">The App Shell</span>
-            <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-              The Spatial Engineering Workspace
-            </h2>
-            <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              DSADelta runs directly inside your web browser with offline IndexedDB synchronization, or as a native desktop application with instant host client bypass.
-            </p>
-          </div>
-
-          <div className="w-full relative rounded-lg border border-white/[0.05] overflow-hidden bg-[#0a0a0c] shadow-[0_24px_60px_rgba(0,0,0,0.7)] flex flex-col select-none">
-            <div className="h-9 border-b border-white/[0.03] bg-[#070709] flex items-center px-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-              </div>
-            </div>
-
-            <div className="flex flex-1 min-h-[340px] bg-[#0c0c0e] relative text-left">
-              <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.01)_1px,transparent_1px)] [background-size:20px_20px]" />
-              
-              <div className="w-[28%] border-r border-white/5 bg-[#0a0a0c]/80 p-4 font-mono text-[11px] text-[#a1a1a1] flex flex-col gap-3">
-                <span className="text-[13px] text-white/50 font-semibold font-sans">Depth First Search</span>
-                <p className="font-sans leading-relaxed text-white/35 text-[12px]">
-                  Recursive traversals are simple: we push states onto stack memory. Pointers direct execution flow.
-                </p>
-                <div className="mt-2 p-2 bg-[#121215] border border-white/5 rounded text-white/70 text-[12px]">
-                  void solve(Node* root)
-                </div>
-              </div>
-
-              <div className="flex-1 relative flex items-center justify-center">
-                <div className="flex gap-4 relative z-10">
-                  <div className="w-10 h-10 rounded border border-[#3291ff]/30 bg-[#3291ff]/10 text-[#3291ff] flex items-center justify-center font-mono text-[11px] font-semibold">17</div>
-                  <span className="text-white/25 flex items-center font-mono text-xs">──►</span>
-                  <div className="w-10 h-10 rounded border border-white/5 bg-[#121215] flex items-center justify-center font-mono text-[11px] font-semibold">42</div>
-                  <span className="text-white/25 flex items-center font-mono text-xs">──►</span>
-                  <div className="w-10 h-10 rounded border border-[#3291ff]/30 bg-[#3291ff]/10 text-[#3291ff] flex items-center justify-center font-mono text-[11px] font-semibold">89</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Final CTA */}
       <section className="py-32 relative z-10 overflow-hidden">

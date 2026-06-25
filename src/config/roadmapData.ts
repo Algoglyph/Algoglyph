@@ -274,7 +274,9 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         hours: 12,
         visualizerId: 'heap-sort',
         learningStatus: 'Not Started',
-        keyPoints: ['Max/Min Heapify', 'Logarithmic Balance', 'Heap Sort']
+        keyPoints: ['Max/Min Heapify', 'Logarithmic Balance', 'Heap Sort'],
+        codePreview: `// Min-Heap bubble up (insertion)\nvoid push(int val) {\n  heap.push_back(val);\n  int i = heap.size() - 1;\n  while (i > 0 && heap[(i - 1) / 2] > heap[i]) {\n    swap(heap[i], heap[(i - 1) / 2]);\n    i = (i - 1) / 2;\n  }\n}`,
+        codePreviewPython: `# Min-Heap bubble up (insertion)\ndef push(self, val: int):\n    self.heap.append(val)\n    i = len(self.heap) - 1\n    while i > 0 and self.heap[(i - 1) // 2] > self.heap[i]:\n        self.heap[i], self.heap[(i - 1) // 2] = self.heap[(i - 1) // 2], self.heap[i]\n        i = (i - 1) // 2`
       },
       {
         name: 'Monotonic Stacks & Queues',
