@@ -260,7 +260,7 @@ export const SearchPalette: React.FC<SearchPaletteProps> = ({ isOpen, onClose })
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            className="flex-1 bg-transparent text-sm text-ink focus:outline-none placeholder-mute"
+            className="flex-1 bg-transparent text-sm text-ink !outline-none focus-visible:!outline-none placeholder-mute"
           />
           {query.trim() !== '' && (
             <span className="text-[10px] text-mute select-none whitespace-nowrap">

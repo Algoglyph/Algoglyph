@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { PanelRightClose, Play, Pause } from 'lucide-react';
+import { PanelRightClose } from 'lucide-react';
 import { getAlgorithm } from '../config/algorithms';
 import { getAlgorithmDoc } from '../config/algorithmDocs';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import CodeMirror from '@uiw/react-codemirror';
+import { cpp } from '@codemirror/lang-cpp';
+import { javascript } from '@codemirror/lang-javascript';
+import { vscodeDark, vscodeLight } from '../config/editorTheme';
 
 interface Props {
   algorithmId: string;
@@ -13,82 +17,20 @@ interface Props {
 const MIN_WIDTH = 320;
 const MAX_WIDTH = 640;
 
-// ── Signature: a deterministic "linear scan" that hops cell to cell until it
-// lands on the matched (emerald) element — the one characteristic motion of the
-// algorithm, used as the panel's thesis. ──────────────────────────────────────
-const SCAN_HEIGHTS = [44, 70, 32, 86, 54, 24, 64, 48, 78]; // seeded, fixed
-const TARGET = 6; // the element the scan resolves to
+import {
+  LinearScanHero,
+  BinarySearchHero,
+  LowerBoundHero,
+  UpperBoundHero,
+  TernarySearchHero,
+} from './SearchHeroes';
 
-const LinearScanHero: React.FC<{ isDark: boolean }> = ({ isDark }) => {
-  const reduce = useReducedMotion();
-  const idle = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)';
-  // Staggered opacity (transform/opacity only — no layout animation): each checked
-  // cell flashes in sequence left→right and the run ends on the match.
-  const step = 0.16;
-  const lit = 0.5;
-  const lastScanned = TARGET - 1;
-
-  // Plays through exactly once, then stops on the match. Autoplays once when the
-  // panel opens (unless reduced motion); after that the user drives every replay.
-  const [playing, setPlaying] = useState(!reduce);
-  const [runId, setRunId] = useState(0); // bumped to remount the row and replay
-
-  // Stop the run deterministically once the last cell has finished — onAnimation-
-  // Complete on a delayed keyframe is unreliable, so we time the known duration.
-  useEffect(() => {
-    if (!playing || reduce) return;
-    const ms = (lastScanned * step + lit) * 1000 + 120;
-    const t = setTimeout(() => setPlaying(false), ms);
-    return () => clearTimeout(t);
-  }, [playing, runId, reduce, lastScanned, step, lit]);
-
-  const replay = () => {
-    setRunId((r) => r + 1);
-    setPlaying(true);
-  };
-
-  return (
-    <div className={`relative overflow-hidden rounded-lg ${isDark ? 'bg-black/40 ring-1 ring-white/[0.06]' : 'bg-white ring-1 ring-zinc-200'}`}>
-      <div key={runId} className="flex h-[124px] items-end gap-[5px] px-3 pt-4 pb-3">
-        {SCAN_HEIGHTS.map((h, i) => {
-          const found = i === TARGET;
-          const scanned = i < TARGET; // cells the scan visits before landing on the match
-          return (
-            <div key={i} className="relative flex-1" style={{ height: `${h}%` }}>
-              <div className="absolute inset-0 rounded-t-[3px]" style={{ backgroundColor: found ? '#10b981' : idle }} />
-              {scanned && playing && !reduce && (
-                <motion.div
-                  aria-hidden
-                  className="absolute inset-0 rounded-t-[3px] bg-emerald-400"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.85, 0] }}
-                  transition={{ duration: lit, ease: 'easeInOut', delay: i * step }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className={`flex items-center gap-2 px-3 pb-2 font-mono text-[9.5px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-        {!reduce && (
-          <button
-            type="button"
-            onClick={playing ? () => setPlaying(false) : replay}
-            aria-label={playing ? 'Pause scan' : 'Play scan'}
-            title={playing ? 'Pause' : 'Play scan'}
-            className={`flex items-center justify-center rounded p-0.5 transition-colors cursor-pointer ${
-              isDark ? 'text-zinc-400 hover:bg-white/10 hover:text-emerald-400' : 'text-zinc-500 hover:bg-zinc-200 hover:text-emerald-600'
-            }`}
-          >
-            {playing ? <Pause size={12} /> : <Play size={12} />}
-          </button>
-        )}
-        <span>index 0 → n−1</span>
-        <span className="ml-auto text-emerald-500">match at {TARGET}</span>
-      </div>
-    </div>
-  );
+const HERO: Record<string, React.FC<{ isDark: boolean }>> = {
+  'linear-search': LinearScanHero,
+  'binary-search': BinarySearchHero,
+  'lower-bound': LowerBoundHero,
+  'upper-bound': UpperBoundHero,
+  'ternary-search': TernarySearchHero,
 };
 
 export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
@@ -145,15 +87,21 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
           isDark ? 'border-white/10 bg-[#0a0a0a]' : 'border-zinc-200 bg-white'
         }`}
       >
-        {/* Resize handle on the LEFT edge. */}
         <div
           onMouseDown={(e) => {
             e.preventDefault();
             rightEdge.current = e.currentTarget.parentElement!.getBoundingClientRect().right;
             setIsResizing(true);
           }}
+          tabIndex={0}
+          role="separator"
+          aria-orientation="vertical"
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') setWidth((w) => Math.min(MAX_WIDTH, w + 10));
+            if (e.key === 'ArrowRight') setWidth((w) => Math.max(MIN_WIDTH, w - 10));
+          }}
           title="Drag to resize"
-          className="group absolute left-0 top-0 z-40 flex h-full w-1.5 -translate-x-1/2 cursor-col-resize justify-center"
+          className="group absolute left-0 top-0 z-40 flex h-full w-1.5 -translate-x-1/2 cursor-col-resize justify-center outline-none focus-visible:ring-2 focus-visible:ring-link focus-visible:bg-link/20"
         >
           <span className={`h-full w-px transition-colors ${isResizing ? 'bg-link' : 'bg-transparent group-hover:bg-link'}`} />
         </div>
@@ -162,23 +110,27 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
         <div className={`flex items-center justify-between gap-2 border-b px-4 py-3 ${isDark ? 'border-white/10' : 'border-zinc-200'}`}>
           <div className="flex min-w-0 items-baseline gap-2 overflow-hidden">
             <h2 className={`min-w-0 truncate text-[15px] font-semibold tracking-[-0.02em] ${strongText}`}>{algo.name}</h2>
-            <span className={`shrink-0 font-mono text-[10px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{algo.complexity}</span>
+            <span className={`shrink-0 font-mono text-[12px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{algo.complexity}</span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             title="Collapse panel"
             aria-label="Collapse panel"
-            className={`flex shrink-0 items-center rounded-md p-1 cursor-pointer transition-colors ${
-              isDark ? 'text-zinc-400 hover:bg-white/10 hover:text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+            className={`flex shrink-0 items-center rounded-md p-1 cursor-pointer transition-colors outline-none focus-visible:ring-2 ${
+              isDark ? 'text-zinc-400 hover:bg-white/10 hover:text-white focus-visible:ring-white/50' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-zinc-400'
             }`}
           >
-            <PanelRightClose size={15} />
+            <PanelRightClose size={15} aria-hidden="true" />
           </button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-          {algorithmId === 'linear-search' && <LinearScanHero isDark={isDark} />}
+          {(() => {
+            const Hero = HERO[algorithmId];
+            return Hero ? <Hero isDark={isDark} /> : null;
+          })()}
 
           <p className={`mt-4 text-[13.5px] leading-relaxed ${strongText}`}>{doc.tagline}</p>
           <p className={`mt-2.5 text-[12.5px] leading-relaxed ${bodyText}`}>{doc.idea}</p>
@@ -188,7 +140,7 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
             <ol className="flex flex-col gap-2">
               {doc.steps.map((step, i) => (
                 <li key={i} className="flex gap-2.5">
-                  <span className={`mt-px font-mono text-[10px] tabular-nums ${isDark ? 'text-emerald-500' : 'text-emerald-600'}`}>
+                  <span className={`mt-px font-mono text-[12px] tabular-nums ${isDark ? 'text-emerald-500' : 'text-emerald-600'}`}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <span className={`text-[12.5px] leading-snug ${bodyText}`}>{step}</span>
@@ -199,7 +151,7 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
 
           {/* Complexity */}
           <Section eyebrow={eyebrow} label="Complexity">
-            <div className={`overflow-hidden rounded-lg border ${isDark ? 'border-white/[0.08]' : 'border-zinc-200'}`}>
+            <dl className={`overflow-hidden rounded-lg border ${isDark ? 'border-white/[0.08]' : 'border-zinc-200'}`}>
               {doc.complexity.map((row, i) => (
                 <div
                   key={row.label}
@@ -207,12 +159,12 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
                     i > 0 ? (isDark ? 'border-t border-white/[0.06]' : 'border-t border-zinc-100') : ''
                   }`}
                 >
-                  <span className={`w-16 shrink-0 text-[11px] ${bodyText}`}>{row.label}</span>
-                  <span className={`w-16 shrink-0 font-mono text-[12px] ${strongText}`}>{row.value}</span>
-                  <span className={`text-[11px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{row.note}</span>
+                  <dt className={`w-16 shrink-0 text-[11.5px] ${bodyText}`}>{row.label}</dt>
+                  <dd className={`w-16 shrink-0 font-mono text-[12px] ${strongText}`}>{row.value}</dd>
+                  <dd className={`text-[11.5px] ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{row.note}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </Section>
 
           {/* Reach for it when */}
@@ -227,11 +179,16 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
 
           {/* Reference implementation */}
           <Section eyebrow={eyebrow} label="Reference">
-            <pre className={`overflow-x-auto rounded-lg border px-3 py-2.5 text-[11.5px] leading-relaxed ${
-              isDark ? 'border-white/[0.08] bg-black/40 text-zinc-300' : 'border-zinc-200 bg-zinc-50 text-zinc-700'
-            }`}>
-              <code className="font-mono">{doc.code}</code>
-            </pre>
+            <div className={`overflow-hidden rounded-lg border text-[11.5px] [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!bg-transparent ${isDark ? 'border-white/[0.08] bg-black/40' : 'border-zinc-200 bg-zinc-50'}`}>
+              <CodeMirror
+                value={doc.code}
+                readOnly={true}
+                editable={false}
+                theme={isDark ? vscodeDark : vscodeLight}
+                extensions={[doc.code.includes('function ') || doc.code.includes('let ') ? javascript() : cpp()]}
+                basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }}
+              />
+            </div>
           </Section>
         </div>
       </motion.aside>
