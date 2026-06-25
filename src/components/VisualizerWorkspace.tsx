@@ -3,6 +3,7 @@ import { PanelLeft } from 'lucide-react';
 import { AlgorithmSidebar } from './AlgorithmSidebar';
 import { VisualizerCanvas } from './VisualizerCanvas';
 import type { VisualizerCanvasHandle } from './VisualizerCanvas';
+import { DocSidebar } from './DocSidebar';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -19,6 +20,9 @@ export const VisualizerWorkspace: React.FC = () => {
     setOpen(!isMobile);
   }, [isMobile]);
 
+  // The algorithm doc panel on the right. null = collapsed.
+  const [docId, setDocId] = useState<string | null>(null);
+
   return (
     <div className={`relative flex h-full w-full overflow-hidden ${isDark ? 'bg-[#0c0c0e]' : 'bg-slate-50'}`}>
       <AlgorithmSidebar
@@ -26,8 +30,13 @@ export const VisualizerWorkspace: React.FC = () => {
         isMobile={isMobile}
         onClose={() => setOpen(false)}
         onAdd={(id) => canvasRef.current?.addAtCenter(id)}
+        onOpenDoc={(id) => setDocId(id)}
       />
       <VisualizerCanvas ref={canvasRef} />
+
+      {docId && !isMobile && (
+        <DocSidebar algorithmId={docId} onClose={() => setDocId(null)} />
+      )}
 
       {/* Floating toggle to reveal the sidebar when it's collapsed. There's no
           TabBar in the Visualizer, so this is the only way back to the list. */}
