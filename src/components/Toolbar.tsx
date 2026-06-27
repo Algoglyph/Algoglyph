@@ -229,7 +229,7 @@ ${JSON.stringify(data, null, 2)}
           <span className="grid h-5 w-5 place-items-center" aria-hidden>
             <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
           </span>
-          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">DSADelta</h1>
+          <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">Algoglyph</h1>
         </button>
 
         <div className="h-3.5 w-px bg-hairline" />

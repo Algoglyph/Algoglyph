@@ -169,9 +169,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center justify-between px-6 sm:px-12">
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 shrink-0">
-            <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
+            <img src="/favicon.png" alt="algoglyph logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">DSADelta</span>
+          <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">Algoglyph</span>
         </div>
 
         {/* Center menu links like QuantPad */}
@@ -216,7 +216,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           </motion.h1>
 
           <motion.p variants={heroItemVariants} className="text-[16px] sm:text-[18px] lg:text-[20px] leading-relaxed text-[#a1a1a1] max-w-[700px] text-center">
-            DSADelta is a spatial workspace integrating engineering notebooks, infinite drawing canvases, interactive compilers, and state visualizers. It replaces disconnected tabs with a unified feedback loop to help developers build spatial mental models.
+            Algoglyph is a spatial workspace integrating engineering notebooks, infinite drawing canvases, interactive compilers, and state visualizers. It replaces disconnected tabs with a unified feedback loop to help developers build spatial mental models.
           </motion.p>
 
           <motion.div variants={heroItemVariants} className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
@@ -309,7 +309,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               Why traditional computer science study feels fragmented
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. DSADelta closes this loop.
+              Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. Algoglyph closes this loop.
             </p>
           </div>
 
@@ -437,7 +437,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               An infinite canvas for spatial thinking
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Data structures are spatial layouts in memory. DSADelta places your visualizations on an infinite whiteboard. Draw links, organize nodes in frames, zoom out to examine complex system topologies, and map out memory networks manually.
+              Data structures are spatial layouts in memory. Algoglyph places your visualizations on an infinite whiteboard. Draw links, organize nodes in frames, zoom out to examine complex system topologies, and map out memory networks manually.
             </p>
             <div className="flex flex-col gap-2 font-mono text-[13px] text-white/60 mt-1">
               <span className="flex items-center gap-2">
@@ -718,7 +718,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             Lessons designed for algorithmic intuition
           </h2>
           <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-            DSADelta provides visual intuition breakdowns. Study algorithmic workflows by watching states resolve dynamically, rather than dry traces of code lines.
+            Algoglyph provides visual intuition breakdowns. Study algorithmic workflows by watching states resolve dynamically, rather than dry traces of code lines.
           </p>
         </div>
 
@@ -808,7 +808,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               The Connected Learning Cycle
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              DSADelta runs as an integrated feedback loop. As you write, draw, execute code, and debug, your visual understanding updates.
+              Algoglyph runs as an integrated feedback loop. As you write, draw, execute code, and debug, your visual understanding updates.
             </p>
           </div>
 
@@ -847,7 +847,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             Designed for engineers, students, and educators
           </h2>
           <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-            From dry runs to whiteboard design, DSADelta is a computer science workspace.
+            From dry runs to whiteboard design, Algoglyph is a computer science workspace.
           </p>
         </div>
 
@@ -926,7 +926,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             Stop memorizing. Start understanding.
           </h2>
           <p className="text-[16px] leading-relaxed text-[#a1a1a1] max-w-md">
-            Launch DSADelta to build mental models of algorithms. Experience the spatial CS sandbox.
+            Launch Algoglyph to build mental models of algorithms. Experience the spatial CS sandbox.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-1.5">
@@ -934,7 +934,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               onClick={onLaunch}
               className="px-6.5 py-3 rounded-lg bg-white hover:bg-[#ededed] text-black text-[14.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer font-sans shadow-[0_1px_2px_rgba(255,255,255,0.15)]"
             >
-              <span>Launch DSADelta Workspace</span>
+              <span>Launch Algoglyph Workspace</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -945,7 +945,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <footer className="py-10 border-t border-white/[0.04] bg-[#070709] relative z-10">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-white/30">
           <div className="flex items-center gap-2">
-            <span>© {new Date().getFullYear()} DSADelta. Workspace Sandbox client.</span>
+            <span>© {new Date().getFullYear()} Algoglyph. Workspace Sandbox client.</span>
           </div>
           <div className="flex gap-4">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
