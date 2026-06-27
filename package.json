@@ -40,6 +40,7 @@
     "lowlight": "^3.3.0",
     "lucide-react": "^1.21.0",
     "postcss": "^8.5.15",
+    "posthog-js": "^1.393.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "scheduler": "^0.27.0",

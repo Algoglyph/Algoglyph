@@ -95,6 +95,17 @@ const randInt = (a: number, b: number) => a + Math.floor(Math.random() * (b - a 
 const randomArray = (n: number, lo = 8, hi = 90) =>
   Array.from({ length: n }, () => randInt(lo, hi));
 
+// n distinct small values (sorted) — used by combinatorial demos like subsets,
+// permutations and combination-sum, where duplicate elements read oddly.
+const randomSmallSet = (n: number, hi = 9): number[] => {
+  const pool = Array.from({ length: hi }, (_, i) => i + 1);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = randInt(0, i);
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, Math.min(n, hi)).sort((a, b) => a - b);
+};
+
 const toCells = (vals: number[]): ArrayCell[] => vals.map((v, i) => ({ id: i, v }));
 const cloneCells = (cells: ArrayCell[]): ArrayCell[] => cells.map((c) => ({ ...c }));
 
@@ -751,6 +762,141 @@ const GENERATORS: Record<string, (custom?: number[]) => Frame[]> = {
   'union-find': unionFind,
 };
 
+// ── Recursion & Backtracking: full enumeration walkthroughs ─────────────────
+// These emit one array frame per decision (choose / recurse / record / backtrack)
+// so the playback mirrors the actual recursion tree, not just a sample slice.
+// Input size is capped so the frame count stays watchable on arbitrary input.
+
+/** Distinct, length-capped input for a combinatorial walkthrough. */
+function prepCombinatorial(custom: number[] | undefined, maxN: number): number[] {
+  const base = custom && custom.length > 0 ? custom : randomSmallSet(3);
+  return [...new Set(base)].slice(0, maxN);
+}
+
+function buildSubsetsFrames(custom?: number[]): ArrayFrame[] {
+  const vals = prepCombinatorial(custom, 4); // ≤ 16 subsets
+  const cells = toCells(vals);
+  const n = vals.length;
+  const frames: ArrayFrame[] = [];
+  const chosen: number[] = []; // indices included on the current path
+  const results: string[] = [];
+
+  const marks = (active?: number): Partial<Record<number, ArrayCellState>> => {
+    const m: Partial<Record<number, ArrayCellState>> = {};
+    for (const idx of chosen) m[idx] = 'found';
+    if (active !== undefined) m[active] = 'active';
+    return m;
+  };
+  const subset = (extra?: number) =>
+    `{${[...chosen, ...(extra !== undefined ? [extra] : [])].map((i) => vals[i]).join(', ')}}`;
+
+  frames.push(arrFrame(cells, `Subsets via backtracking: for each element, branch include vs exclude (2^${n} = ${1 << n} subsets)`));
+
+  const solve = (i: number) => {
+    if (i === n) {
+      results.push(subset());
+      frames.push(arrFrame(cells, `Leaf reached → record ${subset()}  (${results.length}/${1 << n})`, marks()));
+      return;
+    }
+    frames.push(arrFrame(cells, `Index ${i}: include ${vals[i]} → ${subset(i)}`, marks(i)));
+    chosen.push(i);
+    solve(i + 1);
+    chosen.pop();
+    frames.push(arrFrame(cells, `Index ${i}: exclude ${vals[i]} → backtrack to ${subset()}`, marks(i)));
+    solve(i + 1);
+  };
+  solve(0);
+  frames.push(arrFrame(cells, `Done — ${results.length} subsets enumerated`));
+  return frames;
+}
+
+function buildPermutationsFrames(custom?: number[]): ArrayFrame[] {
+  const vals = prepCombinatorial(custom, 4); // ≤ 24 permutations
+  const cells = toCells(vals);
+  const n = vals.length;
+  let total = 1;
+  for (let k = 2; k <= n; k++) total *= k;
+  const frames: ArrayFrame[] = [];
+  const used = Array(n).fill(false);
+  const path: number[] = []; // indices placed so far
+  const results: string[] = [];
+
+  const marks = (active?: number): Partial<Record<number, ArrayCellState>> => {
+    const m: Partial<Record<number, ArrayCellState>> = {};
+    for (const idx of path) m[idx] = 'found';
+    if (active !== undefined) m[active] = 'active';
+    return m;
+  };
+  const perm = (extra?: number) =>
+    `[${[...path, ...(extra !== undefined ? [extra] : [])].map((i) => vals[i]).join(', ')}]`;
+
+  frames.push(arrFrame(cells, `Permutations via backtracking: place each unused element in turn (${n}! = ${total})`));
+
+  const solve = () => {
+    if (path.length === n) {
+      results.push(perm());
+      frames.push(arrFrame(cells, `Full permutation ${perm()} → record  (${results.length}/${total})`, marks()));
+      return;
+    }
+    for (let i = 0; i < n; i++) {
+      if (used[i]) continue;
+      frames.push(arrFrame(cells, `Position ${path.length}: choose ${vals[i]} → ${perm(i)}`, marks(i)));
+      used[i] = true;
+      path.push(i);
+      solve();
+      path.pop();
+      used[i] = false;
+      frames.push(arrFrame(cells, `Backtrack: undo ${vals[i]}, current ${perm()}`, marks(i)));
+    }
+  };
+  solve();
+  frames.push(arrFrame(cells, `Done — ${results.length} permutations enumerated`));
+  return frames;
+}
+
+function buildCombinationSumFrames(custom?: number[]): ArrayFrame[] {
+  let vals = prepCombinatorial(custom, 4).filter((v) => v > 0).sort((a, b) => a - b);
+  if (vals.length === 0) vals = [2, 3];
+  const cells = toCells(vals);
+  const n = vals.length;
+  const target = vals[0] * 3; // always reachable (all vals[0]) and depth-bounded
+  const frames: ArrayFrame[] = [];
+  const combo: number[] = []; // chosen values, repeats allowed
+  const results: string[] = [];
+
+  const marks = (active?: number): Partial<Record<number, ArrayCellState>> => {
+    const m: Partial<Record<number, ArrayCellState>> = {};
+    for (let i = 0; i < n; i++) if (combo.includes(vals[i])) m[i] = 'found';
+    if (active !== undefined) m[active] = 'active';
+    return m;
+  };
+
+  frames.push(arrFrame(cells, `Combination Sum: pick candidates (reuse allowed) that total ${target}`));
+
+  const solve = (start: number, remaining: number) => {
+    if (remaining === 0) {
+      results.push(`[${combo.join(', ')}]`);
+      frames.push(arrFrame(cells, `Sum = ${target} ✓ record [${combo.join(', ')}]  (found ${results.length})`, marks()));
+      return;
+    }
+    for (let i = start; i < n; i++) {
+      if (vals[i] > remaining) {
+        // candidates are sorted, so every later one overshoots too
+        frames.push(arrFrame(cells, `${vals[i]} > remaining ${remaining} → prune`, marks(i)));
+        break;
+      }
+      frames.push(arrFrame(cells, `Choose ${vals[i]} → [${[...combo, vals[i]].join(', ')}], remaining ${remaining - vals[i]}`, marks(i)));
+      combo.push(vals[i]);
+      solve(i, remaining - vals[i]); // i (not i+1) → reuse allowed
+      combo.pop();
+      frames.push(arrFrame(cells, `Backtrack: undo ${vals[i]}, combo [${combo.join(', ')}]`, marks(i)));
+    }
+  };
+  solve(0, target);
+  frames.push(arrFrame(cells, `Done — ${results.length} combination(s) total ${target}`));
+  return frames;
+}
+
 function generateDynamicFrames(id: string, category: string, custom?: number[]): Frame[] {
   const frames: Frame[] = [];
 
@@ -971,16 +1117,16 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
       edgeState['A-B'] = 'active';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Process fib(2): call fib(1)'));
       nodeState['B'] = 'frontier';
-      nodeState['D'] = 'visited';
-      edgeState['B-D'] = 'tree';
+      nodeState['C'] = 'visited';
+      edgeState['B-C'] = 'tree';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(1) base case returns 1'));
       nodeState['E'] = 'visited';
       edgeState['B-E'] = 'tree';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(0) base case returns 0'));
       nodeState['B'] = 'visited';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(2) returns 1'));
-      nodeState['C'] = 'visited';
-      edgeState['A-C'] = 'tree';
+      nodeState['D'] = 'visited';
+      edgeState['A-D'] = 'tree';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(1) right subtree returns 1'));
       nodeState['A'] = 'visited';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'fib(3) completed: returns 2 ✓'));
@@ -997,40 +1143,17 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'B violates constraints: Backtrack'));
       nodeState['B'] = 'done';
       edgeState['A-B'] = 'idle';
-      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Return to A: choose child C'));
+      frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Return to A: choose child D'));
       nodeState['A'] = 'frontier';
-      nodeState['C'] = 'visited';
-      edgeState['A-C'] = 'tree';
+      nodeState['D'] = 'visited';
+      edgeState['A-D'] = 'tree';
       frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Valid solution path found ✓'));
     } else if (id === 'subsets') {
-      const vals = custom && custom.length > 0 ? custom : [1, 2, 3];
-      const cells = toCells(vals);
-      frames.push(arrFrame(cells, 'Backtracking Subsets: start with {}'));
-      if (vals.length > 0) frames.push(arrFrame(cells, `Include ${vals[0]}: {${vals[0]}}`, { 0: 'compare' }));
-      if (vals.length > 1) frames.push(arrFrame(cells, `Include ${vals[1]}: {${vals[0]}, ${vals[1]}}`, { 0: 'compare', 1: 'compare' }));
-      if (vals.length > 2) frames.push(arrFrame(cells, `Include ${vals[2]}: {${vals.slice(0, 3).join(', ')}} -> subset stored ✓`, { 0: 'found', 1: 'found', 2: 'found' }));
+      frames.push(...buildSubsetsFrames(custom));
     } else if (id === 'permutations') {
-      const vals = custom && custom.length > 0 ? custom : [1, 2, 3];
-      const cells = toCells(vals);
-      frames.push(arrFrame(cells, 'Backtracking Permutations: sequence swap choices'));
-      frames.push(arrFrame(cells, `Swap index 0 & 0: fixed [${vals[0]}]`, { 0: 'pivot' }));
-      if (vals.length > 1) {
-        frames.push(arrFrame(cells, `Swap index 1 & 1 -> Permutation [${vals.join(', ')}] ✓`, { 0: 'sorted', 1: 'pivot' }));
-        if (vals.length > 2) {
-          const swapped = [...cells];
-          [swapped[1], swapped[2]] = [swapped[2], swapped[1]];
-          frames.push(arrFrame(swapped, `Swap index 1 & 2 -> Permutation [${swapped.map(c=>c.v).join(', ')}] ✓`, { 0: 'sorted', 1: 'swap', 2: 'swap' }));
-        }
-      }
+      frames.push(...buildPermutationsFrames(custom));
     } else if (id === 'combination-sum') {
-      const vals = custom && custom.length > 0 ? custom : [2, 3, 5];
-      const cells = toCells(vals);
-      const target = vals[0] * 4;
-      frames.push(arrFrame(cells, `Combination Sum backtracking: target = ${target}`));
-      frames.push(arrFrame(cells, `Choose ${vals[0]}: target remaining = ${target - vals[0]}`, { 0: 'compare' }));
-      frames.push(arrFrame(cells, `Choose ${vals[0]}: target remaining = ${target - vals[0]*2}`, { 0: 'compare' }));
-      frames.push(arrFrame(cells, `Choose ${vals[0]}: target remaining = ${target - vals[0]*3}`, { 0: 'compare' }));
-      frames.push(arrFrame(cells, `Choose ${vals[0]} -> Sum match [${Array(4).fill(vals[0]).join(', ')}] found ✓`, { 0: 'found' }));
+      frames.push(...buildCombinationSumFrames(custom));
     }
   }
 
@@ -1367,6 +1490,25 @@ export const CUSTOM_INPUT_ALGORITHMS = new Set([
   // additional array-based algorithms that can work with custom input
   'fast-slow-pointer', 'subsets', 'permutations', 'combination-sum', 'coordinate-compression',
 ]);
+
+/**
+ * Categories whose dynamic generators build frames from a freshly randomized
+ * array, so "Regenerate" produces a genuinely different visualization.
+ */
+const RANDOMIZED_CATEGORIES = new Set(['Sorting', 'Searching']);
+
+/**
+ * Whether the Regenerate (random input) button does anything for an algorithm.
+ * It's meaningful when the generator randomizes its input (Sorting/Searching
+ * categories) or supports custom input (the button reverts custom → default).
+ * Static demos like recursion / recursion-tree / backtracking / n-queens emit
+ * fixed frames, so regenerate is a no-op there and the button is hidden.
+ */
+export function supportsRegenerate(algorithmId: string): boolean {
+  if (CUSTOM_INPUT_ALGORITHMS.has(algorithmId)) return true;
+  const algo = getAlgorithm(algorithmId);
+  return !!algo && RANDOMIZED_CATEGORIES.has(algo.category);
+}
 
 export function getFrames(algorithmId: string, customInput?: string): Frame[] {
   // Parse custom comma-separated numeric input
