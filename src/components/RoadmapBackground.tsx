@@ -31,13 +31,24 @@ interface Particle {
 
 interface RoadmapBackgroundProps {
   scrollYProgress?: MotionValue<number>;
+  /**
+   * Palette of the dust motes. `warm` (default) is the roadmap's bone/cream;
+   * `neutral` is a colourless grey-white for surfaces that must not read warm.
+   */
+  tone?: 'warm' | 'neutral';
 }
 
-// Warm, monochrome palette — bone & cream. No blue anywhere.
-const BONE = '226, 222, 213';
-const CREAM = '244, 238, 226';
+// Two monochrome palettes — both blue-free. `warm` leans bone/cream; `neutral`
+// is a true grey-white so the texture never looks brownish.
+const PALETTES = {
+  warm: { bone: '226, 222, 213', cream: '244, 238, 226' },
+  neutral: { bone: '214, 216, 220', cream: '242, 243, 247' },
+} as const;
 
-export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({ scrollYProgress }) => {
+export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({
+  scrollYProgress,
+  tone = 'warm',
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -45,6 +56,9 @@ export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({ scrollYPro
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
+
+    const BONE = PALETTES[tone].bone;
+    const CREAM = PALETTES[tone].cream;
 
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isCoarse = window.matchMedia('(pointer: coarse)').matches;
@@ -258,7 +272,7 @@ export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({ scrollYPro
       window.removeEventListener('mouseout', onLeave);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [scrollYProgress]);
+  }, [scrollYProgress, tone]);
 
   return <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full" />;
 };
