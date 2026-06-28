@@ -1,3 +1,7 @@
+# Explicit routes (takes precedence over 404.html)
+/workspace /index.html 200
+/roadmap /index.html 200
+
 # SPA fallback (Cloudflare Pages / Netlify format).
 # Real static assets are served first; any other path (e.g. /workspace,
 # /roadmap, or a deep link refresh) falls back to index.html so the client
