@@ -1,9 +1,10 @@
-# Explicit routes (takes precedence over 404.html)
-/workspace /index.html 200
-/roadmap /index.html 200
+# Client-side routes rendered by the SPA. Serve the app shell with a 200
+# (the URL is preserved, NOT a 3xx redirect) so a hard refresh or deep link
+# is handled by the in-app router instead of being bounced to the homepage.
+/workspace   /index.html   200
+/roadmap     /index.html   200
 
-# SPA fallback (Cloudflare Pages / Netlify format).
-# Real static assets are served first; any other path (e.g. /workspace,
-# /roadmap, or a deep link refresh) falls back to index.html so the client
-# router can handle it.
-/*    /index.html   200
+# Everything else: real static assets (/, /privacy/, /terms/) are served
+# directly, and any genuinely unknown path falls through to Cloudflare Pages'
+# 404.html. We intentionally do NOT add a `/* /index.html 200` catch-all,
+# because it would swallow real 404s into the app shell.
