@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import type { VisualizerNodeData } from '../store/workspaceStore';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { getAlgorithm } from '../config/algorithms';
 import { getFrames, CUSTOM_INPUT_ALGORITHMS, supportsRegenerate } from '../lib/algorithmFrames';
 import { FrameRenderer } from './visualizers/Visualizers';
@@ -121,6 +122,7 @@ const VisualizerNodeImpl: React.FC<{
   const removeNode = useWorkspaceStore((s) => s.removeVisualizerNode);
   const theme = useWorkspaceStore((s) => s.theme);
   const isDark = theme === 'dark';
+  const isMobile = useIsMobile();
   const algo = getAlgorithm(node.algorithmId);
 
   // Custom input support
@@ -240,12 +242,12 @@ const VisualizerNodeImpl: React.FC<{
     >
       <VisNodeRoot>
         <div
-          onPointerEnter={() => setIsHeaderHovered(true)}
+          onPointerEnter={() => !isMobile && setIsHeaderHovered(true)}
           onPointerLeave={() => setIsHeaderHovered(false)}
           className="relative"
         >
           <AnimatePresence>
-            {isHeaderHovered && snippet && (
+            {isHeaderHovered && snippet && !isMobile && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}

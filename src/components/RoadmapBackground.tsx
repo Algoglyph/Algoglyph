@@ -109,9 +109,9 @@ export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({
       }
     };
 
-    const onMove = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
+    // Shared trail logic for both the mouse and a moving finger — spawns motes
+    // evenly along the travelled segment so fast flicks leave a continuous trail.
+    const pointerMove = (x: number, y: number) => {
       cursor.x = x;
       cursor.y = y;
       cursor.on = true;
@@ -127,7 +127,6 @@ export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({
       const dist = Math.hypot(dx, dy);
       accDist += dist;
 
-      // Emit motes evenly along the segment so fast flicks leave a continuous trail.
       let placed = 0;
       while (accDist >= SPAWN_EVERY) {
         accDist -= SPAWN_EVERY;
@@ -147,8 +146,34 @@ export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({
       lastX = null;
       lastY = null;
     };
+
+    const onMove = (e: MouseEvent) => pointerMove(e.clientX, e.clientY);
+
+    // Touch: the finger is the cursor. Seed the trail on touchstart so the first
+    // move doesn't streak from a stale point, and emit a small burst so even a
+    // tap stirs the field. Passive listeners — never block scrolling.
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      lastX = t.clientX;
+      lastY = t.clientY;
+      cursor.x = t.clientX;
+      cursor.y = t.clientY;
+      cursor.on = true;
+      cursor.lastMove = performance.now();
+      spawn(t.clientX, t.clientY);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (t) pointerMove(t.clientX, t.clientY);
+    };
+
     window.addEventListener('mousemove', onMove, { passive: true });
     window.addEventListener('mouseout', onLeave);
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onLeave, { passive: true });
+    window.addEventListener('touchcancel', onLeave, { passive: true });
 
     let raf = 0;
     let running = true;
@@ -270,6 +295,10 @@ export const RoadmapBackground: React.FC<RoadmapBackgroundProps> = ({
       window.removeEventListener('resize', resize);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseout', onLeave);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onLeave);
+      window.removeEventListener('touchcancel', onLeave);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [scrollYProgress, tone]);

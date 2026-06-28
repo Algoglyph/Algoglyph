@@ -29,6 +29,11 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
   viewRef.current = view;
   const [isPanning, setIsPanning] = useState(false);
 
+  // Active pointers for a unified gesture model: one pointer pans, two pinch-zoom.
+  // Works for mouse, pen and touch alike via the Pointer Events API.
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinch = useRef<{ dist: number; cx: number; cy: number } | null>(null);
+
   // Convert a client (screen) point to canvas-space coordinates.
   const toCanvas = useCallback((clientX: number, clientY: number) => {
     const rect = containerRef.current!.getBoundingClientRect();
@@ -42,11 +47,19 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
   useImperativeHandle(ref, () => ({
     addAtCenter: (algorithmId: string) => {
       // Place near the top-left of the *visible* viewport (in canvas space),
-      // so the node is always on-screen regardless of current pan/zoom.
+      // so the node is always on-screen regardless of current pan/zoom. The
+      // node is ~344px wide, so on a phone it has to hug the left edge with a
+      // gentle cascade or it spills off the right side of the screen.
       const { tx, ty, scale } = viewRef.current;
       const count = useWorkspaceStore.getState().visualizerNodes.length;
       const n = count % 6;
-      addNode(algorithmId, (-tx + 56 + n * 60) / scale, (-ty + 48 + n * 40) / scale);
+      const mobile = window.matchMedia('(max-width: 767px)').matches;
+      const baseX = mobile ? 10 : 56;
+      const stepX = mobile ? 16 : 60;
+      // Clear the floating "Algorithms" toggle (top-left) on mobile.
+      const baseY = mobile ? 56 : 48;
+      const stepY = mobile ? 28 : 40;
+      addNode(algorithmId, (-tx + baseX + n * stepX) / scale, (-ty + baseY + n * stepY) / scale);
     },
   }));
 
@@ -80,18 +93,71 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
   const onPointerDown = (e: React.PointerEvent) => {
     // Ignore presses that land on a node — those drag the node, not the canvas.
     if ((e.target as HTMLElement).closest('[data-node-root]')) return;
-    const start = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty };
+
+    const isFirst = pointers.current.size === 0;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     setIsPanning(true);
+
+    // When a second finger lands, seed the pinch baseline (gap + midpoint).
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = {
+        dist: Math.hypot(a.x - b.x, a.y - b.y),
+        cx: (a.x + b.x) / 2,
+        cy: (a.y + b.y) / 2,
+      };
+    }
+    // Only the first pointer wires up the window listeners; later fingers share
+    // them via the pointer map so moves aren't processed twice.
+    if (!isFirst) return;
+
     const onMove = (ev: PointerEvent) => {
-      setView((v) => ({ ...v, tx: start.tx + (ev.clientX - start.x), ty: start.ty + (ev.clientY - start.y) }));
+      if (!pointers.current.has(ev.pointerId)) return;
+      const prev = pointers.current.get(ev.pointerId)!;
+      pointers.current.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+
+      if (pointers.current.size >= 2 && pinch.current) {
+        // Two-finger pinch: scale about the pinch midpoint and pan by its drift.
+        const [a, b] = [...pointers.current.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const cx = (a.x + b.x) / 2;
+        const cy = (a.y + b.y) / 2;
+        const rect = containerRef.current!.getBoundingClientRect();
+        const g = pinch.current;
+        const panX = cx - g.cx;
+        const panY = cy - g.cy;
+        setView((v) => {
+          const factor = g.dist > 0 ? dist / g.dist : 1;
+          const next = clamp(v.scale * factor, 0.35, 2.2);
+          const px = cx - rect.left;
+          const py = cy - rect.top;
+          return {
+            scale: next,
+            tx: px - ((px - v.tx) * next) / v.scale + panX,
+            ty: py - ((py - v.ty) * next) / v.scale + panY,
+          };
+        });
+        pinch.current = { dist, cx, cy };
+      } else {
+        // Single pointer: pan by this pointer's delta.
+        const dx = ev.clientX - prev.x;
+        const dy = ev.clientY - prev.y;
+        setView((v) => ({ ...v, tx: v.tx + dx, ty: v.ty + dy }));
+      }
     };
-    const onUp = () => {
-      setIsPanning(false);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
+    const onUp = (ev: PointerEvent) => {
+      pointers.current.delete(ev.pointerId);
+      if (pointers.current.size < 2) pinch.current = null;
+      if (pointers.current.size === 0) {
+        setIsPanning(false);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+      }
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -127,6 +193,9 @@ export const VisualizerCanvas = forwardRef<VisualizerCanvasHandle>((_props, ref)
       onDrop={onDrop}
       className={`relative h-full flex-1 overflow-hidden transition-colors ${theme === 'dark' ? 'bg-[#0c0c0e]' : 'bg-[#fafafa]'} ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
+        // Claim all touch gestures so one-finger pan, node drag, and two-finger
+        // pinch-zoom drive the canvas instead of scrolling/zooming the page.
+        touchAction: 'none',
         backgroundImage: theme === 'dark'
           ? 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)'
           : 'radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)',

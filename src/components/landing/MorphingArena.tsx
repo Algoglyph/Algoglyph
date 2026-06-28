@@ -201,7 +201,12 @@ export const MorphingArena: React.FC<MorphingArenaProps> = ({ activeStage }) => 
   const links = getLinks();
 
   return (
-    <div className="relative w-[340px] sm:w-[500px] h-[340px] sm:h-[500px] flex items-center justify-center select-none">
+    // Wrapper sized to the *scaled* footprint so the demo doesn't reserve a full
+    // 500px box on mobile. The inner arena keeps the fixed 500px design (the node
+    // coords + SVG center=250 all assume it) and is scaled down uniformly so the
+    // connector lines stay aligned with the nodes.
+    <div className="flex items-center justify-center shrink-0 w-[310px] h-[310px] sm:w-[500px] sm:h-[500px]">
+    <div className="relative w-[500px] h-[500px] shrink-0 flex items-center justify-center select-none scale-[0.62] sm:scale-100">
       {/* Workspace Mockup container for Stage 6 climax */}
       <motion.div
         animate={{
@@ -560,6 +565,7 @@ export const MorphingArena: React.FC<MorphingArenaProps> = ({ activeStage }) => 
           </motion.div>
         );
       })}
+    </div>
     </div>
   );
 };

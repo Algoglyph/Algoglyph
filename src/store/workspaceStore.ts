@@ -255,6 +255,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           isLoading: false,
           saveStatus: 'saved',
           roadmapProgress: saved?.roadmapProgress || {},
+          visualizerNodes: Array.isArray(saved?.visualizerNodes) ? saved!.visualizerNodes : [],
         });
       } catch (error) {
         console.error('Failed to initialize workspace from database:', error);
@@ -358,11 +359,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         activeTabId: get().activeTabId,
         updatedAt: Date.now(),
         roadmapProgress: get().roadmapProgress,
+        // The visualizer is a global workspace, persisted alongside the tabs.
+        visualizerNodes: get().visualizerNodes,
       };
       await saveWorkspace(workspaceData);
     },
 
     importWorkspace: async (data) => {
+      // Carry the visualizer workspace across imports when the file includes it;
+      // otherwise leave the current blocks untouched.
+      const importedNodes = Array.isArray(data.visualizerNodes)
+        ? { visualizerNodes: data.visualizerNodes }
+        : {};
       if (data && Array.isArray(data.tabs) && data.tabs.length > 0) {
         // Full multi-tab workspace.
         const tabs = data.tabs.map((t) => makeTab(t));
@@ -370,7 +378,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           ? data.activeTabId
           : tabs[0].id;
         const active = tabs.find((t) => t.id === activeTabId)!;
-        loadTabIntoMirror(active, { tabs, activeTabId, saveStatus: 'saved' });
+        loadTabIntoMirror(active, { tabs, activeTabId, saveStatus: 'saved', ...importedNodes });
       } else {
         // Legacy single-document export → add as a new tab and focus it.
         const tabs = reconcileTabs();
@@ -385,6 +393,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           tabs: [...tabs, tab],
           activeTabId: tab.id,
           saveStatus: 'saved',
+          ...importedNodes,
         });
       }
       await get().saveCurrentWorkspace();
@@ -488,6 +497,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
         y,
       };
       set({ visualizerNodes: [...get().visualizerNodes, node] });
+      scheduleAutoSave();
     },
 
     moveVisualizerNode: (id, x, y) => {
@@ -496,13 +506,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => {
           n.id === id ? { ...n, x, y } : n
         ),
       });
+      scheduleAutoSave();
     },
 
     removeVisualizerNode: (id) => {
       set({ visualizerNodes: get().visualizerNodes.filter((n) => n.id !== id) });
+      scheduleAutoSave();
     },
 
-    clearVisualizerNodes: () => set({ visualizerNodes: [] }),
+    clearVisualizerNodes: () => {
+      set({ visualizerNodes: [] });
+      scheduleAutoSave();
+    },
 
     updateRoadmapProgress: (key, status) => {
       set({

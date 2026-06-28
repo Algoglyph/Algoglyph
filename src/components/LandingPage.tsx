@@ -241,7 +241,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               visually.
             </span>
             <br />
-            Not by memorization.
+            with seamless note-making.
           </motion.h1>
 
           <motion.p variants={heroItemVariants} className="text-[16px] sm:text-[18px] leading-relaxed text-[#9a9a9f] max-w-[640px] text-center text-balance">
@@ -657,8 +657,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             </p>
           </div>
 
-          {/* Stage selector — compact pill bar */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit mb-12">
+          {/* Stage selector — compact pill bar. Scrolls horizontally on narrow
+              screens instead of overflowing the viewport. */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit max-w-full overflow-x-auto mb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([1, 2, 3, 4, 5] as const).map((stage) => {
               const labels: Record<number, string> = {
                 1: 'Array',
@@ -671,7 +672,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                 <button
                   key={stage}
                   onClick={() => setActiveStage(stage)}
-                  className={`px-5 py-2 rounded-lg text-[13px] font-sans font-medium transition duration-200 cursor-pointer ${
+                  className={`shrink-0 px-3.5 sm:px-5 py-2 rounded-lg text-[12px] sm:text-[13px] font-sans font-medium transition duration-200 cursor-pointer whitespace-nowrap ${
                     activeStage === stage
                       ? 'bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.3)]'
                       : 'text-[#666] hover:text-white'
