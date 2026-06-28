@@ -32,8 +32,39 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isElectron = typeof window !== 'undefined' && /electron/i.test(navigator.userAgent);
-  const [view, setView] = useState<'landing' | 'roadmap' | 'workspace'>(isElectron ? 'workspace' : 'landing');
+  
+  const getInitialView = () => {
+    if (isElectron) return 'workspace';
+    const path = window.location.pathname;
+    if (path === '/workspace' || path === '/workspace/') return 'workspace';
+    if (path === '/roadmap' || path === '/roadmap/') return 'roadmap';
+    return 'landing';
+  };
+
+  const [view, setViewState] = useState<'landing' | 'roadmap' | 'workspace'>(getInitialView());
   const isMobile = useIsMobile();
+
+  const setView = (newView: 'landing' | 'roadmap' | 'workspace') => {
+    setViewState(newView);
+    if (!isElectron) {
+      const newPath = newView === 'landing' ? '/' : `/${newView}`;
+      if (window.location.pathname !== newPath) {
+        window.history.pushState(null, '', newPath);
+      }
+    }
+  };
+
+  // Sync view state when user uses browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+       const path = window.location.pathname;
+       if (path === '/workspace' || path === '/workspace/') setViewState('workspace');
+       else if (path === '/roadmap' || path === '/roadmap/') setViewState('roadmap');
+       else setViewState('landing');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
