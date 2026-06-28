@@ -66,8 +66,8 @@
     "vite": "^8.0.12"
   },
   "build": {
-    "appId": "com.scratchpad.app",
-    "productName": "Scratchpad",
+    "appId": "com.algoglyph.app",
+    "productName": "Algoglyph",
     "directories": {
       "output": "release"
     },
@@ -85,7 +85,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Scratchpad"
+      "shortcutName": "Algoglyph"
     },
     "mac": {
       "target": "dmg",

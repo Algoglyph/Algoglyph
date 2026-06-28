@@ -9,9 +9,7 @@ import {
   Layers,
   Network,
   BookOpen,
-  CheckCircle2,
-  Download,
-  ChevronDown
+  CheckCircle2
 } from 'lucide-react';
 import { MockWorkspace } from './landing/MockWorkspace';
 import { MorphingArena } from './landing/MorphingArena';
@@ -153,7 +151,6 @@ const listItemVariants: Variants = {
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) => {
   const [activeStage, setActiveStage] = useState(1); // 1 (Array) to 5 (Graph)
   const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py' | 'java' | 'js'>('py');
-  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
   const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>, id: string) => {
     e.preventDefault();
@@ -266,60 +263,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               <span>Explore CS Roadmap</span>
               <ArrowRight size={14} className="opacity-60" />
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setDownloadMenuOpen((prev) => !prev)}
-                className="px-6.5 py-3.5 rounded-full border border-white/10 hover:border-white/25 bg-white/[0.02] text-[15px] font-semibold text-white/60 hover:text-white transition flex items-center justify-center gap-2 cursor-pointer font-sans w-full"
-              >
-                <Download size={14} />
-                <span>Get App</span>
-                <ChevronDown size={14} className={`transition-transform duration-200 ${downloadMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {downloadMenuOpen && (
-                  <>
-                    {/* Invisible backdrop to close menu */}
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent" 
-                      onClick={() => setDownloadMenuOpen(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.15, ease: 'easeOut' }}
-                      className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 mt-2.5 w-56 rounded-xl border border-white/[0.08] bg-[#0d0d0f]/90 backdrop-blur-md p-1.5 shadow-[0_24px_50px_rgba(0,0,0,0.6)] z-50 flex flex-col text-left select-none"
-                    >
-                      <a
-                        href="/release/Scratchpad Setup 1.0.3.exe"
-                        download
-                        className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg hover:bg-white/[0.04] text-[13.5px] font-medium text-white/80 hover:text-white transition duration-150 cursor-pointer"
-                        onClick={() => setDownloadMenuOpen(false)}
-                      >
-                        <span className="font-mono text-[9px] text-[#d4d4d4] font-bold border border-[#d4d4d4]/20 bg-[#d4d4d4]/10 px-1.5 py-0.5 rounded">WIN</span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white">Windows Installer</span>
-                          <span className="text-[10px] text-white/40">Windows 10/11 (.exe)</span>
-                        </div>
-                      </a>
-                      <a
-                        href="/release/Scratchpad-1.0.3.dmg"
-                        download
-                        className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg hover:bg-white/[0.04] text-[13.5px] font-medium text-white/80 hover:text-white transition duration-150 cursor-pointer"
-                        onClick={() => setDownloadMenuOpen(false)}
-                      >
-                        <span className="font-mono text-[9px] text-[#d4d4d4] font-bold border border-[#d4d4d4]/20 bg-[#d4d4d4]/10 px-1.5 py-0.5 rounded">MAC</span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white">macOS DMG</span>
-                          <span className="text-[10px] text-white/40">Intel & Apple Silicon (.dmg)</span>
-                        </div>
-                      </a>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
           </motion.div>
 
           {/* Stat triad — agency "big numbers" */}

@@ -18,18 +18,22 @@ const Editor = lazy(() => import('./components/Editor').then((m) => ({ default: 
 const CodeEditor = lazy(() => import('./components/CodeEditor').then((m) => ({ default: m.CodeEditor })));
 const VisualizerWorkspace = lazy(() => import('./components/VisualizerWorkspace').then((m) => ({ default: m.VisualizerWorkspace })));
 const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const PrivacyPage = lazy(() => import('./components/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
+const TermsPage = lazy(() => import('./components/TermsPage').then((m) => ({ default: m.TermsPage })));
 
 // ── URL routing (web only) ──────────────────────────────────────────────────
 // Each view maps to a real path so the homepage is `/`, the workspace is
 // `/workspace`, and the roadmap is `/roadmap` — deep-linkable and back/forward
 // aware. Electron loads over file:// with no address bar, so it stays on the
 // in-memory `view` state and never touches history.
-type View = 'landing' | 'roadmap' | 'workspace' | 'not-found';
+type View = 'landing' | 'roadmap' | 'workspace' | 'privacy' | 'terms' | 'not-found';
 
 const VIEW_TO_PATH: Record<View, string> = {
   landing: '/',
   roadmap: '/roadmap',
   workspace: '/workspace',
+  privacy: '/privacy',
+  terms: '/terms',
   'not-found': '/404',
 };
 
@@ -37,6 +41,8 @@ const pathToView = (pathname: string): View => {
   if (pathname === '/') return 'landing';
   if (pathname.startsWith('/workspace')) return 'workspace';
   if (pathname.startsWith('/roadmap')) return 'roadmap';
+  if (pathname.startsWith('/privacy')) return 'privacy';
+  if (pathname.startsWith('/terms')) return 'terms';
   return 'not-found';
 };
 
@@ -111,6 +117,47 @@ const App: React.FC = () => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.style.colorScheme = theme;
   }, [theme]);
+
+  // Intercept all link clicks globally inside Electron so relative routes
+  // route client-side (no file:// navigation crashes) and external ones open externally.
+  useEffect(() => {
+    if (!isElectron) return;
+
+    const handleGlobalLinkClicks = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      if (!anchor) return;
+
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+
+      // Intercept local page routes
+      if (href.startsWith('/')) {
+        e.preventDefault();
+        const cleanPath = href.split(/[?#]/)[0].replace(/\/$/, ''); // Remove query/hashes & trailing slashes
+        if (cleanPath === '' || cleanPath === '/') {
+          goTo('landing');
+        } else if (cleanPath === '/privacy') {
+          goTo('privacy');
+        } else if (cleanPath === '/terms') {
+          goTo('terms');
+        } else if (cleanPath === '/roadmap') {
+          goTo('roadmap');
+        } else if (cleanPath === '/workspace') {
+          goTo('workspace');
+        } else {
+          goTo('not-found');
+        }
+      } else if (href.startsWith('http://') || href.startsWith('https://')) {
+        // Intercept external links and open via setWindowOpenHandler
+        e.preventDefault();
+        window.open(href, '_blank');
+      }
+    };
+
+    document.addEventListener('click', handleGlobalLinkClicks, true);
+    return () => document.removeEventListener('click', handleGlobalLinkClicks, true);
+  }, [isElectron, goTo]);
 
   // Handle global keyboard shortcuts: Ctrl+B (Toggle views), Ctrl+S (Manual Save), Ctrl+K (Command Palette)
   useEffect(() => {
@@ -204,6 +251,22 @@ const App: React.FC = () => {
         onBack={() => goTo('landing')}
         onLaunch={() => goTo('workspace')}
       />
+      </Suspense>
+    );
+  }
+
+  if (view === 'privacy') {
+    return (
+      <Suspense fallback={<FullScreenLoader />}>
+        <PrivacyPage />
+      </Suspense>
+    );
+  }
+
+  if (view === 'terms') {
+    return (
+      <Suspense fallback={<FullScreenLoader />}>
+        <TermsPage />
       </Suspense>
     );
   }
