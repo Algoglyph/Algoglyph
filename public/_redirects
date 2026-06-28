@@ -1,10 +1,10 @@
-# Client-side routes rendered by the SPA. Serve the app shell with a 200
-# (the URL is preserved, NOT a 3xx redirect) so a hard refresh or deep link
-# is handled by the in-app router instead of being bounced to the homepage.
-/workspace   /index.html   200
-/roadmap     /index.html   200
-
-# Everything else: real static assets (/, /privacy/, /terms/) are served
-# directly, and any genuinely unknown path falls through to Cloudflare Pages'
-# 404.html. We intentionally do NOT add a `/* /index.html 200` catch-all,
-# because it would swallow real 404s into the app shell.
+# No redirect rules needed.
+#
+# /workspace and /roadmap are real built HTML entry points (workspace.html,
+# roadmap.html — see vite.config.ts), served as static assets by Cloudflare
+# Pages just like /privacy and /terms. Each boots the full App, which renders
+# the right view from location.pathname.
+#
+# We deliberately do NOT rewrite them to /index.html here: Cloudflare Pages
+# canonicalizes an /index.html destination and bounces the request to `/`,
+# which is what sent hard refreshes back to the landing page.
