@@ -128,7 +128,7 @@ Process finished with exit code 0.`);
             <div className="w-5 h-5 shrink-0">
               <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-display text-sm font-semibold tracking-[-0.02em] text-white">DSADelta</span>
+            <span className="font-display text-sm font-semibold tracking-[-0.02em] text-white">Algoglyph</span>
           </div>
 
           <div className="h-3.5 w-px bg-white/10" />

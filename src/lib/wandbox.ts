@@ -7,6 +7,29 @@
 
 const WANDBOX_BASE = 'https://wandbox.org/api';
 
+/**
+ * fetch with a hard timeout. The runner is a third-party service, so a hung
+ * request must not hang the UI forever — abort and surface a clear error.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = 30_000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`The code runner timed out after ${Math.round(timeoutMs / 1000)}s. Please try again.`, { cause: err });
+    }
+    throw new Error('Could not reach the code runner. Check your connection and try again.', { cause: err });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 interface WandboxCompiler {
   name: string;
   language: string;
@@ -24,7 +47,7 @@ let compilersCache: WandboxCompiler[] | null = null;
 
 async function getCompilers(): Promise<WandboxCompiler[]> {
   if (compilersCache) return compilersCache;
-  const res = await fetch(`${WANDBOX_BASE}/list.json`);
+  const res = await fetchWithTimeout(`${WANDBOX_BASE}/list.json`, {}, 15_000);
   if (!res.ok) throw new Error(`Could not reach the code runner (${res.status})`);
   compilersCache = (await res.json()) as WandboxCompiler[];
   return compilersCache;
@@ -48,11 +71,11 @@ export async function runCode({ wandboxLanguage, preferPattern, code, stdin }: R
     : undefined;
   const compiler = preferred ?? candidates[0];
 
-  const res = await fetch(`${WANDBOX_BASE}/compile.json`, {
+  const res = await fetchWithTimeout(`${WANDBOX_BASE}/compile.json`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ compiler: compiler.name, code, stdin: stdin ?? '' }),
-  });
+  }, 30_000);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Runner error ${res.status}: ${text || res.statusText}`);

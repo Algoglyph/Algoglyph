@@ -102,7 +102,8 @@ export const Canvas: React.FC = () => {
       }
 
       const key = e.key.toLowerCase();
-      let toolType: string | null = null;
+      // Every non-`default` case assigns this; `default` returns early.
+      let toolType: string;
 
       switch (key) {
         case 't':

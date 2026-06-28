@@ -1,18 +1,53 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense, useCallback } from 'react';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { Toolbar } from './components/Toolbar';
 import { TabBar } from './components/TabBar';
-import { Canvas } from './components/Canvas';
-import { Editor } from './components/Editor';
-import { CodeEditor } from './components/CodeEditor';
-import { VisualizerWorkspace } from './components/VisualizerWorkspace';
 import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
-import { LandingPage } from './components/LandingPage';
-import { RoadmapPage } from './components/RoadmapPage';
 import { MobileNav } from './components/MobileNav';
 import { useIsMobile } from './hooks/useIsMobile';
+
+// Heavy, route-/pane-level components are code-split so the first paint (the
+// landing page) doesn't ship Excalidraw, CodeMirror, TipTap, KaTeX and Mermaid.
+// They load on demand when their view/pane is actually shown.
+const LandingPage = lazy(() => import('./components/LandingPage').then((m) => ({ default: m.LandingPage })));
+const RoadmapPage = lazy(() => import('./components/RoadmapPage').then((m) => ({ default: m.RoadmapPage })));
+const Canvas = lazy(() => import('./components/Canvas').then((m) => ({ default: m.Canvas })));
+const Editor = lazy(() => import('./components/Editor').then((m) => ({ default: m.Editor })));
+const CodeEditor = lazy(() => import('./components/CodeEditor').then((m) => ({ default: m.CodeEditor })));
+const VisualizerWorkspace = lazy(() => import('./components/VisualizerWorkspace').then((m) => ({ default: m.VisualizerWorkspace })));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+
+// ── URL routing (web only) ──────────────────────────────────────────────────
+// Each view maps to a real path so the homepage is `/`, the workspace is
+// `/workspace`, and the roadmap is `/roadmap` — deep-linkable and back/forward
+// aware. Electron loads over file:// with no address bar, so it stays on the
+// in-memory `view` state and never touches history.
+type View = 'landing' | 'roadmap' | 'workspace' | 'not-found';
+
+const VIEW_TO_PATH: Record<View, string> = {
+  landing: '/',
+  roadmap: '/roadmap',
+  workspace: '/workspace',
+  'not-found': '/404',
+};
+
+const pathToView = (pathname: string): View => {
+  if (pathname === '/') return 'landing';
+  if (pathname.startsWith('/workspace')) return 'workspace';
+  if (pathname.startsWith('/roadmap')) return 'roadmap';
+  return 'not-found';
+};
+
+const FullScreenLoader: React.FC = () => (
+  <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
+    <div className="flex flex-col items-center gap-4">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-link/30 border-t-link" />
+      <div className="text-[11px] tracking-[0.3em] uppercase text-mute">Loading</div>
+    </div>
+  </div>
+);
 
 const App: React.FC = () => {
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
@@ -32,21 +67,44 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isElectron = typeof window !== 'undefined' && /electron/i.test(navigator.userAgent);
-  const [view, setView] = useState<'landing' | 'roadmap' | 'workspace'>(isElectron ? 'workspace' : 'landing');
+  // On the web the initial view comes from the URL (so deep links / refreshes
+  // land on the right screen); Electron always opens straight into the workspace.
+  const [view, setView] = useState<View>(
+    isElectron ? 'workspace' : pathToView(window.location.pathname),
+  );
   const isMobile = useIsMobile();
+
+  // Navigate between views and keep the URL in sync (web only). `push` is false
+  // when the change originated from the browser's back/forward buttons.
+  const goTo = useCallback(
+    (next: View, { push = true }: { push?: boolean } = {}) => {
+      const apply = () => setView(next);
+      if (!isElectron && push && window.location.pathname !== VIEW_TO_PATH[next]) {
+        window.history.pushState({ view: next }, '', VIEW_TO_PATH[next]);
+      }
+      if (document.startViewTransition) {
+        document.startViewTransition(apply);
+      } else {
+        apply();
+      }
+    },
+    [isElectron],
+  );
+
+  // Reflect browser back/forward onto the view.
+  useEffect(() => {
+    if (isElectron) return;
+    const onPopState = () => goTo(pathToView(window.location.pathname), { push: false });
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [isElectron, goTo]);
 
   // Initialize workspace from IndexedDB on load
   useEffect(() => {
     initializeWorkspace();
     (window as any).useWorkspaceStore = useWorkspaceStore;
-    (window as any).goToLanding = () => {
-      if (document.startViewTransition) {
-        document.startViewTransition(() => setView('landing'));
-      } else {
-        setView('landing');
-      }
-    };
-  }, [initializeWorkspace]);
+    (window as any).goToLanding = () => goTo('landing');
+  }, [initializeWorkspace, goTo]);
 
   // Reflect the active theme onto <html> so the .dark token overrides apply.
   useEffect(() => {
@@ -130,51 +188,31 @@ const App: React.FC = () => {
 
   if (view === 'landing') {
     return (
+      <Suspense fallback={<FullScreenLoader />}>
       <LandingPage
-        onLaunch={() => {
-          if (document.startViewTransition) {
-            document.startViewTransition(() => {
-              setView('workspace');
-            });
-          } else {
-            setView('workspace');
-          }
-        }}
-        onViewRoadmap={() => {
-          if (document.startViewTransition) {
-            document.startViewTransition(() => {
-              setView('roadmap');
-            });
-          } else {
-            setView('roadmap');
-          }
-        }}
+        onLaunch={() => goTo('workspace')}
+        onViewRoadmap={() => goTo('roadmap')}
       />
+      </Suspense>
     );
   }
 
   if (view === 'roadmap') {
     return (
+      <Suspense fallback={<FullScreenLoader />}>
       <RoadmapPage
-        onBack={() => {
-          if (document.startViewTransition) {
-            document.startViewTransition(() => {
-              setView('landing');
-            });
-          } else {
-            setView('landing');
-          }
-        }}
-        onLaunch={() => {
-          if (document.startViewTransition) {
-            document.startViewTransition(() => {
-              setView('workspace');
-            });
-          } else {
-            setView('workspace');
-          }
-        }}
+        onBack={() => goTo('landing')}
+        onLaunch={() => goTo('workspace')}
       />
+      </Suspense>
+    );
+  }
+
+  if (view === 'not-found') {
+    return (
+      <Suspense fallback={<FullScreenLoader />}>
+        <NotFoundPage />
+      </Suspense>
     );
   }
 
@@ -211,7 +249,16 @@ const App: React.FC = () => {
           workspace rather than per-tab content. */}
       {!showVisualizer && <TabBar />}
 
-      {/* Main Workspace Panels — leave room for the fixed bottom nav on mobile. */}
+      {/* Main Workspace Panels — leave room for the fixed bottom nav on mobile.
+          Wrapped in Suspense because the panes (Canvas/Editor/Code/Visualizer)
+          are code-split and load on demand. */}
+      <Suspense
+        fallback={
+          <div className="flex flex-1 w-full items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-link/30 border-t-link" />
+          </div>
+        }
+      >
       <div className="flex flex-1 w-full overflow-hidden relative pb-14 md:pb-0">
         {/* Transparent drag overlay to prevent Excalidraw from absorbing events while resizing */}
         {isDragging && (
@@ -220,7 +267,7 @@ const App: React.FC = () => {
 
         {/* Full-area Code Runner */}
         {showCode && (
-          <div className="h-full w-full overflow-hidden">
+          <div className="h-full w-full overflow-hidden ph-no-capture">
             {/* Key by tab so each tab gets its own code buffer / starter template. */}
             <CodeEditor key={activeTabId} />
           </div>
@@ -237,7 +284,7 @@ const App: React.FC = () => {
         {showCanvas && (
           <div
             style={{ width: `${canvasWidth}%` }}
-            className={`h-full overflow-hidden bg-canvas ${paneTransition}`}
+            className={`h-full overflow-hidden bg-canvas ${paneTransition} ph-no-capture`}
           >
             {/* Key by tab so the canvas remounts with each tab's own scene
                 instead of leaking the previous tab's elements via a stale onChange. */}
@@ -257,11 +304,12 @@ const App: React.FC = () => {
         {/* Right pane: Notes Editor — always mounted so it can slide closed */}
         <div
           style={{ width: `${notesWidth}%` }}
-          className={`h-full overflow-hidden flex-shrink-0 ${paneTransition}`}
+          className={`h-full overflow-hidden flex-shrink-0 ${paneTransition} ph-no-capture`}
         >
           <Editor />
         </div>
       </div>
+      </Suspense>
 
       {/* Global Command Palette triggered by Ctrl+K */}
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
