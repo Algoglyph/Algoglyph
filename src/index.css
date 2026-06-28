@@ -217,6 +217,15 @@ body {
   pointer-events: none;
 }
 
+/* Tighter gutters on phones so the notebook column isn't squeezed by the
+   desktop 2.5rem side padding (which leaves barely any room at ~375px). */
+@media (max-width: 767px) {
+  .ProseMirror {
+    padding: 1.5rem 1.15rem 5rem;
+    font-size: 0.9375rem;
+  }
+}
+
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3 {

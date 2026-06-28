@@ -14,11 +14,23 @@ export interface TabData {
   updatedAt: number;
 }
 
+// One algorithm block on the (global) visualizer canvas. Persisted so the
+// visualizer workspace survives reloads like the rest of the workspace.
+export interface VisualizerNodeRecord {
+  id: string;
+  algorithmId: string;
+  x: number;
+  y: number;
+}
+
 export interface WorkspaceData {
   tabs: TabData[];
   activeTabId: string;
   updatedAt: number;
   roadmapProgress?: Record<string, 'Not Started' | 'In Progress' | 'Completed'>;
+  // The algorithm visualizer is a single global workspace (not per-tab), so its
+  // blocks live alongside the tabs rather than inside one.
+  visualizerNodes?: VisualizerNodeRecord[];
   // Legacy single-document fields kept optional for backward-compatible migration.
   notes?: string;
   canvasElements?: any[];

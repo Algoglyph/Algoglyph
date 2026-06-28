@@ -26,8 +26,13 @@ export const TabBar: React.FC = () => {
   // Keep the left control cluster exactly as wide as the STRUCTURES sidebar so
   // the tabs begin above the canvas content (to the right of the sidebar),
   // Obsidian-style. Tracks the sidebar's live (resizable) width when open.
-  // On mobile the sidebar is an overlay drawer, so the cluster stays compact.
-  const clusterWidth = isMobile ? 44 : !canvasVisible ? 44 : structuresPanelOpen ? structuresWidth : 68;
+  // On mobile the sidebar is an overlay drawer, so the cluster only needs to fit
+  // its buttons: 68px for both (structures toggle + search) in canvas mode, or
+  // 44px for the lone search button otherwise. A flat 44 clipped the magnifier
+  // into a white sliver in canvas mode.
+  const clusterWidth = isMobile
+    ? (canvasVisible ? 68 : 44)
+    : !canvasVisible ? 44 : structuresPanelOpen ? structuresWidth : 68;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
