@@ -992,6 +992,54 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       </section>
 
 
+      <section id="about" className="py-24 border-y border-white/[0.04] bg-[#09090b]/30 z-10 relative">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 text-center flex flex-col items-center gap-12">
+          <div className="max-w-2xl flex flex-col gap-3">
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">About Us</span>
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
+              The mission behind Algoglyph
+            </h2>
+            <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
+              Algoglyph was built because we realized how heavily developers rely on fragmented notes. We made note-taking seamless so you don't have to constantly juggle between YouTube tutorials, PDF textbooks, and separate code editors while practicing for interviews. Everything you need to build intuition is unified in one visual workspace.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="py-24 z-10 relative">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 flex flex-col items-center gap-12">
+          <div className="max-w-2xl text-center flex flex-col gap-3">
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Contact Us</span>
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
+              Get in touch
+            </h2>
+            <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
+              Have questions, feedback, or need support? We'd love to hear from you.
+            </p>
+          </div>
+          
+          <div className="w-full max-w-lg bg-[#0c0c0e]/50 border border-white/[0.05] rounded-3xl p-8 backdrop-blur-sm shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_24px_50px_rgba(0,0,0,0.5)]">
+            <form action="https://formspree.io/f/xwvdbrre" method="POST" className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-mono text-white/50 uppercase tracking-wider">Name</label>
+                <input type="text" name="name" required placeholder="Your name" className="bg-[#000000]/40 border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white outline-none focus:border-white/30 transition-colors" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-mono text-white/50 uppercase tracking-wider">Email</label>
+                <input type="email" name="email" required placeholder="you@example.com" className="bg-[#000000]/40 border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white outline-none focus:border-white/30 transition-colors" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-mono text-white/50 uppercase tracking-wider">Message</label>
+                <textarea name="message" required placeholder="How can we help?" rows={4} className="bg-[#000000]/40 border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white outline-none focus:border-white/30 transition-colors resize-none" />
+              </div>
+              <button type="submit" className="mt-2 px-6 py-3.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-[14.5px] font-semibold transition cursor-pointer text-center">
+                Send Message
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-32 relative z-10 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.008),transparent_60%)] pointer-events-none" />
@@ -1003,7 +1051,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             </span>
           </h2>
           <p className="text-[16px] leading-relaxed text-[#a1a1a1] max-w-md">
-            Launch Algoglyph to build mental models of algorithms. Experience the spatial CS sandbox.
+            Launch Algoglyph to build mental models, write code, and take seamless notes. <br className="hidden sm:block" />
+            Experience the unified spatial CS sandbox.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-1.5">
@@ -1025,8 +1074,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             <span>© {new Date().getFullYear()} Algoglyph. Workspace Sandbox client.</span>
           </div>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="/privacy/" className="hover:text-white transition-colors">Privacy</a>
+            <a href="/terms/" className="hover:text-white transition-colors">Terms</a>
             <a href="#" className="hover:text-white transition-colors">Repository</a>
           </div>
         </div>

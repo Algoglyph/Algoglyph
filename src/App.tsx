@@ -17,24 +17,27 @@ const Canvas = lazy(() => import('./components/Canvas').then((m) => ({ default: 
 const Editor = lazy(() => import('./components/Editor').then((m) => ({ default: m.Editor })));
 const CodeEditor = lazy(() => import('./components/CodeEditor').then((m) => ({ default: m.CodeEditor })));
 const VisualizerWorkspace = lazy(() => import('./components/VisualizerWorkspace').then((m) => ({ default: m.VisualizerWorkspace })));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
 // ── URL routing (web only) ──────────────────────────────────────────────────
 // Each view maps to a real path so the homepage is `/`, the workspace is
 // `/workspace`, and the roadmap is `/roadmap` — deep-linkable and back/forward
 // aware. Electron loads over file:// with no address bar, so it stays on the
 // in-memory `view` state and never touches history.
-type View = 'landing' | 'roadmap' | 'workspace';
+type View = 'landing' | 'roadmap' | 'workspace' | 'not-found';
 
 const VIEW_TO_PATH: Record<View, string> = {
   landing: '/',
   roadmap: '/roadmap',
   workspace: '/workspace',
+  'not-found': '/404',
 };
 
 const pathToView = (pathname: string): View => {
+  if (pathname === '/') return 'landing';
   if (pathname.startsWith('/workspace')) return 'workspace';
   if (pathname.startsWith('/roadmap')) return 'roadmap';
-  return 'landing';
+  return 'not-found';
 };
 
 const FullScreenLoader: React.FC = () => (
@@ -205,6 +208,14 @@ const App: React.FC = () => {
     );
   }
 
+  if (view === 'not-found') {
+    return (
+      <Suspense fallback={<FullScreenLoader />}>
+        <NotFoundPage />
+      </Suspense>
+    );
+  }
+
 
   // Calculate which panes to show based on layoutMode
   const showCode = layoutMode === 'code';
@@ -256,7 +267,7 @@ const App: React.FC = () => {
 
         {/* Full-area Code Runner */}
         {showCode && (
-          <div className="h-full w-full overflow-hidden">
+          <div className="h-full w-full overflow-hidden ph-no-capture">
             {/* Key by tab so each tab gets its own code buffer / starter template. */}
             <CodeEditor key={activeTabId} />
           </div>
@@ -273,7 +284,7 @@ const App: React.FC = () => {
         {showCanvas && (
           <div
             style={{ width: `${canvasWidth}%` }}
-            className={`h-full overflow-hidden bg-canvas ${paneTransition}`}
+            className={`h-full overflow-hidden bg-canvas ${paneTransition} ph-no-capture`}
           >
             {/* Key by tab so the canvas remounts with each tab's own scene
                 instead of leaking the previous tab's elements via a stale onChange. */}
@@ -293,7 +304,7 @@ const App: React.FC = () => {
         {/* Right pane: Notes Editor — always mounted so it can slide closed */}
         <div
           style={{ width: `${notesWidth}%` }}
-          className={`h-full overflow-hidden flex-shrink-0 ${paneTransition}`}
+          className={`h-full overflow-hidden flex-shrink-0 ${paneTransition} ph-no-capture`}
         >
           <Editor />
         </div>
