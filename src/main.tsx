@@ -4,6 +4,7 @@ import posthog from 'posthog-js'
 import { PostHogProvider } from 'posthog-js/react'
 import './index.css'
 import App from './App.tsx'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 if (import.meta.env.VITE_POSTHOG_KEY) {
   posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
@@ -14,8 +15,10 @@ if (import.meta.env.VITE_POSTHOG_KEY) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PostHogProvider client={posthog}>
-      <App />
-    </PostHogProvider>
+    <ErrorBoundary>
+      <PostHogProvider client={posthog}>
+        <App />
+      </PostHogProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

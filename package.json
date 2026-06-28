@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "electron .",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "ELECTRON_BUILD=1 npm run build && electron-builder"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",
@@ -34,8 +34,7 @@
     "@tiptap/starter-kit": "^3.26.1",
     "@uiw/react-codemirror": "^4.25.10",
     "autoprefixer": "^10.5.1",
-    "firebase": "^12.15.0",
-    "framer-motion": "^12.40.0",
+    "framer-motion": "^12.42.0",
     "headroom-ai": "^0.22.4",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.21.0",

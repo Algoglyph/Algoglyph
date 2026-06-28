@@ -523,7 +523,12 @@ function dijkstra(): GraphFrame[] {
   for (let iter = 0; iter < spec.nodes.length; iter++) {
     let u: string | null = null;
     let best = Infinity;
-    for (const n of spec.nodes) if (!done[n.id] && dist[n.id] < best) ((best = dist[n.id]), (u = n.id));
+    for (const n of spec.nodes) {
+      if (!done[n.id] && dist[n.id] < best) {
+        best = dist[n.id];
+        u = n.id;
+      }
+    }
     if (u === null) break;
     done[u] = true;
     const cur = nodeState();

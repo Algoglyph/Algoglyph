@@ -105,7 +105,9 @@ ${JSON.stringify(data, null, 2)}
           try {
             data = JSON.parse(content);
             isLegacyJson = true;
-          } catch (err) { }
+          } catch {
+            // Not valid legacy JSON — fall through to the markdown import path.
+          }
         }
 
         if (!isLegacyJson) {
