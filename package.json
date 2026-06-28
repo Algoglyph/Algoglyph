@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name algoglyph",
     "electron": "electron .",
     "electron:build": "ELECTRON_BUILD=1 npm run build && electron-builder"
   },
