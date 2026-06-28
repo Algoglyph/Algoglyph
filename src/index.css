@@ -217,6 +217,15 @@ body {
   pointer-events: none;
 }
 
+/* Tighter gutters on phones so the notebook column isn't squeezed by the
+   desktop 2.5rem side padding (which leaves barely any room at ~375px). */
+@media (max-width: 767px) {
+  .ProseMirror {
+    padding: 1.5rem 1.15rem 5rem;
+    font-size: 0.9375rem;
+  }
+}
+
 .ProseMirror h1,
 .ProseMirror h2,
 .ProseMirror h3 {
@@ -406,6 +415,204 @@ body {
    inside `.App-bottom-bar`. That container only exists in mobile mode, so hiding it
    suppresses both without affecting the desktop panels. */
 .excalidraw .App-bottom-bar { display: none !important; }
+
+/* ── Excalidraw right-dock panels (Search + Library) — re-skinned ──
+   The "Find on canvas" search (Cmd/Ctrl+F) and the shape Library both render
+   in Excalidraw's right `.sidebar` dock. We restyle the shared dock chrome
+   plus each panel's contents with the app's Geist tokens (mono type, hairline
+   borders, link-blue accent) so they read as part of Scratchpad instead of
+   stock Excalidraw. Everything is token-driven, so it follows light/dark
+   automatically. The shared chrome targets `.sidebar` directly (the only
+   sidebars are search + library); panel-specific rules use their own
+   `.layer-ui__search*` / `.library-menu-*` classes. */
+.excalidraw .sidebar {
+  /* float the dock off the edges into a rounded card, like the site palettes */
+  top: 0.5rem !important;
+  bottom: 0.5rem !important;
+  right: 0.5rem !important;
+  width: calc(var(--right-sidebar-width) - 1rem) !important;
+  background-color: var(--color-canvas) !important;
+  border: 1px solid var(--color-hairline) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-modal) !important;
+  font-family: var(--font-mono) !important;
+  /* drive Excalidraw's accent from the theme-aware link token (matches dark) */
+  --color-primary: var(--color-link) !important;
+  --color-primary-darker: var(--color-link-deep) !important;
+  --color-primary-darkest: var(--color-link-deep) !important;
+  --color-primary-light: var(--color-link-soft) !important;
+}
+
+/* header divider + ghost buttons (tab pills, pin, close, ⋯ menu) */
+.excalidraw .sidebar .sidebar__header::after {
+  background: var(--color-hairline) !important;
+}
+.excalidraw .sidebar .sidebar-triggers {
+  border: 1px solid var(--color-hairline) !important;
+  background: var(--color-canvas-soft) !important;
+}
+.excalidraw .sidebar .sidebar__header__buttons button {
+  color: var(--color-body) !important;
+  border-radius: 8px !important;
+}
+.excalidraw .sidebar .sidebar__header__buttons button:hover {
+  background: var(--color-canvas-soft-2) !important;
+  color: var(--color-ink) !important;
+}
+
+/* Active Search/Library tab pill → match the selected-tool surface
+   (the lavender/indigo of the active selection tool) instead of solid blue.
+   Uses the very same tokens the tool button uses, so it tracks light/dark. */
+.excalidraw .sidebar-tab-trigger[data-state="active"] {
+  background-color: var(--color-surface-primary-container) !important;
+  border-color: var(--color-surface-primary-container) !important;
+  color: var(--color-on-primary-container) !important;
+}
+.excalidraw .sidebar-tab-trigger[data-state="active"] svg {
+  color: var(--color-on-primary-container) !important;
+}
+
+/* search input field */
+.excalidraw .layer-ui__search-header .ExcTextField__input {
+  background-color: var(--color-canvas-soft) !important;
+  border: 1px solid var(--color-hairline) !important;
+  border-radius: 9px !important;
+  height: 2.5rem !important;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.excalidraw .layer-ui__search-header .ExcTextField__input:focus-within {
+  border-color: var(--color-link) !important;
+  box-shadow: 0 0 0 3px var(--color-link-soft) !important;
+}
+.excalidraw .layer-ui__search-header .ExcTextField__input input {
+  color: var(--color-ink) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.8125rem !important;
+  letter-spacing: -0.01em;
+}
+.excalidraw .layer-ui__search-header .ExcTextField__input input::placeholder {
+  color: var(--color-mute) !important;
+  font-size: 0.8125rem !important;
+}
+.excalidraw .layer-ui__search-header .ExcTextField svg {
+  color: var(--color-body) !important;
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+/* match count + prev/next nav */
+.excalidraw .layer-ui__search-count {
+  color: var(--color-mute) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.6875rem !important;
+  letter-spacing: 0.02em;
+}
+.excalidraw .layer-ui__search-count .result-nav-btn {
+  color: var(--color-body) !important;
+  border-radius: 8px !important;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.excalidraw .layer-ui__search-count .result-nav-btn:hover {
+  background-color: var(--color-canvas-soft-2) !important;
+  color: var(--color-ink) !important;
+}
+.excalidraw .layer-ui__search-count .result-nav-btn:active {
+  background-color: var(--color-canvas-soft-2) !important;
+}
+
+/* result rows */
+.excalidraw .layer-ui__result-item {
+  color: var(--color-body) !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.75rem !important;
+}
+.excalidraw .layer-ui__result-item:hover {
+  background-color: var(--color-canvas-soft-2) !important;
+  color: var(--color-ink) !important;
+}
+.excalidraw .layer-ui__result-item.active,
+.excalidraw .layer-ui__result-item:active {
+  background-color: var(--color-link-soft) !important;
+  border-color: var(--color-link) !important;
+  color: var(--color-link) !important;
+}
+/* the matched substring inside a preview (rendered as <b>) */
+.excalidraw .layer-ui__result-item .preview-text b {
+  background-color: color-mix(in srgb, var(--color-link) 22%, transparent) !important;
+  color: var(--color-link) !important;
+  border-radius: 3px !important;
+  padding: 0 2px !important;
+  font-weight: 600 !important;
+}
+
+/* ── Library panel contents ─────────────────────────────────── */
+/* "Personal Library" / "Excalidraw Library" section headers → mono caps
+   label, matching the Structures sidebar's category labels (not loud blue) */
+.excalidraw .library-menu-items-container__header {
+  color: var(--color-body) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+/* empty-state ("No items added yet…" + helper line) */
+.excalidraw .library-menu-items__no-items__label {
+  color: var(--color-ink) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+}
+.excalidraw .library-menu-items__no-items {
+  color: var(--color-mute) !important;
+  font-size: 0.8125rem !important;
+}
+.excalidraw .layer-ui__library-message,
+.excalidraw .layer-ui__library-message span {
+  color: var(--color-mute) !important;
+}
+
+/* shape thumbnails: hairline frame, link accent on hover/select */
+.excalidraw .library-unit {
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+}
+.excalidraw .library-unit:hover {
+  background-color: var(--color-canvas-soft-2) !important;
+}
+.excalidraw .library-unit--hover,
+.excalidraw .library-unit--selected {
+  border-color: var(--color-link) !important;
+}
+
+/* divider above the bottom controls */
+.excalidraw .library-menu-control-buttons--at-bottom::before {
+  background: var(--color-hairline) !important;
+}
+
+/* "Browse libraries" button → match the selected-tool surface
+   (lavender/indigo) instead of solid blue, same tokens as the tool button */
+.excalidraw .library-menu-browse-button {
+  background-color: var(--color-surface-primary-container) !important;
+  color: var(--color-on-primary-container) !important;
+  border-radius: 9px !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+}
+.excalidraw .library-menu-browse-button:hover {
+  background-color: var(--color-surface-primary-container) !important;
+  filter: brightness(0.95);
+}
+
+/* the ⋯ heading dropdown menu surface */
+.excalidraw .layer-ui__library .dropdown-menu .dropdown-menu-container {
+  background-color: var(--color-canvas) !important;
+  border: 1px solid var(--color-hairline) !important;
+  box-shadow: var(--shadow-modal) !important;
+}
 
 .resize-active::after {
   content: '';

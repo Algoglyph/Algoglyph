@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import type { VisualizerNodeData } from '../store/workspaceStore';
+import { useIsMobile } from '../hooks/useIsMobile';
 import { getAlgorithm } from '../config/algorithms';
-import { getFrames, CUSTOM_INPUT_ALGORITHMS } from '../lib/algorithmFrames';
+import { getFrames, CUSTOM_INPUT_ALGORITHMS, supportsRegenerate } from '../lib/algorithmFrames';
 import { FrameRenderer } from './visualizers/Visualizers';
 import { ALGORITHM_SNIPPETS } from '../config/algorithmSnippets';
 import CodeMirror from '@uiw/react-codemirror';
@@ -121,10 +122,14 @@ const VisualizerNodeImpl: React.FC<{
   const removeNode = useWorkspaceStore((s) => s.removeVisualizerNode);
   const theme = useWorkspaceStore((s) => s.theme);
   const isDark = theme === 'dark';
+  const isMobile = useIsMobile();
   const algo = getAlgorithm(node.algorithmId);
 
   // Custom input support
   const supportsCustomInput = CUSTOM_INPUT_ALGORITHMS.has(node.algorithmId);
+  // Regenerate only changes the visualization for randomized / custom-input
+  // algorithms; hide the button for static demos (recursion, backtracking, …).
+  const canRegenerate = supportsRegenerate(node.algorithmId);
   const [customInput, setCustomInput] = useState('');
   const [editingInput, setEditingInput] = useState(false);
   const [appliedInput, setAppliedInput] = useState('');
@@ -237,12 +242,12 @@ const VisualizerNodeImpl: React.FC<{
     >
       <VisNodeRoot>
         <div
-          onPointerEnter={() => setIsHeaderHovered(true)}
+          onPointerEnter={() => !isMobile && setIsHeaderHovered(true)}
           onPointerLeave={() => setIsHeaderHovered(false)}
           className="relative"
         >
           <AnimatePresence>
-            {isHeaderHovered && snippet && (
+            {isHeaderHovered && snippet && !isMobile && (
               <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -370,9 +375,11 @@ const VisualizerNodeImpl: React.FC<{
           </button>
 
           <div className="ml-auto flex items-center gap-1">
-            <button onClick={regenerate} className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer ${isDark ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-650 hover:bg-black/5 hover:text-zinc-950'}`} title="Regenerate random input">
-              <Dices size={14} />
-            </button>
+            {canRegenerate && (
+              <button onClick={regenerate} className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer ${isDark ? 'text-zinc-300 hover:bg-white/10 hover:text-white' : 'text-zinc-650 hover:bg-black/5 hover:text-zinc-950'}`} title="Regenerate random input">
+                <Dices size={14} />
+              </button>
+            )}
             <button
               onClick={() => setSpeedIdx((i) => (i + 1) % SPEEDS.length)}
               className={`flex h-7 items-center gap-1 rounded-md px-1.5 text-[10px] font-mono transition-colors cursor-pointer ${isDark ? 'text-zinc-300 hover:bg-white/10' : 'text-zinc-650 hover:bg-black/5 hover:text-zinc-950'}`}

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
@@ -8,7 +8,11 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { common, createLowlight } from 'lowlight';
+import 'katex/dist/katex.min.css';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { InlineMath, MathBlock } from './notes/MathExtensions';
+import { PdfEmbed } from './notes/PdfEmbed';
+import { importPdfFile } from '../lib/notePdfStore';
 import {
   Bold as BoldIcon,
   Italic as ItalicIcon,
@@ -21,9 +25,19 @@ import {
   Terminal as TerminalIcon,
   Table as TableIcon,
   Search as SearchIcon,
+  Sigma as SigmaIcon,
+  FunctionSquare as FunctionSquareIcon,
+  Upload as UploadIcon,
 } from 'lucide-react';
 
 const lowlight = createLowlight(common);
+
+const isPdf = (file: File) =>
+  file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+const isMarkdown = (file: File) =>
+  file.type === 'text/markdown' ||
+  file.type === 'text/plain' ||
+  /\.(md|markdown|txt)$/i.test(file.name);
 
 export const Editor: React.FC = () => {
   const notes = useWorkspaceStore((state) => state.notes);
@@ -31,6 +45,7 @@ export const Editor: React.FC = () => {
   const isLoading = useWorkspaceStore((state) => state.isLoading);
   // Find now uses the search palette UI (Ctrl+F = this tab) instead of a find bar.
   const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -47,6 +62,9 @@ export const Editor: React.FC = () => {
       TableRow,
       TableHeader,
       TableCell,
+      InlineMath,
+      MathBlock,
+      PdfEmbed,
     ],
     content: notes,
     // The stored notes are a markdown string — tell the markdown extension to
@@ -87,6 +105,44 @@ export const Editor: React.FC = () => {
       }
     };
   }, [editor]);
+
+  // ── Shared file handling: PDFs embed as a viewer, .md files insert as
+  // markdown. Used by the Import button, the hidden input, and drag-and-drop. ──
+  const handleFiles = async (files: FileList | File[]) => {
+    if (!editor) return;
+    for (const file of Array.from(files)) {
+      if (isPdf(file)) {
+        try {
+          const { ref, name } = await importPdfFile(file);
+          editor.chain().focus().insertPdf({ src: ref, name }).run();
+        } catch {
+          // ignore a single failed import; others still proceed
+        }
+      } else if (isMarkdown(file)) {
+        const text = await file.text();
+        // The markdown extension augments insertContent with a `contentType`
+        // option at runtime; cast through the command's own param type so the
+        // markdown gets parsed rather than inserted as a literal string.
+        type InsertOpts = Parameters<typeof editor.commands.insertContent>[1];
+        const mdOpts = { contentType: 'markdown' } as InsertOpts;
+        editor.chain().focus().insertContent(`\n${text}\n`, mdOpts).run();
+      }
+    }
+  };
+
+  const onImportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.length) await handleFiles(e.target.files);
+    e.target.value = ''; // allow re-importing the same file
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0 && Array.from(files).some((f) => isPdf(f) || isMarkdown(f))) {
+      e.preventDefault();
+      e.stopPropagation();
+      void handleFiles(files);
+    }
+  };
 
   if (!editor) {
     return null;
@@ -205,6 +261,31 @@ export const Editor: React.FC = () => {
               </button>
             </div>
           )}
+
+          <div className="h-4 w-[1px] bg-hairline mx-1" />
+
+          {/* Math + media */}
+          <button
+            onClick={() => editor.chain().focus().insertInlineMath('').run()}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('inlineMath') ? 'text-link bg-canvas-soft' : 'text-body hover:text-ink'}`}
+            title="Inline math  $…$"
+          >
+            <SigmaIcon size={14} />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().insertMathBlock('').run()}
+            className={`p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer ${editor.isActive('mathBlock') ? 'text-link bg-canvas-soft' : 'text-body hover:text-ink'}`}
+            title="Math block  $$…$$"
+          >
+            <FunctionSquareIcon size={14} />
+          </button>
+          <button
+            onClick={() => importInputRef.current?.click()}
+            className="p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer text-body hover:text-ink"
+            title="Import file (.md or .pdf)"
+          >
+            <UploadIcon size={14} />
+          </button>
         </div>
 
         {/* Search icon opens the search palette scoped to this tab */}
@@ -217,10 +298,37 @@ export const Editor: React.FC = () => {
         </button>
       </div>
 
-      {/* Editor Content Area */}
-      <div className="flex-1 overflow-y-auto w-full relative">
+      {/* Hidden input backing the Import button — accepts markdown and PDFs */}
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".md,.markdown,.txt,.pdf,text/markdown,text/plain,application/pdf"
+        multiple
+        className="hidden"
+        onChange={onImportChange}
+      />
+
+      {/* Editor Content Area — also a drop target for .md / .pdf files */}
+      <div
+        className="flex-1 overflow-y-auto w-full relative"
+        onDrop={onDrop}
+        onDragOver={(e) => {
+          if (Array.from(e.dataTransfer?.items ?? []).some((it) => it.kind === 'file')) {
+            e.preventDefault();
+          }
+        }}
+      >
         <EditorContent editor={editor} className="h-full w-full" />
       </div>
+
+      {/* Math rendering tweaks so KaTeX inherits the editor's ink colour and
+          block formulae centre nicely inside the prose column. */}
+      <style>{`
+        .ProseMirror .math-node .katex { color: inherit; font-size: 1.05em; }
+        .ProseMirror .math-block { text-align: center; }
+        .ProseMirror .math-block .katex-display { margin: 0.4em 0; }
+        .ProseMirror .pdf-embed { line-height: normal; }
+      `}</style>
     </div>
   );
 };

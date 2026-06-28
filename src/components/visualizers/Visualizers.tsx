@@ -236,7 +236,7 @@ const GridBoard: React.FC<{ frame: GridFrame, isDragging?: boolean }> = ({ frame
           const isTrying = trying && trying.r === r && trying.c === c;
           const conflict = isTrying && frame.conflict;
           
-          let cellBg = '';
+          let cellBg: string;
           if (conflict) {
             cellBg = 'rgba(244,63,94,0.45)';
           } else if (isTrying) {
@@ -372,8 +372,8 @@ const UnionFindView: React.FC<{ frame: UFFrame }> = ({ frame }) => {
       {parent.map((p, i) => {
         const isRoot = p === i;
         const hot = highlight.includes(i);
-        let nodeFill = '';
-        let nodeStroke = '';
+        let nodeFill: string;
+        let nodeStroke: string;
         if (hot) {
           nodeStroke = '#f5a623';
         } else if (isRoot) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Monitor,
@@ -31,9 +31,38 @@ interface MockWorkspaceProps {
   interactive?: boolean;
 }
 
+// The mock is a fixed-width replica of the desktop app. Rather than reflow its
+// panes for small screens (which makes the toolbar buttons collide), we keep the
+// full design and scale it down to fit — a clean "product shot" on phones.
+const DESIGN_W = 1020;
+
 export const MockWorkspace: React.FC<MockWorkspaceProps> = () => {
   const [activeMode, setActiveMode] = useState<'split' | 'code' | 'visualizer'>('split');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
+
+  // Scale-to-fit: measure the available width and shrink the 1020px design to
+  // match, collapsing the wrapper's height to the scaled size so there's no
+  // dead space below it. Recomputes on resize and when the active pane changes.
+  const shellRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [boxHeight, setBoxHeight] = useState<number | undefined>(undefined);
+
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    const inner = innerRef.current;
+    if (!shell || !inner) return;
+    const update = () => {
+      const s = Math.min(1, shell.clientWidth / DESIGN_W);
+      setScale(s);
+      setBoxHeight(inner.offsetHeight * s);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(shell);
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [activeMode]);
 
   // Trigger brief saving state animation
   useEffect(() => {
@@ -116,8 +145,17 @@ Process finished with exit code 0.`);
   }, [isPlaying, vizSpeed, activeMode, vizSteps.length]);
 
   return (
-    <div className="w-full max-w-[1020px] bg-[#0c0c0e] border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.8)] flex flex-col font-sans select-none text-[#ededed] text-left">
-      
+    <div
+      ref={shellRef}
+      className="w-full max-w-[1020px] overflow-hidden"
+      style={{ height: boxHeight }}
+    >
+    <div
+      ref={innerRef}
+      style={{ width: DESIGN_W, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      className="bg-[#0c0c0e] border border-white/10 rounded-xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.8)] flex flex-col font-sans select-none text-[#ededed] text-left"
+    >
+
       {/* ────────────────────────────────────────────────────────
          1. TOP TOOLBAR (Exactly matching Toolbar.tsx design tokens)
          ──────────────────────────────────────────────────────── */}
@@ -128,7 +166,7 @@ Process finished with exit code 0.`);
             <div className="w-5 h-5 shrink-0">
               <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-display text-sm font-semibold tracking-[-0.02em] text-white">DSADelta</span>
+            <span className="font-display text-sm font-semibold tracking-[-0.02em] text-white">Algoglyph</span>
           </div>
 
           <div className="h-3.5 w-px bg-white/10" />
@@ -665,7 +703,8 @@ Process finished with exit code 0.`);
 
         </AnimatePresence>
       </div>
-      
+
+    </div>
     </div>
   );
 };

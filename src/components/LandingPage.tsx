@@ -9,12 +9,11 @@ import {
   Layers,
   Network,
   BookOpen,
-  CheckCircle2,
-  Download,
-  ChevronDown
+  CheckCircle2
 } from 'lucide-react';
 import { MockWorkspace } from './landing/MockWorkspace';
 import { MorphingArena } from './landing/MorphingArena';
+import { RoadmapBackground } from './RoadmapBackground';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
@@ -26,6 +25,19 @@ interface LandingPageProps {
   onLaunch: () => void;
   onViewRoadmap: () => void;
 }
+
+// Editorial serif used only for the italic accent words, mirroring the roadmap.
+const SERIF = '"Instrument Serif", Georgia, serif';
+
+// Looping keywords for the hero marquee strip.
+const MARQUEE_WORDS = [
+  'Notebook',
+  'Infinite Canvas',
+  'Sandbox Compiler',
+  'State Visualizer',
+  'Spatial Memory',
+  'CS Roadmap',
+];
 
 interface StageDetail {
   title: string;
@@ -139,7 +151,6 @@ const listItemVariants: Variants = {
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) => {
   const [activeStage, setActiveStage] = useState(1); // 1 (Array) to 5 (Graph)
   const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py' | 'java' | 'js'>('py');
-  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
   const handleScrollTo = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>, id: string) => {
     e.preventDefault();
@@ -159,19 +170,32 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
   };
 
   return (
-    <div className="relative w-full bg-[#000000] text-[#ededed] overflow-x-hidden selection:bg-[#ededed] selection:text-[#000000] min-h-screen font-sans antialiased">
-      
-      {/* Background canvas subtle grids */}
-      <div className="absolute top-0 left-0 right-0 h-[1000px] bg-[radial-gradient(rgba(255,255,255,0.006)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none z-0" />
-      <div className="absolute top-0 left-0 right-0 h-[700px] bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(255,255,255,0.012),transparent_70%)] pointer-events-none z-0" />
+    <div className="relative w-full bg-[#08080a] text-[#f0f0f2] overflow-x-hidden selection:bg-[#ededed] selection:text-[#000000] min-h-screen font-sans antialiased">
+
+      {/* Cursor-driven neutral dust field — the roadmap's living backdrop, fixed
+          behind everything so it persists as the page scrolls. */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <RoadmapBackground tone="neutral" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 130% 120% at 50% 0%, rgba(255,255,255,0.018) 0%, rgba(8,8,10,0) 55%)',
+          }}
+        />
+        <div className="absolute inset-0 opacity-[0.04] mix-blend-screen lp-grain" />
+      </div>
+
+      {/* Faint dot grid for fine texture under the hero */}
+      <div className="absolute top-0 left-0 right-0 h-[900px] bg-[radial-gradient(rgba(255,255,255,0.006)_1px,transparent_1px)] [background-size:22px_22px] pointer-events-none z-0" />
 
       {/* Premium Minimal Navigation */}
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center justify-between px-6 sm:px-12">
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 shrink-0">
-            <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
+            <img src="/favicon.png" alt="algoglyph logo" className="w-full h-full object-contain" />
           </div>
-          <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">DSADelta</span>
+          <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">Algoglyph</span>
         </div>
 
         {/* Center menu links like QuantPad */}
@@ -190,7 +214,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         <nav className="flex items-center gap-4">
           <button
             onClick={onLaunch}
-            className="px-5 py-2.5 rounded-lg bg-white hover:bg-neutral-200 text-black text-[14.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer font-sans"
+            className="px-5 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-black text-[14.5px] font-semibold transition flex items-center gap-1.5 cursor-pointer font-sans"
           >
             <span>Launch Workspace</span>
             <ArrowRight size={13} />
@@ -206,88 +230,60 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           animate="visible"
           className="flex flex-col items-center gap-7 max-w-[800px] mb-16"
         >
-          <motion.div variants={heroItemVariants} className="flex items-center gap-2 px-3 py-1 rounded border border-white/10 bg-white/[0.02] w-fit">
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />
-            <span className="text-[11px] font-mono text-white/50 tracking-widest uppercase font-semibold">Visual Computer Science Workspace</span>
+          <motion.div variants={heroItemVariants} className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.02] backdrop-blur-sm w-fit">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className="text-[10px] font-mono text-white/55 tracking-[0.28em] uppercase font-semibold">Visual Computer Science Workspace</span>
           </motion.div>
 
-          <motion.h1 variants={heroItemVariants} className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.04em] text-white leading-[1.1] max-w-3xl text-center">
-            Learn computer science visually. Not by memorization.
+          <motion.h1 variants={heroItemVariants} className="font-display text-5xl sm:text-6xl lg:text-[5.5rem] font-semibold tracking-[-0.045em] text-[#f6f6f8] leading-[0.98] max-w-4xl text-center">
+            Learn computer science{' '}
+            <span className="italic font-normal text-white/85" style={{ fontFamily: SERIF }}>
+              visually.
+            </span>
+            <br />
+            with seamless note-making.
           </motion.h1>
 
-          <motion.p variants={heroItemVariants} className="text-[16px] sm:text-[18px] lg:text-[20px] leading-relaxed text-[#a1a1a1] max-w-[700px] text-center">
-            DSADelta is a spatial workspace integrating engineering notebooks, infinite drawing canvases, interactive compilers, and state visualizers. It replaces disconnected tabs with a unified feedback loop to help developers build spatial mental models.
+          <motion.p variants={heroItemVariants} className="text-[16px] sm:text-[18px] leading-relaxed text-[#9a9a9f] max-w-[640px] text-center text-balance">
+            Algoglyph is a spatial workspace integrating engineering notebooks, infinite drawing canvases, interactive compilers, and state visualizers — one unified feedback loop for building spatial mental models.
           </motion.p>
 
           <motion.div variants={heroItemVariants} className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
             <button
               onClick={onLaunch}
-              className="px-7.5 py-3.5 rounded-lg bg-white hover:bg-neutral-200 text-black text-[15px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer font-sans shadow-[0_1px_2px_rgba(255,255,255,0.15)]"
+              className="px-7.5 py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black text-[15px] font-semibold transition flex items-center justify-center gap-2 cursor-pointer font-sans shadow-[0_1px_2px_rgba(255,255,255,0.15)]"
             >
               <span>Launch Free Workspace</span>
               <ArrowRight size={14} />
             </button>
             <button
               onClick={onViewRoadmap}
-              className="px-6.5 py-3.5 rounded-lg border border-white/10 hover:border-white/20 bg-white/[0.01] text-[15px] font-semibold text-white hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer font-sans"
+              className="px-6.5 py-3.5 rounded-full border border-white/10 hover:border-white/20 bg-white/[0.01] text-[15px] font-semibold text-white hover:text-white transition flex items-center justify-center gap-2 cursor-pointer font-sans"
             >
               <span>Explore CS Roadmap</span>
               <ArrowRight size={14} className="opacity-60" />
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setDownloadMenuOpen((prev) => !prev)}
-                className="px-6.5 py-3.5 rounded-lg border border-white/10 hover:border-white/25 bg-white/[0.02] text-[15px] font-semibold text-white/60 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer font-sans w-full"
-              >
-                <Download size={14} />
-                <span>Get App</span>
-                <ChevronDown size={14} className={`transition-transform duration-200 ${downloadMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
+          </motion.div>
 
-              <AnimatePresence>
-                {downloadMenuOpen && (
-                  <>
-                    {/* Invisible backdrop to close menu */}
-                    <div 
-                      className="fixed inset-0 z-40 bg-transparent" 
-                      onClick={() => setDownloadMenuOpen(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.15, ease: 'easeOut' }}
-                      className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 mt-2.5 w-56 rounded-xl border border-white/[0.08] bg-[#0d0d0f]/90 backdrop-blur-md p-1.5 shadow-[0_24px_50px_rgba(0,0,0,0.6)] z-50 flex flex-col text-left select-none"
-                    >
-                      <a
-                        href="/release/Scratchpad Setup 1.0.3.exe"
-                        download
-                        className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg hover:bg-white/[0.04] text-[13.5px] font-medium text-white/80 hover:text-white transition-all duration-150 cursor-pointer"
-                        onClick={() => setDownloadMenuOpen(false)}
-                      >
-                        <span className="font-mono text-[9px] text-[#3291ff] font-bold border border-[#3291ff]/20 bg-[#3291ff]/10 px-1.5 py-0.5 rounded">WIN</span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white">Windows Installer</span>
-                          <span className="text-[10px] text-white/40">Windows 10/11 (.exe)</span>
-                        </div>
-                      </a>
-                      <a
-                        href="/release/Scratchpad-1.0.3.dmg"
-                        download
-                        className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg hover:bg-white/[0.04] text-[13.5px] font-medium text-white/80 hover:text-white transition-all duration-150 cursor-pointer"
-                        onClick={() => setDownloadMenuOpen(false)}
-                      >
-                        <span className="font-mono text-[9px] text-[#3291ff] font-bold border border-[#3291ff]/20 bg-[#3291ff]/10 px-1.5 py-0.5 rounded">MAC</span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white">macOS DMG</span>
-                          <span className="text-[10px] text-white/40">Intel & Apple Silicon (.dmg)</span>
-                        </div>
-                      </a>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
+          {/* Stat triad — agency "big numbers" */}
+          <motion.div variants={heroItemVariants} className="flex items-stretch gap-8 sm:gap-12 mt-6">
+            {[
+              { value: '4', label: 'Languages compiled' },
+              { value: '∞', label: 'Infinite canvas' },
+              { value: '9', label: 'Roadmap zones' },
+            ].map((s, i) => (
+              <React.Fragment key={s.label}>
+                {i > 0 && <span className="w-px self-stretch bg-white/10" />}
+                <div className="flex flex-col items-center gap-1.5">
+                  <span className="text-3xl sm:text-4xl font-semibold tracking-[-0.03em] text-[#f0f0f2] tabular-nums">
+                    {s.value}
+                  </span>
+                  <span className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-white/40">
+                    {s.label}
+                  </span>
+                </div>
+              </React.Fragment>
+            ))}
           </motion.div>
         </motion.div>
 
@@ -299,17 +295,35 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         >
           <MockWorkspace />
         </motion.div>
+
+        {/* Marquee band of capability keywords */}
+        <div
+          aria-hidden="true"
+          className="w-screen relative left-1/2 -translate-x-1/2 mt-20 overflow-hidden border-y border-white/[0.05] py-5 [mask-image:linear-gradient(to_right,transparent,#000_8%,#000_92%,transparent)]"
+        >
+          <div className="flex w-max gap-10 lp-marquee">
+            {[...MARQUEE_WORDS, ...MARQUEE_WORDS, ...MARQUEE_WORDS].map((w, i) => (
+              <span
+                key={`${w}-${i}`}
+                className="flex items-center gap-10 text-[14px] font-mono uppercase tracking-[0.18em] text-white/30 whitespace-nowrap"
+              >
+                {w}
+                <span className="text-white/15">✦</span>
+              </span>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section id="features" className="py-24 border-y border-white/[0.04] bg-[#09090b]/50 relative z-10">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 text-center flex flex-col items-center gap-12">
           <div className="max-w-2xl flex flex-col gap-3">
-            <span className="text-[11px] font-mono tracking-[0.2em] text-[#3291ff] font-bold uppercase">Workspace Fragmentation</span>
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Workspace Fragmentation</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
               Why traditional computer science study feels fragmented
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. DSADelta closes this loop.
+              Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. Algoglyph closes this loop.
             </p>
           </div>
 
@@ -329,7 +343,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                 boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(239, 68, 68, 0.03)',
                 transition: { duration: 0.2, ease: 'easeOut' }
               }}
-              className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm rounded-2xl p-6 flex flex-col justify-between text-left transition-all duration-300 relative overflow-hidden group"
+              className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm rounded-2xl p-6 flex flex-col justify-between text-left transition duration-300 relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(239, 68, 68, 0.02),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               
@@ -374,16 +388,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               variants={cardVariants}
               whileHover={{
                 translateY: -5,
-                borderColor: 'rgba(50, 145, 255, 0.4)',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(50, 145, 255, 0.08)',
+                borderColor: 'rgba(255, 255, 255, 0.4)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 255, 255, 0.08)',
                 transition: { duration: 0.2, ease: 'easeOut' }
               }}
-              className="border border-[#3291ff]/30 bg-[#0c0d12]/70 backdrop-blur-sm rounded-2xl p-6 flex flex-col justify-between text-left transition-all duration-300 relative overflow-hidden group"
+              className="border border-[#d4d4d4]/30 bg-[#0c0d12]/70 backdrop-blur-sm rounded-2xl p-6 flex flex-col justify-between text-left transition duration-300 relative overflow-hidden group"
             >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(50, 145, 255, 0.05),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255, 255, 255, 0.05),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
               <div className="flex flex-col gap-3 relative z-10">
-                <span className="text-[10px] font-mono text-[#3291ff] tracking-wider uppercase border border-[#3291ff]/20 bg-[#3291ff]/5 px-2.5 py-0.5 rounded-full w-fit">
+                <span className="text-[10px] font-mono text-[#d4d4d4] tracking-wider uppercase border border-[#d4d4d4]/20 bg-[#d4d4d4]/5 px-2.5 py-0.5 rounded-full w-fit">
                   Connected Loop
                 </span>
                 <h3 className="font-display font-bold text-[19px] text-white">The Unified Feedback Loop</h3>
@@ -395,30 +409,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                   variants={listItemContainerVariants}
                   className="flex flex-col gap-2 mt-1.5 font-mono text-[11.5px] text-white"
                 >
-                  <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#3291ff]/5 border border-[#3291ff]/15 hover:bg-[#3291ff]/10 transition-colors">
+                  <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#d4d4d4]/5 border border-[#d4d4d4]/15 hover:bg-[#d4d4d4]/10 transition-colors">
                     <span className="flex items-center gap-2">
-                      <LayoutGrid size={11} className="text-[#3291ff]" />
+                      <LayoutGrid size={11} className="text-[#d4d4d4]" />
                       Infinite Spatial Canvas
                     </span>
-                    <span className="text-[#3291ff] font-medium">Active Drawing Sandbox</span>
+                    <span className="text-[#d4d4d4] font-medium">Active Drawing Sandbox</span>
                   </motion.div>
-                  <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#3291ff]/5 border border-[#3291ff]/15 hover:bg-[#3291ff]/10 transition-colors">
+                  <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#d4d4d4]/5 border border-[#d4d4d4]/15 hover:bg-[#d4d4d4]/10 transition-colors">
                     <span className="flex items-center gap-2">
-                      <FileText size={11} className="text-[#3291ff]" />
+                      <FileText size={11} className="text-[#d4d4d4]" />
                       Tiptap Concept Notebook
                     </span>
-                    <span className="text-[#3291ff] font-medium">Syncs with Canvas</span>
+                    <span className="text-[#d4d4d4] font-medium">Syncs with Canvas</span>
                   </motion.div>
-                  <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#3291ff]/5 border border-[#3291ff]/15 hover:bg-[#3291ff]/10 transition-colors">
+                  <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#d4d4d4]/5 border border-[#d4d4d4]/15 hover:bg-[#d4d4d4]/10 transition-colors">
                     <span className="flex items-center gap-2">
-                      <Terminal size={11} className="text-[#3291ff]" />
+                      <Terminal size={11} className="text-[#d4d4d4]" />
                       Active Sandbox Compiler
                     </span>
-                    <span className="text-[#3291ff] font-medium">Visual State Outputs</span>
+                    <span className="text-[#d4d4d4] font-medium">Visual State Outputs</span>
                   </motion.div>
                 </motion.div>
               </div>
-              <div className="mt-5 text-[11.5px] font-mono text-[#3291ff] font-medium relative z-10">
+              <div className="mt-5 text-[11.5px] font-mono text-[#d4d4d4] font-medium relative z-10">
                 Result: Permanent spatial mental models that scale to complex design problems.
               </div>
             </motion.div>
@@ -429,27 +443,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <section className="py-12 max-w-7xl mx-auto px-6 sm:px-12 md:px-16 z-10 relative">
         <div className="w-full bg-[#0c0c0e]/50 border border-white/[0.05] rounded-3xl p-8 sm:p-12 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_24px_50px_rgba(0,0,0,0.5)] backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row items-center gap-12">
           {/* Faint ambient glow inside card */}
-          <div className="absolute -right-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(50,145,255,0.015),transparent_70%)] pointer-events-none" />
+          <div className="absolute -right-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(255,255,255,0.015),transparent_70%)] pointer-events-none" />
 
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[#3291ff] font-bold uppercase bg-[#3291ff]/10 border border-[#3291ff]/20 px-2.5 py-0.5 rounded-full w-fit">The Spatial Canvas</span>
+            <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">The Spatial Canvas</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
               An infinite canvas for spatial thinking
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Data structures are spatial layouts in memory. DSADelta places your visualizations on an infinite whiteboard. Draw links, organize nodes in frames, zoom out to examine complex system topologies, and map out memory networks manually.
+              Data structures are spatial layouts in memory. Algoglyph places your visualizations on an infinite whiteboard. Draw links, organize nodes in frames, zoom out to examine complex system topologies, and map out memory networks manually.
             </p>
             <div className="flex flex-col gap-2 font-mono text-[13px] text-white/60 mt-1">
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={11} className="text-[#3291ff]" />
+                <CheckCircle2 size={11} className="text-[#d4d4d4]" />
                 Pan, zoom, and build multi-structure diagrams
               </span>
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={11} className="text-[#3291ff]" />
+                <CheckCircle2 size={11} className="text-[#d4d4d4]" />
                 Excalidraw drawing engines integrated
               </span>
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={11} className="text-[#3291ff]" />
+                <CheckCircle2 size={11} className="text-[#d4d4d4]" />
                 Maintain coordinate states permanently
               </span>
             </div>
@@ -465,7 +479,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               </div>
 
               <div className="flex gap-4 items-center">
-                <div className="border border-[#3291ff]/20 bg-[#3291ff]/5 p-2 rounded flex flex-col gap-0.5 items-center w-16">
+                <div className="border border-[#d4d4d4]/20 bg-[#d4d4d4]/5 p-2 rounded flex flex-col gap-0.5 items-center w-16">
                   <span className="font-mono text-[10px] text-white/40">Node 0</span>
                   <span className="text-sm font-semibold">17</span>
                 </div>
@@ -481,7 +495,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               </div>
 
               <div className="absolute bottom-1 right-2 border border-white/5 bg-[#09090b]/90 p-2 rounded shadow-md text-[10.5px] font-mono max-w-[130px]">
-                <span className="text-[#3291ff] font-semibold">Spatial Link</span>
+                <span className="text-[#d4d4d4] font-semibold">Spatial Link</span>
                 <p className="text-white/40 mt-0.5 leading-normal">
                   Pointers link disjoint memory locations.
                 </p>
@@ -494,10 +508,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <section className="py-12 max-w-7xl mx-auto px-6 sm:px-12 md:px-16 z-10 relative">
         <div className="w-full bg-[#0c0c0e]/50 border border-white/[0.05] rounded-3xl p-8 sm:p-12 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_24px_50px_rgba(0,0,0,0.5)] backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row-reverse items-center gap-12">
           {/* Faint ambient glow inside card */}
-          <div className="absolute -left-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(50,145,255,0.015),transparent_70%)] pointer-events-none" />
+          <div className="absolute -left-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(255,255,255,0.015),transparent_70%)] pointer-events-none" />
 
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[#3291ff] font-bold uppercase bg-[#3291ff]/10 border border-[#3291ff]/20 px-2.5 py-0.5 rounded-full w-fit">Notebook Documentation</span>
+            <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Notebook Documentation</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
               Notebooks built for computer science
             </h2>
@@ -506,15 +520,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             </p>
             <div className="flex flex-col gap-2 font-mono text-[13px] text-white/60 mt-1">
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={11} className="text-[#3291ff]" />
+                <CheckCircle2 size={11} className="text-[#d4d4d4]" />
                 TipTap powered rich text workspace
               </span>
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={11} className="text-[#3291ff]" />
+                <CheckCircle2 size={11} className="text-[#d4d4d4]" />
                 LaTeX complexity equation parsing
               </span>
               <span className="flex items-center gap-2">
-                <CheckCircle2 size={11} className="text-[#3291ff]" />
+                <CheckCircle2 size={11} className="text-[#d4d4d4]" />
                 Hyperlink notebook sentences to canvas targets
               </span>
             </div>
@@ -528,7 +542,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                 To trace execution flow depth-first, we use call stack recursive frames. Let's trace runtime performance metrics:
               </p>
               
-              <div className="p-2 border-l border-[#3291ff] bg-[#3291ff]/5 font-mono text-[12px] text-[#3291ff] flex flex-col gap-0.5 rounded-r">
+              <div className="p-2 border-l border-[#d4d4d4] bg-[#d4d4d4]/5 font-mono text-[12px] text-[#d4d4d4] flex flex-col gap-0.5 rounded-r">
                 <span>Time Complexity: O(N)</span>
                 <span>Space Complexity: O(H)</span>
               </div>
@@ -555,10 +569,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <section className="py-12 max-w-7xl mx-auto px-6 sm:px-12 md:px-16 z-10 relative">
         <div className="w-full bg-[#0c0c0e]/50 border border-white/[0.05] rounded-3xl p-8 sm:p-12 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_24px_50px_rgba(0,0,0,0.5)] backdrop-blur-sm relative overflow-hidden flex flex-col lg:flex-row items-center gap-12">
           {/* Faint ambient glow inside card */}
-          <div className="absolute -right-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(50,145,255,0.015),transparent_70%)] pointer-events-none" />
+          <div className="absolute -right-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(255,255,255,0.015),transparent_70%)] pointer-events-none" />
 
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[#3291ff] font-bold uppercase bg-[#3291ff]/10 border border-[#3291ff]/20 px-2.5 py-0.5 rounded-full w-fit">Compiler Runtime</span>
+            <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Compiler Runtime</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
               An active sandbox compiler
             </h2>
@@ -571,9 +585,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                 <button
                   key={lang}
                   onClick={() => setSelectedLanguage(lang)}
-                  className={`px-3 py-1.5 rounded-lg text-[11.5px] font-mono transition-all duration-200 cursor-pointer border ${
+                  className={`px-3 py-1.5 rounded-lg text-[11.5px] font-mono transition duration-200 cursor-pointer border ${
                     selectedLanguage === lang
-                      ? 'border-[#3291ff] bg-[#3291ff]/15 text-white shadow-[0_0_12px_rgba(50,145,255,0.15)] font-medium'
+                      ? 'border-[#d4d4d4] bg-[#d4d4d4]/15 text-white shadow-[0_0_12px_rgba(255,255,255,0.15)] font-medium'
                       : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/10 text-white/50 hover:text-white'
                   }`}
                 >
@@ -624,24 +638,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <section id="visualizer" className="py-32 relative z-10 overflow-hidden">
         {/* Ambient background glow */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(50,145,255,0.04),transparent_70%)]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.04),transparent_70%)]" />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16">
 
           {/* Section header — left-aligned for visual weight */}
           <div className="max-w-xl mb-16">
-            <span className="text-[11px] font-mono tracking-[0.2em] text-[#3291ff] font-bold uppercase block mb-4">Visualizer</span>
-            <h2 className="font-display text-4xl sm:text-5xl font-semibold tracking-[-0.04em] text-white leading-[1.1] mb-5">
-              Watch memory reshape itself
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase block mb-4">Visualizer</span>
+            <h2 className="font-display text-4xl sm:text-5xl font-semibold tracking-[-0.04em] text-white leading-[1.02] mb-5">
+              Watch memory{' '}
+              <span className="italic font-normal text-white/85" style={{ fontFamily: SERIF }}>
+                reshape itself
+              </span>
             </h2>
             <p className="text-[16px] leading-relaxed text-[#666]">
               Five nodes. Same data. Click a structure to see how connections, constraints, and memory layout transform.
             </p>
           </div>
 
-          {/* Stage selector — compact pill bar */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit mb-12">
+          {/* Stage selector — compact pill bar. Scrolls horizontally on narrow
+              screens instead of overflowing the viewport. */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.03] border border-white/[0.06] w-fit max-w-full overflow-x-auto mb-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {([1, 2, 3, 4, 5] as const).map((stage) => {
               const labels: Record<number, string> = {
                 1: 'Array',
@@ -654,7 +672,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                 <button
                   key={stage}
                   onClick={() => setActiveStage(stage)}
-                  className={`px-5 py-2 rounded-lg text-[13px] font-sans font-medium transition-all duration-200 cursor-pointer ${
+                  className={`shrink-0 px-3.5 sm:px-5 py-2 rounded-lg text-[12px] sm:text-[13px] font-sans font-medium transition duration-200 cursor-pointer whitespace-nowrap ${
                     activeStage === stage
                       ? 'bg-white text-black shadow-[0_1px_3px_rgba(0,0,0,0.3)]'
                       : 'text-[#666] hover:text-white'
@@ -704,7 +722,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               {/* Subtle dot grid behind the canvas */}
               <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none opacity-40" />
               {/* Faint glow behind active visualization */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(50,145,255,0.06),transparent_65%)] pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(255,255,255,0.06),transparent_65%)] pointer-events-none" />
               <MorphingArena activeStage={activeStage} />
             </div>
           </div>
@@ -713,12 +731,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
 
       <section id="roadmap" className="py-28 max-w-7xl mx-auto px-6 sm:px-12 md:px-16 z-10 relative">
         <div className="text-center max-w-2xl mx-auto flex flex-col gap-3 mb-12">
-          <span className="text-[11px] font-mono tracking-[0.2em] text-[#3291ff] font-bold uppercase">Concept Lessons Portal</span>
+          <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Concept Lessons Portal</span>
           <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
             Lessons designed for algorithmic intuition
           </h2>
           <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-            DSADelta provides visual intuition breakdowns. Study algorithmic workflows by watching states resolve dynamically, rather than dry traces of code lines.
+            Algoglyph provides visual intuition breakdowns. Study algorithmic workflows by watching states resolve dynamically, rather than dry traces of code lines.
           </p>
         </div>
 
@@ -734,22 +752,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             variants={cardVariants}
             whileHover={{
               translateY: -5,
-              borderColor: 'rgba(50, 145, 255, 0.3)',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(50, 145, 255, 0.05)',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.05)',
               transition: { duration: 0.2, ease: 'easeOut' }
             }}
-            className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-4 text-left transition-all duration-300 relative overflow-hidden group"
+            className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-4 text-left transition duration-300 relative overflow-hidden group"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(50,145,255,0.04),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.04),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3291ff]/15 to-[#3291ff]/5 border border-[#3291ff]/25 flex items-center justify-center text-[#3291ff] shadow-[0_4px_12px_rgba(50,145,255,0.1)] group-hover:scale-110 transition-transform duration-300">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/25 flex items-center justify-center text-[#d4d4d4] shadow-[0_4px_12px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-300">
               <Layers size={18} />
             </div>
             <h3 className="font-display font-bold text-white text-[17px]">Dynamic Programming Memoization</h3>
             <p className="text-[14px] text-[#a1a1a1] leading-relaxed">
               Visualize memoization tables mapping sub-problems onto coordinate grids. Watch shortest pathways compute sequentially.
             </p>
-            <span className="mt-auto text-[10px] font-mono text-[#3291ff] uppercase tracking-wider font-semibold">Future Roadmap</span>
+            <span className="mt-auto text-[10px] font-mono text-[#d4d4d4] uppercase tracking-wider font-semibold">Future Roadmap</span>
           </motion.div>
 
           {/* Card 2 */}
@@ -757,22 +775,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             variants={cardVariants}
             whileHover={{
               translateY: -5,
-              borderColor: 'rgba(50, 145, 255, 0.3)',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(50, 145, 255, 0.05)',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.05)',
               transition: { duration: 0.2, ease: 'easeOut' }
             }}
-            className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-4 text-left transition-all duration-300 relative overflow-hidden group"
+            className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-4 text-left transition duration-300 relative overflow-hidden group"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(50,145,255,0.04),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.04),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3291ff]/15 to-[#3291ff]/5 border border-[#3291ff]/25 flex items-center justify-center text-[#3291ff] shadow-[0_4px_12px_rgba(50,145,255,0.1)] group-hover:scale-110 transition-transform duration-300">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/25 flex items-center justify-center text-[#d4d4d4] shadow-[0_4px_12px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-300">
               <Network size={18} />
             </div>
             <h3 className="font-display font-bold text-white text-[17px]">Priority Queue Mesh Relaxation</h3>
             <p className="text-[14px] text-[#a1a1a1] leading-relaxed">
               Step through Dijkstra and Bellman-Ford algorithms. Nodes highlight in real-time as priority queue states dynamically re-balance.
             </p>
-            <span className="mt-auto text-[10px] font-mono text-[#3291ff] uppercase tracking-wider font-semibold">Future Roadmap</span>
+            <span className="mt-auto text-[10px] font-mono text-[#d4d4d4] uppercase tracking-wider font-semibold">Future Roadmap</span>
           </motion.div>
 
           {/* Card 3 */}
@@ -780,22 +798,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             variants={cardVariants}
             whileHover={{
               translateY: -5,
-              borderColor: 'rgba(50, 145, 255, 0.3)',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(50, 145, 255, 0.05)',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.05)',
               transition: { duration: 0.2, ease: 'easeOut' }
             }}
-            className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-4 text-left transition-all duration-300 relative overflow-hidden group"
+            className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-4 text-left transition duration-300 relative overflow-hidden group"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(50,145,255,0.04),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.04),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#3291ff]/15 to-[#3291ff]/5 border border-[#3291ff]/25 flex items-center justify-center text-[#3291ff] shadow-[0_4px_12px_rgba(50,145,255,0.1)] group-hover:scale-110 transition-transform duration-300">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/25 flex items-center justify-center text-[#d4d4d4] shadow-[0_4px_12px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-300">
               <BookOpen size={18} />
             </div>
             <h3 className="font-display font-bold text-white text-[17px]">Self-Balancing Binary Trees</h3>
             <p className="text-[14px] text-[#a1a1a1] leading-relaxed">
               Understand AVL trees and Red-Black tree rotations. Drag nodes to watch balancing metrics calculate height thresholds automatically.
             </p>
-            <span className="mt-auto text-[10px] font-mono text-[#3291ff] uppercase tracking-wider font-semibold">Future Roadmap</span>
+            <span className="mt-auto text-[10px] font-mono text-[#d4d4d4] uppercase tracking-wider font-semibold">Future Roadmap</span>
           </motion.div>
         </motion.div>
       </section>
@@ -803,12 +821,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <section className="py-24 border-y border-white/[0.04] bg-[#09090b]/30 z-10 relative">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 text-center flex flex-col items-center gap-12">
           <div className="max-w-2xl flex flex-col gap-3">
-            <span className="text-[11px] font-mono tracking-[0.2em] text-[#3291ff] font-bold uppercase">Workspace Workflow</span>
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Workspace Workflow</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
               The Connected Learning Cycle
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              DSADelta runs as an integrated feedback loop. As you write, draw, execute code, and debug, your visual understanding updates.
+              Algoglyph runs as an integrated feedback loop. As you write, draw, execute code, and debug, your visual understanding updates.
             </p>
           </div>
 
@@ -825,7 +843,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             ].map((step, idx, arr) => (
               <React.Fragment key={idx}>
                 <div className="flex flex-col items-center gap-2 relative z-10 text-center flex-1 group">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1c1c24] to-[#0d0d10] border border-[#3291ff]/40 text-white flex items-center justify-center font-mono text-[14px] font-bold shadow-[0_4px_12px_rgba(50,145,255,0.15)] group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1c1c24] to-[#0d0d10] border border-[#d4d4d4]/40 text-white flex items-center justify-center font-mono text-[14px] font-bold shadow-[0_4px_12px_rgba(255,255,255,0.15)] group-hover:scale-105 transition-transform duration-300">
                     {idx + 1}
                   </div>
                   <span className="text-[13.5px] font-semibold text-[#ededed] mt-1">{step.title}</span>
@@ -842,12 +860,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
 
       <section id="usecases" className="py-28 max-w-7xl mx-auto px-6 sm:px-12 md:px-16 z-10 relative">
         <div className="text-center max-w-2xl mx-auto flex flex-col items-center gap-4 mb-16">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#3291ff] font-bold uppercase bg-[#3291ff]/10 border border-[#3291ff]/20 px-2.5 py-0.5 rounded-full w-fit">Use Cases</span>
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Use Cases</span>
           <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
             Designed for engineers, students, and educators
           </h2>
           <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-            From dry runs to whiteboard design, DSADelta is a computer science workspace.
+            From dry runs to whiteboard design, Algoglyph is a computer science workspace.
           </p>
         </div>
 
@@ -895,21 +913,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               variants={cardVariants}
               whileHover={{
                 translateY: -5,
-                borderColor: 'rgba(50, 145, 255, 0.3)',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(50, 145, 255, 0.04)',
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.04)',
                 transition: { duration: 0.2, ease: 'easeOut' }
               }}
-              className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-3.5 text-left transition-all duration-300 relative overflow-hidden group"
+              className="border border-white/[0.05] bg-[#0c0c0e]/60 backdrop-blur-sm p-6 rounded-2xl flex flex-col gap-3.5 text-left transition duration-300 relative overflow-hidden group"
             >
               {/* Radial hover background glow */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(50,145,255,0.03),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.03),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3291ff]/15 to-[#3291ff]/5 border border-[#3291ff]/20 flex items-center justify-center text-[#3291ff] shadow-[0_2px_8px_rgba(50,145,255,0.05)] group-hover:scale-105 transition-transform duration-300 relative z-10">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/20 flex items-center justify-center text-[#d4d4d4] shadow-[0_2px_8px_rgba(255,255,255,0.05)] group-hover:scale-105 transition-transform duration-300 relative z-10">
                 {useCase.icon}
               </div>
 
               <div className="flex flex-col gap-1.5 relative z-10">
-                <h4 className="font-display font-bold text-white text-[15px] group-hover:text-[#3291ff] transition-colors">{useCase.title}</h4>
+                <h4 className="font-display font-bold text-white text-[15px] group-hover:text-[#d4d4d4] transition-colors">{useCase.title}</h4>
                 <p className="text-[13.5px] text-[#a1a1a1] leading-relaxed">{useCase.desc}</p>
               </div>
             </motion.div>
@@ -918,23 +936,75 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       </section>
 
 
+      <section id="about" className="py-24 border-y border-white/[0.04] bg-[#09090b]/30 z-10 relative">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 text-center flex flex-col items-center gap-12">
+          <div className="max-w-2xl flex flex-col gap-3">
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">About Us</span>
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
+              The mission behind Algoglyph
+            </h2>
+            <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
+              Algoglyph was built because we realized how heavily developers rely on fragmented notes. We made note-taking seamless so you don't have to constantly juggle between YouTube tutorials, PDF textbooks, and separate code editors while practicing for interviews. Everything you need to build intuition is unified in one visual workspace.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="py-24 z-10 relative">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 flex flex-col items-center gap-12">
+          <div className="max-w-2xl text-center flex flex-col gap-3">
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Contact Us</span>
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
+              Get in touch
+            </h2>
+            <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
+              Have questions, feedback, or need support? We'd love to hear from you.
+            </p>
+          </div>
+          
+          <div className="w-full max-w-lg bg-[#0c0c0e]/50 border border-white/[0.05] rounded-3xl p-8 backdrop-blur-sm shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_24px_50px_rgba(0,0,0,0.5)]">
+            <form action="https://formspree.io/f/xwvdbrre" method="POST" className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-mono text-white/50 uppercase tracking-wider">Name</label>
+                <input type="text" name="name" required placeholder="Your name" className="bg-[#000000]/40 border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white outline-none focus:border-white/30 transition-colors" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-mono text-white/50 uppercase tracking-wider">Email</label>
+                <input type="email" name="email" required placeholder="you@example.com" className="bg-[#000000]/40 border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white outline-none focus:border-white/30 transition-colors" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-[12px] font-mono text-white/50 uppercase tracking-wider">Message</label>
+                <textarea name="message" required placeholder="How can we help?" rows={4} className="bg-[#000000]/40 border border-white/10 rounded-lg px-4 py-3 text-[14px] text-white outline-none focus:border-white/30 transition-colors resize-none" />
+              </div>
+              <button type="submit" className="mt-2 px-6 py-3.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-[14.5px] font-semibold transition cursor-pointer text-center">
+                Send Message
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-32 relative z-10 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.008),transparent_60%)] pointer-events-none" />
         <div className="max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-6">
-          <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.05em] text-white">
-            Stop memorizing. Start understanding.
+          <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.05em] text-white leading-[0.98]">
+            Stop memorizing.{' '}
+            <span className="italic font-normal text-white/85" style={{ fontFamily: SERIF }}>
+              Start understanding.
+            </span>
           </h2>
           <p className="text-[16px] leading-relaxed text-[#a1a1a1] max-w-md">
-            Launch DSADelta to build mental models of algorithms. Experience the spatial CS sandbox.
+            Launch Algoglyph to build mental models, write code, and take seamless notes. <br className="hidden sm:block" />
+            Experience the unified spatial CS sandbox.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-1.5">
             <button
               onClick={onLaunch}
-              className="px-6.5 py-3 rounded-lg bg-white hover:bg-[#ededed] text-black text-[14.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer font-sans shadow-[0_1px_2px_rgba(255,255,255,0.15)]"
+              className="px-6.5 py-3 rounded-full bg-white hover:bg-[#ededed] text-black text-[14.5px] font-semibold transition flex items-center gap-1.5 cursor-pointer font-sans shadow-[0_1px_2px_rgba(255,255,255,0.15)]"
             >
-              <span>Launch DSADelta Workspace</span>
+              <span>Launch Algoglyph Workspace</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -945,15 +1015,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <footer className="py-10 border-t border-white/[0.04] bg-[#070709] relative z-10">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-white/30">
           <div className="flex items-center gap-2">
-            <span>© {new Date().getFullYear()} DSADelta. Workspace Sandbox client.</span>
+            <span>© {new Date().getFullYear()} Algoglyph. Workspace Sandbox client.</span>
           </div>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="/privacy/" className="hover:text-white transition-colors">Privacy</a>
+            <a href="/terms/" className="hover:text-white transition-colors">Terms</a>
             <a href="#" className="hover:text-white transition-colors">Repository</a>
           </div>
         </div>
       </footer>
+
+      {/* Ambient styles — marquee + film grain, mirrored from the roadmap */}
+      <style>{`
+        .lp-marquee { animation: lp-marquee 46s linear infinite; }
+        @keyframes lp-marquee { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+        @media (prefers-reduced-motion: reduce) { .lp-marquee { animation: none; } }
+        .lp-grain {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+      `}</style>
     </div>
   );
 };
