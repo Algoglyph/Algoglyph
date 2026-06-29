@@ -2,15 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary SEO Metadata -->
+    <title>AlgoGlyph | Visual Workspace for Learning Computer Science</title>
+    <meta name="description" content="AlgoGlyph is a local-first interactive visual workspace for data structures and algorithms. Draw on an infinite canvas, write rich notes, compile and run code, and play step-by-step visualizations." />
+    <meta name="keywords" content="data structures, algorithms, computer science, DSA visualizer, excalidraw, tiptap, code runner, interactive sandbox" />
+    <meta name="author" content="AlgoGlyph" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://algoglyph.com/" />
+    
+    <!-- Theme & Display Configuration -->
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="manifest" href="/site.webmanifest" />
+    
+    <!-- Icons & Favicons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://algoglyph.com/" />
+    <meta property="og:title" content="AlgoGlyph | Visual Workspace for Learning Computer Science" />
+    <meta property="og:description" content="An interactive, local-first visual workspace for data structures and algorithms (DSA). Features an infinite canvas, rich markdown editing, live code execution, and step-by-step simulator nodes." />
+    <meta property="og:image" content="https://algoglyph.com/og-image.png" />
+    <meta property="og:site_name" content="AlgoGlyph" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://algoglyph.com/" />
+    <meta name="twitter:title" content="AlgoGlyph | Visual Workspace for Learning Computer Science" />
+    <meta name="twitter:description" content="An interactive, local-first visual workspace for data structures and algorithms (DSA). Features an infinite canvas, rich markdown editing, live code execution, and step-by-step simulator nodes." />
+    <meta name="twitter:image" content="https://algoglyph.com/og-image.png" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
       rel="stylesheet"
     />
-    <title>Algoglyph</title>
+    
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-1D5H14TQEG"></script>
     <script>
@@ -19,6 +55,68 @@
       gtag('js', new Date());
 
       gtag('config', 'G-1D5H14TQEG');
+    </script>
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://algoglyph.com/#organization",
+            "name": "AlgoGlyph",
+            "url": "https://algoglyph.com/",
+            "logo": {
+              "@type": "ImageObject",
+              "@id": "https://algoglyph.com/#logo",
+              "url": "https://algoglyph.com/favicon.png",
+              "caption": "AlgoGlyph Logo"
+            },
+            "image": {
+              "@id": "https://algoglyph.com/#logo"
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://algoglyph.com/#website",
+            "url": "https://algoglyph.com/",
+            "name": "AlgoGlyph",
+            "description": "Visual Workspace for Learning Computer Science",
+            "publisher": {
+              "@id": "https://algoglyph.com/#organization"
+            },
+            "potentialAction": [
+              {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": "https://algoglyph.com/workspace/?q={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+              }
+            ]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://algoglyph.com/#softwareapplication",
+            "name": "AlgoGlyph",
+            "url": "https://algoglyph.com/",
+            "applicationCategory": "EducationalApplication, DeveloperApplication",
+            "operatingSystem": "Web, Windows, macOS",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "description": "An interactive, local-first visual workspace for practicing data structures and algorithms (DSA). Features an infinite canvas, markdown note-taking, live code runner, and interactive visualizer nodes.",
+            "screenshot": "https://algoglyph.com/og-image.png",
+            "author": {
+              "@id": "https://algoglyph.com/#organization"
+            }
+          }
+        ]
+      }
     </script>
   </head>
   <body>

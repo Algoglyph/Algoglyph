@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /404.html
 
 # Sitemap Location
 Sitemap: https://algoglyph.com/sitemap.xml
