@@ -230,9 +230,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           animate="visible"
           className="flex flex-col items-center gap-7 max-w-[800px] mb-16"
         >
-          <motion.div variants={heroItemVariants} className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/[0.02] backdrop-blur-sm w-fit">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            <span className="text-[10px] font-mono text-white/55 tracking-[0.28em] uppercase font-semibold">Visual Computer Science Workspace</span>
+          <motion.div variants={heroItemVariants} className="flex items-center gap-3.5 w-fit">
+            <span className="h-px w-10 bg-gradient-to-r from-transparent to-white/30" />
+            <span className="text-[10px] font-mono text-white/55 tracking-[0.34em] uppercase font-medium whitespace-nowrap">
+              Visual Computer Science Workspace
+            </span>
+            <span className="h-px w-10 bg-gradient-to-r from-white/30 to-transparent" />
           </motion.div>
 
           <motion.h1 variants={heroItemVariants} className="font-display text-5xl sm:text-6xl lg:text-[5.5rem] font-semibold tracking-[-0.045em] text-[#f6f6f8] leading-[0.98] max-w-4xl text-center">
