@@ -72,6 +72,7 @@ export const Editor: React.FC = () => {
     // re-opening the notes pane) renders the raw markdown source as plain text.
     contentType: 'markdown',
     onUpdate: ({ editor }) => {
+      if (editor.isDestroyed) return;
       const markdown = (editor as any).getMarkdown();
       updateNotes(markdown);
     },
@@ -83,15 +84,24 @@ export const Editor: React.FC = () => {
     },
   }, [isLoading]); // Recreate when loading changes
 
-  // Sync with store when notes change from loading or imports
+  // Sync with store when notes change from loading or imports.
   useEffect(() => {
-    if (editor && !isLoading) {
+    // `editor` can be a *destroyed* (but non-null) instance while a Suspense /
+    // StrictMode reconnect is in flight — and TipTap's `commands`/`getMarkdown`
+    // getters throw ("Cannot read properties of null") once the view is torn
+    // down. Skipping the dead instance is safe: the freshly-created editor
+    // re-runs this effect and syncs the content. (Reliably triggered by a heavy
+    // PDF embed, whose blob work widens the teardown window on reload.)
+    if (!editor || editor.isDestroyed || isLoading) return;
+    try {
       const currentMarkdown = (editor as any).getMarkdown();
       if (currentMarkdown !== notes) {
         // v3 setContent takes an options object; parse the incoming notes as
         // markdown and don't echo the change back through onUpdate.
         (editor as any).commands.setContent(notes, { emitUpdate: false, contentType: 'markdown' });
       }
+    } catch {
+      // editor mid-teardown; the next live instance will sync.
     }
   }, [notes, editor, isLoading]);
 
