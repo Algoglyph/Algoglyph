@@ -17,10 +17,10 @@ export const NotFoundPage: React.FC = () => {
         <div className="absolute inset-0 opacity-[0.04] mix-blend-screen" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
       </div>
 
-      <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center px-6 sm:px-12">
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center px-6 sm:px-12" aria-label="Main Navigation">
         <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
           <div className="w-6 h-6 shrink-0">
-            <img src="/favicon.png" alt="algoglyph logo" className="w-full h-full object-contain" />
+            <img src="/favicon.png" alt="AlgoGlyph brand logo" width={24} height={24} className="w-full h-full object-contain" />
           </div>
           <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">Algoglyph</span>
         </a>
@@ -44,15 +44,15 @@ export const NotFoundPage: React.FC = () => {
         </a>
       </main>
       
-      <footer className="py-10 border-t border-white/[0.04] bg-[#070709] relative z-10 w-full mt-auto">
+      <footer className="py-10 border-t border-white/[0.04] bg-[#070709] relative z-10 w-full mt-auto" aria-label="Footer Navigation">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-white/30">
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} Algoglyph. Workspace Sandbox client.</span>
           </div>
           <div className="flex gap-4">
             <a href="/" className="hover:text-white transition-colors">Home</a>
-            <a href="/privacy/" className="hover:text-white transition-colors">Privacy</a>
-            <a href="/terms/" className="hover:text-white transition-colors">Terms</a>
+            <a href="/privacy/" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/terms/" className="hover:text-white transition-colors">Terms of Service</a>
           </div>
         </div>
       </footer>

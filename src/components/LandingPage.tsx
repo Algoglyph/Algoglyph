@@ -190,10 +190,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
       <div className="absolute top-0 left-0 right-0 h-[900px] bg-[radial-gradient(rgba(255,255,255,0.006)_1px,transparent_1px)] [background-size:22px_22px] pointer-events-none z-0" />
 
       {/* Premium Minimal Navigation */}
-      <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center justify-between px-6 sm:px-12">
+      <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center justify-between px-6 sm:px-12" aria-label="Main Navigation">
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 shrink-0">
-            <img src="/favicon.png" alt="algoglyph logo" className="w-full h-full object-contain" />
+            <img src="/favicon.png" alt="AlgoGlyph - Interactive computer science notes workspace logo" width={24} height={24} className="w-full h-full object-contain" />
           </div>
           <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">Algoglyph</span>
         </div>
@@ -222,8 +222,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         </nav>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-36 pb-20 px-6 sm:px-12 md:px-16 max-w-7xl mx-auto flex flex-col items-center text-center z-10">
+      {/* Main Content Area */}
+      <main id="landing-main">
+        {/* Hero Section */}
+        <section className="relative pt-36 pb-20 px-6 sm:px-12 md:px-16 max-w-7xl mx-auto flex flex-col items-center text-center z-10">
         <motion.div
           variants={heroContainerVariants}
           initial="hidden"
@@ -323,10 +325,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="max-w-2xl flex flex-col gap-3">
             <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Workspace Fragmentation</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-              Why traditional computer science study feels fragmented
+              Why traditional computer science notes and study feel fragmented
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. Algoglyph closes this loop.
+              Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. Algoglyph closes this loop. You can also explore our <a href="/roadmap/" onClick={onViewRoadmap} className="text-white underline hover:text-[#d4d4d4] transition-colors font-medium">interactive computer science and DSA roadmap</a> to start your learning path.
             </p>
           </div>
 
@@ -451,7 +453,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
             <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">The Spatial Canvas</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-              An infinite canvas for spatial thinking
+              An infinite canvas for spatial data structures and algorithms
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Data structures are spatial layouts in memory. Algoglyph places your visualizations on an infinite whiteboard. Draw links, organize nodes in frames, zoom out to examine complex system topologies, and map out memory networks manually.
@@ -516,7 +518,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
             <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Notebook Documentation</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-              Notebooks built for computer science
+              Rich text notebooks built for computer science notes
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Document your understanding with a Markdown editor. Write detailed descriptions, format mathematical complexity notations with LaTeX equations (such as $O(V + E)$), embed executable compiler blocks, and link paragraphs directly to canvas layout coordinates.
@@ -577,7 +579,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
             <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Compiler Runtime</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-              An active sandbox compiler
+              Interactive coding sandbox and sandbox compiler
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Write and execute logic in C++, Python, Java, or JavaScript inside the notebook. The runner operates in a sandboxed output panel. Watch print statements, arrays, and memory maps output logs update in sync with your canvas diagrams.
@@ -650,9 +652,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="max-w-xl mb-16">
             <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase block mb-4">Visualizer</span>
             <h2 className="font-display text-4xl sm:text-5xl font-semibold tracking-[-0.04em] text-white leading-[1.02] mb-5">
-              Watch memory{' '}
+              Watch algorithms reshape{' '}
               <span className="italic font-normal text-white/85" style={{ fontFamily: SERIF }}>
-                reshape itself
+                data structures in real-time
               </span>
             </h2>
             <p className="text-[16px] leading-relaxed text-[#666]">
@@ -826,7 +828,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="max-w-2xl flex flex-col gap-3">
             <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Workspace Workflow</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-              The Connected Learning Cycle
+              The Connected DSA Notes & Workspace Cycle
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Algoglyph runs as an integrated feedback loop. As you write, draw, execute code, and debug, your visual understanding updates.
@@ -865,7 +867,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         <div className="text-center max-w-2xl mx-auto flex flex-col items-center gap-4 mb-16">
           <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Use Cases</span>
           <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-            Designed for engineers, students, and educators
+            Designed for DSA practice, coding interview prep, and visual learning
           </h2>
           <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
             From dry runs to whiteboard design, Algoglyph is a computer science workspace.
@@ -944,7 +946,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="max-w-2xl flex flex-col gap-3">
             <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">About Us</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-              The mission behind Algoglyph
+              The mission behind our visual computer science notes workspace
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Algoglyph was built because we realized how heavily developers rely on fragmented notes. We made note-taking seamless so you don't have to constantly juggle between YouTube tutorials, PDF textbooks, and separate code editors while practicing for interviews. Everything you need to build intuition is unified in one visual workspace.
@@ -958,7 +960,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="max-w-2xl text-center flex flex-col gap-3">
             <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Contact Us</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-              Get in touch
+              Get in touch with the AlgoGlyph team
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Have questions, feedback, or need support? We'd love to hear from you.
@@ -1014,15 +1016,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         </div>
       </section>
 
+      </main>
+
       {/* Minimal Footer */}
-      <footer className="py-10 border-t border-white/[0.04] bg-[#070709] relative z-10">
+      <footer className="py-10 border-t border-white/[0.04] bg-[#070709] relative z-10" aria-label="Footer Navigation">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 md:px-16 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-white/30">
           <div className="flex items-center gap-2">
             <span>© {new Date().getFullYear()} Algoglyph. Workspace Sandbox client.</span>
           </div>
           <div className="flex gap-4">
-            <a href="/privacy/" className="hover:text-white transition-colors">Privacy</a>
-            <a href="/terms/" className="hover:text-white transition-colors">Terms</a>
+            <a href="/privacy/" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/terms/" className="hover:text-white transition-colors">Terms of Service</a>
             <a href="#" className="hover:text-white transition-colors">Repository</a>
           </div>
         </div>
