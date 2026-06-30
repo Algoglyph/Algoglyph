@@ -8,3 +8,6 @@
 # We deliberately do NOT rewrite them to /index.html here: Cloudflare Pages
 # canonicalizes an /index.html destination and bounces the request to `/`,
 # which is what sent hard refreshes back to the landing page.
+
+# Redirect www to the apex domain so IndexedDB stays consistent
+https://www.algoglyph.com/* https://algoglyph.com/:splat 301
