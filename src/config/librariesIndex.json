@@ -1,10 +1,5 @@
 [
   {
-    "id": "algorithms-and-data-structures-arrays-matrices-trees",
-    "name": "Algorithms And Data Structures Arrays Matrices Trees",
-    "itemCount": 22
-  },
-  {
     "id": "architecture-diagram-components",
     "name": "Architecture Diagram Components",
     "itemCount": 11
@@ -58,6 +53,11 @@
     "id": "drwnio",
     "name": "Drwnio",
     "itemCount": 18
+  },
+  {
+    "id": "dsa-ii",
+    "name": "DSA II",
+    "itemCount": 22
   },
   {
     "id": "forms",

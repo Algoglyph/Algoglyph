@@ -80,7 +80,13 @@ export const StructuresPanel: React.FC = () => {
   // Options for the library switcher: the built-in DSA set + every imported lib.
   const libraryOptions: LibraryOption[] = [
     { id: 'dsa', name: 'DSA', count: dsaStructures.length },
-    ...librariesIndex.map((l: any) => ({ id: l.id, name: l.name, count: l.itemCount })),
+    // Force DSA II to appear directly underneath DSA
+    ...librariesIndex
+      .filter((l: any) => l.id === 'dsa-ii')
+      .map((l: any) => ({ id: l.id, name: l.name, count: l.itemCount })),
+    ...librariesIndex
+      .filter((l: any) => l.id !== 'dsa-ii')
+      .map((l: any) => ({ id: l.id, name: l.name, count: l.itemCount })),
   ];
 
   // One index row. A left-edge indicator bar marks hover/active (ex-app-shell-row);
