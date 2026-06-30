@@ -116,6 +116,15 @@ export const SEO: React.FC<SEOProps> = ({
           {JSON.stringify(jsonLd)}
         </script>
       )}
+
+      {/* Google AdSense Auto Ads (Disabled on Workspace) */}
+      {pathname !== '/workspace' && (
+        <script 
+          async 
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3436896061379895" 
+          crossOrigin="anonymous"
+        />
+      )}
     </Helmet>
   );
 };
