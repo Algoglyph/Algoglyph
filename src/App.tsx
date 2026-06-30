@@ -118,6 +118,20 @@ const App: React.FC = () => {
     document.documentElement.style.colorScheme = theme;
   }, [theme]);
 
+  // Dynamically inject Google AdSense Auto Ads, but ONLY on non-workspace pages.
+  useEffect(() => {
+    if (view === 'workspace') return;
+    
+    // Prevent injecting duplicates
+    if (!document.querySelector('script[src*="adsbygoogle.js"]')) {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3436896061379895";
+      script.crossOrigin = "anonymous";
+      document.head.appendChild(script);
+    }
+  }, [view]);
+
   // Intercept all link clicks globally inside Electron so relative routes
   // route client-side (no file:// navigation crashes) and external ones open externally.
   useEffect(() => {
