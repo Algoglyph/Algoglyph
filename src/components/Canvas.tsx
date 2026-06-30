@@ -188,9 +188,22 @@ export const Canvas: React.FC = () => {
   // Handle Drag & Drop Insertion onto the canvas
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const structureId = e.dataTransfer.getData('text/plain');
-    const structure = dsaStructures.find((s) => s.id === structureId);
-    if (!structure || !excalidrawAPI) return;
+    if (!excalidrawAPI) return;
+
+    let structure: any;
+    const jsonPayload = e.dataTransfer.getData('application/json');
+    if (jsonPayload) {
+      try {
+        structure = JSON.parse(jsonPayload);
+      } catch (err) {
+        console.error('Failed to parse dropped structure', err);
+      }
+    } else {
+      const structureId = e.dataTransfer.getData('text/plain');
+      structure = dsaStructures.find((s) => s.id === structureId);
+    }
+
+    if (!structure) return;
 
     // Calculate coordinates relative to the canvas viewport container
     const rect = e.currentTarget.getBoundingClientRect();
@@ -210,8 +223,36 @@ export const Canvas: React.FC = () => {
     const startX = canvasX - 100;
     const startY = canvasY - 20;
 
-    const skeletons = bindTextContainers(structure.generate(startX, startY));
-    const newElements = convertToExcalidrawElements(skeletons, { regenerateIds: false });
+    let skeletons: any[];
+    let shouldRegenerateIds = false;
+
+    const libraryElements = 'elements' in structure ? structure.elements : undefined;
+
+    if (libraryElements && libraryElements.length) {
+      // It's a static library item: offset it to startX, startY
+      let minX = Infinity;
+      let minY = Infinity;
+      for (const el of libraryElements) {
+        if (el.x < minX) minX = el.x;
+        if (el.y < minY) minY = el.y;
+      }
+      const dx = startX - minX;
+      const dy = startY - minY;
+
+      skeletons = libraryElements.map((el: any) => ({
+        ...el,
+        x: el.x + dx,
+        y: el.y + dy,
+      }));
+      shouldRegenerateIds = true;
+    } else if (structure.generate) {
+      // It's a dynamic DSA structure
+      skeletons = bindTextContainers(structure.generate(startX, startY));
+    } else {
+      return;
+    }
+
+    const newElements = convertToExcalidrawElements(skeletons, { regenerateIds: shouldRegenerateIds });
 
     excalidrawAPI.updateScene({
       elements: [...excalidrawAPI.getSceneElements(), ...newElements],

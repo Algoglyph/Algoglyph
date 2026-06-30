@@ -1,8 +1,9 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 import { dsaStructures } from '../config/dsaStructures';
-import type { DSAStructure } from '../config/dsaStructures';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
+import type { InsertableStructure } from '../lib/insertStructure';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { SearchField } from './SearchField';
 import { matchesQuery } from '../lib/search';
@@ -17,6 +18,27 @@ export const StructuresPanel: React.FC = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const [query, setQuery] = useState('');
+  
+  const [activeLibraryId, setActiveLibraryId] = useState<string>('dsa');
+  const [loadedLibrary, setLoadedLibrary] = useState<any[] | null>(null);
+  const [librariesIndex, setLibrariesIndex] = useState<any[]>([]);
+
+  useEffect(() => {
+    import('../config/librariesIndex.json').then((module) => {
+      setLibrariesIndex(module.default);
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (activeLibraryId === 'dsa') {
+      setLoadedLibrary(null);
+    } else {
+      fetch(`/libraries/${activeLibraryId}.json`)
+        .then(res => res.json())
+        .then(data => setLoadedLibrary(data))
+        .catch(console.error);
+    }
+  }, [activeLibraryId]);
 
   // The panel defaults open for the desktop sidebar. On mobile it's a modal
   // drawer, so close it when entering mobile so it doesn't cover the screen on
@@ -40,76 +62,116 @@ export const StructuresPanel: React.FC = () => {
     };
   }, [isDragging, setStructuresWidth]);
 
-  const insertStructure = (structure: DSAStructure) => {
+  const insertStructure = (structure: InsertableStructure) => {
     insertStructureIntoCanvas(structure, (msg) => showNotification(msg, 'error'));
     // On mobile the panel is a modal drawer — close it after inserting so the
     // canvas is visible again.
     if (isMobile) setStructuresPanelOpen(false);
   };
 
-  const visible = (s: DSAStructure) =>
-    matchesQuery(`${s.name} ${s.description} ${s.commands.join(' ')} ${s.id}`, query);
+  const visible = (s: InsertableStructure) =>
+    matchesQuery(`${s.name} ${s.description || ''} ${(s.commands || []).join(' ')} ${s.id}`, query);
     
-  const structures = dsaStructures.filter((s) => s.category === 'structures' && visible(s));
-  const algorithms = dsaStructures.filter((s) => s.category === 'algorithms' && visible(s));
+  const dsaStructuresVisible = dsaStructures.filter((s) => s.category === 'structures' && visible(s));
+  const dsaAlgorithmsVisible = dsaStructures.filter((s) => s.category === 'algorithms' && visible(s));
+  
+  const loadedLibraryVisible = (loadedLibrary || []).filter(visible);
+
+  // Options for the library switcher: the built-in DSA set + every imported lib.
+  const libraryOptions: LibraryOption[] = [
+    { id: 'dsa', name: 'DSA', count: dsaStructures.length },
+    ...librariesIndex.map((l: any) => ({ id: l.id, name: l.name, count: l.itemCount })),
+  ];
 
   // One index row. A left-edge indicator bar marks hover/active (ex-app-shell-row);
   // the name reads in Geist, the insert command sits in a mono tag.
-  const Row = (s: DSAStructure) => (
-    <button
-      key={s.id}
-      draggable
-      onDragStart={(e) => e.dataTransfer.setData('text/plain', s.id)}
-      onClick={() => insertStructure(s)}
-      className="group relative w-full pl-3.5 pr-3 py-2.5 text-left cursor-grab active:cursor-grabbing hover:bg-canvas-soft transition-colors"
-    >
-      {/* left-edge active indicator */}
-      <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-transparent group-hover:bg-ink transition-colors" />
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[13px] font-medium text-ink truncate">
-          {s.name}
-        </span>
-        <span className="shrink-0 font-mono text-[10px] text-mute group-hover:text-body lowercase transition-colors">
-          {s.commands[0]}
-        </span>
-      </div>
-      <p className="text-[12px] leading-snug text-mute mt-0.5 pr-6">{s.description}</p>
-    </button>
-  );
+  const Row = (s: InsertableStructure) => {
+    const libElements = (s as { elements?: unknown[] }).elements;
+    const isLibraryItem = Array.isArray(libElements);
+    return (
+      <button
+        key={s.id}
+        draggable
+        onDragStart={(e) => {
+          if (isLibraryItem) {
+            e.dataTransfer.setData('application/json', JSON.stringify(s));
+          } else {
+            e.dataTransfer.setData('text/plain', s.id);
+          }
+        }}
+        onClick={() => insertStructure(s)}
+        className="group relative w-full pl-3.5 pr-3 py-2.5 text-left cursor-grab active:cursor-grabbing hover:bg-canvas-soft transition-colors"
+      >
+        {/* left-edge active indicator */}
+        <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-transparent group-hover:bg-ink transition-colors" />
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[13px] font-medium text-ink truncate">{s.name}</span>
+          {isLibraryItem ? (
+            <span className="shrink-0 font-mono text-[10px] text-mute group-hover:text-body lowercase transition-colors">
+              insert
+            </span>
+          ) : (
+            <span className="shrink-0 font-mono text-[10px] text-mute group-hover:text-body lowercase transition-colors">
+              {s.commands?.[0] || 'item'}
+            </span>
+          )}
+        </div>
+        {s.description && (
+          <p className="text-[12px] leading-snug text-mute mt-0.5 pr-6">{s.description}</p>
+        )}
+      </button>
+    );
+  };
 
   // The scrollable index body, shared between the desktop sidebar and the
   // mobile drawer. `widthStyle` pins the inner width on desktop so text doesn't
   // reflow while the sidebar animates open/closed.
   const body = (widthStyle?: React.CSSProperties) => (
     <div style={widthStyle} className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
-      {/* Panel heading */}
-      <div className="px-4 pt-4 pb-3 flex items-baseline justify-between">
-        <span className="font-display text-[15px] font-semibold tracking-[-0.02em] text-ink">
-          Structures
-        </span>
-        <span className="font-mono text-[11px] text-mute">
-          {dsaStructures.length}
-        </span>
+      {/* Panel heading — library switcher */}
+      <div className="px-4 pt-4 pb-3 border-b border-hairline/50 mb-1">
+        <LibrarySwitcher
+          value={activeLibraryId}
+          options={libraryOptions}
+          onChange={(id) => {
+            setActiveLibraryId(id);
+            setQuery('');
+          }}
+        />
       </div>
 
-      <div className="px-4 pb-2">
-        <SearchField value={query} onChange={setQuery} placeholder="Search structures…" />
+      <div className="px-4 pb-2 pt-2">
+        <SearchField value={query} onChange={setQuery} placeholder="Search library…" />
       </div>
 
-      {structures.length > 0 && (
-        <Section label="data structures" count={structures.length}>
-          {structures.map(Row)}
-        </Section>
-      )}
-
-      {algorithms.length > 0 && (
-        <Section label="algorithms" count={algorithms.length}>
-          {algorithms.map(Row)}
-        </Section>
-      )}
-
-      {structures.length === 0 && algorithms.length === 0 && (
-        <p className="px-4 py-6 text-[12px] text-mute">Nothing matches “{query}”.</p>
+      {activeLibraryId === 'dsa' ? (
+        <>
+          {dsaStructuresVisible.length > 0 && (
+            <Section label="data structures" count={dsaStructuresVisible.length}>
+              {dsaStructuresVisible.map(Row)}
+            </Section>
+          )}
+          {dsaAlgorithmsVisible.length > 0 && (
+            <Section label="algorithms" count={dsaAlgorithmsVisible.length}>
+              {dsaAlgorithmsVisible.map(Row)}
+            </Section>
+          )}
+          {dsaStructuresVisible.length === 0 && dsaAlgorithmsVisible.length === 0 && (
+            <p className="px-4 py-6 text-[12px] text-mute">Nothing matches “{query}”.</p>
+          )}
+        </>
+      ) : (
+        <>
+          {loadedLibraryVisible.length > 0 ? (
+            <Section label="library items" count={loadedLibraryVisible.length}>
+              {loadedLibraryVisible.map(Row)}
+            </Section>
+          ) : (
+            <p className="px-4 py-6 text-[12px] text-mute">
+              {!loadedLibrary ? 'Loading...' : `Nothing matches “${query}”.`}
+            </p>
+          )}
+        </>
       )}
 
       <div className="mt-auto px-4 py-3 text-[11px] leading-relaxed text-mute border-t border-hairline">
@@ -191,3 +253,103 @@ const Section: React.FC<{ label: string; count: number; children: React.ReactNod
     <div className="flex flex-col">{children}</div>
   </div>
 );
+
+interface LibraryOption {
+  id: string;
+  name: string;
+  count: number;
+}
+
+// Library switcher — a design-system dropdown (not a native <select>): a display
+// trigger with a rotating chevron, opening a filterable, scrollable popover that
+// uses the same ink/hairline/canvas tokens as the rest of the workspace.
+const LibrarySwitcher: React.FC<{
+  value: string;
+  options: LibraryOption[];
+  onChange: (id: string) => void;
+}> = ({ value, options, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  const active = options.find((o) => o.id === value) || options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const q = filter.trim().toLowerCase();
+  const filtered = q ? options.filter((o) => o.name.toLowerCase().includes(q)) : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((v) => !v);
+          setFilter('');
+        }}
+        className="group flex w-full items-center gap-1.5 text-left"
+      >
+        <span className="font-display text-[14px] font-semibold tracking-[-0.01em] text-ink truncate">
+          {active?.name}
+        </span>
+        <ChevronDown
+          size={14}
+          className={`shrink-0 transition-transform duration-200 ${
+            open ? 'rotate-180 text-body' : 'text-mute group-hover:text-body'
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-50 overflow-hidden rounded-xl border border-hairline bg-canvas shadow-[var(--shadow-soft)]">
+          <div className="border-b border-hairline/60 p-2">
+            <SearchField value={filter} onChange={setFilter} placeholder="Filter libraries…" />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto py-1">
+            {filtered.length === 0 && (
+              <p className="px-3 py-3 text-[12px] text-mute">No libraries match.</p>
+            )}
+            {filtered.map((opt) => {
+              const isActive = opt.id === value;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.id);
+                    setOpen(false);
+                  }}
+                  className="group flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-canvas-soft"
+                >
+                  <Check size={13} className={`shrink-0 ${isActive ? 'text-ink' : 'text-transparent'}`} />
+                  <span
+                    className={`flex-1 truncate text-[13px] ${
+                      isActive ? 'font-medium text-ink' : 'text-body group-hover:text-ink'
+                    }`}
+                  >
+                    {opt.name}
+                  </span>
+                  <span className="shrink-0 font-mono text-[10px] text-mute">{opt.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
