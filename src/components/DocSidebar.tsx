@@ -8,6 +8,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { javascript } from '@codemirror/lang-javascript';
 import { vscodeDark, vscodeLight } from '../config/editorTheme';
+import { BLOG_POSTS } from '../config/blogData';
 
 interface Props {
   algorithmId: string;
@@ -134,6 +135,105 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
 
           <p className={`mt-4 text-[13.5px] leading-relaxed ${strongText}`}>{doc.tagline}</p>
           <p className={`mt-2.5 text-[12.5px] leading-relaxed ${bodyText}`}>{doc.idea}</p>
+
+          {/* Theory & Roadmap integrations */}
+          {(() => {
+            const algoToBlogSlug = (id: string): string => {
+              // Searching
+              if (id === 'linear-search' || id === 'binary-search' || id === 'ternary-search' || id === 'lower-bound' || id === 'upper-bound') return 'searching';
+              // Sorting
+              if (id === 'bubble-sort' || id === 'selection-sort' || id === 'insertion-sort' || id === 'merge-sort' || id === 'quick-sort' || id === 'heap-sort' || id === 'counting-sort' || id === 'radix-sort') return 'sorting';
+              // Pointers & Sliding Window
+              if (id === 'two-pointers' || id === 'sliding-window') return 'arrays';
+              if (id === 'fast-slow-pointer') return 'linked-list';
+              // Recursion & Backtracking
+              if (id === 'recursion' || id === 'recursion-tree' || id === 'backtracking' || id === 'subsets' || id === 'permutations' || id === 'combination-sum' || id === 'n-queens') return 'backtracking';
+              // Tree traversals
+              if (id === 'dfs-tree' || id === 'bfs-tree' || id === 'preorder' || id === 'inorder' || id === 'postorder' || id === 'level-order' || id === 'morris-traversal') return 'tree-traversal';
+              // Graphs
+              if (id === 'bfs-graph') return 'bfs';
+              if (id === 'dfs-graph') return 'dfs';
+              if (id === 'topological-sort') return 'topological-sort';
+              if (id === 'dijkstra') return 'dijkstra';
+              if (id === 'bellman-ford' || id === 'floyd-warshall') return 'bellman-ford-floyd-warshall';
+              if (id === 'kruskal' || id === 'prim' || id === 'union-find') return 'mst-union-find';
+              if (id === 'kosaraju' || id === 'tarjan' || id === 'bridges') return 'scc-bridges';
+              // Dynamic Programming
+              if (id === '1d-dp' || id === '2d-dp' || id === 'knapsack' || id === 'lis' || id === 'lcs' || id === 'dp-on-trees' || id === 'digit-dp' || id === 'bitmask-dp') return 'dynamic-programming';
+              // Greedy
+              if (id === 'activity-selection' || id === 'interval-scheduling' || id === 'huffman-coding') return 'greedy';
+              // String
+              if (id === 'kmp') return 'kmp-algorithm';
+              if (id === 'rabin-karp' || id === 'z-algorithm' || id === 'manacher') return 'string-algorithms';
+              // Range query & trees
+              if (id === 'fenwick-tree-algo') return 'fenwick-tree';
+              if (id === 'sparse-table-algo') return 'sparse-table';
+              if (id === 'segment-tree-algo' || id === 'lazy-propagation') return 'segment-tree';
+              // Advanced CP
+              if (id === 'binary-lifting' || id === 'euler-tour' || id === 'mos-algorithm' || id === 'sweep-line' || id === 'coordinate-compression') return 'advanced-cp';
+              
+              // Fallbacks
+              if (id.includes('sort')) return 'sorting';
+              if (id.includes('search')) return 'searching';
+              if (id.includes('tree')) return 'tree-traversal';
+              if (id.includes('graph')) return 'dfs';
+              return 'arrays';
+            };
+            const blogSlug = algoToBlogSlug(algorithmId);
+            const matchedPost = Array.isArray(BLOG_POSTS) ? BLOG_POSTS.find((p: any) => p.slug === blogSlug) : null;
+
+            return (
+              <>
+                <div className="mt-4.5 flex flex-col gap-2 border-t border-hairline pt-4.5 font-mono text-[11px]">
+                  <button
+                    onClick={() => {
+                      if ((window as any).navigateTo) {
+                        (window as any).navigateTo('blog', `/blog/${blogSlug}`);
+                      }
+                    }}
+                    className="w-full text-left py-1 hover:text-link transition-colors flex items-center gap-1.5 cursor-pointer text-body"
+                  >
+                    <span className="text-link">→</span> Read Theory & Guides
+                  </button>
+                  <button
+                    onClick={() => {
+                      if ((window as any).navigateTo) {
+                        (window as any).navigateTo('roadmap');
+                      }
+                    }}
+                    className="w-full text-left py-1 hover:text-[#d8bf8f] transition-colors flex items-center gap-1.5 cursor-pointer text-body"
+                  >
+                    <span className="text-[#cdbf9f]">→</span> Continue Roadmap Curriculum
+                  </button>
+                </div>
+
+                {matchedPost && matchedPost.related && matchedPost.related.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-2 border-t border-hairline pt-4">
+                    <span className={eyebrow}>Related Concepts</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {matchedPost.related.map((relSlug: string) => (
+                        <button
+                          key={relSlug}
+                          onClick={() => {
+                            if ((window as any).navigateTo) {
+                              (window as any).navigateTo('blog', `/blog/${relSlug}`);
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded border text-[9.5px] font-mono transition cursor-pointer ${
+                            isDark
+                              ? 'border-white/8 bg-white/[0.02] text-zinc-400 hover:text-white'
+                              : 'border-zinc-200 bg-zinc-50 text-zinc-600 hover:text-zinc-900'
+                          }`}
+                        >
+                          #{relSlug}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* How it works — a genuine sequence, so it's numbered. */}
           <Section eyebrow={eyebrow} label="How it works">

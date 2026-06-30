@@ -1,4 +1,6 @@
-import React, { useEffect, useState, lazy, Suspense, useCallback } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
+import { BrowserRouter, HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import posthog from 'posthog-js';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { Toolbar } from './components/Toolbar';
 import { TabBar } from './components/TabBar';
@@ -7,6 +9,7 @@ import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
 import { MobileNav } from './components/MobileNav';
 import { useIsMobile } from './hooks/useIsMobile';
+import { SEO } from './components/SEO';
 
 // Heavy, route-/pane-level components are code-split so the first paint (the
 // landing page) doesn't ship Excalidraw, CodeMirror, TipTap, KaTeX and Mermaid.
@@ -20,13 +23,9 @@ const VisualizerWorkspace = lazy(() => import('./components/VisualizerWorkspace'
 const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const PrivacyPage = lazy(() => import('./components/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./components/TermsPage').then((m) => ({ default: m.TermsPage })));
+const BlogPage = lazy(() => import('./components/BlogPage').then((m) => ({ default: m.BlogPage })));
 
-// ── URL routing (web only) ──────────────────────────────────────────────────
-// Each view maps to a real path so the homepage is `/`, the workspace is
-// `/workspace`, and the roadmap is `/roadmap` — deep-linkable and back/forward
-// aware. Electron loads over file:// with no address bar, so it stays on the
-// in-memory `view` state and never touches history.
-type View = 'landing' | 'roadmap' | 'workspace' | 'privacy' | 'terms' | 'not-found';
+type View = 'landing' | 'roadmap' | 'workspace' | 'privacy' | 'terms' | 'blog' | 'not-found';
 
 const VIEW_TO_PATH: Record<View, string> = {
   landing: '/',
@@ -34,16 +33,8 @@ const VIEW_TO_PATH: Record<View, string> = {
   workspace: '/workspace',
   privacy: '/privacy',
   terms: '/terms',
+  blog: '/blog',
   'not-found': '/404',
-};
-
-const pathToView = (pathname: string): View => {
-  if (pathname === '/') return 'landing';
-  if (pathname.startsWith('/workspace')) return 'workspace';
-  if (pathname.startsWith('/roadmap')) return 'roadmap';
-  if (pathname.startsWith('/privacy')) return 'privacy';
-  if (pathname.startsWith('/terms')) return 'terms';
-  return 'not-found';
 };
 
 const FullScreenLoader: React.FC = () => (
@@ -55,7 +46,7 @@ const FullScreenLoader: React.FC = () => (
   </div>
 );
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
   const splitWidth = useWorkspaceStore((state) => state.splitWidth);
   const setSplitWidth = useWorkspaceStore((state) => state.setSplitWidth);
@@ -73,44 +64,35 @@ const App: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const isElectron = typeof window !== 'undefined' && /electron/i.test(navigator.userAgent);
-  // On the web the initial view comes from the URL (so deep links / refreshes
-  // land on the right screen); Electron always opens straight into the workspace.
-  const [view, setView] = useState<View>(
-    isElectron ? 'workspace' : pathToView(window.location.pathname),
-  );
   const isMobile = useIsMobile();
 
-  // Navigate between views and keep the URL in sync (web only). `push` is false
-  // when the change originated from the browser's back/forward buttons.
-  const goTo = useCallback(
-    (next: View, { push = true }: { push?: boolean } = {}) => {
-      const apply = () => setView(next);
-      if (!isElectron && push && window.location.pathname !== VIEW_TO_PATH[next]) {
-        window.history.pushState({ view: next }, '', VIEW_TO_PATH[next]);
-      }
-      if (document.startViewTransition) {
-        document.startViewTransition(apply);
-      } else {
-        apply();
-      }
-    },
-    [isElectron],
-  );
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Reflect browser back/forward onto the view.
+  // Track page views on every route change in PostHog
   useEffect(() => {
-    if (isElectron) return;
-    const onPopState = () => goTo(pathToView(window.location.pathname), { push: false });
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, [isElectron, goTo]);
+    if (typeof window !== 'undefined' && import.meta.env.VITE_POSTHOG_KEY) {
+      posthog.capture('$pageview', {
+        $current_url: window.location.href,
+        $pathname: location.pathname,
+      });
+    }
+  }, [location]);
 
-  // Initialize workspace from IndexedDB on load
+  // Initialize workspace from IndexedDB on load and map navigation APIs globally
   useEffect(() => {
     initializeWorkspace();
     (window as any).useWorkspaceStore = useWorkspaceStore;
-    (window as any).goToLanding = () => goTo('landing');
-  }, [initializeWorkspace, goTo]);
+    (window as any).goToLanding = () => navigate('/');
+    (window as any).navigateTo = (next: string, customPath?: string) => {
+      if (customPath) {
+        navigate(customPath);
+      } else {
+        const path = VIEW_TO_PATH[next as View] || '/';
+        navigate(path);
+      }
+    };
+  }, [initializeWorkspace, navigate]);
 
   // Reflect the active theme onto <html> so the .dark token overrides apply.
   useEffect(() => {
@@ -136,17 +118,19 @@ const App: React.FC = () => {
         e.preventDefault();
         const cleanPath = href.split(/[?#]/)[0].replace(/\/$/, ''); // Remove query/hashes & trailing slashes
         if (cleanPath === '' || cleanPath === '/') {
-          goTo('landing');
+          navigate('/');
         } else if (cleanPath === '/privacy') {
-          goTo('privacy');
+          navigate('/privacy');
         } else if (cleanPath === '/terms') {
-          goTo('terms');
+          navigate('/terms');
         } else if (cleanPath === '/roadmap') {
-          goTo('roadmap');
+          navigate('/roadmap');
         } else if (cleanPath === '/workspace') {
-          goTo('workspace');
+          navigate('/workspace');
+        } else if (cleanPath === '/blog' || cleanPath.startsWith('/blog/')) {
+          navigate(href);
         } else {
-          goTo('not-found');
+          navigate('/404');
         }
       } else if (href.startsWith('http://') || href.startsWith('https://')) {
         // Intercept external links and open via setWindowOpenHandler
@@ -157,7 +141,7 @@ const App: React.FC = () => {
 
     document.addEventListener('click', handleGlobalLinkClicks, true);
     return () => document.removeEventListener('click', handleGlobalLinkClicks, true);
-  }, [isElectron, goTo]);
+  }, [isElectron, navigate]);
 
   // Handle global keyboard shortcuts: Ctrl+B (Toggle views), Ctrl+S (Manual Save), Ctrl+K (Command Palette)
   useEffect(() => {
@@ -173,12 +157,9 @@ const App: React.FC = () => {
           e.preventDefault();
           saveCurrentWorkspace();
         } else if (key === 't') {
-          // Ctrl/Cmd+T opens a new tab.
           e.preventDefault();
           createTab();
         } else if (key === 'f') {
-          // Ctrl/Cmd+F → search this tab; Ctrl/Cmd+Shift+F → search all tabs.
-          // Both use the same command-palette UI.
           e.preventDefault();
           setIsPaletteOpen(false);
           openSearchPalette(e.shiftKey ? 'all' : 'current');
@@ -233,159 +214,171 @@ const App: React.FC = () => {
     );
   }
 
-  if (view === 'landing') {
-    return (
-      <Suspense fallback={<FullScreenLoader />}>
-      <LandingPage
-        onLaunch={() => goTo('workspace')}
-        onViewRoadmap={() => goTo('roadmap')}
-      />
-      </Suspense>
-    );
-  }
-
-  if (view === 'roadmap') {
-    return (
-      <Suspense fallback={<FullScreenLoader />}>
-      <RoadmapPage
-        onBack={() => goTo('landing')}
-        onLaunch={() => goTo('workspace')}
-      />
-      </Suspense>
-    );
-  }
-
-  if (view === 'privacy') {
-    return (
-      <Suspense fallback={<FullScreenLoader />}>
-        <PrivacyPage />
-      </Suspense>
-    );
-  }
-
-  if (view === 'terms') {
-    return (
-      <Suspense fallback={<FullScreenLoader />}>
-        <TermsPage />
-      </Suspense>
-    );
-  }
-
-  if (view === 'not-found') {
-    return (
-      <Suspense fallback={<FullScreenLoader />}>
-        <NotFoundPage />
-      </Suspense>
-    );
-  }
-
-
   // Calculate which panes to show based on layoutMode
   const showCode = layoutMode === 'code';
   const showVisualizer = layoutMode === 'visualizer';
-  // Full-area modes hide the canvas/notes split entirely.
   const fullAreaMode = layoutMode === 'code' || layoutMode === 'visualizer';
-  // Calculate widths based on layoutMode.
   const showCanvas = layoutMode !== 'notes-only' && !fullAreaMode;
-  // The notes pane stays mounted so it can slide open/closed; its width animates
-  // to 0 when collapsed instead of unmounting.
-  // On mobile there's only ever one pane: the active view fills the width and the
-  // divider is hidden (Split collapses to the Canvas pane). On desktop the split
-  // percentage applies as before.
   const canvasWidth = isMobile
     ? (showCanvas ? 100 : 0)
     : (layoutMode === 'canvas-only' ? 100 : splitWidth);
   const notesWidth = isMobile
     ? (layoutMode === 'notes-only' ? 100 : 0)
     : (layoutMode === 'canvas-only' || fullAreaMode ? 0 : layoutMode === 'notes-only' ? 100 : 100 - splitWidth);
-  // Animate width changes from layout toggles, but not while dragging the divider
-  // (that needs to track the cursor 1:1).
   const paneTransition = isDragging ? '' : 'transition-[width] duration-300 ease-in-out';
 
-
   return (
-    <div className="flex flex-col h-screen w-screen text-ink overflow-hidden select-none">
-      {/* Top Toolbar */}
-      <Toolbar />
-
-      {/* Tab strip — hidden in the Visualizer, whose blocks are a single global
-          workspace rather than per-tab content. */}
-      {!showVisualizer && <TabBar />}
-
-      {/* Main Workspace Panels — leave room for the fixed bottom nav on mobile.
-          Wrapped in Suspense because the panes (Canvas/Editor/Code/Visualizer)
-          are code-split and load on demand. */}
-      <Suspense
-        fallback={
-          <div className="flex flex-1 w-full items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-link/30 border-t-link" />
-          </div>
-        }
-      >
-      <div className="flex flex-1 w-full overflow-hidden relative pb-14 md:pb-0">
-        {/* Transparent drag overlay to prevent Excalidraw from absorbing events while resizing */}
-        {isDragging && (
-          <div className="fixed inset-0 z-50 cursor-col-resize select-none bg-transparent" />
-        )}
-
-        {/* Full-area Code Runner */}
-        {showCode && (
-          <div className="h-full w-full overflow-hidden ph-no-capture">
-            {/* Key by tab so each tab gets its own code buffer / starter template. */}
-            <CodeEditor key={activeTabId} />
-          </div>
-        )}
-
-        {/* Full-area Algorithm Visualizer — always mounted (display toggled) so
-            its canvas pan/zoom and each block's playback position survive when
-            switching layouts and coming back. */}
-        <div className={`h-full w-full overflow-hidden ${showVisualizer ? '' : 'hidden'}`}>
-          <VisualizerWorkspace />
-        </div>
-
-        {/* Left pane: Drawing Canvas */}
-        {showCanvas && (
-          <div
-            style={{ width: `${canvasWidth}%` }}
-            className={`h-full overflow-hidden bg-canvas ${paneTransition} ph-no-capture`}
-          >
-            {/* Key by tab so the canvas remounts with each tab's own scene
-                instead of leaking the previous tab's elements via a stale onChange. */}
-            <Canvas key={activeTabId} />
-          </div>
-        )}
-
-        {/* Resizer bar — desktop only; mobile is single-pane with no divider. */}
-        {layoutMode === 'split' && !isMobile && (
-          <div
-            onMouseDown={handleMouseDown}
-            className={`w-px hover:w-1 bg-hairline hover:bg-link transition-all cursor-col-resize h-full flex-shrink-0 z-40 relative ${isDragging ? 'bg-link w-1' : ''
-              }`}
-          />
-        )}
-
-        {/* Right pane: Notes Editor — always mounted so it can slide closed */}
-        <div
-          style={{ width: `${notesWidth}%` }}
-          className={`h-full overflow-hidden flex-shrink-0 ${paneTransition} ph-no-capture`}
-        >
-          <Editor />
-        </div>
-      </div>
-      </Suspense>
-
-      {/* Global Command Palette triggered by Ctrl+K */}
-      <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
-
-      {/* Cross-tab Search Palette — opened by the tab-bar search icon or Ctrl+Shift+F */}
-      <SearchPalette isOpen={searchPaletteOpen} onClose={() => setSearchPaletteOpen(false)} />
-
-      {/* Global Toast Notification Popup */}
-      <NotificationToast />
-
-      {/* Mobile-only bottom navigation for switching views */}
-      {isMobile && <MobileNav />}
+    <div className="flex flex-col h-screen w-screen text-ink overflow-hidden select-none bg-canvas">
+      <SEO />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <LandingPage
+                onLaunch={() => navigate('/workspace')}
+                onViewRoadmap={() => navigate('/roadmap')}
+                onViewBlog={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/workspace"
+          element={
+            <div className="flex flex-col h-full w-full overflow-hidden">
+              <Toolbar />
+              {!showVisualizer && <TabBar />}
+              <Suspense
+                fallback={
+                  <div className="flex flex-1 w-full items-center justify-center">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-link/30 border-t-link" />
+                  </div>
+                }
+              >
+                <div className="flex flex-1 w-full overflow-hidden relative pb-14 md:pb-0">
+                  {isDragging && (
+                    <div className="fixed inset-0 z-50 cursor-col-resize select-none bg-transparent" />
+                  )}
+                  {showCode && (
+                    <div className="h-full w-full overflow-hidden ph-no-capture">
+                      <CodeEditor key={activeTabId} />
+                    </div>
+                  )}
+                  <div className={`h-full w-full overflow-hidden ${showVisualizer ? '' : 'hidden'}`}>
+                    <VisualizerWorkspace />
+                  </div>
+                  {showCanvas && (
+                    <div
+                      style={{ width: `${canvasWidth}%` }}
+                      className={`h-full overflow-hidden bg-canvas ${paneTransition} ph-no-capture`}
+                    >
+                      <Canvas key={activeTabId} />
+                    </div>
+                  )}
+                  {layoutMode === 'split' && !isMobile && (
+                    <div
+                      onMouseDown={handleMouseDown}
+                      className={`w-px hover:w-1 bg-hairline hover:bg-link transition-all cursor-col-resize h-full flex-shrink-0 z-40 relative ${
+                        isDragging ? 'bg-link w-1' : ''
+                      }`}
+                    />
+                  )}
+                  <div
+                    style={{ width: `${notesWidth}%` }}
+                    className={`h-full overflow-hidden flex-shrink-0 ${paneTransition} ph-no-capture`}
+                  >
+                    <Editor />
+                  </div>
+                </div>
+              </Suspense>
+              <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+              <SearchPalette isOpen={searchPaletteOpen} onClose={() => setSearchPaletteOpen(false)} />
+              <NotificationToast />
+              {isMobile && <MobileNav />}
+            </div>
+          }
+        />
+        <Route
+          path="/roadmap"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <RoadmapPage
+                onBack={() => navigate('/')}
+                onLaunch={() => navigate('/workspace')}
+                onViewBlog={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/blog"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <BlogPage
+                onBack={() => navigate('/')}
+                onLaunch={() => navigate('/workspace')}
+                onViewRoadmap={() => navigate('/roadmap')}
+                onNavigate={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/blog/:slug"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <BlogPage
+                onBack={() => navigate('/')}
+                onLaunch={() => navigate('/workspace')}
+                onViewRoadmap={() => navigate('/roadmap')}
+                onNavigate={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/privacy"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <PrivacyPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/terms"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <TermsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <Suspense fallback={<FullScreenLoader />}>
+              <NotFoundPage />
+            </Suspense>
+          }
+        />
+      </Routes>
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  const isElectron = typeof window !== 'undefined' && /electron/i.test(navigator.userAgent);
+  if (isElectron) {
+    return (
+      <HashRouter>
+        <AppContent />
+      </HashRouter>
+    );
+  }
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 };
 

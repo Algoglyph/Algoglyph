@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -26,21 +26,30 @@ import { RoadmapConvergence } from './RoadmapConvergence';
 interface RoadmapPageProps {
   onBack: () => void;
   onLaunch: () => void;
+  onViewBlog?: (slug?: string) => void;
 }
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const SERIF = '"Instrument Serif", Georgia, serif';
 
-export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) => {
+export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch, onViewBlog }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const [selectedConcept, setSelectedConcept] = useState<SubConcept | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py'>('py');
 
   const addVisualizerNode = useWorkspaceStore((state) => state.addVisualizerNode);
   const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
   const roadmapProgress = useWorkspaceStore((state) => state.roadmapProgress);
   const updateRoadmapProgress = useWorkspaceStore((state) => state.updateRoadmapProgress);
+
+  const allSubConcepts = useMemo(() => ROADMAP_ZONES.flatMap((z: any) => z.subConcepts), []);
+  const firstNotCompletedIndex = useMemo(() => {
+    return allSubConcepts.findIndex((c: SubConcept) => {
+      const status = roadmapProgress[c.name] || c.learningStatus || 'Not Started';
+      return status !== 'Completed';
+    });
+  }, [allSubConcepts, roadmapProgress]);
+
+  const [selectedConcept, setSelectedConcept] = useState<SubConcept | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py'>('py');
 
   const { scrollYProgress } = useScroll({ container: containerRef });
   const progressScaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.4 });
@@ -452,6 +461,17 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                     {zone.description}
                   </p>
 
+                  {zone.blogSlug && onViewBlog && (
+                    <button
+                      onClick={() => onViewBlog(zone.blogSlug)}
+                      className="mt-1 w-fit group/zone-btn px-4 py-2 rounded-full border border-white/8 hover:border-white/20 bg-white/[0.02] text-[12px] font-semibold text-zinc-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer font-sans"
+                    >
+                      <BookOpen size={12} className="text-[#d8bf8f]" />
+                      <span>Read theory and guides</span>
+                      <ArrowRight size={11} className="group-hover/zone-btn:translate-x-0.5 transition-transform duration-300" />
+                    </button>
+                  )}
+
                   {/* Quick stats */}
                   <div className="grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-5 font-mono">
                     <div className="flex flex-col gap-1">
@@ -548,8 +568,14 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   className="lg:col-span-5 flex flex-col gap-5 pb-20 lg:relative lg:left-[3px]"
                 >
                   {zone.subConcepts.map((concept, cIdx) => {
-                    const subStatus = roadmapProgress[concept.name] || concept.learningStatus || 'Not Started';
                     const isSel = selectedConcept?.name === concept.name;
+                    const conceptIndex = allSubConcepts.findIndex((c: SubConcept) => c.name === concept.name);
+                    const timelineState = (() => {
+                      const status = roadmapProgress[concept.name] || concept.learningStatus || 'Not Started';
+                      if (status === 'Completed') return 'Completed';
+                      if (conceptIndex === firstNotCompletedIndex) return 'Current';
+                      return 'Next Topic';
+                    })();
 
                     return (
                       <motion.div
@@ -575,6 +601,18 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                             </h3>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
+                            {concept.blogSlug && onViewBlog && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onViewBlog(concept.blogSlug);
+                                }}
+                                className="p-1 rounded hover:bg-white/10 text-[#d8bf8f] hover:text-white transition-colors cursor-pointer flex items-center justify-center relative z-10"
+                                title="Read Theory"
+                              >
+                                <BookOpen size={12} />
+                              </button>
+                            )}
                             <span
                               className={`text-[9px] font-mono border px-2 py-0.5 rounded-full ${getDifficultyColor(
                                 concept.difficulty
@@ -584,14 +622,14 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                             </span>
                             <span
                               className={`text-[9px] font-sans border px-2 py-0.5 rounded-full ${
-                                subStatus === 'Completed'
-                                  ? 'border-[#8fa68c]/25 text-[#a9c0a3] bg-[#8fa68c]/[0.06]'
-                                  : subStatus === 'In Progress'
-                                  ? 'border-[#c9a86a]/25 text-[#ddc18c] bg-[#c9a86a]/[0.06]'
+                                timelineState === 'Completed'
+                                  ? 'border-[#8fa68c]/25 text-[#a9c0a3] bg-[#8fa68c]/[0.06] shadow-[0_0_10px_rgba(143,166,140,0.15)]'
+                                  : timelineState === 'Current'
+                                  ? 'border-[#c9a86a]/25 text-[#ddc18c] bg-[#c9a86a]/[0.06] shadow-[0_0_12px_rgba(201,168,106,0.25)]'
                                   : 'border-white/8 text-white/35 bg-white/[0.01]'
                               }`}
                             >
-                              {subStatus}
+                              {timelineState}
                             </span>
                           </div>
                         </div>
@@ -699,22 +737,36 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                                     <span className="text-white font-semibold">{concept.hours} hours</span>
                                   </div>
 
-                                  <button
-                                    onClick={() => handleLaunchConcept(concept)}
-                                    className="group/btn px-3 py-1.5 rounded-full border border-white/12 hover:border-white/22 bg-white/[0.02] text-[10.5px] font-semibold text-white/90 hover:text-white transition flex items-center gap-1.5 cursor-pointer font-sans"
-                                  >
-                                    {concept.visualizerId ? (
-                                      <>
-                                        <Play size={10} className="text-[#d8bf8f]" />
-                                        <span>Launch Interactive Visualizer</span>
-                                      </>
-                                    ) : (
-                                      <>
+                                  <div className="flex gap-2">
+                                    {concept.blogSlug && onViewBlog && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onViewBlog(concept.blogSlug);
+                                        }}
+                                        className="group/btn px-3 py-1.5 rounded-full border border-[#d8bf8f]/20 hover:border-[#d8bf8f]/40 bg-[#d8bf8f]/[0.02] text-[10.5px] font-semibold text-white/90 hover:text-white transition flex items-center gap-1.5 cursor-pointer font-sans"
+                                      >
                                         <BookOpen size={10} className="text-[#d8bf8f]" />
-                                        <span>Explore in Workspace</span>
-                                      </>
+                                        <span>Read Theory</span>
+                                      </button>
                                     )}
-                                  </button>
+                                    <button
+                                      onClick={() => handleLaunchConcept(concept)}
+                                      className="group/btn px-3 py-1.5 rounded-full border border-white/12 hover:border-white/22 bg-white/[0.02] text-[10.5px] font-semibold text-white/90 hover:text-white transition flex items-center gap-1.5 cursor-pointer font-sans"
+                                    >
+                                      {concept.visualizerId ? (
+                                        <>
+                                          <Play size={10} className="text-[#d8bf8f]" />
+                                          <span>Launch Visualizer</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <BookOpen size={10} className="text-[#d8bf8f]" />
+                                          <span>Explore Workspace</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             </motion.div>

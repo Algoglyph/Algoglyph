@@ -32,6 +32,7 @@ export default defineConfig({
         roadmap: resolve(__dirname, 'roadmap.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),
         terms: resolve(__dirname, 'terms/index.html'),
+        blog: resolve(__dirname, 'blog.html'),
         404: resolve(__dirname, '404.html')
       }
     }

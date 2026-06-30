@@ -24,6 +24,7 @@ import { vscodeDark } from '../config/editorTheme';
 interface LandingPageProps {
   onLaunch: () => void;
   onViewRoadmap: () => void;
+  onViewBlog?: (slug?: string) => void;
 }
 
 // Editorial serif used only for the italic accent words, mirroring the roadmap.
@@ -148,7 +149,7 @@ const listItemVariants: Variants = {
   },
 };
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadmap, onViewBlog }) => {
   const [activeStage, setActiveStage] = useState(1); // 1 (Array) to 5 (Graph)
   const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py' | 'java' | 'js'>('py');
 
@@ -171,9 +172,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
 
   return (
     <div className="relative w-full bg-[#08080a] text-[#f0f0f2] overflow-x-hidden selection:bg-[#ededed] selection:text-[#000000] min-h-screen font-sans antialiased">
-
-      {/* Cursor-driven neutral dust field — the roadmap's living backdrop, fixed
-          behind everything so it persists as the page scrolls. */}
+      {/* Cursor-driven neutral dust field — the roadmap's living backdrop, fixed */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <RoadmapBackground tone="neutral" />
         <div
@@ -203,6 +202,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <a href="#features" onClick={(e) => handleScrollTo(e, 'features')} className="hover:text-white transition-colors">Features</a>
           <a href="#visualizer" onClick={(e) => handleScrollTo(e, 'visualizer')} className="hover:text-white transition-colors">Visualizers</a>
           <a href="#usecases" onClick={(e) => handleScrollTo(e, 'usecases')} className="hover:text-white transition-colors">Use Cases</a>
+          {onViewBlog && (
+            <button 
+              onClick={() => onViewBlog()} 
+              className="hover:text-white transition-colors cursor-pointer font-semibold text-[14px]"
+            >
+              Theory Graph
+            </button>
+          )}
           <button 
             onClick={onViewRoadmap} 
             className="hover:text-white transition-colors font-mono tracking-wider bg-white/[0.04] px-2 py-0.5 rounded border border-white/5 uppercase text-[11px] text-white/80 cursor-pointer"
@@ -1021,6 +1028,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             <span>© {new Date().getFullYear()} Algoglyph. Workspace Sandbox client.</span>
           </div>
           <div className="flex gap-4">
+            {onViewBlog && (
+              <button 
+                onClick={() => onViewBlog()} 
+                className="hover:text-white transition-colors cursor-pointer font-sans"
+              >
+                Theory Graph
+              </button>
+            )}
             <a href="/privacy/" className="hover:text-white transition-colors">Privacy</a>
             <a href="/terms/" className="hover:text-white transition-colors">Terms</a>
             <a href="#" className="hover:text-white transition-colors">Repository</a>
