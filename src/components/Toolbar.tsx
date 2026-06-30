@@ -229,7 +229,7 @@ ${JSON.stringify(data, null, 2)}
         >
           {/* Brand mark — using the original favicon */}
           <span className="grid h-5 w-5 place-items-center" aria-hidden>
-            <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
+            <img src="/favicon.png" alt="AlgoGlyph brand logo, interactive computer science workspace" width={20} height={20} className="w-full h-full object-contain" />
           </span>
           <h1 className="font-display text-sm font-semibold tracking-[-0.02em] text-ink">Algoglyph</h1>
         </button>

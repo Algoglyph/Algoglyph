@@ -138,7 +138,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
       />
 
       {/* ── Left timeline rail ── */}
-      <nav className="fixed left-5 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-5 z-35 font-mono text-[10px] text-white/40 max-w-[200px] pointer-events-auto">
+      <nav className="fixed left-5 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-5 z-35 font-mono text-[10px] text-white/40 max-w-[200px] pointer-events-auto" aria-label="Curriculum Timeline Navigation">
         {ROADMAP_ZONES.map((zone, idx) => {
           const isActive = idx === activeZoneIndex - 1;
           return (
@@ -182,7 +182,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
       </nav>
 
       {/* ── Header ── */}
-      <header className="fixed top-0 left-0 right-0 h-20 border-b border-white/[0.05] bg-[#0a0908]/55 backdrop-blur-xl z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto">
+      <header className="fixed top-0 left-0 right-0 h-20 border-b border-white/[0.05] bg-[#0a0908]/55 backdrop-blur-xl z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto" aria-label="Roadmap Header navigation">
         <button
           onClick={onBack}
           className="group flex items-center gap-3 text-[13px] text-white/55 hover:text-white transition-colors cursor-pointer"
@@ -211,12 +211,13 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         </button>
       </header>
 
-      {/* ── Scrollable journey ── */}
-      <div
-        ref={containerRef}
-        className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col pl-6 sm:pl-8 xl:pl-[210px] pr-6 sm:pr-8 md:pr-8"
-      >
-        {/* Hero */}
+        {/* ── Scrollable journey ── */}
+        <main
+          ref={containerRef}
+          className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col pl-6 sm:pl-8 xl:pl-[210px] pr-6 sm:pr-8 md:pr-8"
+          id="roadmap-main"
+        >
+          {/* Hero */}
         <section
           id="hero-section"
           className="w-full min-h-screen shrink-0 flex flex-col items-center justify-center text-center relative overflow-hidden py-28"
@@ -252,7 +253,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               transition={{ duration: 0.9, ease: EASE_OUT }}
               className="text-5xl sm:text-7xl lg:text-[7.5rem] font-semibold tracking-[-0.045em] text-[#f4f0e8] leading-[0.96]"
             >
-              Computer science,
+              Learn computer science visually,
               <br />
               <span className="italic font-normal text-[#d8bf8f]" style={{ fontFamily: SERIF }}>
                 as a spatial journey
@@ -349,7 +350,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 The Curriculum
               </span>
               <h2 className="text-4xl sm:text-6xl font-semibold tracking-[-0.04em] text-[#f0ece3] leading-[1.0]">
-                Nine zones,{' '}
+                Nine curriculum zones to master data structures and algorithms,{' '}
                 <span className="italic font-normal text-[#d8bf8f]" style={{ fontFamily: SERIF }}>
                   start to finish
                 </span>
@@ -766,7 +767,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
             </div>
           </div>
         </section>
-      </div>
+        </main>
 
       {/* Scroll hint */}
       {activeZoneIndex < 9 && (

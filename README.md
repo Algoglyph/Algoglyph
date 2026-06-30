@@ -140,31 +140,5 @@ Scratchpad/
 - **Why it matters**: Accidental commits of build cache files or developer environment files pollute the history, bloat the repository size, and cause unnecessary merge conflicts.
 - **Recommended fix**: Extend the `.gitignore` configuration to explicitly exclude all TypeScript caches, environment configurations, and build/compilation artifacts.
 
-### Clarity of Build Assets vs. Outputs
-- **Current issue**: The `build/` folder contains only static branding resources (like `icon.png`) for desktop packaging, which can easily be mistaken for a generated build output folder (similar to a standard Create React App or Webpack build folder).
-- **Why it matters**: Developers might inadvertently add `build/` to `.gitignore` or clean scripts, deleting the desktop application icon and causing subsequent application packaging runs to fail.
-- **Recommended fix**: Document the purpose of the `build/` folder, configure packaging commands to output strictly to `dist/` (web assets) and `release/` (packaged desktop installers), and keep the `build/` folder committed solely for branding assets.
 
-## Release Management
-
-A professional GitHub release workflow is recommended to separate source code from compiled execution packages:
-
-- **Source Code**: Track only the source configuration files, code directories (`src/`), branding assets, and project files in the main Git repository branches.
-- **Compiled Installers**: Avoid committing compiled execution packages (e.g., `.exe` installers, `.zip` folders) to Git. These installers should be generated on clean build runners and distributed exclusively through GitHub Releases.
-
-### Handling the `build/` Directory
-The `build/` directory contains `icon.png` which is the desktop application icon referenced by the Electron packager. 
-- **Recommendation**: The `build/` directory **must remain committed** to the repository because `build/icon.png` is a source design asset, not a generated build artifact.
-- **Git Integration**: To ensure `build/icon.png` is tracked while avoiding the accidental tracking of any other system-generated files in that directory, use the following configuration in `.gitignore`:
-
-```gitignore
-# Exclude build output folders
-dist/
-dist-ssr/
-release/
-
-# Only track packaging branding assets inside the build directory
-build/*
-!build/icon.png
-```
 

@@ -164,7 +164,7 @@ Process finished with exit code 0.`);
         <div className="flex items-center gap-3 flex-1 basis-0 min-w-0">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 shrink-0">
-              <img src="/favicon.png" alt="dsadelta logo" className="w-full h-full object-contain" />
+              <img src="/favicon.png" alt="AlgoGlyph logo, mock visual computer science workspace representation" width={20} height={20} className="w-full h-full object-contain" />
             </div>
             <span className="font-display text-sm font-semibold tracking-[-0.02em] text-white">Algoglyph</span>
           </div>

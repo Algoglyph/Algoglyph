@@ -20,14 +20,14 @@ export const PrivacyPage: React.FC = () => {
       <header className="fixed top-0 left-0 right-0 h-16 border-b border-white/[0.04] bg-[#000000]/60 backdrop-blur-md z-50 flex items-center px-6 sm:px-12">
         <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
           <div className="w-6 h-6 shrink-0">
-            <img src="/favicon.png" alt="algoglyph logo" className="w-full h-full object-contain" />
+            <img src="/favicon.png" alt="AlgoGlyph brand logo" width={24} height={24} className="w-full h-full object-contain" />
           </div>
           <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">Algoglyph</span>
         </a>
       </header>
 
       <main className="relative z-10 max-w-3xl mx-auto px-6 sm:px-12 pt-36 pb-24">
-        <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-[-0.04em] text-white mb-10">Privacy Policy</h1>
+        <h1 className="font-display text-4xl sm:text-5xl font-semibold tracking-[-0.04em] text-white mb-10">AlgoGlyph Privacy Policy</h1>
         
         <div className="flex flex-col gap-8 text-[15px] leading-relaxed text-[#a1a1a1]">
           <section>
