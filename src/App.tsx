@@ -1,5 +1,5 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter, HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import posthog from 'posthog-js';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { Toolbar } from './components/Toolbar';
@@ -23,7 +23,7 @@ const VisualizerWorkspace = lazy(() => import('./components/VisualizerWorkspace'
 const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const PrivacyPage = lazy(() => import('./components/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./components/TermsPage').then((m) => ({ default: m.TermsPage })));
-const BlogPage = lazy(() => import('./components/BlogPage').then((m) => ({ default: m.BlogPage })));
+
 
 type View = 'landing' | 'roadmap' | 'workspace' | 'privacy' | 'terms' | 'blog' | 'not-found';
 
@@ -37,6 +37,8 @@ const VIEW_TO_PATH: Record<View, string> = {
   'not-found': '/404',
 };
 
+import { ROADMAP_ZONES } from './config/roadmapData';
+
 const FullScreenLoader: React.FC = () => (
   <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
     <div className="flex flex-col items-center gap-4">
@@ -45,6 +47,23 @@ const FullScreenLoader: React.FC = () => (
     </div>
   </div>
 );
+
+const BlogRedirect: React.FC = () => {
+  const { slug } = useParams();
+  if (!slug) return <Navigate to="/roadmap" replace />;
+  for (const zone of ROADMAP_ZONES) {
+    for (const topic of zone.topics) {
+      for (const concept of topic.concepts) {
+        for (const subtopic of concept.subtopics) {
+          if (subtopic.blogSlug === slug) {
+            return <Navigate to={`/roadmap/${zone.id}/${topic.id}/${concept.id}/${subtopic.blogSlug}`} replace />;
+          }
+        }
+      }
+    }
+  }
+  return <Navigate to="/roadmap" replace />;
+};
 
 const AppContent: React.FC = () => {
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
@@ -127,8 +146,11 @@ const AppContent: React.FC = () => {
           navigate('/roadmap');
         } else if (cleanPath === '/workspace') {
           navigate('/workspace');
-        } else if (cleanPath === '/blog' || cleanPath.startsWith('/blog/')) {
-          navigate(href);
+        } else if (cleanPath === '/blog') {
+          navigate('/roadmap');
+        } else if (cleanPath.startsWith('/blog/')) {
+          const slug = cleanPath.substring(6);
+          navigate(`/roadmap?blog=${slug}`);
         } else {
           navigate('/404');
         }
@@ -238,7 +260,6 @@ const AppContent: React.FC = () => {
               <LandingPage
                 onLaunch={() => navigate('/workspace')}
                 onViewRoadmap={() => navigate('/roadmap')}
-                onViewBlog={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
               />
             </Suspense>
           }
@@ -300,42 +321,23 @@ const AppContent: React.FC = () => {
           }
         />
         <Route
-          path="/roadmap"
+          path="/roadmap/*"
           element={
             <Suspense fallback={<FullScreenLoader />}>
               <RoadmapPage
                 onBack={() => navigate('/')}
                 onLaunch={() => navigate('/workspace')}
-                onViewBlog={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
               />
             </Suspense>
           }
         />
         <Route
           path="/blog"
-          element={
-            <Suspense fallback={<FullScreenLoader />}>
-              <BlogPage
-                onBack={() => navigate('/')}
-                onLaunch={() => navigate('/workspace')}
-                onViewRoadmap={() => navigate('/roadmap')}
-                onNavigate={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
-              />
-            </Suspense>
-          }
+          element={<Navigate to="/roadmap" replace />}
         />
         <Route
           path="/blog/:slug"
-          element={
-            <Suspense fallback={<FullScreenLoader />}>
-              <BlogPage
-                onBack={() => navigate('/')}
-                onLaunch={() => navigate('/workspace')}
-                onViewRoadmap={() => navigate('/roadmap')}
-                onNavigate={(slug) => navigate(slug ? `/blog/${slug}` : '/blog')}
-              />
-            </Suspense>
-          }
+          element={<BlogRedirect />}
         />
         <Route
           path="/privacy"

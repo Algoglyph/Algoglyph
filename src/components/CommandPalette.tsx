@@ -7,6 +7,24 @@ import { insertStructureIntoCanvas } from '../lib/insertStructure';
 import { BLOG_POSTS } from '../config/blogData';
 import { ALGORITHMS } from '../config/algorithms';
 
+import { ROADMAP_ZONES } from '../config/roadmapData';
+
+const getNestedRoadmapUrl = (slug: string) => {
+  const clean = slug.toLowerCase();
+  for (const zone of ROADMAP_ZONES) {
+    for (const topic of zone.topics) {
+      for (const concept of topic.concepts) {
+        for (const subtopic of concept.subtopics) {
+          if (subtopic.blogSlug === clean || subtopic.blogSlug === clean + 's' || subtopic.blogSlug === clean.slice(0, -1)) {
+            return `/roadmap/${zone.id}/${topic.id}/${concept.id}/${subtopic.blogSlug}`;
+          }
+        }
+      }
+    }
+  }
+  return `/roadmap`;
+};
+
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
@@ -155,7 +173,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
       showNotification(`Inserted ${item.structureData.name} onto canvas`, 'success');
     } else if (item.type === 'blog' && item.slug) {
       if ((window as any).navigateTo) {
-        (window as any).navigateTo('blog', `/blog/${item.slug}`);
+        (window as any).navigateTo('roadmap', getNestedRoadmapUrl(item.slug));
       }
     } else if (item.type === 'view' && item.viewName) {
       if ((window as any).navigateTo) {

@@ -10,6 +10,24 @@ import { javascript } from '@codemirror/lang-javascript';
 import { vscodeDark, vscodeLight } from '../config/editorTheme';
 import { BLOG_POSTS } from '../config/blogData';
 
+import { ROADMAP_ZONES } from '../config/roadmapData';
+
+const getNestedRoadmapUrl = (slug: string) => {
+  const clean = slug.toLowerCase();
+  for (const zone of ROADMAP_ZONES) {
+    for (const topic of zone.topics) {
+      for (const concept of topic.concepts) {
+        for (const subtopic of concept.subtopics) {
+          if (subtopic.blogSlug === clean || subtopic.blogSlug === clean + 's' || subtopic.blogSlug === clean.slice(0, -1)) {
+            return `/roadmap/${zone.id}/${topic.id}/${concept.id}/${subtopic.blogSlug}`;
+          }
+        }
+      }
+    }
+  }
+  return `/roadmap`;
+};
+
 interface Props {
   algorithmId: string;
   onClose: () => void;
@@ -188,7 +206,7 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
                   <button
                     onClick={() => {
                       if ((window as any).navigateTo) {
-                        (window as any).navigateTo('blog', `/blog/${blogSlug}`);
+                        (window as any).navigateTo('roadmap', getNestedRoadmapUrl(blogSlug));
                       }
                     }}
                     className="w-full text-left py-1 hover:text-link transition-colors flex items-center gap-1.5 cursor-pointer text-body"
@@ -201,9 +219,9 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
                         (window as any).navigateTo('roadmap');
                       }
                     }}
-                    className="w-full text-left py-1 hover:text-[#d8bf8f] transition-colors flex items-center gap-1.5 cursor-pointer text-body"
+                    className="w-full text-left py-1 hover:text-link transition-colors flex items-center gap-1.5 cursor-pointer text-body"
                   >
-                    <span className="text-[#cdbf9f]">→</span> Continue Roadmap Curriculum
+                    <span className="text-link">→</span> Continue Roadmap Curriculum
                   </button>
                 </div>
 
@@ -216,7 +234,7 @@ export const DocSidebar: React.FC<Props> = ({ algorithmId, onClose }) => {
                           key={relSlug}
                           onClick={() => {
                             if ((window as any).navigateTo) {
-                              (window as any).navigateTo('blog', `/blog/${relSlug}`);
+                              (window as any).navigateTo('roadmap', getNestedRoadmapUrl(relSlug));
                             }
                           }}
                           className={`px-2 py-0.5 rounded border text-[9.5px] font-mono transition cursor-pointer ${
