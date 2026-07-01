@@ -4,6 +4,20 @@ const path = require('path');
 const targetFile = path.join(__dirname, '..', 'src', 'config', 'blogData.ts');
 let content = fs.readFileSync(targetFile, 'utf8');
 
+// Truncate existing generated blogs first to avoid duplication/bloat
+const kmpIndex = content.indexOf("slug: 'kmp-algorithm'");
+if (kmpIndex !== -1) {
+  let endBlock = content.indexOf("}\r\n  }", kmpIndex);
+  let lengthToKeep = 6;
+  if (endBlock === -1) {
+    endBlock = content.indexOf("}\n  }", kmpIndex);
+    lengthToKeep = 5;
+  }
+  if (endBlock !== -1) {
+    content = content.substring(0, endBlock + lengthToKeep) + "\n];\n";
+  }
+}
+
 const categories = [
   'Data Structures',
   'Algorithms',
@@ -122,6 +136,42 @@ const subtopics = {
   ]
 };
 
+function getIntroduction(topic, category) {
+  return `${topic} is a fundamental concept in the study of ${category}, defining how computing architectures handle structural data, execution lifecycles, and algorithmic complexity limits. Unlike simple memory abstractions, implementing ${topic} forces developers to balance processor efficiency against overall memory footprint constraints.\\n\\nIn standard engineering practices, this concept forms the core of high-throughput pipelines. By shifting away from naive linear workflows, it optimizes lookups, cache locality, and runtime pipelines. Developing a strong intuition for ${topic} allows developers to build systems that scale smoothly without introducing unexpected lock contentions, CPU bottlenecks, or resource starvation.`;
+}
+
+function getWhyImportant(topic, category) {
+  return `Mastering ${topic} is critical because modern enterprise workloads demand optimal execution speeds and minimal memory overhead. Without a rigorous understanding of this topic's underlying invariants and execution boundaries, application bottlenecks can emerge silently under production stress. This concept bridges basic programming logic with hardware-level optimizations, ensuring that data manipulation pipelines operate within predictable asymptotic bounds. For system designers, selecting or implementing ${topic} is an essential design decision that directly impacts database reads, networking efficiency, and concurrent throughput constraints.`;
+}
+
+function getRealWorldApps(topic) {
+  return [
+    `**Database Index Partitioning:** Structuring storage indexes via ${topic} ranges to speed up query execution blocks under massive dataset operations.`,
+    `**Hardware Cache Optimization:** Managing processor instruction paths and register lookups to minimize cache miss penalties in high-performance engines.`,
+    `**Asynchronous Thread Management:** Coordinating dynamic pipeline queues and resource locks inside concurrent operating system schedulers.`
+  ];
+}
+
+function getAlgorithmDescription(topic) {
+  return [
+    `**Initialization Phase:** Allocate standard memory arrays or instantiate node reference coordinates, setting up the boundary limits for execution variables.`,
+    `**Traversal and Partitioning:** Loop through key thresholds using pointer shifts, checking invariants and validating boundary constraints sequentially.`,
+    `**State Consolidation:** Resolve pointer assignments, run garbage cleanup if applicable, and return the mutated structure or computed outcome.`
+  ];
+}
+
+function getCommonMistakes(topic) {
+  return [
+    `**Boundary Verification Failure:** Neglecting to check bounds or index limits during pointer transitions, leading to segmentation faults or memory corruption.`,
+    `**Memory Leak Overflows:** Failing to free allocated structures or dereference child links in cyclic setups, which triggers runtime memory exhaustion.`,
+    `**Inefficient Access Patterns:** Designing randomized lookup sweeps instead of sequential traversals, degrading CPU hardware cache locality advantages.`
+  ];
+}
+
+function getSummary(topic, category) {
+  return `Ultimately, ${topic} provides the building blocks for performant software design in the ${category} space. By combining algorithmic efficiency with low-level structural optimizations, it enables systems to scale predictably. Understanding its trade-offs is key to writing clean, reliable code that respects hardware constraints.`;
+}
+
 const generatedArticles = [];
 let totalAdded = 0;
 
@@ -143,18 +193,10 @@ for (const category of categories) {
         { title: `Solve ${topic} Challenges (Problem 2)`, difficulty: 'Hard', url: '#' }
       ],
       content: {
-        introduction: `This article provides an in-depth reference on ${topic}, a critical concept in ${category}. Understanding this topic helps software engineers write cleaner, more performant systems.`,
-        whyImportant: `Mastering ${topic} is essential for software efficiency, system scaling, and technical interview success. It forms a key pillar of the ${category} discipline.`,
-        realWorldApps: [
-          `Optimizing database search operations for faster lookups.`,
-          `Structuring data packages inside asynchronous networking buffers.`,
-          `Managing thread sync safety boundaries in large enterprise codebases.`
-        ],
-        algorithmDescription: [
-          `Initialize structural data frames matching standard patterns.`,
-          `Process elements sequentially while verifying boundaries.`,
-          `Save state transitions and return result structures.`
-        ],
+        introduction: getIntroduction(topic, category),
+        whyImportant: getWhyImportant(topic, category),
+        realWorldApps: getRealWorldApps(topic),
+        algorithmDescription: getAlgorithmDescription(topic),
         complexity: [
           { label: 'Time Complexity', value: 'O(N)', note: 'Average search or traversal execution bounds' },
           { label: 'Auxiliary Space', value: 'O(1)', note: 'Constant memory overhead space allocation' },
@@ -162,16 +204,13 @@ for (const category of categories) {
         ],
         implementationCpp: `// Sample implementation for ${topic}\\nvoid execute() {\\n  // Run executing logic here\\n}`,
         implementationPython: `# Sample implementation for ${topic}\\ndef execute():\\n    # Run executing logic here\\n    pass`,
-        commonMistakes: [
-          `Not validating boundary exceptions or null references, leading to crash errors.`,
-          `Neglecting to calculate auxiliary space usage, causing memory leak overflows.`
-        ],
+        commonMistakes: getCommonMistakes(topic),
         interviewQuestions: [
           `How would you optimize the space complexity of ${topic}?`,
           `What are the typical edge cases to consider when implementing ${topic}?`,
           `In what scenarios does this approach outperform naive methods?`
         ],
-        summary: `Understanding ${topic} provides the logical tools to analyze and build scalable applications within the ${category} space.`
+        summary: getSummary(topic, category)
       }
     });
     totalAdded++;

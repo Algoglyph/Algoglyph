@@ -61,7 +61,7 @@ export const SEO: React.FC<SEOProps> = ({
     if (activeSlug) {
       const post = BLOG_POSTS.find((p) => p.slug === activeSlug);
       if (post) {
-        title = `${post.title} | Software Engineer Roadmap`;
+        title = `${post.title} | Computer Science Roadmap`;
         description = post.tagline || post.content.introduction.substring(0, 150);
         type = 'article';
 
@@ -90,15 +90,15 @@ export const SEO: React.FC<SEOProps> = ({
       } else {
         // Dynamic fallback titles
         const formattedTitle = activeSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        title = `${formattedTitle} | Software Engineer Roadmap`;
+        title = `${formattedTitle} | Computer Science Roadmap`;
         description = `Master the theoretical foundations, implementation constraints, and complexity analysis of ${formattedTitle}.`;
         type = 'article';
       }
     } else if (dynamicTitle) {
-      title = `${dynamicTitle} | Software Engineer Roadmap`;
+      title = `${dynamicTitle} | Computer Science Roadmap`;
       description = `Master ${dynamicTitle} and follow the structured curriculum to become a professional software engineer.`;
     } else {
-      title = 'Software Engineer Roadmap | AlgoGlyph';
+      title = 'Computer Science Roadmap | AlgoGlyph';
       description = 'Navigate the visual curriculum roadmap of computer science concepts, data structures, and algorithms.';
     }
   } else if (pathname === '/privacy') {

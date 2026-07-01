@@ -21,6 +21,7 @@ import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
 import { vscodeDark } from '../config/editorTheme';
 import { RoadmapConvergence } from './RoadmapConvergence';
+import { RoadmapIllustration } from './RoadmapIllustration';
 
 interface RoadmapPageProps {
   onBack: () => void;
@@ -264,7 +265,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     if (selectedBlogSlug && activePost) {
       return `Reading: ${activePost.title.split(' (')[0]}`;
     }
-    if (!activeModule) return 'Software Engineer Roadmap';
+    if (!activeModule) return 'Computer Science Roadmap';
     let path = activeModule.name;
     if (activeCoreTopic) {
       path += ` > ${activeCoreTopic.name}`;
@@ -437,7 +438,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               </div>
             </div>
 
-            <p className="text-[15px] leading-relaxed text-zinc-300 font-sans font-normal">
+            <p className="text-[16px] leading-relaxed text-zinc-400 font-serif font-normal italic">
               {activePost.tagline}
             </p>
 
@@ -451,6 +452,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <span>Read Time: <span className="text-zinc-300 font-medium">{activePost.readTime} mins</span></span>
               </div>
             </div>
+
+            {/* Topic Illustration Banner */}
+            <RoadmapIllustration slug={activePost.slug} />
 
             <div className="p-4 rounded-xl border border-zinc-800 bg-[#18181b] flex flex-col sm:flex-row gap-3 items-center justify-between mt-2">
               <div className="flex items-center gap-2">
@@ -482,19 +486,19 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               </div>
             </div>
 
-            <div className="flex flex-col gap-8 text-[14.5px] leading-relaxed text-zinc-300 font-sans mt-4">
+            <div className="flex flex-col gap-8 text-[15.5px] leading-relaxed text-zinc-300 font-serif mt-4">
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">1. Overview</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">1. Overview</h2>
                 <p>{activePost.content.introduction}</p>
               </section>
 
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">2. Practical Importance</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">2. Practical Importance</h2>
                 <p>{activePost.content.whyImportant}</p>
               </section>
 
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">3. Real-World Applications</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">3. Real-World Applications</h2>
                 <ul className="list-disc pl-5 flex flex-col gap-1.5">
                   {activePost.content.realWorldApps.map((app, idx) => (
                     <li key={idx}>{app}</li>
@@ -503,7 +507,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               </section>
 
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">4. Structural Mechanics</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">4. Structural Mechanics</h2>
                 <ol className="list-decimal pl-5 flex flex-col gap-1.5">
                   {activePost.content.algorithmDescription.map((step, idx) => (
                     <li key={idx}>{step}</li>
@@ -512,9 +516,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               </section>
 
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">5. Asymptotic Bounds</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">5. Asymptotic Bounds</h2>
                 <div className="overflow-x-auto border border-zinc-800 rounded-lg bg-zinc-950/20">
-                  <table className="w-full text-left border-collapse text-[12.5px]">
+                  <table className="w-full text-left border-collapse text-[12.5px] font-sans">
                     <thead>
                       <tr className="border-b border-zinc-800 bg-[#18181b] font-mono text-[10px] text-zinc-400 uppercase">
                         <th className="p-3">Measurement</th>
@@ -538,7 +542,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               {(activePost.content.implementationCpp || activePost.content.implementationPython) && (
                 <section className="flex flex-col gap-2.5">
                   <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
-                    <h2 className="text-base font-bold text-white">6. Implementation Code</h2>
+                    <h2 className="text-base font-bold text-white font-sans">6. Implementation Code</h2>
                     <div className="flex gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
                       <button
                         onClick={() => setSelectedLanguage('cpp')}
@@ -555,7 +559,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                       </button>
                     </div>
                   </div>
-                  <div className="relative rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-[11px] leading-[1.5] max-h-[300px] overflow-auto roadmap-scroll">
+                  <div className="relative rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-[11px] leading-[1.5] max-h-[300px] overflow-auto roadmap-scroll font-sans">
                     <CodeMirror
                       value={
                         selectedLanguage === 'cpp'
@@ -578,7 +582,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               )}
 
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">7. Common Pitfalls</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">7. Common Pitfalls</h2>
                 <ul className="list-disc pl-5 flex flex-col gap-1.5">
                   {activePost.content.commonMistakes.map((mistake, idx) => (
                     <li key={idx}>{mistake}</li>
@@ -587,7 +591,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               </section>
 
               <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1">8. Interview Preparation</h2>
+                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">8. Interview Preparation</h2>
                 <ol className="list-decimal pl-5 flex flex-col gap-2">
                   {activePost.content.interviewQuestions.map((q, idx) => (
                     <li key={idx} className="font-semibold text-white">
@@ -597,7 +601,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 </ol>
               </section>
 
-              <section className="flex flex-col gap-2 bg-[#18181b]/30 p-4 border border-zinc-850 rounded-xl mt-4">
+              <section className="flex flex-col gap-2 bg-[#18181b]/30 p-4 border border-zinc-850 rounded-xl mt-4 font-sans">
                 <h2 className="text-[10px] font-mono tracking-widest text-blue-400 uppercase">Syllabus Summary</h2>
                 <p className="leading-relaxed text-[13px]">{activePost.content.summary}</p>
               </section>
