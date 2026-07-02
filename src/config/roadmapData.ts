@@ -402,20 +402,287 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     description: 'Load balancers, LRU caches, Kafka event streaming, and Raft consensus.',
     topics: [
       {
-        id: 'scale-replication',
-        name: 'Distributed Scalability',
-        description: 'Horizontal proxies, caches, and replica consensus.',
+        id: 'foundational-tradeoffs',
+        name: 'Foundational Trade-offs',
+        description: 'The core tensions every system design decision balances: speed vs scale, latency vs volume, consistency vs availability.',
         concepts: [
           {
-            id: 'scaling-consensus',
-            name: 'System Scale Logic',
+            id: 'core-concepts',
+            name: 'Core Concepts',
             subtopics: [
-              { id: 'load-routing', name: 'Load Balancers & Proxies', blogSlug: 'load-balancing-servers-select' },
-              { id: 'raft-election', name: 'Distributed Consensus (Raft)', blogSlug: 'leader-election-raft-status' }
+              { id: 'what-is-system-design', name: 'What is System Design?', blogSlug: 'what-is-system-design' },
+              { id: 'how-to-approach-system-design', name: 'How to Approach System Design?', blogSlug: 'how-to-approach-system-design' },
+              { id: 'performance-vs-scalability', name: 'Performance vs Scalability', blogSlug: 'performance-vs-scalability' },
+              { id: 'latency-vs-throughput', name: 'Latency vs Throughput', blogSlug: 'latency-vs-throughput' },
             ]
-          }
+          },
+          {
+            id: 'consistency-availability',
+            name: 'Consistency & Availability',
+            subtopics: [
+              { id: 'availability-vs-consistency', name: 'Availability vs Consistency', blogSlug: 'availability-vs-consistency' },
+              { id: 'cap-theorem', name: 'CAP Theorem', blogSlug: 'cap-theorem-consistency' },
+              { id: 'weak-consistency', name: 'Weak Consistency', blogSlug: 'weak-consistency' },
+              { id: 'eventual-consistency', name: 'Eventual Consistency', blogSlug: 'eventual-consistency' },
+              { id: 'strong-consistency', name: 'Strong Consistency', blogSlug: 'strong-consistency' },
+            ]
+          },
+          {
+            id: 'availability-patterns',
+            name: 'Availability Patterns',
+            subtopics: [
+              { id: 'fail-over-active-active-active-passive', name: 'Fail-Over (Active-Active / Active-Passive)', blogSlug: 'failover-replication-dns-updates' },
+              { id: 'replication-master-slave-master-master', name: 'Replication (Master-Slave / Master-Master)', blogSlug: 'replication-master-slave-master-master' },
+              { id: 'availability-in-numbers', name: 'Availability in Numbers', blogSlug: 'availability-in-numbers' },
+            ]
+          },
         ]
-      }
+      },
+      {
+        id: 'background-delivery',
+        name: 'Background Work & Delivery',
+        description: 'Deferred processing off the request path, plus how content finds its way to users quickly.',
+        concepts: [
+          {
+            id: 'background-jobs-concept',
+            name: 'Background Jobs',
+            subtopics: [
+              { id: 'background-jobs', name: 'Background Jobs', blogSlug: 'background-jobs' },
+              { id: 'event-driven-jobs', name: 'Event-Driven Jobs', blogSlug: 'event-driven-jobs' },
+              { id: 'schedule-driven-jobs', name: 'Schedule-Driven Jobs', blogSlug: 'schedule-driven-jobs' },
+              { id: 'returning-job-results', name: 'Returning Job Results', blogSlug: 'returning-job-results' },
+            ]
+          },
+          {
+            id: 'naming-delivery',
+            name: 'Naming & Content Delivery',
+            subtopics: [
+              { id: 'domain-name-system-dns', name: 'Domain Name System (DNS)', blogSlug: 'dns-root-authority-resolution' },
+              { id: 'content-delivery-networks-cdn', name: 'Content Delivery Networks (CDN)', blogSlug: 'cdn-edge-caching-strategies' },
+              { id: 'pull-cdns', name: 'Pull CDNs', blogSlug: 'pull-cdns' },
+              { id: 'push-cdns', name: 'Push CDNs', blogSlug: 'push-cdns' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'sd-databases',
+        name: 'Databases',
+        description: 'Relational and non-relational storage engines, and how each scales.',
+        concepts: [
+          {
+            id: 'sql-vs-nosql-concept',
+            name: 'SQL vs NoSQL',
+            subtopics: [
+              { id: 'sql-vs-nosql', name: 'SQL vs NoSQL', blogSlug: 'sql-vs-nosql' },
+            ]
+          },
+          {
+            id: 'nosql-stores',
+            name: 'NoSQL Data Stores',
+            subtopics: [
+              { id: 'key-value-store', name: 'Key-Value Store', blogSlug: 'key-value-store' },
+              { id: 'document-store', name: 'Document Store', blogSlug: 'document-store' },
+              { id: 'wide-column-store', name: 'Wide-Column Store', blogSlug: 'wide-column-store' },
+              { id: 'graph-databases', name: 'Graph Databases', blogSlug: 'graph-databases' },
+            ]
+          },
+          {
+            id: 'rdbms-scaling',
+            name: 'RDBMS Scaling',
+            subtopics: [
+              { id: 'replication-rdbms', name: 'Replication', blogSlug: 'database-replication-lags' },
+              { id: 'sharding-rdbms', name: 'Sharding', blogSlug: 'database-sharding-partitions' },
+              { id: 'federation', name: 'Federation', blogSlug: 'federation' },
+              { id: 'denormalization', name: 'Denormalization', blogSlug: 'denormalization' },
+              { id: 'sql-tuning', name: 'SQL Tuning', blogSlug: 'sql-tuning' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'traffic-scaling',
+        name: 'Traffic, Scaling & Delivery Layer',
+        description: 'Distributing requests across a fleet, and the services that route them.',
+        concepts: [
+          {
+            id: 'application-layer',
+            name: 'Application Layer',
+            subtopics: [
+              { id: 'microservices', name: 'Microservices', blogSlug: 'microservices' },
+              { id: 'service-discovery', name: 'Service Discovery', blogSlug: 'service-discovery' },
+            ]
+          },
+          {
+            id: 'load-balancers-concept',
+            name: 'Load Balancers',
+            subtopics: [
+              { id: 'lb-vs-reverse-proxy', name: 'LB vs Reverse Proxy', blogSlug: 'reverse-proxy-caches' },
+              { id: 'load-balancing-algorithms', name: 'Load Balancing Algorithms', blogSlug: 'load-balancing-algorithms' },
+              { id: 'layer-7-load-balancing', name: 'Layer 7 Load Balancing', blogSlug: 'layer-7-load-balancing' },
+              { id: 'layer-4-load-balancing', name: 'Layer 4 Load Balancing', blogSlug: 'load-balancer-layer-4-routing' },
+              { id: 'horizontal-scaling', name: 'Horizontal Scaling', blogSlug: 'horizontal-scaling' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'sd-caching',
+        name: 'Caching',
+        description: 'Write/read strategies for cache coherence, and where each caching layer sits.',
+        concepts: [
+          {
+            id: 'caching-strategies',
+            name: 'Caching Strategies',
+            subtopics: [
+              { id: 'cache-aside', name: 'Cache-Aside', blogSlug: 'cache-aside' },
+              { id: 'write-through', name: 'Write-Through', blogSlug: 'write-through' },
+              { id: 'write-behind', name: 'Write-Behind', blogSlug: 'write-behind' },
+              { id: 'refresh-ahead', name: 'Refresh-Ahead', blogSlug: 'refresh-ahead' },
+            ]
+          },
+          {
+            id: 'caching-types',
+            name: 'Types of Caching',
+            subtopics: [
+              { id: 'client-caching', name: 'Client Caching', blogSlug: 'client-caching' },
+              { id: 'cdn-caching', name: 'CDN Caching', blogSlug: 'cdn-caching' },
+              { id: 'web-server-caching', name: 'Web Server Caching', blogSlug: 'web-server-caching' },
+              { id: 'database-caching', name: 'Database Caching', blogSlug: 'database-caching' },
+              { id: 'application-caching', name: 'Application Caching', blogSlug: 'application-caching' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'async-communication',
+        name: 'Async & Communication',
+        description: 'Decoupling producers from consumers, and the protocols services speak to each other.',
+        concepts: [
+          {
+            id: 'asynchronism',
+            name: 'Asynchronism',
+            subtopics: [
+              { id: 'back-pressure', name: 'Back Pressure', blogSlug: 'backpressure-queues-sizing' },
+              { id: 'task-queues', name: 'Task Queues', blogSlug: 'task-queues' },
+              { id: 'message-queues', name: 'Message Queues', blogSlug: 'message-queues' },
+            ]
+          },
+          {
+            id: 'communication-protocols',
+            name: 'Communication Protocols',
+            subtopics: [
+              { id: 'http', name: 'HTTP', blogSlug: 'http' },
+              { id: 'tcp', name: 'TCP', blogSlug: 'tcp' },
+              { id: 'udp', name: 'UDP', blogSlug: 'udp' },
+              { id: 'rpc', name: 'RPC', blogSlug: 'rpc' },
+              { id: 'grpc', name: 'gRPC', blogSlug: 'grpc' },
+              { id: 'rest', name: 'REST', blogSlug: 'rest' },
+              { id: 'graphql', name: 'GraphQL', blogSlug: 'graphql' },
+            ]
+          },
+          {
+            id: 'idempotency',
+            name: 'Idempotency',
+            subtopics: [
+              { id: 'idempotent-operations', name: 'Idempotent Operations', blogSlug: 'idempotent-operations' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'performance-reliability',
+        name: 'Performance & Reliability',
+        description: 'Anti-patterns that quietly wreck throughput, and how to see them coming.',
+        concepts: [
+          {
+            id: 'performance-antipatterns',
+            name: 'Performance Antipatterns',
+            subtopics: [
+              { id: 'improper-instantiation', name: 'Improper Instantiation', blogSlug: 'improper-instantiation' },
+              { id: 'monolithic-persistence', name: 'Monolithic Persistence', blogSlug: 'monolithic-persistence' },
+              { id: 'noisy-neighbor', name: 'Noisy Neighbor', blogSlug: 'noisy-neighbor' },
+              { id: 'synchronous-io', name: 'Synchronous I/O', blogSlug: 'synchronous-io' },
+              { id: 'extraneous-fetching', name: 'Extraneous Fetching', blogSlug: 'extraneous-fetching' },
+              { id: 'busy-database', name: 'Busy Database', blogSlug: 'busy-database' },
+              { id: 'busy-frontend', name: 'Busy Frontend', blogSlug: 'busy-frontend' },
+              { id: 'chatty-io', name: 'Chatty I/O', blogSlug: 'chatty-io' },
+              { id: 'retry-storm', name: 'Retry Storm', blogSlug: 'retry-storm' },
+              { id: 'no-caching', name: 'No Caching', blogSlug: 'no-caching' },
+            ]
+          },
+          {
+            id: 'monitoring',
+            name: 'Monitoring',
+            subtopics: [
+              { id: 'health-monitoring', name: 'Health Monitoring', blogSlug: 'health-monitoring' },
+              { id: 'availability-monitoring', name: 'Availability Monitoring', blogSlug: 'availability-monitoring' },
+              { id: 'performance-monitoring', name: 'Performance Monitoring', blogSlug: 'performance-monitoring' },
+              { id: 'security-monitoring', name: 'Security Monitoring', blogSlug: 'security-monitoring' },
+              { id: 'usage-monitoring', name: 'Usage Monitoring', blogSlug: 'usage-monitoring' },
+              { id: 'instrumentation', name: 'Instrumentation', blogSlug: 'instrumentation' },
+              { id: 'visualization-alerts', name: 'Visualization & Alerts', blogSlug: 'visualization-alerts' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'cloud-design-patterns',
+        name: 'Cloud Design Patterns',
+        description: 'Reusable structures for composing, managing data in, and messaging between cloud services.',
+        concepts: [
+          {
+            id: 'design-implementation',
+            name: 'Design & Implementation',
+            subtopics: [
+              { id: 'strangler-fig', name: 'Strangler Fig', blogSlug: 'strangler-fig' },
+              { id: 'sidecar', name: 'Sidecar', blogSlug: 'sidecar' },
+              { id: 'static-content-hosting-design', name: 'Static Content Hosting', blogSlug: 'static-content-hosting-design' },
+              { id: 'leader-election', name: 'Leader Election', blogSlug: 'leader-election' },
+              { id: 'cqrs-design', name: 'CQRS', blogSlug: 'cqrs-design' },
+              { id: 'pipes-filters-design', name: 'Pipes & Filters', blogSlug: 'pipes-filters-design' },
+              { id: 'ambassador', name: 'Ambassador', blogSlug: 'ambassador' },
+              { id: 'gateway-routing', name: 'Gateway Routing', blogSlug: 'gateway-routing' },
+              { id: 'gateway-offloading', name: 'Gateway Offloading', blogSlug: 'gateway-offloading' },
+              { id: 'gateway-aggregation', name: 'Gateway Aggregation', blogSlug: 'gateway-aggregation' },
+              { id: 'external-config-store', name: 'External Config Store', blogSlug: 'external-config-store' },
+              { id: 'compute-resource-consolidation', name: 'Compute Resource Consolidation', blogSlug: 'compute-resource-consolidation' },
+              { id: 'backends-for-frontend', name: 'Backends for Frontend', blogSlug: 'backends-for-frontend' },
+              { id: 'anti-corruption-layer', name: 'Anti-Corruption Layer', blogSlug: 'anti-corruption-layer' },
+            ]
+          },
+          {
+            id: 'data-management',
+            name: 'Data Management',
+            subtopics: [
+              { id: 'valet-key', name: 'Valet Key', blogSlug: 'valet-key' },
+              { id: 'static-content-hosting-data', name: 'Static Content Hosting', blogSlug: 'static-content-hosting-data' },
+              { id: 'sharding-data', name: 'Sharding', blogSlug: 'sharding-data' },
+              { id: 'materialized-view', name: 'Materialized View', blogSlug: 'materialized-view' },
+              { id: 'index-table', name: 'Index Table', blogSlug: 'index-table' },
+              { id: 'event-sourcing', name: 'Event Sourcing', blogSlug: 'event-sourcing' },
+              { id: 'cqrs-data', name: 'CQRS', blogSlug: 'cqrs-data' },
+              { id: 'cache-aside-data', name: 'Cache-Aside', blogSlug: 'cache-aside-data' },
+            ]
+          },
+          {
+            id: 'messaging-patterns',
+            name: 'Messaging Patterns',
+            subtopics: [
+              { id: 'sequential-convoy', name: 'Sequential Convoy', blogSlug: 'sequential-convoy' },
+              { id: 'scheduling-agent-supervisor', name: 'Scheduling Agent Supervisor', blogSlug: 'scheduling-agent-supervisor' },
+              { id: 'queue-based-load-leveling', name: 'Queue-Based Load Leveling', blogSlug: 'queue-based-load-leveling' },
+              { id: 'publishersubscriber', name: 'Publisher/Subscriber', blogSlug: 'publishersubscriber' },
+              { id: 'priority-queue', name: 'Priority Queue', blogSlug: 'priority-queue' },
+              { id: 'pipes-and-filters-messaging', name: 'Pipes and Filters', blogSlug: 'pipes-and-filters-messaging' },
+              { id: 'competing-consumers', name: 'Competing Consumers', blogSlug: 'competing-consumers' },
+              { id: 'choreography', name: 'Choreography', blogSlug: 'choreography' },
+              { id: 'claim-check', name: 'Claim Check', blogSlug: 'claim-check' },
+              { id: 'async-request-reply', name: 'Async Request-Reply', blogSlug: 'async-request-reply' },
+            ]
+          },
+        ]
+      },
     ]
   },
   {

@@ -22,6 +22,7 @@ import { python } from '@codemirror/lang-python';
 import { vscodeDark } from '../config/editorTheme';
 import { RoadmapConvergence } from './RoadmapConvergence';
 import { RoadmapIllustration } from './RoadmapIllustration';
+import { SystemDesignGraph } from './SystemDesignGraph';
 
 interface RoadmapPageProps {
   onBack: () => void;
@@ -327,7 +328,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         {/* Header Block */}
         <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
           <div className="flex flex-col gap-2">
-            <span className="text-blue-400 text-[10px] font-mono tracking-wider">
+            <span className="text-blue-400 text-[10px] font-sans font-semibold tracking-[0.08em]">
               {label || activeModule?.name.toUpperCase()}
             </span>
             <h2 className="text-xl font-bold text-white tracking-tight font-sans">
@@ -339,44 +340,58 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           </div>
         </div>
 
-        {/* Concepts List */}
-        <div className="w-full max-w-4xl flex flex-col gap-4 mt-8">
+        {/* Concepts — card grid of the topic's daughter nodes */}
+        <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
           {conceptsList.map((concept, cIdx) => {
             const { status, percent, total } = getConceptStatusStats(concept);
+            const preview = concept.subtopics.slice(0, 3).map((s) => s.name).join(' · ');
             return (
               <Link
                 key={concept.id}
                 to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${concept.id}`}
-                className="group border border-zinc-800 bg-[#18181b] hover:border-blue-600 hover:bg-[#202024] rounded-xl p-5 text-left cursor-pointer transition-all duration-200 block no-underline"
+                className="group border border-zinc-800 bg-[#18181b] rounded-xl p-5 relative overflow-hidden transition-all duration-200 hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 cursor-pointer flex flex-col justify-between min-h-[170px] text-left block no-underline"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <span className="font-mono text-blue-500 text-[13px] font-semibold pt-0.5">
-                      {cIdx + 1}.
+                <div>
+                  <div className="flex items-center justify-between font-mono">
+                    <span className="text-zinc-500 font-semibold text-[13px]">
+                      {String(cIdx + 1).padStart(2, '0')}.
                     </span>
-                    <h3 className="font-semibold text-[15px] text-white group-hover:text-blue-400 transition-colors font-sans">
-                      {concept.name}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0 pl-6 sm:pl-0">
                     <span
-                      className={`text-[8.5px] font-sans border px-2 py-0.5 rounded ${
+                      className={`text-[9px] font-mono border px-2 py-0.5 rounded ${
                         status === 'Completed'
                           ? 'border-blue-500/20 text-blue-400 bg-blue-500/5'
                           : status === 'In Progress'
                           ? 'border-zinc-700 text-zinc-400 bg-zinc-800'
-                          : 'border-zinc-850 text-zinc-550'
+                          : 'border-zinc-800 text-zinc-500'
                       }`}
                     >
                       {status}
                     </span>
                   </div>
+
+                  <h3 className="font-semibold text-[15px] text-white mt-3 tracking-tight font-sans">
+                    {concept.name}
+                  </h3>
+                  <p className="text-[12px] leading-relaxed text-zinc-400 mt-2 font-sans font-normal line-clamp-2">
+                    {preview}
+                  </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-zinc-800/40 flex items-center justify-between text-[10px] font-mono text-zinc-500 pl-6">
-                  <span>{total} subtopics</span>
-                  <span>{percent}% done</span>
+                <div className="mt-5 pt-3 border-t border-zinc-800/60 flex flex-col gap-2">
+                  <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500">
+                    <span>{total} subtopics</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1 bg-zinc-800 rounded-full flex-1 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 transition-all duration-300"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[9px] text-blue-400 font-semibold w-7 text-right">
+                      {percent}%
+                    </span>
+                  </div>
                 </div>
               </Link>
             );
@@ -388,7 +403,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5 font-sans"
         >
           <ArrowLeft size={14} />
-          <span>Back to Modules</span>
+          <span>{activeModuleId === 'system-design' ? 'Back to Graph' : 'Back to Core Topics'}</span>
         </button>
       </motion.div>
     );
@@ -407,7 +422,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           transition={{ duration: 0.15 }}
           className="w-full flex flex-col items-center pb-32 text-left"
         >
-          <nav className="w-full max-w-3xl flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 uppercase tracking-widest mt-8">
+          <nav className="w-full max-w-3xl flex items-center gap-1.5 text-[10px] font-sans font-medium text-zinc-500 uppercase tracking-[0.08em] mt-8">
             <span>Roadmap</span>
             <span>&gt;</span>
             <span>{activePost.category}</span>
@@ -659,8 +674,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
             {/* Custom Theory Search Bar */}
             <div className="relative w-full sm:w-72 mt-4 sm:mt-0 z-30">
-              <div className="flex items-center gap-2 border border-zinc-800 bg-[#18181b] rounded-lg px-3 py-2 focus-within:border-blue-600 transition">
-                <Search size={14} className="text-zinc-550 shrink-0" />
+              <div className="flex items-center gap-2 border border-zinc-800 bg-[#18181b] rounded-lg px-3 py-2 transition focus-within:border-white/20 focus-within:bg-white/[0.04] focus-within:ring-1 focus-within:ring-white/10">
+                <Search size={14} className="text-zinc-500 shrink-0" />
                 <input
                   type="text"
                   placeholder="Search theory articles..."
@@ -668,7 +683,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                  className="bg-transparent border-none text-[12px] text-zinc-200 outline-none w-full placeholder-zinc-500 font-sans"
+                  className="bg-transparent border-none text-[12px] text-zinc-200 !outline-none focus-visible:!outline-none w-full placeholder-zinc-500 font-sans"
                 />
               </div>
 
@@ -711,7 +726,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <Link
                   key={module.id}
                   to={`/roadmap/${module.id}`}
-                  className="group border border-zinc-800 bg-[#18181b] rounded-xl p-5 relative overflow-hidden transition-all duration-200 hover:border-blue-600 hover:bg-[#202024] cursor-pointer flex flex-col justify-between min-h-[200px] select-none text-left block no-underline"
+                  className="group border border-zinc-800 bg-[#18181b] rounded-xl p-5 relative overflow-hidden transition-all duration-200 hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 cursor-pointer flex flex-col justify-between min-h-[200px] select-none text-left block no-underline"
                 >
                   <div>
                     <div className="flex items-center justify-between font-mono">
@@ -729,7 +744,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                       </span>
                     </div>
 
-                    <h3 className="font-semibold text-[16px] text-white group-hover:text-blue-400 mt-3 tracking-tight font-sans">
+                    <h3 className="font-semibold text-[16px] text-white mt-3 tracking-tight font-sans">
                       {module.name}
                     </h3>
                     <p className="text-[12.5px] leading-relaxed text-zinc-400 mt-2 font-sans font-normal line-clamp-3">
@@ -769,6 +784,48 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
       );
     }
 
+    // ================== SYSTEM DESIGN: NODE GRAPH ==================
+    if (activeModule && activeModuleId === 'system-design' && !activeCoreTopicId) {
+      return (
+        <motion.div
+          key="system-design-graph"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full flex flex-col items-center pb-32"
+        >
+          <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 font-sans">
+                <span className="text-white text-[13px] font-semibold tracking-wide">MODULE {activeModule.number}</span>
+                <span className="text-zinc-600">/</span>
+                <span className="text-[12px] text-zinc-400 font-medium tracking-wide">KNOWLEDGE GRAPH</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white tracking-tight font-sans">
+                {activeModule.name}
+              </h2>
+              <p className="text-[13.5px] leading-relaxed text-zinc-400 font-sans">
+                {activeModule.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full mt-8">
+            <SystemDesignGraph zone={activeModule} />
+          </div>
+
+          <button
+            onClick={handleBack}
+            className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Curriculum</span>
+          </button>
+        </motion.div>
+      );
+    }
+
     // ================== LEVEL 2: TOPICS GRID ==================
     if (activeModule && activeModuleId && !activeCoreTopicId) {
       return (
@@ -782,10 +839,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         >
           <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 font-mono">
-                <span className="text-blue-400 text-[13px] font-semibold">MODULE {activeModule.number}</span>
+              <div className="flex items-center gap-2 font-sans">
+                <span className="text-blue-400 text-[13px] font-semibold tracking-wide">MODULE {activeModule.number}</span>
                 <span className="text-zinc-600">/</span>
-                <span className="text-[12px] text-zinc-400">CORE TOPICS</span>
+                <span className="text-[12px] text-zinc-400 font-medium tracking-wide">CORE TOPICS</span>
               </div>
               <h2 className="text-2xl font-bold text-white tracking-tight font-sans">
                 {activeModule.name}
@@ -803,7 +860,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <Link
                   key={topic.id}
                   to={`/roadmap/${activeModuleId}/${topic.id}`}
-                  className="group border border-zinc-800 bg-[#18181b] hover:border-blue-600 hover:bg-[#202024] rounded-xl p-5 cursor-pointer text-left flex flex-col justify-between transition min-h-[150px] block no-underline"
+                  className="group border border-zinc-800 bg-[#18181b] hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 rounded-xl p-5 cursor-pointer text-left flex flex-col justify-between transition min-h-[150px] block no-underline"
                 >
                   <div>
                     <div className="flex items-center justify-between text-[11px] font-mono text-zinc-500">
@@ -812,7 +869,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                         {status}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-[15px] text-white group-hover:text-blue-400 mt-2 transition font-sans">
+                    <h3 className="font-semibold text-[15px] text-white mt-2 transition font-sans">
                       {topic.name}
                     </h3>
                     <p className="text-[12.5px] text-zinc-400 mt-1 line-clamp-2 font-sans">
@@ -857,7 +914,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         >
           <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
             <div className="flex flex-col gap-2">
-              <span className="text-blue-400 text-[10px] font-mono tracking-wider">
+              <span className="text-blue-400 text-[10px] font-sans font-semibold tracking-[0.08em]">
                 {activeModule.name.toUpperCase()} / {activeCoreTopic.name.toUpperCase()} / {activeSubContainer.name.toUpperCase()}
               </span>
               <h2 className="text-xl font-bold text-white tracking-tight font-sans">
@@ -876,11 +933,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <Link
                   key={subtopic.id}
                   to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${activeSubContainerId}/${subtopic.blogSlug}`}
-                  className="group border border-zinc-800 bg-[#18181b] hover:border-blue-600 hover:bg-[#202024] rounded-xl p-4 cursor-pointer text-left flex items-center justify-between transition block no-underline"
+                  className="group border border-zinc-800 bg-[#18181b] hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 rounded-xl p-4 cursor-pointer text-left flex items-center justify-between transition block no-underline"
                 >
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-blue-500 text-[12px] font-semibold">&gt;</span>
-                    <h3 className="font-semibold text-[14px] text-white group-hover:text-blue-400 transition-colors font-sans">
+                    <h3 className="font-semibold text-[14px] text-white transition-colors font-sans">
                       {subtopic.name}
                     </h3>
                   </div>
@@ -928,7 +985,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         </button>
 
         <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none hidden md:flex justify-center items-center px-8">
-          <span className="font-mono text-[10px] text-zinc-550 tracking-[0.25em] font-semibold uppercase">
+          <span className="font-sans text-[10px] text-zinc-500 tracking-[0.1em] font-semibold uppercase">
             {headerPath()}
           </span>
         </div>
