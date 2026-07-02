@@ -880,7 +880,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         >
           <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
             <div className="flex flex-col gap-2">
-              <span className="text-blue-400 text-[10px] font-sans font-semibold tracking-[0.08em]">
+              <span className="text-white text-[10px] font-sans font-semibold tracking-[0.08em]">
                 {activeModule.name.toUpperCase()} / {activeCoreTopic.name.toUpperCase()} / {activeSubContainer.name.toUpperCase()}
               </span>
               <h2 className="text-xl font-bold text-white tracking-tight font-sans">
