@@ -752,24 +752,502 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
   {
     id: 'machine-learning',
     number: '07',
-    name: 'Machine Learning & AI',
+    name: 'Machine Learning',
     difficulty: 'Hard',
-    hours: 50,
+    hours: 45,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'Matrix computations, regressions, backpropagation, and self-attention networks.',
+    description: 'Matrix algebra, probability, data processing, and supervised/unsupervised algorithms.',
     topics: [
       {
-        id: 'ml-optimization',
-        name: 'ML Computations',
-        description: 'Vector products, models, and optimization gradients.',
+        id: 'ml-intro',
+        name: 'Introduction to ML',
+        description: 'Understand the role of ML Engineers, AI Engineers, and basic skills.',
         concepts: [
           {
-            id: 'vectors-optimization',
-            name: 'Fitting Logic',
+            id: 'ml-roles',
+            name: 'ML Engineer Roles',
             subtopics: [
-              { id: 'linear-reg', name: 'Linear regression models', blogSlug: 'linear-regression-estimation' },
-              { id: 'backprop', name: 'Backpropagation Neural networks', blogSlug: 'neural-network-activation-layers' }
+              { id: 'what-is-ml-engineer', name: 'What is an ML Engineer?', blogSlug: 'what-is-ml-engineer' },
+              { id: 'ml-vs-ai-engineer', name: 'ML Engineer vs AI Engineer', blogSlug: 'ml-vs-ai-engineer' },
+              { id: 'ml-skills', name: 'Skills and Responsibilities', blogSlug: 'ml-skills' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'math-foundations',
+        name: 'Mathematical Foundations',
+        description: 'Multivariate calculus, matrix operations, probability basics, and statistical inference.',
+        concepts: [
+          {
+            id: 'calculus',
+            name: 'Calculus',
+            subtopics: [
+              { id: 'derivatives', name: 'Derivatives & Partial Derivatives', blogSlug: 'partial-derivative-slopes' },
+              { id: 'chain-rule', name: 'Chain rule of derivation', blogSlug: 'chain-rule-derivation' },
+              { id: 'gradient-jacobian-hessian', name: 'Gradient, Jacobian & Hessian', blogSlug: 'gradient-jacobian-hessian' }
+            ]
+          },
+          {
+            id: 'discrete-math',
+            name: 'Discrete Mathematics',
+            subtopics: [
+              { id: 'discrete-math-basics', name: 'Discrete Mathematics Basics', blogSlug: 'discrete-mathematics-basics' }
+            ]
+          },
+          {
+            id: 'linear-algebra',
+            name: 'Linear Algebra',
+            subtopics: [
+              { id: 'matrix-ops', name: 'Matrix & Matrix Operations', blogSlug: 'matrix-multiplication-gradients' },
+              { id: 'scalars-vectors-tensors', name: 'Scalars, Vectors & Tensors', blogSlug: 'scalars-vectors-tensors' },
+              { id: 'svd', name: 'Singular Value Decomposition', blogSlug: 'singular-value-decomposition' },
+              { id: 'determinants-inverse', name: 'Determinants & Inverse of Matrix', blogSlug: 'determinants-matrix-inverse' },
+              { id: 'eigenvalues', name: 'Eigenvalues & Diagonalization', blogSlug: 'eigenvalues-diagonalization' }
+            ]
+          },
+          {
+            id: 'probability',
+            name: 'Probability',
+            subtopics: [
+              { id: 'probability-basics', name: 'Basics of Probability', blogSlug: 'probability-basics' },
+              { id: 'bayes-theorem', name: 'Bayes Theorem', blogSlug: 'bayesian-probability-tables' },
+              { id: 'random-variances-pdfs', name: 'Random Variances & PDFs', blogSlug: 'random-variances-pdfs' },
+              { id: 'distribution-types', name: 'Types of Distribution', blogSlug: 'distribution-types' }
+            ]
+          },
+          {
+            id: 'statistics',
+            name: 'Statistics',
+            subtopics: [
+              { id: 'stats-basics', name: 'Basic Concepts of Statistics', blogSlug: 'stats-basics' },
+              { id: 'descriptive-stats', name: 'Descriptive Statistics', blogSlug: 'descriptive-statistics' },
+              { id: 'graphs-charts', name: 'Graphs & Charts', blogSlug: 'graphs-charts' },
+              { id: 'inferential-stats', name: 'Inferential Statistics', blogSlug: 'inferential-statistics' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'programming-fundamentals',
+        name: 'Programming Fundamentals',
+        description: 'Python core syntax, object-oriented concepts, and numerical/visualization libraries.',
+        concepts: [
+          {
+            id: 'python-programming',
+            name: 'Python Syntax',
+            subtopics: [
+              { id: 'python-syntax', name: 'Basic Syntax & Structure', blogSlug: 'python-basic-syntax' },
+              { id: 'python-variables', name: 'Variables and Data Types', blogSlug: 'python-variables-types' },
+              { id: 'python-ds', name: 'Data Structures', blogSlug: 'python-data-structures' },
+              { id: 'python-loops', name: 'Loops', blogSlug: 'python-loops' },
+              { id: 'python-conditionals', name: 'Conditionals', blogSlug: 'python-conditionals' },
+              { id: 'python-exceptions', name: 'Exceptions', blogSlug: 'python-exceptions' },
+              { id: 'python-functions', name: 'Functions & Built-ins', blogSlug: 'python-functions' }
+            ]
+          },
+          {
+            id: 'oop',
+            name: 'Object Oriented Programming',
+            subtopics: [
+              { id: 'oop-basics', name: 'OOP Class Design', blogSlug: 'oop-class-inheritance-stubs' }
+            ]
+          },
+          {
+            id: 'essential-libraries',
+            name: 'Essential Libraries',
+            subtopics: [
+              { id: 'numpy', name: 'Numpy', blogSlug: 'numpy-arrays' },
+              { id: 'pandas', name: 'Pandas', blogSlug: 'pandas-dataframes' },
+              { id: 'matplotlib', name: 'Matplotlib', blogSlug: 'matplotlib-plots' },
+              { id: 'seaborn', name: 'Seaborn', blogSlug: 'seaborn-visualization' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'data-prep',
+        name: 'Data Collection & Cleaning',
+        description: 'Integrate data sources, clean formats, and apply scaling/normalization preprocessing.',
+        concepts: [
+          {
+            id: 'data-sources',
+            name: 'Data Sources',
+            subtopics: [
+              { id: 'databases', name: 'Databases (SQL & NoSQL)', blogSlug: 'databases-sql-nosql' },
+              { id: 'internet', name: 'Internet Data Source', blogSlug: 'internet-data-source' },
+              { id: 'apis', name: 'APIs & Data Extraction', blogSlug: 'apis-data-extraction' },
+              { id: 'mobile-apps', name: 'Mobile Apps Data', blogSlug: 'mobile-apps-data' },
+              { id: 'iot', name: 'IoT Devices Data', blogSlug: 'iot-devices-data' }
+            ]
+          },
+          {
+            id: 'data-formats',
+            name: 'Data Formats',
+            subtopics: [
+              { id: 'csv', name: 'CSV Format', blogSlug: 'csv-format' },
+              { id: 'excel', name: 'Excel Format', blogSlug: 'excel-format' },
+              { id: 'json', name: 'JSON Format', blogSlug: 'json-format' },
+              { id: 'parquet', name: 'Parquet Format', blogSlug: 'parquet-format' },
+              { id: 'other-formats', name: 'Other Data Formats', blogSlug: 'other-data-formats' }
+            ]
+          },
+          {
+            id: 'preprocessing-techniques',
+            name: 'Preprocessing Techniques',
+            subtopics: [
+              { id: 'data-cleaning', name: 'Data Cleaning', blogSlug: 'data-cleaning' },
+              { id: 'feature-engineering', name: 'Feature Engineering', blogSlug: 'feature-engineering' },
+              { id: 'feature-scaling', name: 'Feature Scaling & Normalization', blogSlug: 'feature-scaling' },
+              { id: 'dim-reduction', name: 'Dimensionality Reduction', blogSlug: 'pca-dimension-projection-matrices' },
+              { id: 'feature-selection', name: 'Feature Selection', blogSlug: 'feature-selection' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'classical-ml',
+        name: 'Classical Machine Learning',
+        description: 'Supervised regression/classification paradigms, unsupervised clustering, and evaluation workflows.',
+        concepts: [
+          {
+            id: 'ml-paradigms',
+            name: 'ML Paradigms',
+            subtopics: [
+              { id: 'what-is-ml', name: 'What is Machine Learning?', blogSlug: 'what-is-machine-learning' },
+              { id: 'ml-supervised', name: 'Supervised Learning Paradigm', blogSlug: 'supervised-learning-paradigm' },
+              { id: 'ml-unsupervised', name: 'Unsupervised Learning Paradigm', blogSlug: 'unsupervised-learning-paradigm' },
+              { id: 'ml-semi-supervised', name: 'Semi-supervised Learning Paradigm', blogSlug: 'semi-supervised-learning-paradigm' },
+              { id: 'ml-self-supervised', name: 'Self-supervised Learning Paradigm', blogSlug: 'self-supervised-learning-paradigm' },
+              { id: 'ml-reinforcement', name: 'Reinforcement Learning Paradigm', blogSlug: 'reinforcement-learning-paradigm' }
+            ]
+          },
+          {
+            id: 'scikit-learn',
+            name: 'Scikit-Learn Workflow',
+            subtopics: [
+              { id: 'data-loading', name: 'Data Loading', blogSlug: 'scikit-learn-data-loading' },
+              { id: 'train-test-data', name: 'Train - Test Data Split', blogSlug: 'train-test-split' },
+              { id: 'data-preparation', name: 'Data Preparation', blogSlug: 'scikit-learn-data-preparation' },
+              { id: 'model-selection', name: 'Model Selection', blogSlug: 'scikit-learn-model-selection' },
+              { id: 'tuning', name: 'Hyperparameter Tuning', blogSlug: 'scikit-learn-hyperparameter-tuning' },
+              { id: 'prediction', name: 'Model Prediction', blogSlug: 'scikit-learn-prediction' }
+            ]
+          },
+          {
+            id: 'supervised-foundations',
+            name: 'Supervised Foundations',
+            subtopics: [
+              { id: 'what-is-supervised', name: 'What is Supervised Learning?', blogSlug: 'what-is-supervised-learning' }
+            ]
+          },
+          {
+            id: 'classification-models',
+            name: 'Classification Models',
+            subtopics: [
+              { id: 'knn', name: 'K-Nearest Neighbors (KNN)', blogSlug: 'k-nearest-neighbors' },
+              { id: 'logistic-regression', name: 'Logistic Regression', blogSlug: 'logistic-regression-sigmoids' },
+              { id: 'svm', name: 'Support Vector Machines', blogSlug: 'svm-hyper-plane-margin-offsets' },
+              { id: 'decision-trees', name: 'Decision Trees & Random Forest', blogSlug: 'decision-trees-entropy-splits' },
+              { id: 'gradient-boosting', name: 'Gradient Boosting Machines', blogSlug: 'gradient-boosting-tree-iterations' }
+            ]
+          },
+          {
+            id: 'regression-models',
+            name: 'Regression Models',
+            subtopics: [
+              { id: 'linear-regression', name: 'Linear Regression', blogSlug: 'linear-regression-estimation' },
+              { id: 'polynomial-regression', name: 'Polynomial Regression', blogSlug: 'polynomial-regression' },
+              { id: 'lasso', name: 'Lasso Regression', blogSlug: 'lasso-regularization' },
+              { id: 'ridge', name: 'Ridge Regression', blogSlug: 'ridge-regularization' },
+              { id: 'elasticnet', name: 'ElasticNet Regularization', blogSlug: 'elasticnet-regularization' }
+            ]
+          },
+          {
+            id: 'unsupervised-foundations',
+            name: 'Unsupervised Foundations',
+            subtopics: [
+              { id: 'what-is-unsupervised', name: 'What is Unsupervised Learning?', blogSlug: 'what-is-unsupervised-learning' }
+            ]
+          },
+          {
+            id: 'clustering-methods',
+            name: 'Clustering Methods',
+            subtopics: [
+              { id: 'kmeans', name: 'K-Means Clustering', blogSlug: 'k-means-clustering-centers' },
+              { id: 'exclusive', name: 'Exclusive Clustering', blogSlug: 'exclusive-clustering' },
+              { id: 'overlapping', name: 'Overlapping Clustering', blogSlug: 'overlapping-clustering' },
+              { id: 'hierarchical', name: 'Hierarchical Clustering', blogSlug: 'hierarchical-clustering' },
+              { id: 'probabilistic', name: 'Probabilistic Clustering', blogSlug: 'probabilistic-clustering' }
+            ]
+          },
+          {
+            id: 'dim-reduction-classical',
+            name: 'Dimensionality Reduction',
+            subtopics: [
+              { id: 'pca', name: 'Principal Component Analysis', blogSlug: 'pca-dimension-projection-matrices' },
+              { id: 'autoencoders-classical', name: 'Autoencoders', blogSlug: 'autoencoders-dimension-compression' }
+            ]
+          },
+          {
+            id: 'model-evaluation',
+            name: 'Model Evaluation & Validation',
+            subtopics: [
+              { id: 'what-is-model-eval', name: 'What is Model Evaluation?', blogSlug: 'what-is-model-evaluation' },
+              { id: 'why-eval-important', name: 'Why is it important?', blogSlug: 'why-evaluation-important' },
+              { id: 'accuracy-metric', name: 'Accuracy', blogSlug: 'accuracy-metric' },
+              { id: 'precision-metric', name: 'Precision', blogSlug: 'precision-metric' },
+              { id: 'recall-metric', name: 'Recall', blogSlug: 'recall-metric' },
+              { id: 'f1-score-metric', name: 'F1-Score', blogSlug: 'f1-score-metric' },
+              { id: 'roc-auc-metric', name: 'ROC-AUC', blogSlug: 'roc-auc-metric' },
+              { id: 'log-loss-metric', name: 'Log Loss', blogSlug: 'log-loss-metric' },
+              { id: 'confusion-matrix', name: 'Confusion Matrix', blogSlug: 'confusion-matrix' }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'ai-data-scientist',
+    number: '08',
+    name: 'AI & Data Scientist',
+    difficulty: 'Hard',
+    hours: 40,
+    visualizerAvailable: false,
+    learningStatus: 'Not Started',
+    description: 'Advanced mathematics, statistics, econometrics, exploratory data analysis, machine learning, deep learning, MLOps, prompt engineering, and vibe coding.',
+    topics: [
+      {
+        id: 'ai-math',
+        name: 'Mathematics',
+        description: 'Linear algebra, multi-dimensional calculus, and mathematical analysis fundamentals.',
+        concepts: [
+          {
+            id: 'ai-math-analysis',
+            name: 'Linear Algebra, Calculus, Mathematical Analysis',
+            subtopics: [
+              { id: 'math-for-ml', name: 'Mathematics for Machine Learning', blogSlug: 'mathematics-for-machine-learning' }
+            ]
+          },
+          {
+            id: 'ai-diff-calculus',
+            name: 'Differential Calculus',
+            subtopics: [
+              { id: 'algebra-diff-calculus', name: 'Coursera: Algebra and Differential Calculus', blogSlug: 'algebra-differential-calculus' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-stats',
+        name: 'Statistics',
+        description: 'Probability, hypothesis testing, experiment design, A/B testing frameworks, and metric analytics.',
+        concepts: [
+          {
+            id: 'ai-stats-clt',
+            name: 'Statistics, CLT',
+            subtopics: [
+              { id: 'intro-to-stats', name: 'Coursera: Introduction to Statistics', blogSlug: 'introduction-to-statistics' }
+            ]
+          },
+          {
+            id: 'ai-hypothesis',
+            name: 'Hypothesis Testing',
+            subtopics: [
+              { id: 'hypothesis-testing-detail', name: 'Coursera: Hypothesis Testing', blogSlug: 'hypothesis-testing' }
+            ]
+          },
+          {
+            id: 'ai-prob-sampling',
+            name: 'Probability and Sampling',
+            subtopics: [
+              { id: 'prob-stats-course', name: 'Coursera: Probability and Statistics', blogSlug: 'probability-and-statistics' }
+            ]
+          },
+          {
+            id: 'ai-ab-testing',
+            name: 'AB Testing',
+            subtopics: [
+              { id: 'practitioners-guide-stats', name: 'Practitioner\'s Guide to Statistical Tests', blogSlug: 'practitioners-guide-statistical-tests' },
+              { id: 'experiment-design-detail', name: 'Experiment Design Article', blogSlug: 'experiment-design' }
+            ]
+          },
+          {
+            id: 'ai-test-sensitivity',
+            name: 'Increasing Test Sensitivity',
+            subtopics: [
+              { id: 'min-detectable-effect', name: 'Minimum Detectable Effect', blogSlug: 'minimum-detectable-effect' },
+              { id: 'improving-test-sensitivity', name: 'Paper: Improving Test Sensitivity', blogSlug: 'improving-test-sensitivity' },
+              { id: 'improving-sensitivity-cuped', name: 'Paper: Improving Sensitivity (CUPED)', blogSlug: 'improving-sensitivity-cuped' },
+              { id: 'cuped-booking', name: 'CUPED at Booking.com', blogSlug: 'cuped-at-booking' },
+              { id: 'doordash-cupac', name: 'Doordash: CUPAC', blogSlug: 'doordash-cupac' },
+              { id: 'netflix-stratification', name: 'Netflix: Stratification', blogSlug: 'netflix-stratification' }
+            ]
+          },
+          {
+            id: 'ai-ratio-metrics',
+            name: 'Ratio Metrics',
+            subtopics: [
+              { id: 'microsoft-delta-method', name: 'Microsoft: Delta Method in Metric Analytics', blogSlug: 'microsoft-delta-method' },
+              { id: 'ratio-metrics-detail', name: 'Paper: Ratio Metrics', blogSlug: 'ratio-metrics' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-econometrics',
+        name: 'Econometrics',
+        description: 'Regression analysis, time series modeling, forecasting tasks, and fitting distributions.',
+        concepts: [
+          {
+            id: 'ai-econ-prereqs',
+            name: 'Pre-requisites of Econometrics',
+            subtopics: [
+              { id: 'fundamentals-econometrics', name: 'Fundamentals of Econometrics', blogSlug: 'fundamentals-of-econometrics' }
+            ]
+          },
+          {
+            id: 'ai-econ-regression',
+            name: 'Regression, Timeseries, Fitting Distributions',
+            subtopics: [
+              { id: 'intro-econometrics', name: 'Intro to Econometrics', blogSlug: 'intro-to-econometrics' },
+              { id: 'econometrics-course', name: 'Coursera: Econometrics', blogSlug: 'econometrics-course' },
+              { id: 'learn-time-series', name: 'Kaggle: Learn Time Series', blogSlug: 'learn-time-series' },
+              { id: 'time-series-basics', name: 'Kaggle: Time Series Basics', blogSlug: 'time-series-basics' },
+              { id: 'arima-time-series', name: 'ARIMA model for Time Series', blogSlug: 'arima-model-for-time-series' },
+              { id: 'time-series-models', name: 'Time Series Models', blogSlug: 'time-series-models' },
+              { id: 'forecasting-task', name: 'Forecasting Task with Solution', blogSlug: 'forecasting-task-with-solution' },
+              { id: 'linear-regression-econ', name: 'Coursera: Linear Regression', blogSlug: 'linear-regression-econ' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-coding',
+        name: 'Coding',
+        description: 'Python fundamentals, data structures, algorithmic paradigms, and SQL querying.',
+        concepts: [
+          {
+            id: 'ai-learn-python',
+            name: 'Learn Python Programming Language',
+            subtopics: [
+              { id: 'learn-python-kaggle', name: 'Learn Python: Kaggle', blogSlug: 'learn-python-kaggle' },
+              { id: 'google-python-class', name: 'Google\'s Python Class', blogSlug: 'googles-python-class' }
+            ]
+          },
+          {
+            id: 'ai-dsa-python',
+            name: 'Data Structures and Algorithms (Python)',
+            subtopics: [
+              { id: 'algorithmic-exercises', name: 'Algorithmic Exercises', blogSlug: 'algorithmic-exercises' },
+              { id: 'leetcode-study-plans', name: 'Study Plans - Leetcode', blogSlug: 'study-plans-leetcode' },
+              { id: 'algorithms-specialization-course', name: 'Algorithms Specialization', blogSlug: 'algorithms-specialization' }
+            ]
+          },
+          {
+            id: 'ai-learn-sql',
+            name: 'Learn SQL',
+            subtopics: [
+              { id: 'sql-tutorial-course', name: 'SQL Tutorial', blogSlug: 'sql-tutorial-course' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-eda',
+        name: 'Exploratory Data Analysis',
+        description: 'Data analysis pipelines, pandas aggregations, and seaborn statistical plotting.',
+        concepts: [
+          {
+            id: 'ai-eda-viz',
+            name: 'Data understanding, Data Analysis and Visualization',
+            subtopics: [
+              { id: 'eda-python-pandas', name: 'Exploratory Data Analysis with Python and Pandas', blogSlug: 'exploratory-data-analysis-with-python-and-pandas' },
+              { id: 'eda-ml', name: 'Exploratory Data Analysis for Machine Learning', blogSlug: 'exploratory-data-analysis-for-machine-learning' },
+              { id: 'eda-seaborn', name: 'Exploratory Data Analysis with Seaborn', blogSlug: 'exploratory-data-analysis-with-seaborn' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-ml-classic',
+        name: 'Machine Learning',
+        description: 'Classic supervised and unsupervised paradigms, ensemble methods, and textbook references.',
+        concepts: [
+          {
+            id: 'ai-ml-classic-advanced',
+            name: 'Classic ML (Sup., Unsup.), Advanced ML (Ensembles, NNs)',
+            subtopics: [
+              { id: 'open-ml-course', name: 'Open Machine Learning Course - Open Data Science', blogSlug: 'open-machine-learning-course' },
+              { id: 'ml-specialization-course', name: 'Machine Learning Specialization', blogSlug: 'machine-learning-specialization' },
+              { id: 'pattern-recognition-ml', name: 'Pattern Recognition & ML by Christopher m. Bishop', blogSlug: 'pattern-recognition-ml' },
+              { id: 'pattern-recognition-github', name: 'GitHub repository with notes & code from the eBook above', blogSlug: 'pattern-recognition-github' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-dl',
+        name: 'Deep Learning',
+        description: 'Feed-forward nets, backpropagation, CNNs, RNNs, and self-attention transformers.',
+        concepts: [
+          {
+            id: 'ai-dl-architecture',
+            name: 'Fully Connected, CNN, RNN, LSTM, Transformers, TL',
+            subtopics: [
+              { id: 'dl-specialization-courses', name: 'Deep Learning Specialization', blogSlug: 'deep-learning-specialization' },
+              { id: 'dl-book-ebook', name: 'Deep Learning Book', blogSlug: 'deep-learning-book' },
+              { id: 'attention-is-all-you-need', name: 'Attention is all you need', blogSlug: 'attention-is-all-you-need' },
+              { id: 'illustrated-transformer', name: 'The Illustrated Transformer', blogSlug: 'illustrated-transformer' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-mlops',
+        name: 'MLOps',
+        description: 'Deployment models, inference engines, model drift monitoring, and CI/CD pipelines.',
+        concepts: [
+          {
+            id: 'ai-mlops-deployment',
+            name: 'Deployment Models, CI/CD',
+            subtopics: [
+              { id: 'mlops-specialization-courses', name: 'MLOps Specialization', blogSlug: 'mlops-specialization' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-engineering-new',
+        name: 'AI Engineering',
+        description: 'Prompt engineering, large language model integrations, RAG architectures, and agentic reasoning.',
+        concepts: [
+          {
+            id: 'ai-eng-prompt',
+            name: 'Prompt Engineering, LLMs, RAG, Agents, Fine-tuning',
+            subtopics: [
+              { id: 'google-ai-courses', name: 'Google AI Courses', blogSlug: 'google-ai-courses' },
+              { id: 'huggingface-nlp', name: 'Hugging Face NLP', blogSlug: 'hugging-face-nlp' },
+              { id: 'prompt-engineering-guide-detail', name: 'Prompt Engineering Guide', blogSlug: 'prompt-engineering-guide' },
+              { id: 'rag-nlp-paper', name: 'RAG for Knowledge - Intensive NLP Tasks', blogSlug: 'rag-for-knowledge-intensive-nlp-tasks' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-vibe-coding',
+        name: 'Vibe Coding',
+        description: 'Leveraging AI coding assistants, code synthesis models, and agentic workflows.',
+        concepts: [
+          {
+            id: 'ai-vibe-coding-assistants',
+            name: 'AI Coding Assitants, AI App Builders',
+            subtopics: [
+              { id: 'vibe-coding-fundamentals', name: 'Vibe Coding Fundamentals', blogSlug: 'vibe-coding-fundamentals' },
+              { id: 'claude-code-docs', name: 'Claude Code', blogSlug: 'claude-code-docs' },
+              { id: 'agentic-coding-handbook', name: 'Agentic Coding Handbook', blogSlug: 'agentic-coding-handbook' }
             ]
           }
         ]
@@ -778,7 +1256,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
   },
   {
     id: 'software-engineering',
-    number: '08',
+    number: '09',
     name: 'Software Engineering Practices',
     difficulty: 'Medium',
     hours: 28,
@@ -805,7 +1283,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
   },
   {
     id: 'theoretical-cs',
-    number: '09',
+    number: '10',
     name: 'Theoretical Computer Science',
     difficulty: 'Hard',
     hours: 36,

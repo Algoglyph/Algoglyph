@@ -1,5 +1,6 @@
 import { BLOG_POSTS } from '../config/blogData';
 import { SYSTEM_DESIGN_DIAGRAMS } from '../config/illustrationData';
+import { ML_DIAGRAMS } from '../config/mlIllustrationData';
 import React from 'react';
 
 interface RoadmapIllustrationProps {
@@ -8,11 +9,11 @@ interface RoadmapIllustrationProps {
 
 export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }) => {
   const sLower = slug.toLowerCase();
-  const customConfig = SYSTEM_DESIGN_DIAGRAMS[sLower];
+  const customConfig = SYSTEM_DESIGN_DIAGRAMS[sLower] || ML_DIAGRAMS[sLower];
 
   if (customConfig) {
     return (
-      <div className="w-full h-[220px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-4 select-none relative">
+      <div className="w-full h-[400px] md:h-[480px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-6 select-none relative">
         {/* Chalkboard Grid Pattern Background */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
              style={{ 
@@ -520,7 +521,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
   if (!type) return null;
 
   return (
-    <div className="w-full h-64 rounded-xl border border-zinc-800 bg-[#121214] select-none relative overflow-hidden flex items-center justify-center p-3">
+    <div className="w-full h-[320px] md:h-[360px] rounded-xl border border-zinc-800 bg-[#121214] select-none relative overflow-hidden flex items-center justify-center p-3">
       {/* Chalkboard Slate Grid Background */}
       <div 
         className="absolute inset-0 opacity-15"

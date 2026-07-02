@@ -9,20 +9,21 @@ interface RoadmapConvergenceProps {
 // Node coordinates on a 1000×500 grid
 const POS: Array<{ x: number; y: number }> = [
   { x: 80, y: 250 },
-  { x: 200, y: 130 },
-  { x: 290, y: 350 },
-  { x: 420, y: 200 },
-  { x: 510, y: 380 },
-  { x: 630, y: 150 },
-  { x: 730, y: 330 },
-  { x: 850, y: 180 },
-  { x: 930, y: 350 },
+  { x: 175, y: 130 },
+  { x: 270, y: 350 },
+  { x: 365, y: 200 },
+  { x: 460, y: 380 },
+  { x: 555, y: 150 },
+  { x: 650, y: 330 },
+  { x: 745, y: 180 },
+  { x: 840, y: 350 },
+  { x: 930, y: 220 },
 ];
 
 // Structural links
 const EDGES: Array<[number, number]> = [
-  [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8],
-  [1, 3], [2, 4], [3, 5], [5, 7], [6, 8],
+  [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9],
+  [1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 8], [7, 9],
 ];
 
 export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
@@ -57,7 +58,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
           Curriculum Overview Map
         </h2>
         <p className="max-w-xl text-[13px] text-gray-400 font-sans">
-          Visualize the structural connections across all nine domains of the Computer Science curriculum.
+          Visualize the structural connections across all ten domains of the Computer Science curriculum.
         </p>
       </div>
 

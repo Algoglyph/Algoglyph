@@ -12,6 +12,7 @@ import { ROADMAP_ZONES } from '../config/roadmapData';
 import type { Concept, Topic } from '../config/roadmapData';
 import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
+import { ML_BLOG_DATA } from '../config/mlBlogData';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
@@ -28,6 +29,33 @@ interface RoadmapPageProps {
 
 // Fallback generator for new/specific subtopics to guarantee detailed content is always available
 const getFallbackBlogPost = (slug: string, subtopicName: string, category: string): BlogPost => {
+  const custom = ML_BLOG_DATA[slug];
+  if (custom) {
+    return {
+      slug,
+      title: custom.title || `${subtopicName} (Syllabus Guide)`,
+      tagline: custom.tagline || `A theoretical guide to the design mechanics, complexity characteristics, and real-world usage of ${subtopicName}.`,
+      category: custom.category || category,
+      lastUpdated: 'July 2026',
+      readTime: custom.readTime || 7,
+      prerequisites: custom.prerequisites || [],
+      related: custom.related || [],
+      practiceProblems: custom.practiceProblems || [],
+      content: {
+        introduction: custom.content?.introduction || `This comprehensive guide covers the core technical structures, logical rules, and memory layouts of ${subtopicName}.`,
+        whyImportant: custom.content?.whyImportant || `${subtopicName} plays an indispensable role in high-performance computing and modern software architecture.`,
+        realWorldApps: custom.content?.realWorldApps || [],
+        algorithmDescription: custom.content?.algorithmDescription || [],
+        complexity: custom.content?.complexity || [],
+        implementationCpp: custom.content?.implementationCpp || '',
+        implementationPython: custom.content?.implementationPython || '',
+        commonMistakes: custom.content?.commonMistakes || [],
+        interviewQuestions: custom.content?.interviewQuestions || [],
+        summary: custom.content?.summary || `In summary, mastering ${subtopicName} is key to designing optimal, memory-friendly software systems.`
+      }
+    };
+  }
+
   return {
     slug,
     title: `${subtopicName} (Syllabus Guide)`,
@@ -474,47 +502,53 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <p>{activePost.content.whyImportant}</p>
               </section>
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">3. Real-World Applications</h2>
-                <ul className="list-disc pl-5 flex flex-col gap-1.5">
-                  {activePost.content.realWorldApps.map((app, idx) => (
-                    <li key={idx}>{app}</li>
-                  ))}
-                </ul>
-              </section>
+              {activePost.content.realWorldApps && activePost.content.realWorldApps.length > 0 && (
+                <section className="flex flex-col gap-2.5">
+                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">3. Real-World Applications</h2>
+                  <ul className="list-disc pl-5 flex flex-col gap-1.5">
+                    {activePost.content.realWorldApps.map((app, idx) => (
+                      <li key={idx}>{app}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">4. Structural Mechanics</h2>
-                <ol className="list-decimal pl-5 flex flex-col gap-1.5">
-                  {activePost.content.algorithmDescription.map((step, idx) => (
-                    <li key={idx}>{step}</li>
-                  ))}
-                </ol>
-              </section>
+              {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
+                <section className="flex flex-col gap-2.5">
+                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">4. Structural Mechanics</h2>
+                  <ol className="list-decimal pl-5 flex flex-col gap-1.5">
+                    {activePost.content.algorithmDescription.map((step, idx) => (
+                      <li key={idx}>{step}</li>
+                    ))}
+                  </ol>
+                </section>
+              )}
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">5. Asymptotic Bounds</h2>
-                <div className="overflow-x-auto border border-zinc-800 rounded-lg bg-zinc-950/20">
-                  <table className="w-full text-left border-collapse text-[12.5px] font-sans">
-                    <thead>
-                      <tr className="border-b border-zinc-800 bg-[#18181b] font-mono text-[10px] text-zinc-400 uppercase">
-                        <th className="p-3">Measurement</th>
-                        <th className="p-3">Asymptotic Bound</th>
-                        <th className="p-3">Context & Constraints</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activePost.content.complexity.map((row, idx) => (
-                        <tr key={idx} className="border-b border-zinc-800/60 hover:bg-[#18181b]/20">
-                          <td className="p-3 font-semibold text-white">{row.label}</td>
-                          <td className="p-3 font-mono text-blue-400">{row.value}</td>
-                          <td className="p-3 text-zinc-400">{row.note}</td>
+              {activePost.content.complexity && activePost.content.complexity.length > 0 && (
+                <section className="flex flex-col gap-2.5">
+                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">5. Asymptotic Bounds</h2>
+                  <div className="overflow-x-auto border border-zinc-800 rounded-lg bg-zinc-950/20">
+                    <table className="w-full text-left border-collapse text-[12.5px] font-sans">
+                      <thead>
+                        <tr className="border-b border-zinc-800 bg-[#18181b] font-mono text-[10px] text-zinc-400 uppercase">
+                          <th className="p-3">Measurement</th>
+                          <th className="p-3">Asymptotic Bound</th>
+                          <th className="p-3">Context & Constraints</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                      </thead>
+                      <tbody>
+                        {activePost.content.complexity.map((row, idx) => (
+                          <tr key={idx} className="border-b border-zinc-800/60 hover:bg-[#18181b]/20">
+                            <td className="p-3 font-semibold text-white">{row.label}</td>
+                            <td className="p-3 font-mono text-blue-400">{row.value}</td>
+                            <td className="p-3 text-zinc-400">{row.note}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
 
               {(activePost.content.implementationCpp || activePost.content.implementationPython) && (
                 <section className="flex flex-col gap-2.5">
@@ -558,30 +592,36 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 </section>
               )}
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">7. Common Pitfalls</h2>
-                <ul className="list-disc pl-5 flex flex-col gap-1.5">
-                  {activePost.content.commonMistakes.map((mistake, idx) => (
-                    <li key={idx}>{mistake}</li>
-                  ))}
-                </ul>
-              </section>
+              {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
+                <section className="flex flex-col gap-2.5">
+                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">7. Common Pitfalls</h2>
+                  <ul className="list-disc pl-5 flex flex-col gap-1.5">
+                    {activePost.content.commonMistakes.map((mistake, idx) => (
+                      <li key={idx}>{mistake}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">8. Interview Preparation</h2>
-                <ol className="list-decimal pl-5 flex flex-col gap-2">
-                  {activePost.content.interviewQuestions.map((q, idx) => (
-                    <li key={idx} className="font-semibold text-white">
-                      <span className="text-zinc-300 font-normal">{q}</span>
-                    </li>
-                  ))}
-                </ol>
-              </section>
+              {activePost.content.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
+                <section className="flex flex-col gap-2.5">
+                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">8. Interview Preparation</h2>
+                  <ol className="list-decimal pl-5 flex flex-col gap-2">
+                    {activePost.content.interviewQuestions.map((q, idx) => (
+                      <li key={idx} className="font-semibold text-white">
+                        <span className="text-zinc-300 font-normal">{q}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
 
-              <section className="flex flex-col gap-2 bg-[#18181b]/30 p-4 border border-zinc-850 rounded-xl mt-4 font-sans">
-                <h2 className="text-[10px] font-mono tracking-widest text-blue-400 uppercase">Syllabus Summary</h2>
-                <p className="leading-relaxed text-[13px]">{activePost.content.summary}</p>
-              </section>
+              {activePost.content.summary && (
+                <section className="flex flex-col gap-2 bg-[#18181b]/30 p-4 border border-zinc-850 rounded-xl mt-4 font-sans">
+                  <h2 className="text-[10px] font-mono tracking-widest text-blue-400 uppercase">Syllabus Summary</h2>
+                  <p className="leading-relaxed text-[13px]">{activePost.content.summary}</p>
+                </section>
+              )}
             </div>
           </div>
 
@@ -749,7 +789,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     // ================== KNOWLEDGE GRAPH VIEW (SYSTEM DESIGN & DSA) ==================
     if (
       activeModule &&
-      (activeModuleId === 'system-design' || activeModuleId === 'dsa-foundations') &&
+      (activeModuleId === 'system-design' ||
+        activeModuleId === 'dsa-foundations' ||
+        activeModuleId === 'machine-learning' ||
+        activeModuleId === 'ai-data-scientist') &&
       !activeCoreTopicId
     ) {
       return (
@@ -878,45 +921,51 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           transition={{ duration: 0.15 }}
           className="w-full flex flex-col items-center pb-32"
         >
-          <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
-            <div className="flex flex-col gap-2">
-              <span className="text-white text-[10px] font-sans font-semibold tracking-[0.08em]">
-                {activeModule.name.toUpperCase()} / {activeCoreTopic.name.toUpperCase()} / {activeSubContainer.name.toUpperCase()}
-              </span>
-              <h2 className="text-xl font-bold text-white tracking-tight font-sans">
-                {activeSubContainer.name} Subtopics
-              </h2>
-              <p className="text-[13px] text-zinc-400 font-sans">
-                Select a subtopic below to immediately open the local theory textbook article.
-              </p>
-            </div>
+          {/* Textbook Chapter Header */}
+          <div className="w-full max-w-4xl text-left mt-6">
+            <span className="text-9xl font-black text-white/95 tracking-tight font-sans leading-none block select-none">
+              {activeCoreTopic.concepts.findIndex((c) => c.id === activeSubContainerId) + 1}
+            </span>
+
+            <h1 className="text-3xl font-extrabold text-white tracking-tight font-sans mt-4 pb-6 border-b border-zinc-900/80">
+              {activeSubContainer.name}
+            </h1>
           </div>
 
-          <div className="w-full max-w-4xl flex flex-col gap-3 mt-8">
-            {activeSubContainer.subtopics.map((subtopic) => {
+          <div className="w-full max-w-4xl flex flex-col gap-6 mt-10">
+            {activeSubContainer.subtopics.map((subtopic, sIdx) => {
               const subStatus = roadmapProgress[subtopic.name] || 'Not Started';
+              const post = BLOG_POSTS.find(
+                (p) => p.slug === subtopic.blogSlug
+              ) || getFallbackBlogPost(subtopic.blogSlug, subtopic.name, activeModule.name);
+
               return (
                 <Link
                   key={subtopic.id}
                   to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${activeSubContainerId}/${subtopic.blogSlug}`}
-                  className="group border border-zinc-800 bg-[#18181b] hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 rounded-xl p-4 cursor-pointer text-left flex items-center justify-between transition block no-underline"
+                  className="group flex flex-col gap-2 pb-6 border-b border-zinc-900/80 last:border-b-0 block no-underline transition-all duration-200 cursor-pointer text-left"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-blue-500 text-[12px] font-semibold">&gt;</span>
-                    <h3 className="font-semibold text-[14px] text-white transition-colors font-sans">
-                      {subtopic.name}
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-[16px] text-white group-hover:text-blue-400 transition-colors font-sans leading-tight">
+                      {sIdx + 1}. {subtopic.name}
                     </h3>
+
+                    <span
+                      className={`text-[9px] font-mono border px-2 py-0.5 rounded transition ${
+                        subStatus === 'Completed'
+                          ? 'border-blue-500/20 text-blue-400 bg-blue-500/5'
+                          : subStatus === 'In Progress'
+                          ? 'border-zinc-700 text-zinc-400 bg-zinc-850/60'
+                          : 'border-zinc-800/80 text-zinc-500'
+                      }`}
+                    >
+                      {subStatus}
+                    </span>
                   </div>
 
-                  <span
-                    className={`text-[9px] font-mono border px-2 py-0.5 rounded ${
-                      subStatus === 'Completed'
-                        ? 'border-blue-500/20 text-blue-400 bg-blue-500/5'
-                        : 'border-zinc-800 text-zinc-550'
-                    }`}
-                  >
-                    {subStatus}
-                  </span>
+                  <p className="text-[13px] leading-relaxed text-zinc-400 group-hover:text-zinc-300 transition-colors font-sans">
+                    {post.tagline}
+                  </p>
                 </Link>
               );
             })}
