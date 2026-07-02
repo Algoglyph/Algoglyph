@@ -1,3 +1,5 @@
+import { BLOG_POSTS } from '../config/blogData';
+import { SYSTEM_DESIGN_DIAGRAMS } from '../config/illustrationData';
 import React from 'react';
 
 interface RoadmapIllustrationProps {
@@ -5,6 +7,66 @@ interface RoadmapIllustrationProps {
 }
 
 export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }) => {
+  const sLower = slug.toLowerCase();
+  const customConfig = SYSTEM_DESIGN_DIAGRAMS[sLower];
+
+  if (customConfig) {
+    return (
+      <div className="w-full h-[220px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-4 select-none relative">
+        {/* Chalkboard Grid Pattern Background */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+             style={{ 
+               backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', 
+               backgroundSize: '20px 20px' 
+             }} 
+        />
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          {customConfig.elements.map((el, idx) => {
+            if (el.type === 'circle') {
+              return <circle key={idx} cx={el.cx} cy={el.cy} r={el.r} fill={el.fill || 'none'} stroke={el.stroke || '#71717a'} strokeWidth={el.strokeWidth || 1} strokeDasharray={el.strokeDasharray} />;
+            }
+            if (el.type === 'rect') {
+              return <rect key={idx} x={el.x} y={el.y} width={el.width} height={el.height} rx={el.rx || 0} fill={el.fill || 'none'} stroke={el.stroke || '#71717a'} strokeWidth={el.strokeWidth || 1} strokeDasharray={el.strokeDasharray} />;
+            }
+            if (el.type === 'line') {
+              return <line key={idx} x1={el.x1} y1={el.y1} x2={el.x2} y2={el.y2} stroke={el.stroke || '#71717a'} strokeWidth={el.strokeWidth || 1} strokeDasharray={el.strokeDasharray} />;
+            }
+            if (el.type === 'path') {
+              return <path key={idx} d={el.d} fill={el.fill || 'none'} stroke={el.stroke || '#71717a'} strokeWidth={el.strokeWidth || 1} strokeDasharray={el.strokeDasharray} markerEnd={el.markerEnd} />;
+            }
+            if (el.type === 'polygon') {
+              return <polygon key={idx} points={el.points} fill={el.fill || 'none'} stroke={el.stroke || '#71717a'} strokeWidth={el.strokeWidth || 1} strokeDasharray={el.strokeDasharray} />;
+            }
+            if (el.type === 'text') {
+              return (
+                <text 
+                  key={idx} 
+                  x={el.x} 
+                  y={el.y} 
+                  fill={el.fill || '#e4e4e7'} 
+                  fontSize={el.fontSize || 9} 
+                  textAnchor={el.textAnchor} 
+                  fontWeight={el.fontWeight} 
+                  fontFamily={el.fontFamily || 'monospace'}
+                  transform={el.transform}
+                >
+                  {el.textContent}
+                </text>
+              );
+            }
+            return null;
+          })}
+          
+          <defs>
+            <marker id="arrow-copy" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#a1a1aa" />
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    );
+  }
+
   const getIllustrationType = ():
     | 'static-array'
     | 'dynamic-array'
@@ -68,6 +130,26 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     | 'heap-allocation'
     | 'big-o'
     | 'time-complexity'
+    | 'two-pointers'
+    | 'sliding-window'
+    | 'fast-slow-pointer'
+    | 'cyclic-sort'
+    | 'merge-intervals'
+    | 'two-heaps'
+    | 'a-star'
+    | 'cap-theorem'
+    | 'sql-vs-nosql'
+    | 'cdn-caching'
+    | 'load-balancer-l4-l7'
+    | 'service-discovery'
+    | 'consistent-hashing'
+    | 'message-queues'
+    | 'cqrs-event-sourcing'
+    | 'leader-election'
+    | 'sidecar-pattern'
+    | 'tcp-handshake'
+    | 'encryption-ssl'
+    | 'circuit-breaker'
     | null => {
     const s = slug.toLowerCase();
     
@@ -85,6 +167,154 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     }
     if (s === 'heap-allocation') {
       return 'heap-allocation';
+    }
+
+    // New pattern mappings
+    if (s === 'two-pointer-technique') {
+      return 'two-pointers';
+    }
+    if (s === 'sliding-window-technique') {
+      return 'sliding-window';
+    }
+    if (s === 'fast-slow-pointers') {
+      return 'fast-slow-pointer';
+    }
+    if (s === 'cyclic-sort') {
+      return 'cyclic-sort';
+    }
+    if (s === 'merge-intervals') {
+      return 'merge-intervals';
+    }
+    if (s === 'two-heaps-pattern') {
+      return 'two-heaps';
+    }
+    if (s === 'a-star-algorithm') {
+      return 'a-star';
+    }
+    // System Design mappings
+    if (s === 'cap-theorem-consistency' || s === 'availability-vs-consistency' || s === 'weak-consistency' || s === 'eventual-consistency' || s === 'strong-consistency' || s === 'what-is-system-design' || s === 'how-to-approach-system-design' || s === 'performance-vs-scalability' || s === 'latency-vs-throughput') {
+      return 'cap-theorem';
+    }
+    if (s === 'sql-vs-nosql' || s === 'key-value-store' || s === 'document-store' || s === 'wide-column-store' || s === 'graph-databases' || s === 'federation' || s === 'denormalization' || s === 'sql-tuning') {
+      return 'sql-vs-nosql';
+    }
+    if (s === 'cdn-edge-caching-strategies' || s === 'cdn-caching' || s === 'pull-cdns' || s === 'push-cdns' || s === 'client-caching' || s === 'web-server-caching' || s === 'static-content-hosting-design' || s === 'static-content-hosting-data' || s === 'cache-aside' || s === 'write-through' || s === 'write-behind' || s === 'refresh-ahead' || s === 'database-caching' || s === 'application-caching' || s === 'cache-aside-data' || s === 'no-caching') {
+      return 'cdn-caching';
+    }
+    if (s === 'load-balancer-layer-4-routing' || s === 'layer-7-load-balancing' || s === 'load-balancing-algorithms' || s === 'reverse-proxy-caches' || s === 'horizontal-scaling') {
+      return 'load-balancer-l4-l7';
+    }
+    if (s === 'service-discovery' || s === 'microservices' || s === 'gateway-routing' || s === 'gateway-offloading' || s === 'gateway-aggregation' || s === 'backends-for-frontend' || s === 'anti-corruption-layer' || s === 'ambassador' || s === 'health-monitoring' || s === 'availability-monitoring' || s === 'performance-monitoring' || s === 'usage-monitoring' || s === 'instrumentation' || s === 'visualization-alerts') {
+      return 'service-discovery';
+    }
+    if (s === 'consistent-hashing' || s === 'database-sharding-partitions' || s === 'sharding-data') {
+      return 'consistent-hashing';
+    }
+    if (s === 'message-queues' || s === 'task-queues' || s === 'backpressure-queues-sizing' || s === 'queue-based-load-leveling' || s === 'priority-queue' || s === 'competing-consumers' || s === 'publishersubscriber' || s === 'pipes-and-filters-messaging' || s === 'pipes-filters-design' || s === 'background-jobs' || s === 'event-driven-jobs' || s === 'schedule-driven-jobs' || s === 'returning-job-results' || s === 'sequential-convoy' || s === 'scheduling-agent-supervisor' || s === 'choreography' || s === 'claim-check' || s === 'async-request-reply') {
+      return 'message-queues';
+    }
+    if (s === 'cqrs-design' || s === 'cqrs-data' || s === 'event-sourcing' || s === 'materialized-view' || s === 'index-table') {
+      return 'cqrs-event-sourcing';
+    }
+    if (s === 'leader-election' || s === 'failover-replication-dns-updates' || s === 'replication-master-slave-master-master' || s === 'availability-in-numbers' || s === 'database-replication-lags') {
+      return 'leader-election';
+    }
+    if (s === 'sidecar' || s === 'strangler-fig' || s === 'external-config-store' || s === 'compute-resource-consolidation') {
+      return 'sidecar-pattern';
+    }
+    if (s === 'tcp' || s === 'udp' || s === 'http' || s === 'rpc' || s === 'grpc' || s === 'rest' || s === 'graphql' || s === 'idempotent-operations' || s === 'dns-root-authority-resolution') {
+      return 'tcp-handshake';
+    }
+    if (s === 'valet-key' || s === 'security-monitoring') {
+      return 'encryption-ssl';
+    }
+    if (s === 'retry-storm' || s === 'noisy-neighbor' || s === 'improper-instantiation' || s === 'monolithic-persistence' || s === 'synchronous-io' || s === 'extraneous-fetching' || s === 'busy-database' || s === 'busy-frontend' || s === 'chatty-io') {
+      return 'circuit-breaker';
+    }
+
+    // ----------------------------------------------------
+    // GLOBAL SMART FALLBACK FOR 100% COVERAGE
+    // ----------------------------------------------------
+    const post = BLOG_POSTS.find(p => p.slug === s);
+    const cat = post ? post.category : '';
+
+    if (cat === 'Data Structures' || cat === 'DSA Foundations') {
+      if (s.includes('list')) return 'singly-linked-list';
+      if (s.includes('tree') || s.includes('traversal')) return 'binary-tree';
+      if (s.includes('graph')) return 'graph';
+      if (s.includes('stack')) return 'lifo-stack';
+      if (s.includes('queue')) return 'fifo-queue';
+      if (s.includes('heap')) return 'min-heap';
+      if (s.includes('hash') || s.includes('collision')) return 'hash-function';
+      return 'big-o';
+    }
+    if (cat === 'Algorithms') {
+      if (s.includes('sort')) return 'bubble-sort';
+      if (s.includes('search')) return 'binary-search';
+      if (s.includes('path') || s.includes('mst') || s.includes('graph') || s.includes('traversal')) return 'dijkstra';
+      return 'recursion';
+    }
+    if (cat === 'Computer Systems' || cat === 'Operating Systems') {
+      if (s.includes('memory') || s.includes('page') || s.includes('tlb') || s.includes('cache')) return 'cdn-caching';
+      if (s.includes('thread') || s.includes('scheduler') || s.includes('job') || s.includes('process') || s.includes('queue')) return 'fifo-queue';
+      if (s.includes('lock') || s.includes('mutex') || s.includes('semaphore') || s.includes('race') || s.includes('deadlock')) return 'circuit-breaker';
+      if (s.includes('file') || s.includes('descriptor') || s.includes('inode')) return 'trie';
+      return 'stack-allocation';
+    }
+    if (cat === 'Databases' || cat === 'System Design' || cat === 'Computer Networks') {
+      if (s.includes('sql') || s.includes('table') || s.includes('schema') || s.includes('relation') || s.includes('transaction') || s.includes('isolation')) return 'sql-vs-nosql';
+      if (s.includes('http') || s.includes('tcp') || s.includes('udp') || s.includes('socket') || s.includes('conn') || s.includes('dns') || s.includes('protocol') || s.includes('rest') || s.includes('graphql') || s.includes('grpc') || s.includes('rpc') || s.includes('token') || s.includes('auth')) return 'tcp-handshake';
+      if (s.includes('cache') || s.includes('cdn')) return 'cdn-caching';
+      if (s.includes('balancer') || s.includes('proxy')) return 'load-balancer-l4-l7';
+      if (s.includes('discovery') || s.includes('service') || s.includes('registry') || s.includes('gateway') || s.includes('ambassador') || s.includes('sidecar')) return 'service-discovery';
+      if (s.includes('hash') || s.includes('shard') || s.includes('partition')) return 'consistent-hashing';
+      if (s.includes('queue') || s.includes('bus') || s.includes('event') || s.includes('job')) return 'message-queues';
+      if (s.includes('cqrs') || s.includes('source') || s.includes('view') || s.includes('materialized')) return 'cqrs-event-sourcing';
+      if (s.includes('leader') || s.includes('failover') || s.includes('replicated') || s.includes('consensus') || s.includes('raft')) return 'leader-election';
+      if (s.includes('key') || s.includes('ssl') || s.includes('crypt') || s.includes('encrypt') || s.includes('security')) return 'encryption-ssl';
+      if (s.includes('circuit') || s.includes('breaker') || s.includes('retry') || s.includes('noisy') || s.includes('limit')) return 'circuit-breaker';
+      return 'cap-theorem';
+    }
+    if (cat === 'Machine Learning') {
+      if (s.includes('matrix') || s.includes('vector') || s.includes('product') || s.includes('gradient')) return 'static-array';
+      if (s.includes('tree')) return 'binary-search-tree';
+      return 'recursion';
+    }
+    if (cat === 'Software Engineering') {
+      if (s.includes('test') || s.includes('mock') || s.includes('assert') || s.includes('debt') || s.includes('clean')) return 'circuit-breaker';
+      return 'service-discovery';
+    }
+    if (cat === 'Theoretical CS') {
+      if (s.includes('complexity') || s.includes('time') || s.includes('space') || s.includes('bounds')) return 'time-complexity';
+      if (s.includes('turing') || s.includes('state') || s.includes('automata') || s.includes('grammar') || s.includes('language')) return 'trie';
+      return 'big-o';
+    }
+
+    // Default safe fallback
+    return 'big-o';
+    if (s === 'two-three-trees') {
+      return 'b-tree';
+    }
+    if (s === 'skip-lists-complex') {
+      return 'skip-list';
+    }
+    if (s === 'isam-indexing') {
+      return 'sparse-table';
+    }
+    if (s === 'linear-indexing') {
+      return 'static-array';
+    }
+    if (s === 'tree-indexing') {
+      return 'b-tree';
+    }
+    if (s === 'recursion') {
+      return 'recursion';
+    }
+    if (s === 'island-traversal') {
+      return 'bfs-traversal';
+    }
+    if (s === 'multi-threaded') {
+      return null;
     }
 
     // Arrays mapping
@@ -1125,7 +1355,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
           
           {/* Key information */}
           <text x="180" y="175" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Supports Stack (LIFO) and Queue (FIFO) behaviors</text>
-          <text x="180" y="189" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Insertion &amp; deletion on both ends in O(1) time bounds</text>
+          <text x="180" y="189" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Insertion {"&"} deletion on both ends in O(1) time bounds</text>
 
           <defs>
             <marker id="arrow-deq-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
@@ -1261,7 +1491,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'load-factor' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Load Factor &amp; Table Resizing</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Load Factor {"&"} Table Resizing</text>
           
           {/* Small Table: cap=4, size=3, alpha=0.75 */}
           <text x="60" y="60" fill="#f472b6" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">1. Small Buffer (Cap=4, Size=3)</text>
@@ -1280,7 +1510,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
           {/* Trigger Resizing arrow */}
           <path d="M 160 115 L 260 115" stroke="#fb923c" strokeWidth="2" fill="none" markerEnd="url(#arrow-resize-orange)" />
-          <text x="210" y="103" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Resize &amp; Rehash</text>
+          <text x="210" y="103" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Resize {"&"} Rehash</text>
           <text x="210" y="132" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">O(N) Reallocation</text>
 
           {/* Double sized Table: cap=8 */}
@@ -1439,7 +1669,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
           {/* DFS Exploration Path Curve */}
           <path d="M 150 45 C 130 50, 100 80, 85 110 C 80 130, 85 170, 100 193 C 115 175, 115 130, 135 105 C 160 85, 190 100, 200 102 C 210 115, 215 130, 200 140" stroke="#fb923c" strokeWidth="1.5" strokeDasharray="3 2" fill="none" markerEnd="url(#arrow-dfs-path)" />
           <text x="60" y="145" fill="#fb923c" fontSize="8" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" textAnchor="middle">1. Deep Down</text>
-          <text x="150" y="145" fill="#a1a1aa" fontSize="8" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" textAnchor="middle">2. Backtrack &amp; visit C</text>
+          <text x="150" y="145" fill="#a1a1aa" fontSize="8" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" textAnchor="middle">2. Backtrack {"&"} visit C</text>
 
           {/* Stack Representation */}
           <text x="340" y="70" fill="#f472b6" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Stack States (Push/Pop):</text>
@@ -1575,7 +1805,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'bellman-ford' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Bellman-Ford Algorithm &amp; Negative Cycle Check</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Bellman-Ford Algorithm {"&"} Negative Cycle Check</text>
           
           {/* Node A */}
           <circle cx="120" cy="90" r="14" fill="none" stroke="#60a5fa" strokeWidth="2" />
@@ -1665,7 +1895,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'kruskal-mst' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Kruskal's Minimum Spanning Tree (Sort &amp; Union)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Kruskal's Minimum Spanning Tree (Sort {"&"} Union)</text>
           
           {/* Sorted edge list */}
           <text x="60" y="55" fill="#fb923c" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">1. Sort Edges by Weight:</text>
@@ -1803,10 +2033,10 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'bubble-sort' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Bubble &amp; Selection Sort (Swaps &amp; Min-Scans)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Bubble {"&"} Selection Sort (Swaps {"&"} Min-Scans)</text>
           
           {/* Bubble swap */}
-          <text x="60" y="60" fill="#f472b6" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Bubble Sort: Compare Adjacent &amp; Swap</text>
+          <text x="60" y="60" fill="#f472b6" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Bubble Sort: Compare Adjacent {"&"} Swap</text>
           
           {[5, 8, 2, 9].map((val, idx) => (
             <g key={idx}>
@@ -1818,7 +2048,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
           <text x="138" y="52" fill="#fb923c" fontSize="8" textAnchor="middle" fontFamily="monospace">8 &gt; 2 (Swap!)</text>
 
           {/* Selection sort min scan */}
-          <text x="320" y="60" fill="#4ade80" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Selection Sort: Scan for Min &amp; Swap to Front</text>
+          <text x="320" y="60" fill="#4ade80" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Selection Sort: Scan for Min {"&"} Swap to Front</text>
           
           {[5, 8, 2, 9].map((val, idx) => (
             <g key={idx}>
@@ -1846,7 +2076,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'insertion-sort' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Insertion Sort (Insert &amp; Shift Partition)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Insertion Sort (Insert {"&"} Shift Partition)</text>
           
           {/* Sorted vs unsorted array */}
           <text x="80" y="65" fill="#4ade80" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Sorted Segment</text>
@@ -1883,7 +2113,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'merge-sort' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Merge Sort Tree (Divide &amp; Conquer Partitioning)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Merge Sort Tree (Divide {"&"} Conquer Partitioning)</text>
           
           {/* Level 0: Input */}
           <rect x="250" y="45" width="100" height="20" rx="2" fill="none" stroke="#71717a" strokeWidth="1" />
@@ -1974,7 +2204,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
           {/* Swap root */}
           <path d="M 125 50 C 150 40, 180 70, 175 110" stroke="#fb923c" strokeWidth="1.5" strokeDasharray="3 3" fill="none" markerEnd="url(#arrow-heapsort-swap)" />
-          <text x="190" y="70" fill="#fb923c" fontSize="8" fontFamily="monospace">Swap Root &amp; Last</text>
+          <text x="190" y="70" fill="#fb923c" fontSize="8" fontFamily="monospace">Swap Root {"&"} Last</text>
 
           {/* Sorting array */}
           <text x="280" y="65" fill="#f472b6" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Heap Array Representation:</text>
@@ -2002,7 +2232,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'radix-sort' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Radix &amp; Bucket Sort (Non-Comparison Distribution)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Radix {"&"} Bucket Sort (Non-Comparison Distribution)</text>
           
           <text x="60" y="60" fill="#a1a1aa" fontSize="10" fontFamily="monospace">Input: [170, 45, 75, 90, 802, 24]</text>
           <text x="60" y="90" fill="#fb923c" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Distribute by 1s digit into Buckets:</text>
@@ -2132,7 +2362,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'divide-conquer' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Divide &amp; Conquer Paradigm (Recursive Splits)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Divide {"&"} Conquer Paradigm (Recursive Splits)</text>
           
           {/* Main Problem */}
           <rect x="230" y="45" width="140" height="24" rx="3" fill="none" stroke="#60a5fa" strokeWidth="2" />
@@ -2209,7 +2439,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'dp' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Dynamic Programming (Overlapping Subproblems &amp; Memoization)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Dynamic Programming (Overlapping Subproblems {"&"} Memoization)</text>
           
           {/* Fibonacci Tree */}
           <text x="60" y="55" fill="#f472b6" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Overlapping Subproblems tree (Fibonacci):</text>
@@ -2267,7 +2497,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'backtracking' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Backtracking (Pruning &amp; State Rollback)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Backtracking (Pruning {"&"} State Rollback)</text>
           
           <circle cx="150" cy="65" r="14" fill="none" stroke="#60a5fa" strokeWidth="2" />
           <text x="150" y="69" fill="#ffffff" fontSize="9" textAnchor="middle" fontFamily="monospace">Root</text>
@@ -2312,7 +2542,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'branch-bound' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Branch &amp; Bound (Optimization Bounds Pruning)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Branch {"&"} Bound (Optimization Bounds Pruning)</text>
           
           <text x="310" y="60" fill="#4ade80" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Best Solution found so far (Upper Bound U) = 15</text>
 
@@ -2473,7 +2703,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
       {type === 'suffix-structures' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
-          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Suffix Arrays &amp; Trees (Suffix Indexes)</text>
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Suffix Arrays {"&"} Trees (Suffix Indexes)</text>
           
           <text x="60" y="60" fill="#a1a1aa" fontSize="10" fontFamily="monospace">String S = "banana$"</text>
 
@@ -2661,7 +2891,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
       {type === 'fenwick-tree' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
           <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Fenwick Tree (Binary Indexed Tree - BIT)</text>
-          <text x="30" y="52" fill="#71717a" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Index covers size computed by LSB = (x &amp; -x)</text>
+          <text x="30" y="52" fill="#71717a" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Index covers size computed by LSB = (x {"&"} -x)</text>
 
           {/* Array representation */}
           {[1, 2, 3, 4, 5, 6, 7, 8].map((val, idx) => (
@@ -2987,7 +3217,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
           <text x="280" y="191" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">46</text>
 
           {/* Info */}
-          <text x="440" y="120" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Constant O(1) insert &amp; merge</text>
+          <text x="440" y="120" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Constant O(1) insert {"&"} merge</text>
           <text x="440" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Constant O(1) amortized decrease-key</text>
           <text x="440" y="148" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Lazy consolidation on extract-min</text>
 
@@ -3110,6 +3340,821 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
           <text x="320" y="160" fill="#c084fc" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Post-order (L, R, Root)</text>
           <text x="320" y="176" fill="#e4e4e7" fontSize="10" fontFamily="monospace">2 -&gt; 3 -&gt; 1</text>
+        </svg>
+      )}
+
+      {type === 'two-pointers' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Two Pointer Technique (Target Sum = 24)</text>
+          <text x="30" y="52" fill="#71717a" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">int arr[6] = &#123; 3, 8, 11, 13, 16, 21 &#125;;</text>
+
+          {/* Draw Grid */}
+          {[3, 8, 11, 13, 16, 21].map((val, idx) => {
+            const isTargetPair = idx === 1 || idx === 4;
+            return (
+              <g key={idx}>
+                <rect x={100 + idx * 60} y="85" width="50" height="50" rx="3" fill="none" stroke={isTargetPair ? "#4ade80" : "#60a5fa"} strokeWidth={isTargetPair ? "2.5" : "1.5"} />
+                <text x={125 + idx * 60} y="116" fill={isTargetPair ? "#4ade80" : "#e4e4e7"} fontSize="15" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight={isTargetPair ? "bold" : "normal"}>{val}</text>
+                <text x={125 + idx * 60} y="152" fill="#71717a" fontSize="10" textAnchor="middle" fontFamily="monospace">[{idx}]</text>
+              </g>
+            );
+          })}
+
+          {/* Pointers */}
+          <text x="185" y="46" fill="#c084fc" fontSize="12" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Left pointer (arr[1] = 8)</text>
+          <path d="M 185 52 L 185 76" stroke="#c084fc" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-purple)" />
+
+          <text x="365" y="46" fill="#fb923c" fontSize="12" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Right pointer (arr[4] = 16)</text>
+          <path d="M 365 52 L 365 76" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-orange-tp)" />
+
+          <text x="475" y="105" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Converge inward</text>
+          <text x="475" y="119" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• If sum &lt; target, left++</text>
+          <text x="475" y="133" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• If sum &gt; target, right--</text>
+
+          <defs>
+            <marker id="arrow-orange-tp" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'sliding-window' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Sliding Window (Size k = 3)</text>
+          <text x="30" y="52" fill="#71717a" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Finding max sum subarray of size 3</text>
+
+          {/* Draw Grid */}
+          {[2, 1, 5, 1, 3, 2].map((val, idx) => (
+            <g key={idx}>
+              <rect x={100 + idx * 60} y="85" width="50" height="50" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+              <text x={125 + idx * 60} y="116" fill="#e4e4e7" fontSize="15" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">{val}</text>
+              <text x={125 + idx * 60} y="152" fill="#71717a" fontSize="10" textAnchor="middle" fontFamily="monospace">[{idx}]</text>
+            </g>
+          ))}
+
+          {/* Highlight Window */}
+          <rect x="215" y="80" width="170" height="60" rx="5" fill="rgba(74, 222, 128, 0.15)" stroke="#4ade80" strokeWidth="2.5" strokeDasharray="4 2" />
+          <text x="300" y="70" fill="#4ade80" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Current Window (Sum = 9)</text>
+
+          {/* Slide Arrow */}
+          <path d="M 395 110 L 435 110" stroke="#fb923c" strokeWidth="2" fill="none" markerEnd="url(#arrow-orange-sw)" />
+          <text x="415" y="100" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">slide</text>
+
+          <text x="475" y="105" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Reuse past elements</text>
+          <text x="475" y="119" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Add new right element</text>
+          <text x="475" y="133" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Remove old left element</text>
+
+          <defs>
+            <marker id="arrow-orange-sw" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'fast-slow-pointer' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Fast & Slow Pointers (Floyd's Cycle Detection)</text>
+          
+          {/* Nodes */}
+          <circle cx="100" cy="110" r="16" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="100" y="114" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="monospace">1</text>
+          <path d="M 116 110 L 154 110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#arrow-gray)" />
+
+          <circle cx="170" cy="110" r="16" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="170" y="114" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="monospace">2</text>
+          <path d="M 186 110 L 224 110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#arrow-gray)" />
+
+          <circle cx="240" cy="110" r="16" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+          <text x="240" y="114" fill="#4ade80" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">3</text>
+          <path d="M 256 110 L 294 110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#arrow-gray)" />
+
+          <circle cx="310" cy="110" r="16" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="310" y="114" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="monospace">4</text>
+          <path d="M 326 110 L 364 110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#arrow-gray)" />
+
+          <circle cx="380" cy="110" r="16" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="380" y="114" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="monospace">5</text>
+          
+          {/* Cycle loop backward arrow */}
+          <path d="M 380 94 C 380 40, 240 40, 240 94" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-orange-fsp)" />
+
+          {/* Labels */}
+          <text x="170" y="145" fill="#c084fc" fontSize="10" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Slow (1 step/it)</text>
+          <path d="M 170 135 L 170 128" stroke="#c084fc" strokeWidth="1.2" markerEnd="url(#arrow-purple-fsp)" />
+
+          <text x="310" y="145" fill="#fb923c" fontSize="10" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Fast (2 steps/it)</text>
+          <path d="M 310 135 L 310 128" stroke="#fb923c" strokeWidth="1.2" markerEnd="url(#arrow-orange-fsp-dir)" />
+
+          <text x="475" y="105" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Fast speed = 2x Slow</text>
+          <text x="475" y="119" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Meet point inside cycle</text>
+          <text x="475" y="133" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• O(1) extra space complexity</text>
+
+          <defs>
+            <marker id="arrow-gray" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#71717a" />
+            </marker>
+            <marker id="arrow-orange-fsp" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+            <marker id="arrow-orange-fsp-dir" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+            <marker id="arrow-purple-fsp" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#c084fc" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'cyclic-sort' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Cyclic Sort Pattern (Range 1 to N)</text>
+          <text x="30" y="52" fill="#71717a" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Current element = 3. Belongs at index = 2</text>
+
+          {/* Unsorted Array */}
+          {[3, 1, 5, 4, 2].map((val, idx) => (
+            <g key={idx}>
+              <rect x={120 + idx * 60} y="85" width="50" height="50" rx="3" fill="none" stroke={idx === 0 || idx === 2 ? "#4ade80" : "#60a5fa"} strokeWidth={idx === 0 || idx === 2 ? "2" : "1.5"} />
+              <text x={145 + idx * 60} y="116" fill="#e4e4e7" fontSize="15" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">{val}</text>
+              <text x={145 + idx * 60} y="152" fill="#71717a" fontSize="10" textAnchor="middle" fontFamily="monospace">[{idx}]</text>
+            </g>
+          ))}
+
+          {/* Swap Arc */}
+          <path d="M 145 78 C 175 45, 235 45, 265 78" stroke="#fb923c" strokeWidth="1.5" strokeDasharray="3 3" fill="none" markerEnd="url(#arrow-orange-cs)" markerStart="url(#arrow-orange-cs)" />
+          <text x="205" y="45" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Swap in-place</text>
+
+          <text x="475" y="105" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Linear O(N) runtime</text>
+          <text x="475" y="119" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Zero auxiliary space</text>
+          <text x="475" y="133" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Finds duplicate/missing</text>
+
+          <defs>
+            <marker id="arrow-orange-cs" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'merge-intervals' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Merge Intervals (Scheduling Blocks)</text>
+          
+          {/* Overlapping intervals */}
+          <text x="60" y="60" fill="#71717a" fontSize="10" fontFamily="monospace">Overlapping Input Ranges:</text>
+          <rect x="150" y="70" width="100" height="20" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="200" y="83" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">[1, 4]</text>
+
+          <rect x="220" y="100" width="120" height="20" rx="3" fill="none" stroke="#fb923c" strokeWidth="1.5" />
+          <text x="280" y="113" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">[3, 7]</text>
+
+          {/* Merge Arrow */}
+          <path d="M 370 95 L 410 95" stroke="#4ade80" strokeWidth="2" fill="none" markerEnd="url(#arrow-green-mi)" />
+          <text x="390" y="85" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">merge</text>
+
+          {/* Merged intervals */}
+          <rect x="430" y="85" width="140" height="25" rx="3" fill="rgba(74, 222, 128, 0.15)" stroke="#4ade80" strokeWidth="2" />
+          <text x="500" y="101" fill="#4ade80" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">[1, 7]</text>
+
+          <text x="60" y="155" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Sort intervals by start time first</text>
+          <text x="60" y="169" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• If current.start &lt;= last.end, update last.end = max(last.end, current.end)</text>
+
+          <defs>
+            <marker id="arrow-green-mi" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'two-heaps' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Two Heaps (Dynamic running median)</text>
+          
+          {/* Max Heap Left */}
+          <text x="150" y="60" fill="#60a5fa" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Max-Heap (small half)</text>
+          <circle cx="150" cy="90" r="14" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="150" y="94" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">12</text>
+          
+          <line x1="140" y1="102" x2="120" y2="128" stroke="#71717a" strokeWidth="1.2" />
+          <circle cx="110" cy="140" r="12" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <text x="110" y="143" fill="#71717a" fontSize="9" textAnchor="middle" fontFamily="monospace">8</text>
+
+          <line x1="160" y1="102" x2="180" y2="128" stroke="#71717a" strokeWidth="1.2" />
+          <circle cx="190" cy="140" r="12" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <text x="190" y="143" fill="#71717a" fontSize="9" textAnchor="middle" fontFamily="monospace">10</text>
+
+          {/* Min Heap Right */}
+          <text x="350" y="60" fill="#fb923c" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Min-Heap (large half)</text>
+          <circle cx="350" cy="90" r="14" fill="none" stroke="#fb923c" strokeWidth="2" />
+          <text x="350" y="94" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">15</text>
+          
+          <line x1="340" y1="102" x2="320" y2="128" stroke="#71717a" strokeWidth="1.2" />
+          <circle cx="310" cy="140" r="12" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <text x="310" y="143" fill="#71717a" fontSize="9" textAnchor="middle" fontFamily="monospace">19</text>
+
+          <line x1="360" y1="102" x2="380" y2="128" stroke="#71717a" strokeWidth="1.2" />
+          <circle cx="390" cy="140" r="12" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <text x="390" y="143" fill="#71717a" fontSize="9" textAnchor="middle" fontFamily="monospace">22</text>
+
+          {/* Median lookup bubble */}
+          <rect x="210" y="165" width="180" height="30" rx="15" fill="rgba(74, 222, 128, 0.1)" stroke="#4ade80" strokeWidth="1.5" />
+          <text x="300" y="184" fill="#4ade80" fontSize="10" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Median = (MaxHeap.top + MinHeap.top)/2 = 13.5</text>
+
+          <text x="475" y="105" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Median in O(1)</text>
+          <text x="475" y="119" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Insert value in O(log N)</text>
+          <text x="475" y="133" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Automatic balance checks</text>
+        </svg>
+      )}
+
+      {type === 'a-star' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">A* Pathfinding Search (f = g + h)</text>
+          <text x="30" y="52" fill="#71717a" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">g = cost from start, h = heuristic distance to end</text>
+
+          {/* Grid nodes */}
+          <g>
+            {/* Start Node */}
+            <rect x="120" y="80" width="50" height="50" rx="3" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+            <text x="145" y="105" fill="#4ade80" fontSize="12" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Start</text>
+            <text x="145" y="122" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">f = 5</text>
+
+            <path d="M 175 105 L 215 105" stroke="#fb923c" strokeWidth="2" fill="none" markerEnd="url(#arrow-orange-astar)" />
+
+            {/* Middle Node */}
+            <rect x="220" y="80" width="50" height="50" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+            <text x="245" y="105" fill="#e4e4e7" fontSize="12" textAnchor="middle" fontFamily="monospace">Node</text>
+            <text x="245" y="122" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">g=1, h=4</text>
+
+            <path d="M 275 105 L 315 105" stroke="#fb923c" strokeWidth="2" fill="none" markerEnd="url(#arrow-orange-astar)" />
+
+            {/* End Node */}
+            <rect x="320" y="80" width="50" height="50" rx="3" fill="none" stroke="#fb923c" strokeWidth="2.5" />
+            <text x="345" y="105" fill="#fb923c" fontSize="12" textAnchor="middle" fontFamily="monospace" fontWeight="bold">End</text>
+            <text x="345" y="122" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">f = g</text>
+          </g>
+
+          {/* Blocked path node */}
+          <rect x="220" y="145" width="50" height="50" rx="3" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 3" />
+          <text x="245" y="175" fill="#ef4444" fontSize="11" textAnchor="middle" fontFamily="monospace">Blocked</text>
+
+          <text x="420" y="100" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Heuristic-based routing</text>
+          <text x="420" y="114" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Faster than Dijkstra</text>
+          <text x="420" y="128" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Standard in game AI meshes</text>
+
+          <defs>
+            <marker id="arrow-orange-astar" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'cap-theorem' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">CAP Theorem Trade-Off Triangle</text>
+          
+          {/* Triangle vertices */}
+          <polygon points="250,55 170,165 330,165" fill="none" stroke="#71717a" strokeWidth="2" strokeDasharray="3 3" />
+          
+          {/* C - Consistency */}
+          <circle cx="250" cy="55" r="15" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+          <text x="250" y="59" fill="#4ade80" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">C</text>
+          <text x="250" y="35" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Consistency</text>
+          
+          {/* A - Availability */}
+          <circle cx="170" cy="165" r="15" fill="none" stroke="#60a5fa" strokeWidth="2.5" />
+          <text x="170" y="169" fill="#60a5fa" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">A</text>
+          <text x="170" y="190" fill="#60a5fa" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Availability</text>
+          
+          {/* P - Partition Tolerance */}
+          <circle cx="330" cy="165" r="15" fill="none" stroke="#fb923c" strokeWidth="2.5" />
+          <text x="330" y="169" fill="#fb923c" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">P</text>
+          <text x="330" y="190" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Partition Tolerance</text>
+          
+          {/* Side labels */}
+          <text x="175" y="110" fill="#c084fc" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" transform="rotate(-54 175 110)">CP (Atomic {"&"} Partitioned)</text>
+          <text x="325" y="110" fill="#c084fc" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" transform="rotate(54 325 110)">AP (Available {"&"} Soft State)</text>
+          <text x="250" y="178" fill="#ef4444" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">CA (Single Node - No network partitions)</text>
+          
+          {/* Explanations */}
+          <text x="420" y="80" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Network splits (P) are inevitable</text>
+          <text x="420" y="98" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• CP: Refuse updates to keep safety</text>
+          <text x="420" y="116" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• AP: Accept stale reads to stay online</text>
+          <text x="420" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Trade-off applies only on splits</text>
+        </svg>
+      )}
+
+      {type === 'sql-vs-nosql' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">SQL (Relational) vs NoSQL (Document)</text>
+          
+          {/* SQL Table */}
+          <text x="120" y="55" fill="#60a5fa" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">SQL: Structured Table</text>
+          
+          <rect x="50" y="65" width="140" height="120" rx="3" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <line x1="50" y1="85" x2="190" y2="85" stroke="#71717a" strokeWidth="1.5" />
+          <line x1="90" y1="65" x2="90" y2="185" stroke="#71717a" strokeWidth="1" />
+          <line x1="140" y1="65" x2="140" y2="185" stroke="#71717a" strokeWidth="1" />
+          
+          <text x="70" y="78" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">id</text>
+          <text x="115" y="78" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">name</text>
+          <text x="165" y="78" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">role</text>
+          
+          <text x="70" y="105" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">1</text>
+          <text x="115" y="105" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">"Alice"</text>
+          <text x="165" y="105" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">"Admin"</text>
+
+          <text x="70" y="130" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">2</text>
+          <text x="115" y="130" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">"Bob"</text>
+          <text x="165" y="130" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">"User"</text>
+          
+          {/* NoSQL Document */}
+          <text x="320" y="55" fill="#fb923c" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">NoSQL: Document Store</text>
+          <rect x="240" y="65" width="160" height="120" rx="4" fill="none" stroke="#fb923c" strokeWidth="1.5" />
+          <text x="250" y="85" fill="#fb923c" fontSize="9" fontFamily="monospace">{"{"}</text>
+          <text x="265" y="105" fill="#e4e4e7" fontSize="9" fontFamily="monospace">"id": 1,</text>
+          <text x="265" y="125" fill="#e4e4e7" fontSize="9" fontFamily="monospace">"name": "Alice",</text>
+          <text x="265" y="145" fill="#c084fc" fontSize="9" fontFamily="monospace">"metadata": {"{"} "active": true {"}"}</text>
+          <text x="250" y="165" fill="#fb923c" fontSize="9" fontFamily="monospace">{"}"}</text>
+
+          {/* Core differences side notes */}
+          <text x="430" y="75" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• SQL: ACID, Joins, Rigid schemas</text>
+          <text x="430" y="93" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• NoSQL: BASE, Partitioning key</text>
+          <text x="430" y="111" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• SQL scales vertically (Hardware CPU)</text>
+          <text x="430" y="129" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• NoSQL scales horizontally (Hashing)</text>
+        </svg>
+      )}
+
+      {type === 'cdn-caching' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">CDN Edge Caching Topology</text>
+          
+          {/* Client node */}
+          <circle cx="70" cy="110" r="20" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="70" y="114" fill="#60a5fa" fontSize="10" textAnchor="middle" fontFamily="monospace">User</text>
+          
+          {/* CDN Edge Node */}
+          <rect x="200" y="70" width="100" height="80" rx="3" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+          <text x="250" y="92" fill="#4ade80" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">CDN Edge</text>
+          <text x="250" y="110" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">(Edge Server)</text>
+          <text x="250" y="132" fill="#e4e4e7" fontSize="8" textAnchor="middle" fontFamily="monospace">Cache Hit: 5ms</text>
+          
+          {/* Origin Server */}
+          <rect x="420" y="70" width="110" height="80" rx="3" fill="none" stroke="#fb923c" strokeWidth="2" />
+          <text x="475" y="92" fill="#fb923c" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Central Origin</text>
+          <text x="475" y="110" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">(App DB Server)</text>
+          <text x="475" y="132" fill="#e4e4e7" fontSize="8" textAnchor="middle" fontFamily="monospace">Cache Miss: 300ms</text>
+
+          {/* Paths */}
+          <path d="M 95 100 L 195 100" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#arrow-cdn-edge)" />
+          <text x="145" y="90" fill="#60a5fa" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Request</text>
+          
+          <path d="M 305 100 L 415 100" stroke="#f472b6" strokeWidth="1.5" strokeDasharray="3 3" markerEnd="url(#arrow-cdn-edge)" />
+          <text x="360" y="90" fill="#f472b6" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Pull (Cache Miss)</text>
+          
+          <path d="M 195 125 L 95 125" stroke="#4ade80" strokeWidth="1.5" markerEnd="url(#arrow-cdn-edge-inv)" />
+          <text x="145" y="142" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Fast Edge Response</text>
+
+          <defs>
+            <marker id="arrow-cdn-edge" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#60a5fa" />
+            </marker>
+            <marker id="arrow-cdn-edge-inv" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'load-balancer-l4-l7' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Load Balancing (Layer 4 vs Layer 7)</text>
+          
+          {/* Client request */}
+          <rect x="40" y="90" width="80" height="50" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="80" y="110" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Client</text>
+          <text x="80" y="125" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">HTTP /api/users</text>
+          
+          {/* Load Balancer */}
+          <rect x="180" y="80" width="110" height="70" rx="3" fill="none" stroke="#eab308" strokeWidth="2.5" />
+          <text x="235" y="105" fill="#eab308" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Load Balancer</text>
+          <text x="235" y="122" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">L4: TCP IP/Port | L7: URL/Cookies</text>
+          
+          {/* Backend Servers */}
+          <rect x="360" y="60" width="80" height="40" rx="3" fill="none" stroke="#4ade80" strokeWidth="1.5" />
+          <text x="400" y="84" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Server Group A</text>
+          
+          <rect x="360" y="130" width="80" height="40" rx="3" fill="none" stroke="#c084fc" strokeWidth="1.5" />
+          <text x="400" y="154" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Server Group B</text>
+
+          {/* Paths */}
+          <path d="M 125 115 L 175 115" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#arrow-lb)" />
+          
+          <path d="M 295 105 L 350 85" stroke="#4ade80" strokeWidth="1.5" markerEnd="url(#arrow-lb-green)" />
+          <path d="M 295 125 L 350 145" stroke="#c084fc" strokeWidth="1.5" markerEnd="url(#arrow-lb-purple)" />
+
+          <text x="475" y="70" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• L4 routes at transport Layer (TCP)</text>
+          <text x="475" y="88" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• L4: High speed, low resource</text>
+          <text x="475" y="106" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• L7 routes at application Layer (HTTP)</text>
+          <text x="475" y="124" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• L7: Sticky sessions, path rules</text>
+
+          <defs>
+            <marker id="arrow-lb" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#60a5fa" />
+            </marker>
+            <marker id="arrow-lb-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+            <marker id="arrow-lb-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#c084fc" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'service-discovery' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Service Discovery Architecture</text>
+          
+          {/* Client Node */}
+          <rect x="50" y="120" width="80" height="40" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="90" y="144" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">API Gateway</text>
+          
+          {/* Central Service Registry */}
+          <rect x="210" y="45" width="160" height="65" rx="3" fill="none" stroke="#eab308" strokeWidth="2" />
+          <text x="290" y="65" fill="#eab308" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Service Registry</text>
+          <text x="290" y="80" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">(Consul / ZooKeeper)</text>
+          <text x="290" y="95" fill="#4ade80" fontSize="8" textAnchor="middle" fontFamily="monospace">Map: Service A {"->"} 10.0.1.5:8080</text>
+          
+          {/* Worker Node A */}
+          <rect x="230" y="140" width="120" height="40" rx="3" fill="none" stroke="#4ade80" strokeWidth="2" />
+          <text x="290" y="160" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Service Instance A</text>
+          <text x="290" y="172" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">IP: 10.0.1.5:8080</text>
+
+          {/* Paths */}
+          {/* Register */}
+          <path d="M 290 135 L 290 115" stroke="#4ade80" strokeWidth="1.2" markerEnd="url(#arrow-sd-green)" />
+          <text x="335" y="125" fill="#4ade80" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">1. Register Node</text>
+          
+          {/* Lookup */}
+          <path d="M 110 115 L 205 75" stroke="#60a5fa" strokeWidth="1.2" markerEnd="url(#arrow-sd-blue)" />
+          <text x="135" y="90" fill="#60a5fa" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">2. Lookup Endpoint</text>
+          
+          {/* Route */}
+          <path d="M 135 150 L 225 150" stroke="#fb923c" strokeWidth="1.5" markerEnd="url(#arrow-sd-orange)" />
+          <text x="180" y="142" fill="#fb923c" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">3. Call Direct</text>
+
+          <text x="410" y="80" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Nodes register IP/port dynamically</text>
+          <text x="410" y="98" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Registry runs heartbeat monitoring</text>
+          <text x="410" y="116" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Clients cache IP locally, avoiding SPOF</text>
+          <text x="410" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Supports automated service health</text>
+
+          <defs>
+            <marker id="arrow-sd-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+            <marker id="arrow-sd-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#60a5fa" />
+            </marker>
+            <marker id="arrow-sd-orange" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'consistent-hashing' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Consistent Hash Ring Partitioning</text>
+          
+          {/* Circle ring */}
+          <circle cx="200" cy="115" r="55" fill="none" stroke="#71717a" strokeWidth="2.5" strokeDasharray="3 3" />
+          
+          {/* Server Nodes on Ring */}
+          {/* Node A (top-left, 315 deg) */}
+          <circle cx="161" cy="76" r="10" fill="none" stroke="#4ade80" strokeWidth="2" />
+          <text x="145" y="70" fill="#4ade80" fontSize="9" fontFamily="monospace">Node A</text>
+          
+          {/* Node B (right, 45 deg) */}
+          <circle cx="239" cy="76" r="10" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="255" y="70" fill="#60a5fa" fontSize="9" fontFamily="monospace">Node B</text>
+          
+          {/* Node C (bottom, 180 deg) */}
+          <circle cx="200" cy="170" r="10" fill="none" stroke="#fb923c" strokeWidth="2" />
+          <text x="200" y="192" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="monospace">Node C</text>
+
+          {/* Keys mapped onto the ring */}
+          {/* Key 1 (0 deg, right edge) */}
+          <circle cx="255" cy="115" r="4" fill="#c084fc" />
+          <text x="272" y="118" fill="#c084fc" fontSize="8" fontFamily="monospace">Key 1</text>
+          <path d="M 252 121 C 248 135, 225 160, 212 165" stroke="#fb923c" strokeWidth="1" strokeDasharray="2 2" markerEnd="url(#arrow-ch-orange)" />
+          
+          {/* Key 2 (270 deg, top) */}
+          <circle cx="200" cy="60" r="4" fill="#c084fc" />
+          <text x="200" y="52" fill="#c084fc" fontSize="8" textAnchor="middle" fontFamily="monospace">Key 2</text>
+          <path d="M 205 60 C 215 60, 225 65, 233 70" stroke="#60a5fa" strokeWidth="1" strokeDasharray="2 2" markerEnd="url(#arrow-ch-blue)" />
+
+          <text x="350" y="80" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Servers {"&"} Keys are hashed onto 360° ring</text>
+          <text x="350" y="98" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Key travels clockwise to first Node</text>
+          <text x="350" y="116" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Node changes require minimal key shifts (1/N)</text>
+          <text x="350" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Virtual nodes balance load uniformities</text>
+
+          <defs>
+            <marker id="arrow-ch-orange" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+            <marker id="arrow-ch-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#60a5fa" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'message-queues' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Message Queue Broker (Decoupled Buffering)</text>
+          
+          {/* Producer */}
+          <rect x="50" y="90" width="80" height="40" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="90" y="115" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Producer</text>
+          
+          {/* Queue Container */}
+          <rect x="200" y="70" width="180" height="80" rx="3" fill="none" stroke="#eab308" strokeWidth="2.5" />
+          <text x="290" y="62" fill="#eab308" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Queue Broker (Kafka/RabbitMQ)</text>
+          
+          {/* Message Slots */}
+          <rect x="215" y="90" width="40" height="40" rx="2" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <text x="235" y="114" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">Msg 3</text>
+          
+          <rect x="265" y="90" width="40" height="40" rx="2" fill="none" stroke="#71717a" strokeWidth="1.5" />
+          <text x="285" y="114" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="monospace">Msg 2</text>
+          
+          <rect x="315" y="90" width="40" height="40" rx="2" fill="none" stroke="#4ade80" strokeWidth="1.5" />
+          <text x="335" y="114" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Msg 1</text>
+
+          {/* Consumer */}
+          <rect x="450" y="90" width="80" height="40" rx="3" fill="none" stroke="#fb923c" strokeWidth="1.5" />
+          <text x="490" y="115" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Consumer</text>
+
+          {/* Paths */}
+          <path d="M 135 110 L 195 110" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#arrow-mq-blue)" />
+          <text x="165" y="98" fill="#60a5fa" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Publish</text>
+          
+          <path d="M 385 110 L 445 110" stroke="#fb923c" strokeWidth="1.5" markerEnd="url(#arrow-mq-orange)" />
+          <text x="415" y="98" fill="#fb923c" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Poll / Pull</text>
+
+          <text x="180" y="175" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Decouples processing speed: scale producers {"&"} consumers independently</text>
+          <text x="180" y="189" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Load Leveling: buffers traffic spikes, preventing DB exhaustion</text>
+
+          <defs>
+            <marker id="arrow-mq-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#60a5fa" />
+            </marker>
+            <marker id="arrow-mq-orange" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'cqrs-event-sourcing' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">CQRS {"&"} Event Sourcing Topology</text>
+          
+          {/* Write Command Loop */}
+          <rect x="50" y="60" width="110" height="50" rx="3" fill="none" stroke="#fb923c" strokeWidth="1.5" />
+          <text x="105" y="80" fill="#fb923c" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Command Handler</text>
+          <text x="105" y="95" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">(Write Model)</text>
+          
+          <rect x="220" y="60" width="110" height="50" rx="3" fill="none" stroke="#fb923c" strokeWidth="2" strokeDasharray="3 3" />
+          <text x="275" y="85" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Event Store</text>
+          <text x="275" y="98" fill="#fb923c" fontSize="8" textAnchor="middle" fontFamily="monospace">Append-Only log</text>
+          
+          {/* Read Query Loop */}
+          <rect x="390" y="130" width="110" height="50" rx="3" fill="none" stroke="#4ade80" strokeWidth="1.5" />
+          <text x="445" y="150" fill="#4ade80" fontSize="10" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Read Database</text>
+          <text x="445" y="165" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">(Materialized View)</text>
+          
+          {/* Paths */}
+          <path d="M 165 85 L 215 85" stroke="#fb923c" strokeWidth="1.5" markerEnd="url(#arrow-cqrs-orange)" />
+          
+          {/* Sync Event stream path */}
+          <path d="M 275 115 C 275 155, 340 155, 385 155" stroke="#c084fc" strokeWidth="1.2" strokeDasharray="3 3" markerEnd="url(#arrow-cqrs-purple)" />
+          <text x="330" y="145" fill="#c084fc" fontSize="8" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Event Projection</text>
+
+          <text x="390" y="65" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Write paths decoupled from Read paths</text>
+          <text x="390" y="83" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Event Store acts as absolute source of truth</text>
+          <text x="390" y="101" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Pre-aggregates fast views for user read queries</text>
+
+          <defs>
+            <marker id="arrow-cqrs-orange" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+            <marker id="arrow-cqrs-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#c084fc" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'leader-election' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Leader Election {"&"} Heartbeats (Raft Consensus)</text>
+          
+          {/* Node 1 - Leader */}
+          <circle cx="150" cy="110" r="22" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+          <text x="150" y="110" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Leader</text>
+          <text x="150" y="122" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">Node 1</text>
+          
+          {/* Node 2 - Follower */}
+          <circle cx="320" cy="70" r="20" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="320" y="70" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">Follower</text>
+          <text x="320" y="80" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">Node 2</text>
+          
+          {/* Node 3 - Follower */}
+          <circle cx="320" cy="150" r="20" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="320" y="150" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">Follower</text>
+          <text x="320" y="160" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">Node 3</text>
+
+          {/* Heartbeats */}
+          <path d="M 172 100 L 300 75" stroke="#4ade80" strokeWidth="1.2" strokeDasharray="3 3" markerEnd="url(#arrow-raft)" />
+          <text x="236" y="77" fill="#4ade80" fontSize="7" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Heartbeat (AppendEntries)</text>
+          
+          <path d="M 172 120 L 300 145" stroke="#4ade80" strokeWidth="1.2" strokeDasharray="3 3" markerEnd="url(#arrow-raft)" />
+          <text x="236" y="148" fill="#4ade80" fontSize="7" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Heartbeat (AppendEntries)</text>
+
+          <text x="400" y="80" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Leader coordinates all updates</text>
+          <text x="400" y="98" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Heartbeats prevent new elections</text>
+          <text x="400" y="116" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• If leader dies, followers transition</text>
+          <text x="400" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Split-brain avoided via majority quorum</text>
+
+          <defs>
+            <marker id="arrow-raft" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'sidecar-pattern' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Sidecar Design Pattern (Co-located Containers)</text>
+          
+          {/* Pod Bounding Box */}
+          <rect x="50" y="55" width="310" height="135" rx="5" fill="none" stroke="#71717a" strokeWidth="2" strokeDasharray="3 3" />
+          <text x="60" y="47" fill="#71717a" fontSize="9" fontFamily="monospace">Deployment Pod Boundary (Shared Localhost Network)</text>
+          
+          {/* Main Application Container */}
+          <rect x="70" y="80" width="120" height="90" rx="3" fill="none" stroke="#60a5fa" strokeWidth="2.5" />
+          <text x="130" y="115" fill="#60a5fa" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Main App</text>
+          <text x="130" y="132" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">(NodeJS/Go core)</text>
+          
+          {/* Sidecar Proxy Container */}
+          <rect x="220" y="80" width="120" height="90" rx="3" fill="none" stroke="#f472b6" strokeWidth="2.5" />
+          <text x="280" y="115" fill="#f472b6" fontSize="11" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Sidecar Proxy</text>
+          <text x="280" y="132" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">(Envoy / Logstash)</text>
+
+          {/* Local communication */}
+          <path d="M 190 125 L 220 125" stroke="#4ade80" strokeWidth="1.5" markerEnd="url(#arrow-sidecar)" />
+          <path d="M 220 135 L 190 135" stroke="#4ade80" strokeWidth="1.5" markerEnd="url(#arrow-sidecar-inv)" />
+          <text x="205" y="117" fill="#4ade80" fontSize="7" textAnchor="middle" fontFamily="monospace">localhost</text>
+
+          <text x="390" y="80" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Sidecar runs helper tasks (logging, metrics)</text>
+          <text x="390" y="98" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Decouples operations from app logic</text>
+          <text x="390" y="116" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Shares lifecycle, storage, and network IPs</text>
+          <text x="390" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Commonly used in Service Meshes (Istio)</text>
+
+          <defs>
+            <marker id="arrow-sidecar" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+            <marker id="arrow-sidecar-inv" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'tcp-handshake' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">TCP 3-Way Handshake Connection Cycle</text>
+          
+          {/* Timelines */}
+          <line x1="120" y1="55" x2="120" y2="185" stroke="#71717a" strokeWidth="2" />
+          <text x="120" y="47" fill="#60a5fa" fontSize="10" textAnchor="middle" fontFamily="monospace">Client</text>
+          
+          <line x1="280" y1="55" x2="280" y2="185" stroke="#71717a" strokeWidth="2" />
+          <text x="280" y="47" fill="#fb923c" fontSize="10" textAnchor="middle" fontFamily="monospace">Server</text>
+
+          {/* Handshake Arrows */}
+          {/* 1. SYN */}
+          <path d="M 120 70 L 280 100" stroke="#60a5fa" strokeWidth="1.5" markerEnd="url(#arrow-tcp)" />
+          <text x="200" y="80" fill="#60a5fa" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">1. SYN (seq=x)</text>
+          
+          {/* 2. SYN-ACK */}
+          <path d="M 280 110 L 120 140" stroke="#fb923c" strokeWidth="1.5" markerEnd="url(#arrow-tcp-inv)" />
+          <text x="200" y="120" fill="#fb923c" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">2. SYN-ACK (ack=x+1, seq=y)</text>
+          
+          {/* 3. ACK */}
+          <path d="M 120 150 L 280 180" stroke="#4ade80" strokeWidth="1.5" markerEnd="url(#arrow-tcp)" />
+          <text x="200" y="160" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">3. ACK (ack=y+1)</text>
+
+          <text x="350" y="80" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Establishes double-duplex sockets</text>
+          <text x="350" y="98" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Handshake creates network latency overhead</text>
+          <text x="350" y="116" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Mitigated via TCP Keep-Alive and TLS reuse</text>
+          <text x="350" y="134" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• UDP bypasses handshake for raw speed</text>
+
+          <defs>
+            <marker id="arrow-tcp" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#60a5fa" />
+            </marker>
+            <marker id="arrow-tcp-inv" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'encryption-ssl' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Asymmetric Key Encryption (SSL / TLS Security)</text>
+          
+          {/* Left: Client */}
+          <rect x="50" y="70" width="120" height="90" rx="3" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+          <text x="110" y="95" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Client Side</text>
+          <text x="110" y="115" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">Encrypts via</text>
+          <text x="110" y="130" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Public Key</text>
+          
+          {/* Center: Encrypted transit */}
+          <path d="M 175 110 L 225 110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#arrow-ssl)" />
+          <rect x="235" y="90" width="100" height="40" rx="3" fill="none" stroke="#ef4444" strokeWidth="1" strokeDasharray="3 3" />
+          <text x="285" y="110" fill="#ef4444" fontSize="8" textAnchor="middle" fontFamily="monospace">"f8x2h@Lp9a"</text>
+          <text x="285" y="122" fill="#ef4444" fontSize="7" textAnchor="middle" fontFamily="monospace">(Ciphertext)</text>
+          <path d="M 340 110 L 390 110" stroke="#71717a" strokeWidth="1.5" markerEnd="url(#arrow-ssl)" />
+
+          {/* Right: Server */}
+          <rect x="400" y="70" width="120" height="90" rx="3" fill="none" stroke="#fb923c" strokeWidth="1.5" />
+          <text x="460" y="95" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="monospace">Server Side</text>
+          <text x="460" y="115" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">Decrypts using</text>
+          <text x="460" y="130" fill="#f472b6" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">Private Key</text>
+
+          <text x="180" y="180" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Public keys shared openly; Private keys kept highly secure</text>
+          <text x="180" y="194" fill="#a1a1aa" fontSize="10" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">• Prevents Man-in-the-Middle (MITM) snooping attacks</text>
+
+          <defs>
+            <marker id="arrow-ssl" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#71717a" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'circuit-breaker' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Circuit Breaker Fault-Tolerance States</text>
+          
+          {/* CLOSED STATE */}
+          <circle cx="120" cy="110" r="22" fill="none" stroke="#4ade80" strokeWidth="2.5" />
+          <text x="120" y="110" fill="#4ade80" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">CLOSED</text>
+          <text x="120" y="122" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">(Flows Normal)</text>
+          
+          {/* OPEN STATE */}
+          <circle cx="280" cy="110" r="22" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+          <text x="280" y="110" fill="#ef4444" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">OPEN</text>
+          <text x="280" y="122" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">(Tripped: Fail-Fast)</text>
+          
+          {/* HALF-OPEN STATE */}
+          <circle cx="440" cy="110" r="22" fill="none" stroke="#eab308" strokeWidth="2" strokeDasharray="3 3" />
+          <text x="440" y="110" fill="#eab308" fontSize="9" textAnchor="middle" fontFamily="monospace" fontWeight="bold">HALF-OPEN</text>
+          <text x="440" y="122" fill="#a1a1aa" fontSize="7" textAnchor="middle" fontFamily="monospace">(Testing Canaries)</text>
+
+          {/* Transitions */}
+          {/* Closed -> Open */}
+          <path d="M 143 100 L 257 100" stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arrow-cb-red)" />
+          <text x="200" y="93" fill="#ef4444" fontSize="7" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Threshold Exceeded</text>
+          
+          {/* Open -> Half-Open */}
+          <path d="M 303 100 L 417 100" stroke="#eab308" strokeWidth="1.2" markerEnd="url(#arrow-cb-yellow)" />
+          <text x="360" y="93" fill="#eab308" fontSize="7" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Cooldown Timeout</text>
+          
+          {/* Half-Open -> Closed */}
+          <path d="M 425 125 C 370 160, 190 160, 135 125" stroke="#4ade80" strokeWidth="1.2" strokeDasharray="3 3" markerEnd="url(#arrow-cb-green-inv)" />
+          <text x="280" y="172" fill="#4ade80" fontSize="7" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Success Rate Restored</text>
+
+          <defs>
+            <marker id="arrow-cb-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#ef4444" />
+            </marker>
+            <marker id="arrow-cb-yellow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#eab308" />
+            </marker>
+            <marker id="arrow-cb-green-inv" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#4ade80" />
+            </marker>
+          </defs>
         </svg>
       )}
     </div>

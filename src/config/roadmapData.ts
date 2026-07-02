@@ -48,6 +48,14 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         description: 'Variables, allocations, stack, and heap mechanics.',
         concepts: [
           {
+            id: 'intro-dsa',
+            name: 'Introduction to DSA',
+            subtopics: [
+              { id: 'what-is-dsa', name: 'What are Data Structures?', blogSlug: 'what-is-dsa' },
+              { id: 'importance-dsa', name: 'Why are Data Structures Important?', blogSlug: 'importance-dsa' }
+            ]
+          },
+          {
             id: 'programming-basics',
             name: 'Programming Basics',
             subtopics: [
@@ -72,10 +80,21 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         description: 'Measuring algorithm performance metrics and scale limits.',
         concepts: [
           {
+            id: 'complexity-basics',
+            name: 'Complexity Basics',
+            subtopics: [
+              { id: 'time-vs-space', name: 'Time vs Space Complexity', blogSlug: 'time-vs-space' },
+              { id: 'calculate-complexity', name: 'How to Calculate Complexity?', blogSlug: 'calculate-complexity' },
+              { id: 'common-runtimes', name: 'Common Runtimes', blogSlug: 'common-runtimes' }
+            ]
+          },
+          {
             id: 'asymptotic-notations',
             name: 'Asymptotic Notations',
             subtopics: [
               { id: 'big-o-notation', name: 'Big-O Notation', blogSlug: 'searching' },
+              { id: 'big-theta-notation', name: 'Big-Theta Notation', blogSlug: 'big-theta-notation' },
+              { id: 'big-omega-notation', name: 'Big-Omega Notation', blogSlug: 'big-omega-notation' },
               { id: 'time-complexity', name: 'Time Complexity', blogSlug: 'time-complexity-analysis' },
               { id: 'space-complexity', name: 'Space Complexity', blogSlug: 'space-complexity-analysis' }
             ]
@@ -127,92 +146,6 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         ]
       },
       {
-        id: 'trees-heaps',
-        name: 'Trees & Heaps',
-        description: 'Hierarchical node trees, prefix searches, and range indexes.',
-        concepts: [
-          {
-            id: 'tree-basics',
-            name: 'Tree Basics',
-            subtopics: [
-              { id: 'binary-tree', name: 'Binary Tree', blogSlug: 'binary-tree' },
-              { id: 'binary-search-tree', name: 'Binary Search Tree (BST)', blogSlug: 'binary-search-trees' },
-              { id: 'tree-traversals', name: 'Tree Traversals', blogSlug: 'tree-traversal' }
-            ]
-          },
-          {
-            id: 'balanced-trees',
-            name: 'Balanced Trees',
-            subtopics: [
-              { id: 'avl-tree', name: 'AVL Tree', blogSlug: 'avl-trees' },
-              { id: 'red-black-tree', name: 'Red-Black Tree', blogSlug: 'red-black-trees' }
-            ]
-          },
-          {
-            id: 'range-queries',
-            name: 'Range Query Trees',
-            subtopics: [
-              { id: 'segment-tree', name: 'Segment Tree', blogSlug: 'segment-tree' },
-              { id: 'fenwick-tree', name: 'Fenwick Tree (BIT)', blogSlug: 'fenwick-tree' },
-              { id: 'sparse-table', name: 'Sparse Table', blogSlug: 'sparse-table' }
-            ]
-          },
-          {
-            id: 'advanced-trees',
-            name: 'Advanced Trees',
-            subtopics: [
-              { id: 'trie-prefix', name: 'Trie (Prefix Tree)', blogSlug: 'trie' },
-              { id: 'treap', name: 'Treap', blogSlug: 'treaps' },
-              { id: 'b-tree', name: 'B-Tree & B+ Tree', blogSlug: 'b-trees-index-seeks' }
-            ]
-          },
-          {
-            id: 'heaps',
-            name: 'Heaps & Priorities',
-            subtopics: [
-              { id: 'min-max-heap', name: 'Min & Max Heaps', blogSlug: 'min-heaps' },
-              { id: 'binomial-heap', name: 'Binomial Heap', blogSlug: 'binomial-heaps' },
-              { id: 'fibonacci-heap', name: 'Fibonacci Heap', blogSlug: 'fibonacci-heaps' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'graphs',
-        name: 'Graphs & Networks',
-        description: 'Adjacency structures, path explorations, shortest paths, and spanning networks.',
-        concepts: [
-          {
-            id: 'graph-foundations',
-            name: 'Graph Foundations',
-            subtopics: [
-              { id: 'graph-representations', name: 'Graph Representations', blogSlug: 'graph-representations' },
-              { id: 'bfs-traversal', name: 'BFS Traversal', blogSlug: 'bfs-traversal' },
-              { id: 'dfs-traversal', name: 'DFS Traversal', blogSlug: 'dfs-traversal' },
-              { id: 'topological-sorting', name: 'Topological Sorting', blogSlug: 'topological-sort' }
-            ]
-          },
-          {
-            id: 'shortest-paths',
-            name: 'Shortest Paths',
-            subtopics: [
-              { id: 'dijkstra', name: 'Dijkstra\'s Algorithm', blogSlug: 'dijkstra' },
-              { id: 'bellman-ford', name: 'Bellman-Ford Algorithm', blogSlug: 'bellman-ford-floyd-warshall' },
-              { id: 'floyd-warshall', name: 'Floyd-Warshall Algorithm', blogSlug: 'floyd-warshall-algorithm' }
-            ]
-          },
-          {
-            id: 'spanning-trees',
-            name: 'Spanning Trees',
-            subtopics: [
-              { id: 'kruskal-mst', name: 'Kruskal\'s MST', blogSlug: 'kruskal-mst' },
-              { id: 'prim-mst', name: 'Prim\'s MST', blogSlug: 'prim-mst' },
-              { id: 'dsu', name: 'Disjoint Set Union (DSU)', blogSlug: 'mst-union-find' }
-            ]
-          }
-        ]
-      },
-      {
         id: 'sorting-searching',
         name: 'Sorting & Searching',
         description: 'Array re-order routines and value locations.',
@@ -221,12 +154,13 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
             id: 'sorting',
             name: 'Sorting Algorithms',
             subtopics: [
-              { id: 'bubble-selection', name: 'Bubble & Selection Sort', blogSlug: 'bubble-sort' },
+              { id: 'bubble-sort', name: 'Bubble Sort', blogSlug: 'bubble-sort' },
+              { id: 'selection-sort', name: 'Selection Sort', blogSlug: 'selection-sort' },
               { id: 'insertion-sort', name: 'Insertion Sort', blogSlug: 'insertion-sort' },
               { id: 'merge-sort', name: 'Merge Sort', blogSlug: 'merge-sort' },
               { id: 'quick-sort', name: 'Quick Sort', blogSlug: 'quick-sort' },
               { id: 'heap-sort', name: 'Heap Sort', blogSlug: 'heap-sort' },
-              { id: 'radix-bucket', name: 'Radix & Bucket Sort', blogSlug: 'radix-sort' }
+              { id: 'radix-sort', name: 'Radix & Bucket Sort', blogSlug: 'radix-sort' }
             ]
           },
           {
@@ -241,42 +175,172 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         ]
       },
       {
-        id: 'algorithmic-paradigms',
-        name: 'Algorithmic Paradigms',
-        description: 'Optimization architectures and sequence design techniques.',
+        id: 'tree-structures',
+        name: 'Tree Data Structures',
+        description: 'Hierarchical node trees, prefix searches, and range indexes.',
         concepts: [
           {
-            id: 'paradigms',
-            name: 'Design Paradigms',
+            id: 'tree-basics',
+            name: 'Tree Basics',
             subtopics: [
-              { id: 'divide-conquer', name: 'Divide and Conquer', blogSlug: 'divide-and-conquer' },
-              { id: 'greedy', name: 'Greedy Algorithms', blogSlug: 'greedy' },
-              { id: 'dp', name: 'Dynamic Programming', blogSlug: 'dynamic-programming' },
-              { id: 'backtracking', name: 'Backtracking', blogSlug: 'backtracking' },
-              { id: 'branch-bound', name: 'Branch and Bound', blogSlug: 'branch-and-bound' }
+              { id: 'binary-tree', name: 'Binary Tree', blogSlug: 'binary-tree' },
+              { id: 'binary-search-tree', name: 'Binary Search Tree (BST)', blogSlug: 'binary-search-trees' },
+              { id: 'avl-tree', name: 'AVL Tree', blogSlug: 'avl-trees' },
+              { id: 'b-tree', name: 'B-Tree', blogSlug: 'b-trees' },
+              { id: 'heaps', name: 'Heap', blogSlug: 'min-heaps' }
+            ]
+          },
+          {
+            id: 'tree-traversal',
+            name: 'Tree Traversal',
+            subtopics: [
+              { id: 'in-order', name: 'In-Order Traversal', blogSlug: 'in-order-traversal' },
+              { id: 'pre-order', name: 'Pre-Order Traversal', blogSlug: 'pre-order-traversal' },
+              { id: 'post-order', name: 'Post-Order Traversal', blogSlug: 'post-order-traversal' }
+            ]
+          },
+          {
+            id: 'tree-search',
+            name: 'Search Algorithms',
+            subtopics: [
+              { id: 'tree-bfs', name: 'Breadth First Search (BFS)', blogSlug: 'tree-bfs' },
+              { id: 'tree-dfs', name: 'Depth First Search (DFS)', blogSlug: 'tree-dfs' }
             ]
           }
         ]
       },
       {
-        id: 'string-algorithms',
-        name: 'String Algorithms',
-        description: 'Pattern matching and search structures.',
+        id: 'graph-structures',
+        name: 'Graph Data Structures',
+        description: 'Adjacency structures, path explorations, shortest paths, and spanning networks.',
         concepts: [
           {
-            id: 'pattern-matching',
-            name: 'Pattern Matching',
+            id: 'graph-foundations',
+            name: 'Graph Foundations',
             subtopics: [
-              { id: 'kmp', name: 'KMP Algorithm', blogSlug: 'kmp-algorithm' },
-              { id: 'rabin-karp', name: 'Rabin-Karp Algorithm', blogSlug: 'rabin-karp-search' },
-              { id: 'z-algo', name: 'Z-Algorithm', blogSlug: 'z-algorithm' }
+              { id: 'directed-graph', name: 'Directed Graph', blogSlug: 'directed-graphs' },
+              { id: 'undirected-graph', name: 'Undirected Graph', blogSlug: 'undirected-graphs' },
+              { id: 'graph-representations', name: 'Graph Representations', blogSlug: 'graph-representations' }
             ]
           },
           {
-            id: 'advanced-strings',
-            name: 'Advanced Strings',
+            id: 'graph-search',
+            name: 'Search Algorithms',
             subtopics: [
-              { id: 'suffix-structures', name: 'Suffix Array & Tree', blogSlug: 'suffix-arrays' }
+              { id: 'graph-bfs', name: 'Breadth First Search (BFS)', blogSlug: 'bfs-traversal' },
+              { id: 'graph-dfs', name: 'Depth First Search (DFS)', blogSlug: 'dfs-traversal' }
+            ]
+          },
+          {
+            id: 'shortest-path-algorithms',
+            name: 'Shortest Path Algorithms',
+            subtopics: [
+              { id: 'dijkstra', name: "Dijkstra's Algorithm", blogSlug: 'dijkstra' },
+              { id: 'bellman-ford', name: 'Bellman-Ford Algorithm', blogSlug: 'bellman-ford-floyd-warshall' },
+              { id: 'a-star', name: 'A* Algorithm', blogSlug: 'a-star-algorithm' },
+              { id: 'floyd-warshall', name: 'Floyd-Warshall Algorithm', blogSlug: 'floyd-warshall-algorithm' }
+            ]
+          },
+          {
+            id: 'minimum-spanning-tree',
+            name: 'Minimum Spanning Tree',
+            subtopics: [
+              { id: 'prim-mst', name: "Prim's Algorithm", blogSlug: 'prim-mst' },
+              { id: 'kruskal-mst', name: "Kruskal's Algorithm", blogSlug: 'kruskal-mst' },
+              { id: 'dsu', name: 'Disjoint Set (Union-Find)', blogSlug: 'mst-union-find' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'advanced-structures',
+        name: 'Advanced Data Structures',
+        description: 'Range query logs and topological indexes.',
+        concepts: [
+          {
+            id: 'advanced-nodes',
+            name: 'Advanced Data Structures',
+            subtopics: [
+              { id: 'trie', name: 'Trie', blogSlug: 'trie' },
+              { id: 'segment-tree', name: 'Segment Trees', blogSlug: 'segment-tree' },
+              { id: 'fenwick-tree', name: 'Fenwick Trees', blogSlug: 'fenwick-tree' },
+              { id: 'disjoint-set-union-find', name: 'Disjoint Set (Union-Find)', blogSlug: 'disjoint-set-union' },
+              { id: 'suffix-structures', name: 'Suffix Trees and Arrays', blogSlug: 'suffix-arrays' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'complex-structures',
+        name: 'Complex Data Structures & Indexing',
+        description: 'Advanced storage indexing and B-tree derivations.',
+        concepts: [
+          {
+            id: 'complex-nodes',
+            name: 'Complex Data Structures',
+            subtopics: [
+              { id: '2-3-tree', name: '2-3 Trees', blogSlug: 'two-three-trees' },
+              { id: 'bb-plus-tree', name: 'B/B+ Trees', blogSlug: 'b-trees-index-seeks' },
+              { id: 'skip-list-complex', name: 'Skip List', blogSlug: 'skip-lists-complex' },
+              { id: 'isam', name: 'ISAM', blogSlug: 'isam-indexing' }
+            ]
+          },
+          {
+            id: 'indexing',
+            name: 'Indexing',
+            subtopics: [
+              { id: 'linear-indexing', name: 'Linear Indexing', blogSlug: 'linear-indexing' },
+              { id: 'tree-based-indexing', name: 'Tree-Based Indexing', blogSlug: 'tree-indexing' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'problem-solving-techniques',
+        name: 'Problem Solving Techniques',
+        description: 'Common algorithmic paradigms and patterns.',
+        concepts: [
+          {
+            id: 'algorithmic-patterns-1',
+            name: 'Algorithmic Patterns I',
+            subtopics: [
+              { id: 'brute-force', name: 'Brute Force', blogSlug: 'brute-force' },
+              { id: 'backtracking', name: 'Backtracking', blogSlug: 'backtracking' },
+              { id: 'greedy-algorithms', name: 'Greedy Algorithms', blogSlug: 'greedy' },
+              { id: 'randomized-algorithms', name: 'Randomized Algorithms', blogSlug: 'randomized-algorithms' },
+              { id: 'divide-and-conquer', name: 'Divide and Conquer', blogSlug: 'divide-and-conquer' },
+              { id: 'recursion', name: 'Recursion', blogSlug: 'recursion' },
+              { id: 'dynamic-programming', name: 'Dynamic Programming', blogSlug: 'dynamic-programming' }
+            ]
+          },
+          {
+            id: 'algorithmic-patterns-2',
+            name: 'Algorithmic Patterns II',
+            subtopics: [
+              { id: 'two-pointer', name: 'Two Pointer Technique', blogSlug: 'two-pointer-technique' },
+              { id: 'sliding-window', name: 'Sliding Window Technique', blogSlug: 'sliding-window-technique' },
+              { id: 'fast-slow-pointers', name: 'Fast and Slow Pointers', blogSlug: 'fast-slow-pointers' },
+              { id: 'cyclic-sort', name: 'Cyclic Sort', blogSlug: 'cyclic-sort' },
+              { id: 'merge-intervals', name: 'Merge Intervals', blogSlug: 'merge-intervals' },
+              { id: 'two-heaps', name: 'Two Heaps', blogSlug: 'two-heaps-pattern' },
+              { id: 'kth-element', name: 'Kth Element', blogSlug: 'kth-element' },
+              { id: 'island-traversal', name: 'Island Traversal', blogSlug: 'island-traversal' },
+              { id: 'multi-threaded', name: 'Multi-threaded Algorithms', blogSlug: 'multi-threaded' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'practice-platforms',
+        name: 'Platforms to Practice',
+        description: 'Coding practice hubs.',
+        concepts: [
+          {
+            id: 'platforms',
+            name: 'Practice Platforms',
+            subtopics: [
+              { id: 'leetcode', name: 'Leetcode', blogSlug: 'leetcode-platform' },
+              { id: 'edabit', name: 'Edabit', blogSlug: 'edabit-platform' }
             ]
           }
         ]

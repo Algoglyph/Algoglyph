@@ -154,8 +154,13 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
     };
+
+    // Use ResizeObserver instead of window resize listener for layout responsiveness
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+    });
+    resizeObserver.observe(wrap);
     resize();
-    window.addEventListener('resize', resize);
 
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const neighbors = new Map<string, Set<string>>();
@@ -176,6 +181,8 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
     let draggingId: string | null = null;
     let pointerDownAt: { x: number; y: number } | null = null;
     let dragMoved = false;
+
+    let settleTicks = reduceMotion ? 400 : Infinity; // reduced motion: settle fast then freeze
 
     const toLocal = (clientX: number, clientY: number) => {
       const rect = canvas.getBoundingClientRect();
@@ -198,7 +205,8 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
       return best;
     };
 
-    const onMouseMove = (e: MouseEvent) => {
+    // Pointer Events support unified touch & mouse
+    const onPointerMove = (e: PointerEvent) => {
       const { x, y } = toLocal(e.clientX, e.clientY);
       if (draggingId) {
         const n = byId.get(draggingId);
@@ -209,6 +217,10 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
         if (pointerDownAt && Math.hypot(e.clientX - pointerDownAt.x, e.clientY - pointerDownAt.y) > 4) {
           dragMoved = true;
         }
+        // Reheat simulation continuously during drag so it doesn't freeze mid-drag
+        if (reduceMotion) {
+          settleTicks = Math.max(settleTicks, 2);
+        }
         return;
       }
       const hit = nodeAt(x, y);
@@ -216,7 +228,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
       canvas.style.cursor = hit ? (hit.kind === 'root' ? 'default' : 'pointer') : 'default';
     };
 
-    const onMouseDown = (e: MouseEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       const { x, y } = toLocal(e.clientX, e.clientY);
       const hit = nodeAt(x, y);
       if (hit && hit.kind !== 'root') {
@@ -224,10 +236,18 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
         pointerDownAt = { x: e.clientX, y: e.clientY };
         dragMoved = false;
         canvas.style.cursor = 'grabbing';
+        try {
+          canvas.setPointerCapture(e.pointerId);
+        } catch (err) {}
+
+        // Reheat simulation on drag start
+        if (reduceMotion) {
+          settleTicks = Math.max(settleTicks, 100);
+        }
       }
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
       if (draggingId) {
         const n = byId.get(draggingId);
         const wasClick = !dragMoved;
@@ -235,6 +255,10 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
           n.fx = undefined;
           n.fy = undefined;
         }
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (err) {}
+
         if (wasClick && n) {
           // Leaf → open the article. Hubs → open the card page of their children.
           if (n.kind === 'subtopic' && n.blogSlug) {
@@ -247,25 +271,23 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
         }
         draggingId = null;
         canvas.style.cursor = 'default';
-      }
-    };
 
-    const onMouseLeave = () => {
-      hoveredId = null;
-      if (draggingId) {
-        const n = byId.get(draggingId);
-        if (n) {
-          n.fx = undefined;
-          n.fy = undefined;
+        // Keep running for a short settle period after drag release
+        if (reduceMotion) {
+          settleTicks = Math.max(settleTicks, 300);
         }
-        draggingId = null;
       }
     };
 
-    canvas.addEventListener('mousemove', onMouseMove);
-    canvas.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('mouseleave', onMouseLeave);
+    const onPointerLeave = () => {
+      hoveredId = null;
+    };
+
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointerleave', onPointerLeave);
+    canvas.addEventListener('pointercancel', onPointerUp); // safety fallback
 
     const REPEL = 3200;
     const SPRING = 0.045;
@@ -276,7 +298,6 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
 
     let raf = 0;
     let running = true;
-    let settleTicks = reduceMotion ? 400 : Infinity; // reduced motion: settle fast then freeze
 
     const step = () => {
       // Repulsion — O(n^2), trivial at this node count.
@@ -320,9 +341,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
         b.vy -= fy;
       }
 
-      // Integrate — velocity is clamped so a rare near-zero-distance repulsion
-      // spike (two seeded nodes landing almost coincident) can't catapult a
-      // node past where its spring can ever recover it in reasonable time.
+      // Integrate
       const MAX_SPEED = 26;
       // Invisible walls at the canvas bounds (coords are centred, so ±half-size).
       const wallX = width / 2 - WALL_PAD;
@@ -494,11 +513,12 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
     return () => {
       running = false;
       cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
-      canvas.removeEventListener('mousemove', onMouseMove);
-      canvas.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mouseup', onMouseUp);
-      canvas.removeEventListener('mouseleave', onMouseLeave);
+      resizeObserver.disconnect();
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
+      canvas.removeEventListener('pointercancel', onPointerUp);
       document.removeEventListener('visibilitychange', onVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -534,7 +554,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
       </div>
 
       <div ref={wrapRef} className="relative w-full h-[85vh] min-h-[720px] overflow-hidden">
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full touch-none" />
         <div className="absolute bottom-3 right-4 font-mono text-[9.5px] text-zinc-600 pointer-events-none">
           drag to rearrange · click any node to open it
         </div>

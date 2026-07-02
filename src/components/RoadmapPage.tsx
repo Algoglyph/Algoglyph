@@ -5,9 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
-  BookOpen,
-  Play,
-  Book,
   Calendar,
   Search
 } from 'lucide-react';
@@ -91,8 +88,6 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
   const location = useLocation();
   const navigate = useNavigate();
 
-  const addVisualizerNode = useWorkspaceStore((state) => state.addVisualizerNode);
-  const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
   const roadmapProgress = useWorkspaceStore((state) => state.roadmapProgress);
   const updateRoadmapProgress = useWorkspaceStore((state) => state.updateRoadmapProgress);
 
@@ -238,12 +233,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     return { status, percent, completedCount, total: subtopics.length };
   };
 
-  const handleLaunchPostVisualizer = (vizId: string) => {
-    useWorkspaceStore.getState().clearVisualizerNodes();
-    addVisualizerNode(vizId, 100, 100);
-    setLayoutMode('visualizer');
-    onLaunch();
-  };
+
 
   const handleBack = () => {
     if (parts.length > 1) {
@@ -384,11 +374,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   <div className="flex items-center gap-2">
                     <div className="h-1 bg-zinc-800 rounded-full flex-1 overflow-hidden">
                       <div
-                        className="h-full bg-blue-600 transition-all duration-300"
+                        className="h-full bg-white transition-all duration-300"
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[9px] text-blue-400 font-semibold w-7 text-right">
+                    <span className="font-mono text-[9px] text-white font-semibold w-7 text-right">
                       {percent}%
                     </span>
                   </div>
@@ -471,35 +461,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
             {/* Topic Illustration Banner */}
             <RoadmapIllustration slug={activePost.slug} />
 
-            <div className="p-4 rounded-xl border border-zinc-800 bg-[#18181b] flex flex-col sm:flex-row gap-3 items-center justify-between mt-2">
-              <div className="flex items-center gap-2">
-                <BookOpen size={15} className="text-blue-400" />
-                <span className="text-[12px] font-semibold font-mono tracking-wide text-zinc-200">
-                  Interactive Lab Environment
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center justify-end gap-2.5 w-full sm:w-auto">
-                {activePost.visualizerId && (
-                  <button
-                    onClick={() => handleLaunchPostVisualizer(activePost.visualizerId!)}
-                    className="px-3.5 py-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <Play size={11} />
-                    <span>Launch Visualizer</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setLayoutMode('code');
-                    onLaunch();
-                  }}
-                  className="px-3.5 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-white text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
-                >
-                  <Book size={11} />
-                  <span>Open Coding Sandbox</span>
-                </button>
-              </div>
-            </div>
+
 
             <div className="flex flex-col gap-8 text-[15.5px] leading-relaxed text-zinc-300 font-serif mt-4">
               <section className="flex flex-col gap-2.5">
@@ -763,11 +725,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                     <div className="flex items-center gap-2">
                       <div className="h-1 bg-zinc-800 rounded-full flex-1 overflow-hidden">
                         <div
-                          className="h-full bg-blue-600 transition-all duration-300"
+                          className="h-full bg-white transition-all duration-300"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <span className="font-mono text-[9px] text-blue-400 font-semibold w-7 text-right">
+                      <span className="font-mono text-[9px] text-white font-semibold w-7 text-right">
                         {percent}%
                       </span>
                     </div>
@@ -784,11 +746,15 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
       );
     }
 
-    // ================== SYSTEM DESIGN: NODE GRAPH ==================
-    if (activeModule && activeModuleId === 'system-design' && !activeCoreTopicId) {
+    // ================== KNOWLEDGE GRAPH VIEW (SYSTEM DESIGN & DSA) ==================
+    if (
+      activeModule &&
+      (activeModuleId === 'system-design' || activeModuleId === 'dsa-foundations') &&
+      !activeCoreTopicId
+    ) {
       return (
         <motion.div
-          key="system-design-graph"
+          key="knowledge-graph-view"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
