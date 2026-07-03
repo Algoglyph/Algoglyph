@@ -1,13 +1,46 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { dsaStructures } from '../config/dsaStructures';
 import type { DSAStructure } from '../config/dsaStructures';
 import { Search, CornerDownLeft, Info } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
+import { BLOG_POSTS } from '../config/blogData';
+import { ALGORITHMS } from '../config/algorithms';
+
+import { ROADMAP_ZONES } from '../config/roadmapData';
+
+const getNestedRoadmapUrl = (slug: string) => {
+  const clean = slug.toLowerCase();
+  for (const zone of ROADMAP_ZONES) {
+    for (const topic of zone.topics) {
+      for (const concept of topic.concepts) {
+        for (const subtopic of concept.subtopics) {
+          if (subtopic.blogSlug === clean || subtopic.blogSlug === clean + 's' || subtopic.blogSlug === clean.slice(0, -1)) {
+            return `/roadmap/${zone.id}/${topic.id}/${concept.id}/${subtopic.blogSlug}`;
+          }
+        }
+      }
+    }
+  }
+  return `/roadmap`;
+};
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface PaletteItem {
+  id: string;
+  type: 'structure' | 'blog' | 'view' | 'algorithm' | 'command';
+  name: string;
+  category: string;
+  description: string;
+  structureData?: DSAStructure;
+  slug?: string;
+  viewName?: any;
+  algoId?: string;
+  action?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
@@ -25,18 +58,138 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     }
   }, [isOpen]);
 
-  const filteredStructures = dsaStructures.filter((s) => {
-    const searchStr = query.toLowerCase();
-    return (
-      s.name.toLowerCase().includes(searchStr) ||
-      s.description.toLowerCase().includes(searchStr) ||
-      s.commands.some((c) => c.toLowerCase().includes(searchStr))
-    );
-  });
+  // Aggregate all search targets
+  const allItems: PaletteItem[] = useMemo(() => {
+    const list: PaletteItem[] = [];
 
-  const handleInsert = (structure: DSAStructure) => {
-    insertStructureIntoCanvas(structure, (msg) => showNotification(msg, 'error'));
-    showNotification(`Inserted ${structure.name} onto canvas`, 'success');
+    // 1. Views
+    list.push({
+      id: 'nav-roadmap',
+      type: 'view',
+      name: 'Curriculum Roadmap',
+      category: 'Navigation',
+      description: 'Open the interactive spatial learning curriculum',
+      viewName: 'roadmap'
+    });
+    list.push({
+      id: 'nav-blog',
+      type: 'view',
+      name: 'Theory Graph Mesh',
+      category: 'Navigation',
+      description: 'Open the CS theory index and concept mesh',
+      viewName: 'blog'
+    });
+    list.push({
+      id: 'nav-workspace',
+      type: 'view',
+      name: 'Interactive Workspace',
+      category: 'Navigation',
+      description: 'Open the canvas, code runner, and editor split workspace',
+      viewName: 'workspace'
+    });
+
+    // 2. Blogs
+    BLOG_POSTS.forEach((post) => {
+      list.push({
+        id: `blog-${post.slug}`,
+        type: 'blog',
+        name: `Theory: ${post.title}`,
+        category: 'Theory Post',
+        description: post.tagline,
+        slug: post.slug
+      });
+    });
+
+    // 3. Algorithms
+    Object.values(ALGORITHMS).forEach((algo) => {
+      list.push({
+        id: `algo-${algo.id}`,
+        type: 'algorithm',
+        name: `Visualizer: ${algo.name}`,
+        category: 'Algorithm',
+        description: `Launch ${algo.name} playback session in workspace`,
+        algoId: algo.id
+      });
+    });
+
+    // 4. Commands
+    list.push({
+      id: 'cmd-theme',
+      type: 'command',
+      name: 'Command: Toggle Theme Mode',
+      category: 'Workspace',
+      description: 'Switch workspace between dark and light themes',
+      action: () => {
+        const currentTheme = useWorkspaceStore.getState().theme;
+        useWorkspaceStore.getState().setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        showNotification(`Theme set to ${currentTheme === 'dark' ? 'light' : 'dark'}`, 'success');
+      }
+    });
+    list.push({
+      id: 'cmd-clear-viz',
+      type: 'command',
+      name: 'Command: Reset Visualizers',
+      category: 'Workspace',
+      description: 'Remove all active playback nodes from the infinite plane',
+      action: () => {
+        useWorkspaceStore.getState().clearVisualizerNodes();
+        showNotification('Cleared all visualizer sessions', 'success');
+      }
+    });
+
+    // 5. Canvas templates / structures
+    dsaStructures.forEach((s) => {
+      list.push({
+        id: `structure-${s.id}`,
+        type: 'structure',
+        name: `Insert: ${s.name}`,
+        category: 'Canvas Template',
+        description: s.description,
+        structureData: s
+      });
+    });
+
+    return list;
+  }, [showNotification]);
+
+  // Filter items matching the query
+  const filteredItems = useMemo(() => {
+    const searchStr = query.toLowerCase().trim();
+    if (!searchStr) return allItems.slice(0, 8); // default selection
+    return allItems.filter(
+      (item) =>
+        item.name.toLowerCase().includes(searchStr) ||
+        item.description.toLowerCase().includes(searchStr) ||
+        item.category.toLowerCase().includes(searchStr)
+    );
+  }, [allItems, query]);
+
+  const handleSelectItem = (item: PaletteItem) => {
+    if (item.type === 'structure' && item.structureData) {
+      if ((window as any).navigateTo) {
+        (window as any).navigateTo('workspace');
+      }
+      insertStructureIntoCanvas(item.structureData, (msg) => showNotification(msg, 'error'));
+      showNotification(`Inserted ${item.structureData.name} onto canvas`, 'success');
+    } else if (item.type === 'blog' && item.slug) {
+      if ((window as any).navigateTo) {
+        (window as any).navigateTo('roadmap', getNestedRoadmapUrl(item.slug));
+      }
+    } else if (item.type === 'view' && item.viewName) {
+      if ((window as any).navigateTo) {
+        (window as any).navigateTo(item.viewName);
+      }
+    } else if (item.type === 'algorithm' && item.algoId) {
+      useWorkspaceStore.getState().clearVisualizerNodes();
+      useWorkspaceStore.getState().addVisualizerNode(item.algoId, 100, 100);
+      useWorkspaceStore.getState().setLayoutMode('visualizer');
+      if ((window as any).navigateTo) {
+        (window as any).navigateTo('workspace');
+      }
+      showNotification(`Launched visualizer for ${item.name}`, 'success');
+    } else if (item.type === 'command' && item.action) {
+      item.action();
+    }
     onClose();
   };
 
@@ -47,15 +200,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredStructures.length));
+        setSelectedIndex((prev) => (prev + 1) % Math.max(1, filteredItems.length));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + filteredStructures.length) % Math.max(1, filteredStructures.length));
+        setSelectedIndex((prev) => (prev - 1 + filteredItems.length) % Math.max(1, filteredItems.length));
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        const selected = filteredStructures[selectedIndex];
+        const selected = filteredItems[selectedIndex];
         if (selected) {
-          handleInsert(selected);
+          handleSelectItem(selected);
         }
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -65,7 +218,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredStructures, selectedIndex]);
+  }, [isOpen, filteredItems, selectedIndex]);
 
   if (!isOpen) return null;
 
@@ -82,7 +235,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search any DSA structure or algorithm..."
+            placeholder="Search blogs, roadmaps, algorithms, commands..."
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -94,15 +247,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
         {/* List of matches */}
         <div className="max-h-[340px] overflow-y-auto p-1.5 bg-transparent">
-          {filteredStructures.length > 0 ? (
-            filteredStructures.map((s, index) => {
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item, index) => {
               const isSelected = index === selectedIndex;
               
               return (
                 <div
-                  key={s.id}
+                  key={item.id}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  onClick={() => handleInsert(s)}
+                  onClick={() => handleSelectItem(item)}
                   className={`flex items-center justify-between px-3 py-2 rounded cursor-pointer transition-colors ${
                     isSelected
                       ? 'bg-link/10 text-link ring-1 ring-inset ring-link/30'
@@ -111,19 +264,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                 >
                   <div className="flex flex-col text-left max-w-[75%]">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold truncate">{s.name}</span>
+                      <span className="text-xs font-semibold truncate">{item.name}</span>
                       <span className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded border border-hairline tracking-wider text-mute select-none`}>
-                        {s.category}
+                        {item.category}
                       </span>
                     </div>
-                    <span className="text-[10px] text-body mt-0.5 truncate">{s.description}</span>
+                    <span className="text-[10px] text-body mt-0.5 truncate">{item.description}</span>
                   </div>
 
                   {/* Action indicator */}
                   <div className="flex items-center shrink-0 select-none">
                     {isSelected && (
                       <span className="flex items-center gap-1.5 text-[10px] font-medium text-link">
-                        Insert
+                        Execute
                         <CornerDownLeft size={10} />
                       </span>
                     )}
@@ -133,7 +286,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             })
           ) : (
             <div className="px-4 py-6 text-xs text-mute text-center">
-              No matching algorithms or data structures found.
+              No matching items, algorithms, or commands found.
             </div>
           )}
         </div>
@@ -142,7 +295,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         <div className="p-3 border-t border-hairline bg-transparent text-[9px] text-mute flex justify-between select-none items-center">
           <div className="flex gap-4">
             <span>↑↓ to navigate</span>
-            <span>↵ to insert</span>
+            <span>↵ to execute</span>
           </div>
           <span className="flex items-center gap-1">
             <Info size={10} />

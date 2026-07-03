@@ -1,803 +1,1088 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUpRight,
   Clock,
-  Compass,
-  BookOpen,
-  Play,
-  CheckCircle2,
-  Lock,
-  Activity,
-  Code,
+  Search,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { ROADMAP_ZONES } from '../config/roadmapData';
-import type { SubConcept } from '../config/roadmapData';
+import type { Concept, RoadmapZone, Topic } from '../config/roadmapData';
+import { BLOG_POSTS } from '../config/blogData';
+import type { BlogPost } from '../config/blogData';
+import { ML_BLOG_DATA } from '../config/mlBlogData';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
-import { vscodeDark } from '../config/editorTheme';
-import { RoadmapBackground } from './RoadmapBackground';
+import { vscodeDark, vscodeLight } from '../config/editorTheme';
 import { RoadmapConvergence } from './RoadmapConvergence';
+import { RoadmapIllustration } from './RoadmapIllustration';
+
+import { SystemDesignGraph } from './SystemDesignGraph';
+import { TopicDesignGraph } from './TopicDesignGraph';
 
 interface RoadmapPageProps {
   onBack: () => void;
   onLaunch: () => void;
 }
 
-const EASE_OUT = [0.16, 1, 0.3, 1] as const;
-const SERIF = '"Instrument Serif", Georgia, serif';
+// Fallback generator for new/specific subtopics to guarantee detailed content is always available
+const getFallbackBlogPost = (slug: string, subtopicName: string, category: string): BlogPost => {
+  const custom = ML_BLOG_DATA[slug];
+  if (custom) {
+    return {
+      slug,
+      title: custom.title || `${subtopicName} (Syllabus Guide)`,
+      tagline: custom.tagline || `A theoretical guide to the design mechanics, complexity characteristics, and real-world usage of ${subtopicName}.`,
+      category: custom.category || category,
+      lastUpdated: 'July 2026',
+      readTime: custom.readTime || 7,
+      prerequisites: custom.prerequisites || [],
+      related: custom.related || [],
+      practiceProblems: custom.practiceProblems || [],
+      content: {
+        introduction: custom.content?.introduction || `This comprehensive guide covers the core technical structures, logical rules, and memory layouts of ${subtopicName}.`,
+        whyImportant: custom.content?.whyImportant || `${subtopicName} plays an indispensable role in high-performance computing and modern software architecture.`,
+        realWorldApps: custom.content?.realWorldApps || [],
+        algorithmDescription: custom.content?.algorithmDescription || [],
+        complexity: custom.content?.complexity || [],
+        implementationCpp: custom.content?.implementationCpp || '',
+        implementationPython: custom.content?.implementationPython || '',
+        commonMistakes: custom.content?.commonMistakes || [],
+        interviewQuestions: custom.content?.interviewQuestions || [],
+        summary: custom.content?.summary || `In summary, mastering ${subtopicName} is key to designing optimal, memory-friendly software systems.`
+      }
+    };
+  }
+
+  return {
+    slug,
+    title: `${subtopicName} (Syllabus Guide)`,
+    tagline: `A theoretical guide to the design mechanics, complexity characteristics, and real-world usage of ${subtopicName}.`,
+    category,
+    lastUpdated: 'July 2026',
+    readTime: 7,
+    prerequisites: [],
+    related: [],
+    practiceProblems: [],
+    content: {
+      introduction: `This comprehensive guide covers the core technical structures, logical rules, and memory layouts of ${subtopicName}. In computer science, mastering ${subtopicName} is key to designing architectures that utilize resources efficiently and scale without latency degradation.
+
+At its core, ${subtopicName} governs how data elements are represented in virtual memory, processed by CPU instructions, and referenced across different computational spaces. By analyzing its logical boundaries, developers can minimize instruction overhead and avoid page faults in complex workloads.
+
+Historically, this pattern was designed to solve fundamental throughput and storage constraints. Today, it remains a standard paradigm across systems engineering, database engines, and software compiler toolchains. Understanding its underlying mechanics is essential for solving complex engineering challenges and optimizing large-scale software structures.`,
+      whyImportant: `${subtopicName} plays an indispensable role in high-performance computing and modern software architecture. Without a firm understanding of its theoretical mechanics, developers risk creating performance bottlenecks, thread-safety violations, and memory leaks.
+
+By studying ${subtopicName}, you learn how to balance execution speed against space allocations. This optimization is crucial in latency-sensitive systems such as high-frequency trading brokers, real-time audio mixers, database query compilers, and embedded controller units where microseconds count.
+
+Furthermore, mastering the structural mechanics of ${subtopicName} enhances your debugging capabilities. It allows you to trace system crashes back to memory alignment faults, cache thrashing patterns, and thread race conditions, ensuring that your code passes strict hardware validation steps.`,
+      realWorldApps: [
+        `Low-level memory managers and storage device blocks.`,
+        `Compiler optimization passes and syntax parsing engines.`,
+        `High-throughput event logs and message routers.`
+      ],
+      algorithmDescription: [],
+      complexity: [],
+      implementationCpp: "",
+      implementationPython: "",
+      commonMistakes: [],
+      interviewQuestions: [],
+      summary: `In summary, mastering ${subtopicName} is key to designing optimal, memory-friendly software systems.`
+    }
+  };
+};
 
 export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const [selectedConcept, setSelectedConcept] = useState<SubConcept | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py'>('py');
-
-  const addVisualizerNode = useWorkspaceStore((state) => state.addVisualizerNode);
-  const setLayoutMode = useWorkspaceStore((state) => state.setLayoutMode);
   const roadmapProgress = useWorkspaceStore((state) => state.roadmapProgress);
   const updateRoadmapProgress = useWorkspaceStore((state) => state.updateRoadmapProgress);
+  const theme = useWorkspaceStore((state) => state.theme);
+  const toggleTheme = useWorkspaceStore((state) => state.toggleTheme);
+  const isDark = theme === 'dark';
 
-  const { scrollYProgress } = useScroll({ container: containerRef });
-  const progressScaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.4 });
+  // Parse path: /roadmap/:moduleId/:topicId/:conceptId/:blogSlug
+  const parts = location.pathname.split('/').filter(Boolean);
+  const activeModuleId = parts[1] || null;
+  const activeCoreTopicId = parts[2] || null;
+  const activeSubContainerId = parts[3] || null;
+  const selectedBlogSlug = parts[4] || null;
 
-  // ── Map scroll position to the active curriculum zone (for the timeline rail) ──
-  const [activeZoneIndex, setActiveZoneIndex] = useState<number>(0);
+  const [selectedLanguage, setSelectedLanguage] = useState<'cpp' | 'py'>('py');
+  
+  // Search state for specific blogs
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // Reset scroll to 0 instantly on path level changes to fix the bottom-scroll bug!
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const handleScroll = () => {
-      const ids = [
-        'hero-section',
-        ...ROADMAP_ZONES.map((z) => z.id),
-        'convergence-section',
-        'exit-section',
-      ];
-      let activeIdx = 0;
-      let minDistance = Infinity;
-      const viewportMid = window.innerHeight / 2;
-      ids.forEach((id, idx) => {
-        const child = document.getElementById(id);
-        if (!child) return;
-        const rect = child.getBoundingClientRect();
-        const childMid = (rect.top + rect.bottom) / 2;
-        const distance = Math.abs(childMid - viewportMid);
-        if (distance < minDistance) {
-          minDistance = distance;
-          activeIdx = idx;
-        }
-      });
-      setActiveZoneIndex(activeIdx);
-    };
-    el.addEventListener('scroll', handleScroll);
-    handleScroll();
-    return () => el.removeEventListener('scroll', handleScroll);
+    if (containerRef.current) {
+      containerRef.current.scrollTo({ top: 0, behavior: 'instant' as any });
+    }
+  }, [location.pathname]);
+
+  const allSubConcepts = useMemo(() => {
+    return ROADMAP_ZONES.flatMap((z) =>
+      z.topics.flatMap((t) => t.concepts.flatMap((c) => c.subtopics))
+    );
   }, []);
 
-  const handleScrollToZone = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const getZoneSubtopicCount = (zone: RoadmapZone) =>
+    zone.topics.reduce((topicSum, topic) =>
+      topicSum + topic.concepts.reduce((conceptSum, concept) => conceptSum + concept.subtopics.length, 0), 0);
+
+  const getModuleHours = (zone: RoadmapZone) => getZoneSubtopicCount(zone);
+
+  const totalHours = ROADMAP_ZONES.reduce((sum, z) => sum + getModuleHours(z), 0);
+  const totalConcepts = allSubConcepts.length;
+
+  const activeModule = useMemo(() => {
+    if (!activeModuleId) return null;
+    return ROADMAP_ZONES.find((z) => z.id === activeModuleId) || null;
+  }, [activeModuleId]);
+
+  const activeCoreTopic = useMemo(() => {
+    if (!activeModule || !activeCoreTopicId) return null;
+    return activeModule.topics.find((t) => t.id === activeCoreTopicId) || null;
+  }, [activeModule, activeCoreTopicId]);
+
+  const activeSubContainer = useMemo(() => {
+    if (!activeCoreTopic || !activeSubContainerId) return null;
+    return activeCoreTopic.concepts.find((c) => c.id === activeSubContainerId) || null;
+  }, [activeCoreTopic, activeSubContainerId]);
+
+  // Read blog post matching slug
+  const activePost = useMemo(() => {
+    if (!selectedBlogSlug) return null;
+    const clean = selectedBlogSlug.toLowerCase();
+    
+    // Look up in pre-generated list
+    const found = BLOG_POSTS.find(
+      (p) =>
+        p.slug === clean ||
+        p.slug === clean + 's' ||
+        p.slug === clean.slice(0, -1) ||
+        p.slug.replace(/-/g, '') === clean.replace(/-/g, '')
+    );
+    if (found) return found;
+
+    // Fallback if not found: find matching subtopic in curriculum data
+    for (const zone of ROADMAP_ZONES) {
+      for (const topic of zone.topics) {
+        for (const concept of topic.concepts) {
+          for (const subtopic of concept.subtopics) {
+            if (subtopic.blogSlug === clean) {
+              return getFallbackBlogPost(clean, subtopic.name, zone.name);
+            }
+          }
+        }
+      }
+    }
+
+    // Default dynamic guide if no match in structured curriculum either
+    const formattedTitle = clean.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return getFallbackBlogPost(clean, formattedTitle, 'Computer Science');
+  }, [selectedBlogSlug]);
+
+  const getModuleStatusStats = (zoneId: string) => {
+    const zone = ROADMAP_ZONES.find((z) => z.id === zoneId);
+    if (!zone) return { status: 'Not Started', percent: 0, completedCount: 0, total: 0 };
+
+    const subtopics = zone.topics.flatMap((t) =>
+      t.concepts.flatMap((c) => c.subtopics)
+    );
+    if (subtopics.length === 0) return { status: 'Not Started', percent: 0, completedCount: 0, total: 0 };
+
+    const statuses = subtopics.map(
+      (s) => roadmapProgress[s.name] || 'Not Started'
+    );
+    const completedCount = statuses.filter((st) => st === 'Completed').length;
+    const percent = Math.round((completedCount / subtopics.length) * 100);
+
+    let status: 'Not Started' | 'In Progress' | 'Completed' = 'Not Started';
+    if (completedCount === subtopics.length) {
+      status = 'Completed';
+    } else if (completedCount > 0 || statuses.some((st) => st === 'In Progress')) {
+      status = 'In Progress';
+    }
+
+    return { status, percent, completedCount, total: subtopics.length };
   };
 
-  const handleLaunchConcept = (concept: SubConcept) => {
-    if (concept.visualizerId) {
-      useWorkspaceStore.getState().clearVisualizerNodes();
-      addVisualizerNode(concept.visualizerId, 100, 100);
-      setLayoutMode('visualizer');
-      onLaunch();
+  const getTopicStatusStats = (topic: Topic) => {
+    const subtopics = topic.concepts.flatMap((c) => c.subtopics);
+    if (subtopics.length === 0) return { status: 'Not Started', percent: 0, completedCount: 0, total: 0 };
+
+    const statuses = subtopics.map(
+      (s) => roadmapProgress[s.name] || 'Not Started'
+    );
+    const completedCount = statuses.filter((st) => st === 'Completed').length;
+    const percent = Math.round((completedCount / subtopics.length) * 100);
+
+    let status: 'Not Started' | 'In Progress' | 'Completed' = 'Not Started';
+    if (completedCount === subtopics.length) {
+      status = 'Completed';
+    } else if (completedCount > 0 || statuses.some((st) => st === 'In Progress')) {
+      status = 'In Progress';
+    }
+
+    return { status, percent, completedCount, total: subtopics.length };
+  };
+
+  const getConceptStatusStats = (concept: Concept) => {
+    const subtopics = concept.subtopics;
+    if (subtopics.length === 0) return { status: 'Not Started', percent: 0, completedCount: 0, total: 0 };
+
+    const statuses = subtopics.map(
+      (s) => roadmapProgress[s.name] || 'Not Started'
+    );
+    const completedCount = statuses.filter((st) => st === 'Completed').length;
+    const percent = Math.round((completedCount / subtopics.length) * 100);
+
+    let status: 'Not Started' | 'In Progress' | 'Completed' = 'Not Started';
+    if (completedCount === subtopics.length) {
+      status = 'Completed';
+    } else if (completedCount > 0 || statuses.some((st) => st === 'In Progress')) {
+      status = 'In Progress';
+    }
+
+    return { status, percent, completedCount, total: subtopics.length };
+  };
+
+
+
+  const handleBack = () => {
+    if (parts.length > 1) {
+      const newPath = '/' + parts.slice(0, parts.length - 1).join('/');
+      navigate(newPath);
     } else {
-      onLaunch();
+      onBack();
     }
   };
 
-  // Earthy difficulty accents — warm, desaturated, never blue.
-  const getDifficultyColor = (diff: 'Easy' | 'Medium' | 'Hard') => {
-    if (diff === 'Easy') return 'border-[#8fa68c]/25 text-[#a9c0a3] bg-[#8fa68c]/[0.06]';
-    if (diff === 'Medium') return 'border-[#c9a86a]/25 text-[#ddc18c] bg-[#c9a86a]/[0.06]';
-    return 'border-[#c98a72]/25 text-[#dca390] bg-[#c98a72]/[0.06]';
+  const backLabel = () => {
+    if (selectedBlogSlug) return 'Back to Subtopics';
+    if (activeSubContainerId) return 'Back to Concepts';
+    if (activeCoreTopicId) return 'Back to Core Topics';
+    if (activeModuleId) return 'Back to Curriculum';
+    return 'Return';
   };
 
-  const totalHours = ROADMAP_ZONES.reduce((sum, z) => sum + z.hours, 0);
-  const totalConcepts = ROADMAP_ZONES.reduce((sum, z) => sum + z.subConcepts.length, 0);
+  const headerPath = () => {
+    if (selectedBlogSlug && activePost) {
+      return `Reading: ${activePost.title.split(' (')[0]}`;
+    }
+    if (!activeModule) return 'Computer Science Roadmap';
+    let path = activeModule.name;
+    if (activeCoreTopic) {
+      path += ` > ${activeCoreTopic.name}`;
+      if (activeSubContainer) {
+        path += ` > ${activeSubContainer.name}`;
+      }
+    }
+    return path;
+  };
 
-  // Doubled list of zone names for a seamless marquee loop.
-  const marqueeItems = [...ROADMAP_ZONES, ...ROADMAP_ZONES];
+  // Autocomplete matching blogs
+  const filteredBlogs = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return BLOG_POSTS.filter(
+      (p) =>
+        p.title.toLowerCase().includes(query) ||
+        p.category.toLowerCase().includes(query) ||
+        p.tagline.toLowerCase().includes(query)
+    ).slice(0, 6);
+  }, [searchQuery]);
 
-  return (
-    <div className="relative w-full h-screen bg-[#0a0908] text-[#f0ece3] select-none font-sans antialiased overflow-hidden">
-      {/* ── Warm dust-field backdrop ── */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0a0908] pointer-events-none z-0">
-        <RoadmapBackground scrollYProgress={scrollYProgress} />
-        {/* gentle edge vignette — frames the sparse, cursor-driven field */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 140% 135% at 50% 46%, rgba(10,9,8,0) 0%, rgba(10,9,8,0) 72%, rgba(10,9,8,0.55) 100%)',
-          }}
-        />
-        <div
-          className="absolute inset-x-0 top-0 h-40 pointer-events-none"
-          style={{ background: 'linear-gradient(to bottom, #0a0908 0%, rgba(10,9,8,0) 100%)' }}
-        />
-        <div
-          className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
-          style={{ background: 'linear-gradient(to top, #0a0908 0%, rgba(10,9,8,0) 100%)' }}
-        />
-        {/* film grain */}
-        <div className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-screen roadmap-grain" />
-      </div>
+  const handleSearchSelect = (post: BlogPost) => {
+    setSearchQuery('');
+    setIsSearchFocused(false);
+    
+    // Find path mapping for correct nested URL
+    let foundPath = '/roadmap';
+    for (const zone of ROADMAP_ZONES) {
+      for (const topic of zone.topics) {
+        for (const concept of topic.concepts) {
+          for (const subtopic of concept.subtopics) {
+            if (subtopic.blogSlug === post.slug) {
+              foundPath = `/roadmap/${zone.id}/${topic.id}/${concept.id}/${subtopic.blogSlug}`;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // If not found in curriculum tree, just open it as standard roadmap slug
+    if (foundPath === '/roadmap') {
+      foundPath = `/roadmap/dsa-foundations/basics-memory/programming-basics/${post.slug}`;
+    }
+    navigate(foundPath);
+  };
 
-      {/* ── Scroll progress bar ── */}
+  const renderConceptsList = (conceptsList: Concept[], title: string, subtitle?: string, label?: string) => {
+    return (
       <motion.div
-        className="fixed top-20 left-0 right-0 h-[1.5px] bg-gradient-to-r from-[#cdbf9f] via-[#e6ddca] to-transparent z-40 origin-left pointer-events-none"
-        style={{ scaleX: progressScaleX }}
-      />
-
-      {/* ── Left timeline rail ── */}
-      <nav className="fixed left-5 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-5 z-35 font-mono text-[10px] text-white/40 max-w-[200px] pointer-events-auto" aria-label="Curriculum Timeline Navigation">
-        {ROADMAP_ZONES.map((zone, idx) => {
-          const isActive = idx === activeZoneIndex - 1;
-          return (
-            <button
-              key={zone.id}
-              onClick={() => handleScrollToZone(zone.id)}
-              className="flex items-center gap-4 text-left group cursor-pointer transition-colors"
-            >
-              <span
-                className={`w-6 text-[10px] font-mono font-semibold tracking-tight text-right ${
-                  isActive ? 'text-[#e6ddca]' : 'text-white/20 group-hover:text-white/45'
-                }`}
-              >
-                {zone.number}
-              </span>
-              <div className="relative w-1.5 h-6 flex items-center justify-center">
-                <div
-                  className={`absolute top-0 bottom-0 w-px ${
-                    isActive ? 'bg-[#cdbf9f]' : 'bg-white/5 group-hover:bg-white/10'
-                  } transition`}
-                />
-                {isActive && (
-                  <motion.div
-                    layoutId="timeline-tracker-dot"
-                    className="absolute w-1.5 h-1.5 rounded-full bg-[#e6ddca] shadow-[0_0_10px_rgba(230,221,202,0.6)]"
-                  />
-                )}
-              </div>
-              <span
-                className={`transition duration-300 truncate max-w-[140px] font-sans text-[12px] font-medium ${
-                  isActive
-                    ? 'text-[#f0ece3] translate-x-1'
-                    : 'text-white/30 group-hover:text-white/60'
-                }`}
-              >
-                {zone.name}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* ── Header ── */}
-      <header className="fixed top-0 left-0 right-0 h-20 border-b border-white/[0.05] bg-[#0a0908]/55 backdrop-blur-xl z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto" aria-label="Roadmap Header navigation">
-        <button
-          onClick={onBack}
-          className="group flex items-center gap-3 text-[13px] text-white/55 hover:text-white transition-colors cursor-pointer"
-        >
-          <div className="w-8 h-8 rounded-full border border-white/8 bg-white/[0.02] flex items-center justify-center group-hover:bg-white/10 group-hover:scale-105 transition duration-300">
-            <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform duration-300" />
-          </div>
-          <span className="font-sans font-medium text-white/70 group-hover:text-white transition-colors">Return</span>
-        </button>
-
-        <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none hidden md:flex justify-center items-center pl-6 sm:pl-8 xl:pl-[210px] pr-6 sm:pr-8 md:pr-8">
-          <div className="flex items-center gap-2.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d8bf8f] animate-pulse" />
-            <span className="font-mono text-[10px] text-white/45 tracking-[0.3em] font-semibold uppercase">
-              The Atlas — Curriculum
+        key="concepts-view"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="w-full flex flex-col items-center pb-32"
+      >
+        {/* Header Block */}
+        <div className={`w-full max-w-4xl border rounded-xl p-6 relative overflow-hidden mt-8 text-left border-[var(--rm-border)] bg-[var(--rm-card)]`}>
+          <div className="flex flex-col gap-2">
+            <span className={`text-[10px] font-sans font-semibold tracking-[0.08em] text-[var(--rm-text)]`}>
+              {label || activeModule?.name.toUpperCase()}
             </span>
+            <h2 className={`text-xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
+              {title}
+            </h2>
+            <p className={`text-[13px] font-sans text-[var(--rm-text-muted)]`}>
+              {subtitle}
+            </p>
           </div>
         </div>
 
-        <button
-          onClick={onLaunch}
-          className="group px-5 py-2.5 rounded-full bg-[#f0ece3] hover:bg-white text-[#13110e] text-[13px] font-semibold transition flex items-center gap-1.5 cursor-pointer font-sans shadow-[0_1px_22px_rgba(216,191,143,0.16)]"
-        >
-          <span>Open Workspace</span>
-          <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-300" />
-        </button>
-      </header>
-
-        {/* ── Scrollable journey ── */}
-        <main
-          ref={containerRef}
-          className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col pl-6 sm:pl-8 xl:pl-[210px] pr-6 sm:pr-8 md:pr-8"
-          id="roadmap-main"
-        >
-          {/* Hero */}
-        <section
-          id="hero-section"
-          className="w-full min-h-screen shrink-0 flex flex-col items-center justify-center text-center relative overflow-hidden py-28"
-        >
-          {/* localized scrim so the headline + subcopy stay legible over the field */}
-          <div
-            aria-hidden="true"
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[680px] max-w-[95vw] pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(ellipse at center, rgba(10,9,8,0.42) 0%, rgba(10,9,8,0.18) 42%, rgba(10,9,8,0) 72%)',
-            }}
-          />
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } } }}
-            className="relative z-10 max-w-4xl flex flex-col items-center gap-7"
-          >
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.7, ease: EASE_OUT }}
-              className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-white/8 bg-white/[0.02] backdrop-blur-sm"
-            >
-              <Compass size={11} className="text-[#d8bf8f] animate-spin-slow" />
-              <span className="text-[10px] font-mono text-white/55 tracking-[0.28em] font-semibold uppercase">
-                Interactive Learning Platform
-              </span>
-            </motion.div>
-
-            <motion.h1
-              variants={{ hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.9, ease: EASE_OUT }}
-              className="text-5xl sm:text-7xl lg:text-[7.5rem] font-semibold tracking-[-0.045em] text-[#f4f0e8] leading-[0.96]"
-            >
-              Learn computer science visually,
-              <br />
-              <span className="italic font-normal text-[#d8bf8f]" style={{ fontFamily: SERIF }}>
-                as a spatial journey
-              </span>
-            </motion.h1>
-
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.8, ease: EASE_OUT }}
-              className="text-[15px] sm:text-[17px] leading-[1.65] text-[#9a948a] max-w-[600px] font-sans font-normal text-balance"
-            >
-              Deconstruct algorithms and data structures through a visual, physical feedback loop.
-              Move the cursor to stir the field — then scroll to assemble the map.
-            </motion.p>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.8, ease: EASE_OUT }}
-              className="flex flex-col items-center gap-12"
-            >
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                <button
-                  onClick={() => handleScrollToZone(ROADMAP_ZONES[0].id)}
-                  className="group px-7 py-3 rounded-full bg-[#f0ece3] hover:bg-white text-[#13110e] text-[13.5px] font-semibold transition flex items-center justify-center gap-2 cursor-pointer font-sans shadow-[0_1px_22px_rgba(216,191,143,0.16)]"
-                >
-                  <span>Begin journey</span>
-                  <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-300" />
-                </button>
-                <button
-                  onClick={() => handleScrollToZone('index-section')}
-                  className="group px-7 py-3 rounded-full border border-white/12 hover:border-white/28 bg-white/[0.02] text-[13.5px] font-semibold text-white/75 hover:text-white transition flex items-center justify-center gap-2 cursor-pointer font-sans backdrop-blur-sm"
-                >
-                  <span>View index</span>
-                </button>
-              </div>
-
-              {/* Stat triad — agency "big numbers" treatment */}
-              <div className="flex items-stretch gap-8 sm:gap-14">
-                {[
-                  { value: ROADMAP_ZONES.length, label: 'Curriculum zones' },
-                  { value: totalConcepts, label: 'Mapped concepts' },
-                  { value: `${totalHours}`, label: 'Hours of depth' },
-                ].map((s, i) => (
-                  <React.Fragment key={s.label}>
-                    {i > 0 && <span className="w-px self-stretch bg-white/8" />}
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="text-3xl sm:text-4xl font-semibold tracking-[-0.03em] text-[#f0ece3] tabular-nums">
-                        {s.value}
-                      </span>
-                      <span className="font-mono text-[9.5px] uppercase tracking-[0.22em] text-white/40">
-                        {s.label}
-                      </span>
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-
-          {/* Marquee band of zone names */}
-          <div
-            aria-hidden="true"
-            className="absolute bottom-10 inset-x-0 overflow-hidden pointer-events-none [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)]"
-          >
-            <div className="flex w-max gap-8 marquee-track opacity-[0.5]">
-              {marqueeItems.map((zone, i) => (
-                <span
-                  key={`${zone.id}-${i}`}
-                  className="flex items-center gap-8 text-[13px] font-mono uppercase tracking-[0.18em] text-white/35 whitespace-nowrap"
-                >
-                  <span className="text-[#9a8e74]">{zone.number}</span>
-                  {zone.name}
-                  <span className="text-[#d8bf8f]/50">✦</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Curriculum index — agency-style numbered contents */}
-        <section
-          id="index-section"
-          className="w-full min-h-screen shrink-0 flex items-center justify-center relative py-32"
-        >
-          <div className="w-full max-w-5xl">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ duration: 0.8, ease: EASE_OUT }}
-              className="flex flex-col gap-3 mb-12"
-            >
-              <span className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#cdbf9f] font-semibold">
-                The Curriculum
-              </span>
-              <h2 className="text-4xl sm:text-6xl font-semibold tracking-[-0.04em] text-[#f0ece3] leading-[1.0]">
-                Nine curriculum zones to master data structures and algorithms,{' '}
-                <span className="italic font-normal text-[#d8bf8f]" style={{ fontFamily: SERIF }}>
-                  start to finish
-                </span>
-              </h2>
-            </motion.div>
-
-            <div className="flex flex-col border-t border-white/[0.07]">
-              {ROADMAP_ZONES.map((zone, idx) => (
-                <motion.button
-                  key={zone.id}
-                  onClick={() => handleScrollToZone(zone.id)}
-                  initial={{ opacity: 0, y: 18 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.6 }}
-                  transition={{ duration: 0.55, ease: EASE_OUT, delay: idx * 0.04 }}
-                  className="group relative grid grid-cols-[auto_1fr_auto] sm:grid-cols-[auto_1fr_auto_auto] items-center gap-4 sm:gap-8 py-5 sm:py-6 border-b border-white/[0.07] text-left cursor-pointer transition-colors"
-                >
-                  <span className="font-mono text-[13px] text-white/30 group-hover:text-[#d8bf8f] transition-colors w-8">
-                    {zone.number}
-                  </span>
-                  <span className="text-[18px] sm:text-[22px] font-medium tracking-[-0.01em] text-[#cfcabf] group-hover:text-[#f4f0e8] transition-colors group-hover:translate-x-1 duration-300">
-                    {zone.name}
-                  </span>
-                  <span
-                    className={`hidden sm:inline-flex text-[9.5px] font-mono border px-2.5 py-0.5 rounded-full font-semibold justify-self-end ${getDifficultyColor(
-                      zone.difficulty
-                    )}`}
-                  >
-                    {zone.difficulty}
-                  </span>
-                  <span className="flex items-center gap-3 justify-self-end">
-                    <span className="font-mono text-[11px] text-white/30 tabular-nums hidden sm:inline">
-                      {zone.hours} hrs
-                    </span>
-                    <ArrowUpRight
-                      size={16}
-                      className="text-white/25 group-hover:text-[#d8bf8f] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition duration-300"
-                    />
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Curriculum zones */}
-        {ROADMAP_ZONES.map((zone) => {
-          const zoneStatus = (() => {
-            const statuses = zone.subConcepts.map(
-              (c) => roadmapProgress[c.name] || c.learningStatus || 'Not Started'
-            );
-            if (statuses.every((s) => s === 'Completed')) return 'Completed';
-            if (statuses.every((s) => s === 'Not Started')) return 'Not Started';
-            return 'In Progress';
-          })();
-
-          const featured = zone.subConcepts.find((c) => c.codePreview);
-
-          return (
-            <section
-              key={zone.id}
-              id={zone.id}
-              className="w-full min-h-screen shrink-0 flex items-center justify-center relative py-32 md:py-40"
-            >
-              {/* Oversized ghost numeral for editorial depth */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute right-2 top-16 select-none font-semibold text-white/[0.02] leading-none text-[26vw] xl:text-[20vw]"
-                style={{ fontFamily: SERIF }}
+        {/* Concepts — card grid of the topic's daughter nodes */}
+        <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
+          {conceptsList.map((concept, cIdx) => {
+            const { status, percent, total } = getConceptStatusStats(concept);
+            const preview = concept.subtopics.slice(0, 3).map((s) => s.name).join(' · ');
+            return (
+              <Link
+                key={concept.id}
+                to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${concept.id}`}
+                {...{className: `group border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-xl p-5 relative overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[170px] text-left block no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]`.trim()}}
               >
-                {zone.number}
-              </span>
-
-              <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-10 gap-10 xl:gap-12 items-start relative">
-                {/* Left — concept narrative + signature code converging in */}
-                <motion.div
-                  initial={{ opacity: 0, x: -44 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.4 }}
-                  transition={{ duration: 0.85, ease: EASE_OUT }}
-                  className="lg:col-span-5 flex flex-col gap-6 text-left lg:sticky lg:top-[20vh] pb-10"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-[#d8bf8f] text-[20px] font-semibold">{zone.number}</span>
-                    <div className="h-px w-8 bg-white/12" />
+                <div>
+                  <div className="flex items-center justify-between font-mono">
+                    <span className={`font-semibold text-[13px] text-[var(--rm-text-faint)]`}>
+                      {String(cIdx + 1).padStart(2, '0')}.
+                    </span>
                     <span
-                      className={`text-[10px] font-mono border px-2.5 py-0.5 rounded-full font-semibold ${getDifficultyColor(
-                        zone.difficulty
-                      )}`}
+                      className={`text-[9px] font-mono border px-2 py-0.5 rounded ${
+                        status === 'Completed'
+                          ? 'border-[var(--rm-accent-border)] text-[var(--rm-accent-text)] bg-[var(--rm-accent-bg)]'
+                          : status === 'In Progress'
+                          ? 'border-[var(--rm-border-strong)] text-[var(--rm-text-muted)] bg-[var(--rm-track)]'
+                          : 'border-[var(--rm-border)] text-[var(--rm-text-faint)]'
+                      }`}
                     >
-                      {zone.difficulty}
+                      {status}
                     </span>
                   </div>
 
-                  <h2 className="text-5xl sm:text-6xl lg:text-[5.25rem] font-semibold tracking-[-0.04em] text-[#f4f0e8] leading-[0.98] text-balance">
-                    {zone.name}
-                  </h2>
-
-                  <p className="text-[15.5px] leading-relaxed text-[#9a948a] font-sans font-normal max-w-[52ch]">
-                    {zone.description}
+                  <h3 className={`font-semibold text-[15px] mt-3 tracking-tight font-sans text-[var(--rm-text)]`}>
+                    {concept.name}
+                  </h3>
+                  <p className="text-[12px] leading-relaxed text-[var(--rm-text-body)] mt-2 font-sans font-normal line-clamp-2">
+                    {preview}
                   </p>
+                </div>
 
-                  {/* Quick stats */}
-                  <div className="grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-5 font-mono">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] text-white/35 font-semibold tracking-wide uppercase">Estimate</span>
-                      <span className="text-[13px] text-white/85 font-semibold flex items-center gap-1.5">
-                        <Clock size={12} className="text-[#d8bf8f]" />
-                        {zone.hours} hrs
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] text-white/35 font-semibold tracking-wide uppercase">Status</span>
-                      <span className="text-[13px] text-white/85 font-semibold flex items-center gap-1.5">
-                        {zoneStatus === 'Completed' ? (
-                          <CheckCircle2 size={12} className="text-[#9bb592]" />
-                        ) : zoneStatus === 'In Progress' ? (
-                          <Activity size={12} className="text-[#d8bf8f]" />
-                        ) : (
-                          <Lock size={12} className="text-white/25" />
-                        )}
-                        <span className="text-[11px] font-sans">{zoneStatus}</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] text-white/35 font-semibold tracking-wide uppercase">Sandbox</span>
-                      <span className="text-[13px] text-white/85 font-semibold font-sans">
-                        {zone.visualizerAvailable ? 'Supported' : 'Standard'}
-                      </span>
-                    </div>
+                <div className={`mt-5 pt-3 border-t flex flex-col gap-2 ${'border-[var(--rm-border)]'}`}>
+                  <div className={`flex items-center justify-between font-mono text-[10px] text-[var(--rm-text-faint)]`}>
+                    <span>{total} subtopics</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`h-1 rounded-full flex-1 overflow-hidden bg-[var(--rm-track)]`}>
+                      <div
+                        className="h-full bg-[var(--rm-text)] transition-all duration-300"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <span className={`font-mono text-[9px] font-semibold w-7 text-right text-[var(--rm-text)]`}>
+                      {percent}%
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
 
-                  {/* Signature snippet — assembles with a scan reveal */}
-                  {featured && featured.codePreview && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 44, clipPath: 'inset(0 0 100% 0)' }}
-                      whileInView={{ opacity: 1, x: 0, clipPath: 'inset(0 0 0% 0)' }}
-                      viewport={{ once: true, amount: 0.4 }}
-                      transition={{ duration: 1, ease: EASE_OUT, delay: 0.15 }}
-                      className="mt-2 rounded-2xl border border-white/[0.08] bg-[#0c0b09]/80 backdrop-blur-md overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
-                    >
-                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-white/40 uppercase tracking-widest">
-                          <Code size={11} className="text-[#d8bf8f]" />
-                          <span>{featured.name}</span>
-                        </div>
-                        <div className="flex gap-2 text-[10px] font-mono">
-                          <button
-                            onClick={() => setSelectedLanguage('cpp')}
-                            className={`cursor-pointer transition-colors ${
-                              selectedLanguage === 'cpp' ? 'text-[#d8bf8f]' : 'text-white/30 hover:text-white/60'
-                            }`}
-                          >
-                            C++
-                          </button>
-                          <span className="text-white/15">/</span>
-                          <button
-                            onClick={() => setSelectedLanguage('py')}
-                            className={`cursor-pointer transition-colors ${
-                              selectedLanguage === 'py' ? 'text-[#d8bf8f]' : 'text-white/30 hover:text-white/60'
-                            }`}
-                          >
-                            Python
-                          </button>
-                        </div>
-                      </div>
-                      <div className="p-2 text-[11px] leading-[1.55] max-h-[240px] overflow-auto roadmap-scroll [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!bg-transparent">
-                        <CodeMirror
-                          value={
-                            selectedLanguage === 'cpp'
-                              ? featured.codePreview
-                              : featured.codePreviewPython || featured.codePreview
-                          }
-                          readOnly
-                          editable={false}
-                          theme={vscodeDark}
-                          extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
-                          basicSetup={{
-                            lineNumbers: false,
-                            foldGutter: false,
-                            highlightActiveLine: false,
-                            highlightActiveLineGutter: false,
-                          }}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </motion.div>
-
-                {/* Right — interactive concept cards */}
-                <motion.div
-                  initial={{ opacity: 0, x: 44 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ duration: 0.85, ease: EASE_OUT, delay: 0.1 }}
-                  className="lg:col-span-5 flex flex-col gap-5 pb-20 lg:relative lg:left-[3px]"
-                >
-                  {zone.subConcepts.map((concept, cIdx) => {
-                    const subStatus = roadmapProgress[concept.name] || concept.learningStatus || 'Not Started';
-                    const isSel = selectedConcept?.name === concept.name;
-
-                    return (
-                      <motion.div
-                        key={cIdx}
-                        whileHover={isSel ? undefined : { y: -3 }}
-                        transition={{ duration: 0.3, ease: EASE_OUT }}
-                        onClick={() => setSelectedConcept(isSel ? null : concept)}
-                        className={`group border rounded-3xl p-5 text-left cursor-pointer transition-[border-color,background-color,box-shadow] duration-500 relative overflow-hidden ${
-                          isSel
-                            ? 'border-white/35 bg-[#100f0c]/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_20px_44px_rgba(0,0,0,0.5)]'
-                            : 'border-white/[0.07] bg-[#0c0b09]/60 backdrop-blur-sm hover:border-white/16 hover:bg-[#100f0c]/70 hover:shadow-[0_18px_44px_rgba(0,0,0,0.4)]'
-                        }`}
-                      >
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(216,191,143,0.05),transparent_55%)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-[9px] font-mono text-[#cdbf9f] font-semibold tracking-wider">
-                              Concept 0{cIdx + 1}
-                            </span>
-                            <h3 className="font-sans font-semibold text-[16px] text-[#f0ece3] group-hover:text-[#e6ddca] transition-colors duration-300">
-                              {concept.name}
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span
-                              className={`text-[9px] font-mono border px-2 py-0.5 rounded-full ${getDifficultyColor(
-                                concept.difficulty
-                              )}`}
-                            >
-                              {concept.difficulty}
-                            </span>
-                            <span
-                              className={`text-[9px] font-sans border px-2 py-0.5 rounded-full ${
-                                subStatus === 'Completed'
-                                  ? 'border-[#8fa68c]/25 text-[#a9c0a3] bg-[#8fa68c]/[0.06]'
-                                  : subStatus === 'In Progress'
-                                  ? 'border-[#c9a86a]/25 text-[#ddc18c] bg-[#c9a86a]/[0.06]'
-                                  : 'border-white/8 text-white/35 bg-white/[0.01]'
-                              }`}
-                            >
-                              {subStatus}
-                            </span>
-                          </div>
-                        </div>
-
-                        <p className="text-[13px] leading-relaxed text-[#8d877d] mt-2 font-sans font-normal">
-                          {concept.desc}
-                        </p>
-
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {concept.keyPoints.map((pt, pIdx) => (
-                            <span
-                              key={pIdx}
-                              className="px-2 py-0.5 rounded-full border border-white/8 bg-white/[0.02] text-[9.5px] font-mono text-white/50"
-                            >
-                              # {pt}
-                            </span>
-                          ))}
-                        </div>
-
-                        <AnimatePresence>
-                          {isSel && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.4, ease: EASE_OUT }}
-                              className="overflow-hidden mt-4 pt-4 border-t border-white/[0.08]"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex flex-col gap-3">
-                                <div className="flex items-center justify-between text-[9.5px] font-mono text-white/35 px-1 border-b border-white/[0.06] pb-2">
-                                  <span>Learning Progress</span>
-                                  <div className="flex gap-1.5">
-                                    {(['Not Started', 'In Progress', 'Completed'] as const).map((status) => {
-                                      const activeSubStatus =
-                                        roadmapProgress[concept.name] || concept.learningStatus || 'Not Started';
-                                      const isStatusSel = activeSubStatus === status;
-                                      return (
-                                        <button
-                                          key={status}
-                                          onClick={() => updateRoadmapProgress(concept.name, status)}
-                                          className={`px-2 py-0.5 rounded border transition cursor-pointer font-sans text-[10px] ${
-                                            isStatusSel
-                                              ? 'border-white/20 bg-white/10 text-white font-semibold'
-                                              : 'border-white/8 bg-white/[0.02] text-white/40 hover:text-white/65'
-                                          }`}
-                                        >
-                                          {status}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-
-                                {concept.codePreview && (
-                                  <div className="flex flex-col gap-2">
-                                    <div className="flex items-center justify-between text-[9px] font-mono text-white/35 uppercase tracking-widest px-1">
-                                      <span>Structure Representation</span>
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={() => setSelectedLanguage('cpp')}
-                                          className={`hover:text-white cursor-pointer ${
-                                            selectedLanguage === 'cpp' ? 'text-[#d8bf8f]' : ''
-                                          }`}
-                                        >
-                                          C++
-                                        </button>
-                                        <span>/</span>
-                                        <button
-                                          onClick={() => setSelectedLanguage('py')}
-                                          className={`hover:text-white cursor-pointer ${
-                                            selectedLanguage === 'py' ? 'text-[#d8bf8f]' : ''
-                                          }`}
-                                        >
-                                          Python
-                                        </button>
-                                      </div>
-                                    </div>
-                                    <div className="relative rounded-xl border border-white/8 bg-black/50 p-2 text-[10.5px] leading-[1.5] text-left max-h-[300px] overflow-auto roadmap-scroll [&_.cm-editor]:!bg-transparent [&_.cm-gutters]:!bg-transparent">
-                                      <Code className="absolute top-2.5 right-2.5 text-white/10 z-10" size={12} />
-                                      <CodeMirror
-                                        value={
-                                          selectedLanguage === 'cpp'
-                                            ? concept.codePreview
-                                            : concept.codePreviewPython || concept.codePreview
-                                        }
-                                        readOnly
-                                        editable={false}
-                                        theme={vscodeDark}
-                                        extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
-                                        basicSetup={{
-                                          lineNumbers: false,
-                                          foldGutter: false,
-                                          highlightActiveLine: false,
-                                          highlightActiveLineGutter: false,
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="flex items-center justify-between mt-1.5 pt-2 border-t border-white/[0.06]">
-                                  <div className="flex items-center gap-1 text-[9.5px] font-mono text-white/35">
-                                    <span>Estimated: </span>
-                                    <span className="text-white font-semibold">{concept.hours} hours</span>
-                                  </div>
-
-                                  <button
-                                    onClick={() => handleLaunchConcept(concept)}
-                                    className="group/btn px-3 py-1.5 rounded-full border border-white/12 hover:border-white/22 bg-white/[0.02] text-[10.5px] font-semibold text-white/90 hover:text-white transition flex items-center gap-1.5 cursor-pointer font-sans"
-                                  >
-                                    {concept.visualizerId ? (
-                                      <>
-                                        <Play size={10} className="text-[#d8bf8f]" />
-                                        <span>Launch Interactive Visualizer</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <BookOpen size={10} className="text-[#d8bf8f]" />
-                                        <span>Explore in Workspace</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              </div>
-            </section>
-          );
-        })}
-
-        {/* Consolidation finale */}
-        <RoadmapConvergence roadmapProgress={roadmapProgress} onLaunch={onLaunch} />
-
-        {/* Exit */}
-        <section
-          id="exit-section"
-          className="w-full h-screen shrink-0 flex items-center justify-center text-center relative overflow-hidden"
+        <button
+          onClick={handleBack}
+          className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 font-sans ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
         >
-          <div className="max-w-4xl mx-auto px-6 flex flex-col items-center gap-6">
-            <h2 className="text-4xl sm:text-6xl font-semibold tracking-[-0.04em] text-[#f4f0e8] leading-[0.98]">
-              Ready to explore?
-              <br />
-              <span className="italic font-normal text-[#d8bf8f]" style={{ fontFamily: SERIF }}>
-                Enter the sandbox
-              </span>
-            </h2>
-            <p className="text-[14.5px] leading-relaxed text-[#9a948a] max-w-md font-sans">
-              Jump directly into the workspace canvas. Draw nodes, compile algorithms, and test edge cases.
+          <ArrowLeft size={14} />
+          <span>{
+            (activeModuleId === 'system-design' ||
+              activeModuleId === 'dsa-foundations' ||
+              activeModuleId === 'machine-learning' ||
+              activeModuleId === 'ai-data-scientist' ||
+              activeModuleId === 'backend' ||
+              activeModuleId === 'data-engineering' ||
+              activeModuleId === 'android-development' ||
+              activeModuleId === 'software-engineering' ||
+              activeModuleId === 'game-developer')
+              ? 'Back to Graph'
+              : 'Back to Core Topics'
+          }</span>
+        </button>
+
+        {/* Add TopicDesignGraph below the back button */}
+        {activeCoreTopic && activeModuleId && (
+          <div className="w-full mt-8">
+            <TopicDesignGraph topic={activeCoreTopic} moduleId={activeModuleId} />
+          </div>
+        )}
+      </motion.div>
+    );
+  };
+
+  const renderContent = () => {
+    // ================== LEVEL 5: TEXTBOOK INLINE READER ==================
+    if (selectedBlogSlug && activePost) {
+      const progressStatus = roadmapProgress[activePost.title] || 'Not Started';
+      return (
+        <motion.div
+          key="blog-reader"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full flex flex-col items-center pb-32 text-left"
+        >
+          {/* Dark Mode Markdown Minimalist Header */}
+          <div className="w-full max-w-[700px] flex flex-col gap-8 mt-12 mb-8">
+            <h1 className={`text-4xl md:text-[40px] font-serif font-medium tracking-tight leading-[1.2] ${'text-[var(--rm-text)]'}`}>
+              {activePost.title}
+            </h1>
+            
+            <p className={`text-[19px] leading-[1.6] font-serif ${'text-[var(--rm-text-muted)]'}`}>
+              {activePost.tagline}
             </p>
 
-            <div className="flex gap-4 mt-2">
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-[13px] mt-2 border-t pt-6 ${'text-[var(--rm-text-faint)] border-[var(--rm-border)]'}`}>
+              <div className="flex items-center gap-2">
+                <span>Updated {activePost.lastUpdated}</span>
+                <span>·</span>
+                <span>{activePost.readTime} min read</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <span className={`text-[var(--rm-text-faint)]`}>Status:</span>
+                {(['Not Started', 'In Progress', 'Completed'] as const).map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => updateRoadmapProgress(activePost.title, status)}
+                    className={`transition-colors cursor-pointer ${
+                      progressStatus === status
+                        ? 'text-[var(--rm-text)] underline underline-offset-4 decoration-[var(--rm-border-strong)]'
+                        : 'text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:underline hover:underline-offset-4 hover:decoration-[var(--rm-border)]'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full max-w-[700px] flex flex-col gap-10 mt-4 mb-16">
+            {/* Topic Illustration Banner */}
+            <div className="my-6">
+              <RoadmapIllustration slug={activePost.slug} />
+            </div>
+
+            <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-serif ${'text-[var(--rm-text-body)]'}`}>
+              <section className="flex flex-col gap-4">
+                <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Overview</h2>
+                <p>{activePost.content.introduction}</p>
+              </section>
+
+              <section className="flex flex-col gap-4">
+                <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Practical Importance</h2>
+                <p>{activePost.content.whyImportant}</p>
+              </section>
+
+              {activePost.content.realWorldApps && activePost.content.realWorldApps.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Real-World Applications</h2>
+                  <ul className="list-disc pl-6 flex flex-col gap-2">
+                    {activePost.content.realWorldApps.map((app, idx) => (
+                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{app}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Structural Mechanics</h2>
+                  <ol className="list-decimal pl-6 flex flex-col gap-2">
+                    {activePost.content.algorithmDescription.map((step, idx) => (
+                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{step}</li>
+                    ))}
+                  </ol>
+                </section>
+              )}
+
+              {activePost.content.complexity && activePost.content.complexity.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Asymptotic Bounds</h2>
+                  <div className="overflow-x-auto my-4">
+                    <table className="w-full text-left text-[15px] font-serif border-collapse">
+                      <thead>
+                        <tr className={`border-y ${'border-[var(--rm-border)] text-[var(--rm-text-body)]'}`}>
+                          <th className="py-3 px-2 font-semibold font-sans">Measurement</th>
+                          <th className="py-3 px-2 font-semibold font-sans">Asymptotic Bound</th>
+                          <th className="py-3 px-2 font-semibold font-sans">Context & Constraints</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activePost.content.complexity.map((row, idx) => (
+                          <tr key={idx} className={`border-b ${'border-[var(--rm-border)]'}`}>
+                            <td className={`py-3 px-2 ${'text-[var(--rm-text-body)]'}`}>{row.label}</td>
+                            <td className={`py-3 px-2 font-mono text-[14px] ${'text-[var(--rm-text-body)]'}`}>{row.value}</td>
+                            <td className={`py-3 px-2 ${'text-[var(--rm-text-muted)]'}`}>{row.note}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {(activePost.content.implementationCpp || activePost.content.implementationPython) && (
+                <section className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between mt-4">
+                    <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight">Implementation Code</h2>
+                    <div className={`flex gap-4 text-[13px] font-sans text-[var(--rm-text-muted)]`}>
+                      <button
+                        onClick={() => setSelectedLanguage('cpp')}
+                        className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'cpp' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
+                      >
+                        C++
+                      </button>
+                      <button
+                        onClick={() => setSelectedLanguage('py')}
+                        className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'py' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
+                      >
+                        Python
+                      </button>
+                    </div>
+                  </div>
+                  <div className={`relative rounded-lg border p-4 text-[13px] leading-[1.6] max-h-[400px] overflow-auto roadmap-scroll font-mono shadow-inner my-2 ${'border-[var(--rm-border)] bg-[var(--rm-code-bg)]'}`}>
+                    <CodeMirror
+                      value={
+                        selectedLanguage === 'cpp'
+                          ? activePost.content.implementationCpp
+                          : activePost.content.implementationPython || activePost.content.implementationCpp
+                      }
+                      readOnly
+                      editable={false}
+                      theme={isDark ? vscodeDark : vscodeLight}
+                      extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
+                      basicSetup={{
+                        lineNumbers: false,
+                        foldGutter: false,
+                        highlightActiveLine: false,
+                        highlightActiveLineGutter: false,
+                      }}
+                    />
+                  </div>
+                </section>
+              )}
+
+              {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Common Pitfalls</h2>
+                  <ul className="list-disc pl-6 flex flex-col gap-2">
+                    {activePost.content.commonMistakes.map((mistake, idx) => (
+                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{mistake}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {activePost.content.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Interview Preparation</h2>
+                  <ol className="list-decimal pl-6 flex flex-col gap-2">
+                    {activePost.content.interviewQuestions.map((q, idx) => (
+                      <li key={idx} className={`font-semibold text-[var(--rm-text)] marker:text-[var(--rm-text-faint)]`}>
+                        <span className={`font-normal text-[var(--rm-text-body)]`}>{q}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
+
+              {activePost.content.summary && (
+                <section className={`flex flex-col gap-2 italic mt-8 border-l-2 pl-4 ${'text-[var(--rm-text-muted)] border-[var(--rm-border)]'}`}>
+                  <p className="leading-[1.8] text-[17px]">{activePost.content.summary}</p>
+                </section>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={handleBack}
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Subtopics</span>
+          </button>
+        </motion.div>
+      );
+    }
+
+    // ================== LEVEL 1: MODULES GRID ==================
+    if (!activeModuleId) {
+      return (
+        <motion.div
+          key="grid-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full flex flex-col items-center pb-32"
+        >
+          {/* Hero Banner */}
+          <section className={`w-full py-12 text-left max-w-5xl border-b mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 ${'border-[var(--rm-border)]'}`}>
+            <div>
+              <h1 className={`text-3xl font-bold tracking-tight mb-3 font-sans ${'text-[var(--rm-text)]'}`}>
+                Computer Science Curriculum
+              </h1>
+              <p className={`text-[14px] leading-relaxed max-w-xl font-sans ${'text-[var(--rm-text-muted)]'}`}>
+                Click a module below to inspect its core topics, sub-containers, and syllabus concepts.
+              </p>
+              <div className={`flex items-center gap-10 mt-6 font-mono text-[11px] ${'text-[var(--rm-text-muted)]'}`}>
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-bold text-[14px] ${'text-[var(--rm-text)]'}`}>{ROADMAP_ZONES.length}</span>
+                  <span>Modules</span>
+                </div>
+                <div className={`w-px h-3 ${'bg-[var(--rm-track)]'}`} />
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-bold text-[14px] ${'text-[var(--rm-text)]'}`}>{totalConcepts}</span>
+                  <span>Subtopics</span>
+                </div>
+                <div className={`w-px h-3 ${'bg-[var(--rm-track)]'}`} />
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-bold text-[14px] ${'text-[var(--rm-text)]'}`}>{totalHours}</span>
+                  <span>Hours</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Theory Search Bar */}
+            <div className="relative w-full sm:w-72 mt-4 sm:mt-0 z-30">
+              <div className="flex items-center gap-2 border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-lg px-3 py-2 transition focus-within:border-[var(--rm-accent-border)] focus-within:bg-[var(--rm-card-hover)] focus-within:ring-1 focus-within:ring-[var(--rm-accent-border)]">
+                <Search size={14} className="text-zinc-500 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search theory articles..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                  className={`bg-transparent border-none text-[12px] !outline-none focus-visible:!outline-none w-full font-sans ${'text-[var(--rm-text-body)] placeholder-[var(--rm-text-faint)]'}`}
+                />
+              </div>
+
+              {/* Autocomplete suggestions dropdown */}
+              <AnimatePresence>
+                {isSearchFocused && filteredBlogs.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className={`absolute top-11 left-0 right-0 border rounded-lg shadow-xl max-h-60 overflow-y-auto p-1.5 flex flex-col gap-0.5 text-left ${'border-[var(--rm-border)] bg-[var(--rm-card)]'}`}
+                  >
+                    {filteredBlogs.map((post) => (
+                      <button
+                        key={post.slug}
+                        onMouseDown={() => handleSearchSelect(post)}
+                        className={`w-full rounded px-2.5 py-2 text-left transition cursor-pointer hover:bg-[var(--rm-card-hover)]`}
+                      >
+                        <div className={`text-[12px] font-semibold truncate font-sans text-[var(--rm-text)]`}>
+                          {post.title}
+                        </div>
+                        <div className={`text-[10px] font-mono flex items-center gap-1.5 mt-0.5 uppercase tracking-wide text-[var(--rm-text-faint)]`}>
+                          <span>{post.category}</span>
+                          <span>•</span>
+                          <span>{post.readTime} mins</span>
+                        </div>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </section>
+
+          {/* Grid of Modules */}
+          <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {ROADMAP_ZONES.map((module) => {
+              const { status, percent, total } = getModuleStatusStats(module.id);
+              const moduleHours = getModuleHours(module);
+              return (
+                <Link
+                  key={module.id}
+                  to={`/roadmap/${module.id}`}
+                  {...{className: `group border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-xl p-5 relative overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[200px] select-none text-left block no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]`.trim()}}
+                >
+                  <div>
+                    <div className="flex items-center justify-between font-mono">
+                      <span className={`font-semibold text-[13px] ${'text-[var(--rm-text-faint)]'}`}>{module.number}.</span>
+                      <span
+                        className={`text-[9px] font-mono border px-2 py-0.5 rounded ${
+                          status === 'Completed'
+                            ? 'border-[var(--rm-accent-border)] text-[var(--rm-accent-text)] bg-[var(--rm-accent-bg)]'
+                            : status === 'In Progress'
+                            ? 'border-[var(--rm-border-strong)] text-[var(--rm-text-muted)] bg-[var(--rm-track)]'
+                            : 'border-[var(--rm-border)] text-[var(--rm-text-faint)]'
+                        }`}
+                      >
+                        {status}
+                      </span>
+                    </div>
+
+                    <h3 className={`font-semibold text-[16px] mt-3 tracking-tight font-sans ${'text-[var(--rm-text)]'}`}>
+                      {module.name}
+                    </h3>
+                    <p className={`text-[12.5px] leading-relaxed mt-2 font-sans font-normal line-clamp-3 ${'text-[var(--rm-text-muted)]'}`}>
+                      {module.description}
+                    </p>
+                  </div>
+
+                  <div className={`mt-5 pt-3 border-t flex flex-col gap-2 ${'border-[var(--rm-border)]'}`}>
+                    <div className={`flex items-center justify-between font-mono text-[10px] ${'text-[var(--rm-text-faint)]'}`}>
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />
+                        {moduleHours} hrs
+                      </span>
+                      <span>{total} subtopics</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`h-1 rounded-full flex-1 overflow-hidden bg-[var(--rm-track)]`}>
+                        <div
+                          className="h-full bg-[var(--rm-text)] transition-all duration-300"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <span className={`font-mono text-[9px] font-semibold w-7 text-right text-[var(--rm-text)]`}>
+                        {percent}%
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className={`w-full max-w-5xl mt-12 pt-6 border-t border-[var(--rm-border)]`}>
+            <RoadmapConvergence roadmapProgress={roadmapProgress} onLaunch={onLaunch} />
+          </div>
+        </motion.div>
+      );
+    }
+
+    // ================== KNOWLEDGE GRAPH VIEW (SYSTEM DESIGN & DSA) ==================
+    if (
+      activeModule &&
+      (activeModuleId === 'system-design' ||
+        activeModuleId === 'dsa-foundations' ||
+        activeModuleId === 'machine-learning' ||
+        activeModuleId === 'ai-data-scientist' ||
+        activeModuleId === 'backend' ||
+        activeModuleId === 'network-engineering' ||
+        activeModuleId === 'blockchain' ||
+        activeModuleId === 'cyber-security' ||
+        activeModuleId === 'product-manager' ||
+        activeModuleId === 'data-engineering' ||
+        activeModuleId === 'android-development' ||
+        activeModuleId === 'software-engineering' ||
+        activeModuleId === 'game-developer') &&
+      !activeCoreTopicId
+    ) {
+      return (
+        <motion.div
+          key="knowledge-graph-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full flex flex-col items-center pb-32"
+        >
+          <div className={`w-full max-w-4xl border rounded-xl p-6 relative overflow-hidden mt-8 text-left border-[var(--rm-border)] bg-[var(--rm-card)]`}>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 font-sans">
+                <span className={`text-[13px] font-semibold tracking-wide text-[var(--rm-text)]`}>MODULE {activeModule.number}</span>
+                <span className="text-zinc-600">/</span>
+                <span className="text-[12px] font-medium tracking-wide text-[var(--rm-text-faint)]">KNOWLEDGE GRAPH</span>
+              </div>
+              <h2 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
+                {activeModule.name}
+              </h2>
+              <p className={`text-[13.5px] leading-relaxed font-sans text-[var(--rm-text-muted)]`}>
+                {activeModule.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full mt-8">
+            <SystemDesignGraph zone={activeModule} />
+          </div>
+
+          <button
+            onClick={handleBack}
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Curriculum</span>
+          </button>
+        </motion.div>
+      );
+    }
+
+    // ================== LEVEL 2: TOPICS GRID ==================
+    if (activeModule && activeModuleId && !activeCoreTopicId) {
+      return (
+        <motion.div
+          key="topics-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full flex flex-col items-center pb-32"
+        >
+          <div className={`w-full max-w-4xl border rounded-xl p-6 relative overflow-hidden mt-8 text-left border-[var(--rm-border)] bg-[var(--rm-card)]`}>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 font-sans">
+                <span className={`text-[13px] font-semibold tracking-wide text-[var(--rm-text)]`}>MODULE {activeModule.number}</span>
+                <span className="text-zinc-600">/</span>
+                <span className="text-[12px] font-medium tracking-wide text-[var(--rm-text-faint)]">CORE TOPICS</span>
+              </div>
+              <h2 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
+                {activeModule.name}
+              </h2>
+              <p className={`text-[13.5px] leading-relaxed font-sans text-[var(--rm-text-muted)]`}>
+                {activeModule.description}
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+            {activeModule.topics.map((topic) => {
+              const { status, percent, total } = getTopicStatusStats(topic);
+              return (
+                <Link
+                  key={topic.id}
+                  to={`/roadmap/${activeModuleId}/${topic.id}`}
+                  className="group border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-xl p-5 cursor-pointer text-left flex flex-col justify-between transition min-h-[150px] block no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]"
+                >
+                  <div>
+                    <div className={`flex items-center justify-between text-[11px] font-mono text-[var(--rm-text-faint)]`}>
+                      <span>TOPIC</span>
+                      <span className={status === 'Completed' ? 'text-blue-400' : status === 'In Progress' ? 'text-zinc-300' : 'text-zinc-500'}>
+                        {status}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-[15px] text-[var(--rm-text)] mt-2 transition font-sans">
+                      {topic.name}
+                    </h3>
+                    <p className="text-[12.5px] text-[var(--rm-text-muted)] mt-1 line-clamp-2 font-sans">
+                      {topic.description}
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-[var(--rm-border)] flex items-center justify-between text-[10px] font-mono text-[var(--rm-text-faint)]">
+                    <span>{total} subtopics</span>
+                    <span>{percent}% done</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleBack}
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Curriculum</span>
+          </button>
+        </motion.div>
+      );
+    }
+
+    // ================== LEVEL 3: CONCEPTS GRID ==================
+    if (activeModule && activeCoreTopic && activeCoreTopicId && !activeSubContainerId) {
+      return renderConceptsList(activeCoreTopic.concepts, activeCoreTopic.name, activeCoreTopic.description);
+    }
+
+    // ================== LEVEL 4: SUBTOPICS LIST (FLAT DIRECT LINKS ON CLICK) ==================
+    if (activeModule && activeCoreTopic && activeSubContainer && activeSubContainerId && !selectedBlogSlug) {
+      return (
+        <motion.div
+          key="subtopics-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full flex flex-col items-center pb-32"
+        >
+          {/* Textbook Chapter Header */}
+          <div className="w-full max-w-4xl text-left mt-6">
+            <span className="text-9xl font-black text-[var(--rm-text)] opacity-95 tracking-tight font-sans leading-none block select-none">
+              {activeCoreTopic.concepts.findIndex((c) => c.id === activeSubContainerId) + 1}
+            </span>
+
+            <h1 className="text-3xl font-extrabold text-[var(--rm-text)] tracking-tight font-sans mt-4 pb-6 border-b border-[var(--rm-border)]">
+              {activeSubContainer.name}
+            </h1>
+          </div>
+
+          <div className="w-full max-w-4xl flex flex-col gap-6 mt-10">
+            {activeSubContainer.subtopics.map((subtopic, sIdx) => {
+              const subStatus = roadmapProgress[subtopic.name] || 'Not Started';
+              const post = BLOG_POSTS.find(
+                (p) => p.slug === subtopic.blogSlug
+              ) || getFallbackBlogPost(subtopic.blogSlug, subtopic.name, activeModule.name);
+
+              return (
+                <Link
+                  key={subtopic.id}
+                  to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${activeSubContainerId}/${subtopic.blogSlug}`}
+                  className="group flex flex-col gap-2 pb-6 border-b border-[var(--rm-border)] last:border-b-0 block no-underline transition-all duration-200 cursor-pointer text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-[16px] text-[var(--rm-text)] transition-colors font-sans leading-tight">
+                      {sIdx + 1}. {subtopic.name}
+                    </h3>
+
+                    <span
+                      className={`text-[9px] font-mono border px-2 py-0.5 rounded transition ${
+                        subStatus === 'Completed'
+                          ? 'border-[var(--rm-accent-border)] text-[var(--rm-accent-text)] bg-[var(--rm-accent-bg)]'
+                          : subStatus === 'In Progress'
+                          ? 'border-[var(--rm-border-strong)] text-[var(--rm-text-body)] bg-[var(--rm-surface)]'
+                          : 'border-[var(--rm-border)] text-[var(--rm-text-faint)]'
+                      }`}
+                    >
+                      {subStatus}
+                    </span>
+                  </div>
+
+                  <p className={`text-[13px] leading-relaxed transition-colors font-sans ${'text-[var(--rm-text-muted)] group-hover:text-[var(--rm-text-body)]'}`}>
+                    {post.tagline}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleBack}
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 font-sans ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Concepts</span>
+          </button>
+        </motion.div>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className={`rm-root relative w-full h-screen select-none font-sans antialiased overflow-hidden transition-colors duration-200 ${'bg-[var(--rm-bg)] text-[var(--rm-text-body)]'}`}>
+      {/* ── Header ── */}
+      <header className={`fixed top-0 left-0 right-0 h-20 border-b z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto transition-colors duration-200 ${'border-[var(--rm-border)] bg-[var(--rm-bg)]'}`}>
+        <button
+          onClick={handleBack}
+          className={`group flex items-center gap-2 text-[13px] transition-colors cursor-pointer ${'text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
+        >
+          <ArrowLeft size={16} />
+          <span className="font-sans font-medium">
+            {backLabel()}
+          </span>
+        </button>
+
+        <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none hidden md:flex justify-center items-center px-8">
+          <span className={`font-sans text-[10px] tracking-[0.1em] font-semibold uppercase ${'text-[var(--rm-text-faint)]'}`}>
+            {headerPath()}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${'text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:bg-[var(--rm-card-hover)]'}`}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button
+            onClick={onLaunch}
+            className={`group px-4 py-2 rounded-lg text-[13px] font-medium transition flex items-center gap-1.5 cursor-pointer font-sans ${'bg-[var(--rm-btn-bg)] hover:bg-[var(--rm-btn-hover)] text-[var(--rm-btn-text)] border border-[var(--rm-btn-border)]'}`}
+          >
+            <span>Open Workspace</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      </header>
+
+      {/* ── Scrollable content ── */}
+      <div
+        ref={containerRef}
+        className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col px-6 sm:px-12 md:px-20 pt-20"
+      >
+        {/* light-mode scrollbar style is handled globally via isDark class on root */}
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
+
+        {/* Minimal Exit Section */}
+        <section className={`w-full py-16 shrink-0 flex items-center justify-center text-center relative border-t mt-12 ${'border-[var(--rm-border)]'}`}>
+          <div className="max-w-xl mx-auto px-6 flex flex-col items-center gap-4">
+            <h2 className={`text-xl sm:text-2xl font-bold tracking-tight font-sans ${'text-[var(--rm-text)]'}`}>
+              Ready to construct code structures?
+            </h2>
+            <p className={`text-[13px] leading-relaxed font-sans ${'text-[var(--rm-text-muted)]'}`}>
+              Enter the workspace to drag structures, run script compilers, and test your logic sandboxes.
+            </p>
+
+            <div className="flex gap-3 mt-2">
               <button
                 onClick={onLaunch}
-                className="group px-6 py-3 rounded-full bg-[#f0ece3] hover:bg-white text-[#13110e] text-[13px] font-semibold transition flex items-center gap-1.5 cursor-pointer font-sans shadow-[0_1px_22px_rgba(216,191,143,0.18)]"
+                className="px-4 py-2 rounded-lg bg-[var(--rm-btn-bg)] hover:bg-[var(--rm-btn-hover)] text-[var(--rm-btn-text)] text-[12.5px] font-semibold transition cursor-pointer font-sans"
               >
-                <span>Launch Workspace</span>
-                <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform duration-300" />
+                Launch Workspace
               </button>
               <button
                 onClick={onBack}
-                className="px-6 py-3 rounded-full border border-white/12 hover:border-white/22 bg-white/[0.01] text-[13px] font-semibold text-white/80 hover:text-white transition cursor-pointer font-sans"
+                className="px-4 py-2 rounded-lg border border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] text-[12.5px] font-medium transition cursor-pointer font-sans"
               >
-                <span>Back to Portal</span>
+                Back to Portal
               </button>
             </div>
           </div>
         </section>
-        </main>
+      </div>
 
-      {/* Scroll hint */}
-      {activeZoneIndex < 9 && (
-        <div className="fixed bottom-6 left-6 sm:left-8 xl:left-[210px] right-6 sm:right-8 md:right-8 flex justify-center pointer-events-none select-none z-30">
-          <div className="flex flex-col items-center gap-1.5 opacity-25">
-            <span className="font-mono text-[8px] uppercase tracking-[0.3em] text-white">Scroll to travel</span>
-            <div className="w-[1px] h-4 bg-gradient-to-b from-white to-transparent" />
-          </div>
-        </div>
-      )}
-
-      {/* Ambient styles */}
+      {/* Basic styles */}
       <style>{`
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .marquee-track { animation: marquee 42s linear infinite; }
-        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @media (prefers-reduced-motion: reduce) {
-          .marquee-track { animation: none; }
-          .animate-spin-slow { animation: none; }
-        }
-        .roadmap-grain {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-        }
         .roadmap-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
         .roadmap-scroll::-webkit-scrollbar-track { background: transparent; }
-        .roadmap-scroll::-webkit-scrollbar-thumb { background: rgba(230,221,202,0.12); border-radius: 3px; }
-        .roadmap-scroll::-webkit-scrollbar-thumb:hover { background: rgba(216,191,143,0.4); }
-        #hero-section ::selection, section ::selection { background: rgba(216,191,143,0.28); color: #fff; }
+        .roadmap-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+        .roadmap-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
       `}</style>
     </div>
   );
 };
+
+

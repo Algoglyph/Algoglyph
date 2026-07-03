@@ -1,0 +1,52 @@
+[
+  {
+    "id": "architecture-diagram-components",
+    "name": "Architecture Diagram Components",
+    "itemCount": 11
+  },
+  {
+    "id": "aws-architecture-icons",
+    "name": "Aws Architecture Icons",
+    "itemCount": 249
+  },
+  {
+    "id": "cloud-design-patterns",
+    "name": "Cloud Design Patterns",
+    "itemCount": 24
+  },
+  {
+    "id": "data-viz",
+    "name": "Data Viz",
+    "itemCount": 32
+  },
+  {
+    "id": "db-eng",
+    "name": "Db Eng",
+    "itemCount": 39
+  },
+  {
+    "id": "decision-flow-control",
+    "name": "Decision Flow Control",
+    "itemCount": 8
+  },
+  {
+    "id": "dsa-ii",
+    "name": "DSA II",
+    "itemCount": 22
+  },
+  {
+    "id": "system-design",
+    "name": "System Design",
+    "itemCount": 24
+  },
+  {
+    "id": "system-design-template",
+    "name": "System Design Template",
+    "itemCount": 8
+  },
+  {
+    "id": "systems-design-components",
+    "name": "Systems Design Components",
+    "itemCount": 6
+  }
+]
