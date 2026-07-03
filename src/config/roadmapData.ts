@@ -37,7 +37,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '01',
     name: 'Data Structures & Algorithms',
     difficulty: 'Medium',
-    hours: 45,
+    hours: 88,
     visualizerAvailable: true,
     learningStatus: 'Not Started',
     description: 'Master data organization and computational routines.',
@@ -352,7 +352,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '02',
     name: 'Game Developer',
     difficulty: 'Medium',
-    hours: 150,
+    hours: 122,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Master Game Mathematics, Physics Engine, Programming Languages, Game Engines, Computer Graphics, Lighting, Visibility, Game AI, APIs, and Advanced physically-based rendering.',
@@ -655,7 +655,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '03',
     name: 'Backend',
     difficulty: 'Medium',
-    hours: 120,
+    hours: 137,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Learn languages, internet foundations, relational/NoSQL databases, APIs, security, caching, containerization, scaling, and AI in development.',
@@ -1333,7 +1333,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '05',
     name: 'Android Development',
     difficulty: 'Medium',
-    hours: 100,
+    hours: 97,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Learn Kotlin, Java, core App Components, Jetpack Compose layouts, legacy XML views, storage options, networking APIs, debugging, and distribution frameworks.',
@@ -1617,7 +1617,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '06',
     name: 'System Design & Distributed Systems',
     difficulty: 'Hard',
-    hours: 44,
+    hours: 106,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Load balancers, LRU caches, Kafka event streaming, and Raft consensus.',
@@ -1911,7 +1911,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '07',
     name: 'Machine Learning',
     difficulty: 'Hard',
-    hours: 45,
+    hours: 86,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Matrix algebra, probability, data processing, and supervised/unsupervised algorithms.',
@@ -2171,7 +2171,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '08',
     name: 'AI & Data Scientist',
     difficulty: 'Hard',
-    hours: 40,
+    hours: 49,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Advanced mathematics, statistics, econometrics, exploratory data analysis, machine learning, deep learning, MLOps, prompt engineering, and vibe coding.',
@@ -2416,7 +2416,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '09',
     name: 'Full Stack Development',
     difficulty: 'Medium',
-    hours: 78,
+    hours: 33,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Master frontend markup, styling, React components, Node.js servers, databases, caching, and CI/CD operations.',
@@ -3205,4 +3205,629 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
       }
     ]
   }
+,
+  {
+    id: 'data-engineering',
+    number: '13',
+    name: 'Data Engineer',
+    difficulty: 'Hard',
+    hours: 58,
+    visualizerAvailable: false,
+    learningStatus: 'Not Started',
+    description: 'Learn the foundational and advanced concepts of Data Engineering, from data generation to data serving.',
+    topics: [
+      {
+        id: 'de-intro',
+        name: 'Introduction',
+        description: 'What is data engineering and its lifecycle.',
+        concepts: [
+          {
+            id: 'de-intro-concept',
+            name: 'Introduction to DE',
+            subtopics: [
+              { id: 'de-intro-what-is', name: 'What is Data Engineering?', blogSlug: 'de-intro-what-is' },
+              { id: 'de-intro-vs-ds', name: 'Data Engineering vs Data Science', blogSlug: 'de-intro-vs-ds' },
+              { id: 'de-intro-skills', name: 'Skills and Responsibilities', blogSlug: 'de-intro-skills' },
+              { id: 'de-intro-lifecycle', name: 'Data Engineering Lifecycle', blogSlug: 'de-intro-lifecycle' },
+              { id: 'de-intro-tech', name: 'Choosing the Right Technologies', blogSlug: 'de-intro-tech' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-basics',
+        name: 'Learn the Basics',
+        description: 'Programming skills and core fundamentals.',
+        concepts: [
+          {
+            id: 'de-basics-prog',
+            name: 'Programming Skills',
+            subtopics: [
+              { id: 'de-basics-programming', name: 'Python, Java, Scala, Go', blogSlug: 'de-basics-programming' }
+            ]
+          },
+          {
+            id: 'de-basics-fundamentals',
+            name: 'Fundamentals',
+            subtopics: [
+              { id: 'de-basics-dsa', name: 'Data Structures and Algorithms', blogSlug: 'de-basics-dsa' },
+              { id: 'de-basics-git', name: 'Git and GitHub', blogSlug: 'de-basics-git' },
+              { id: 'de-basics-linux', name: 'Linux Basics', blogSlug: 'de-basics-linux' },
+              { id: 'de-basics-network', name: 'Networking Fundamentals', blogSlug: 'de-basics-network' },
+              { id: 'de-basics-distributed', name: 'Distributed Systems Basics', blogSlug: 'de-basics-distributed' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-lifecycle',
+        name: 'Data Engineering Lifecycle',
+        description: 'Understand Different Steps.',
+        concepts: [
+          {
+            id: 'de-lifecycle-steps',
+            name: 'Understand Different Steps',
+            subtopics: [
+              { id: 'de-lifecycle-generation', name: 'Data Generation', blogSlug: 'de-lifecycle-generation' },
+              { id: 'de-lifecycle-storage', name: 'Data Storage', blogSlug: 'de-lifecycle-storage' },
+              { id: 'de-lifecycle-ingestion', name: 'Data Ingestion', blogSlug: 'de-lifecycle-ingestion' },
+              { id: 'de-lifecycle-serving', name: 'Data Serving', blogSlug: 'de-lifecycle-serving' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-gen',
+        name: 'Data Generation',
+        description: 'Sources of Data and Considerations.',
+        concepts: [
+          {
+            id: 'de-gen-sources',
+            name: 'Sources of Data',
+            subtopics: [
+              { id: 'de-gen-sources-all', name: 'Database, APIs, Logs, Mobile Apps, IoT', blogSlug: 'de-gen-sources' }
+            ]
+          },
+          {
+            id: 'de-gen-cons',
+            name: 'Data Collection Considerations',
+            subtopics: [
+              { id: 'de-gen-considerations', name: 'Collection Considerations', blogSlug: 'de-gen-considerations' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-db',
+        name: 'Database Fundamentals',
+        description: 'Database design and scaling concepts.',
+        concepts: [
+          {
+            id: 'de-db-fundamentals',
+            name: 'Core Concepts',
+            subtopics: [
+              { id: 'de-db-normalization', name: 'Data Normalization', blogSlug: 'de-db-normalization' },
+              { id: 'de-db-modelling', name: 'Data Modelling Techniques', blogSlug: 'de-db-modelling' },
+              { id: 'de-db-cap', name: 'CAP Theorem', blogSlug: 'de-db-cap' },
+              { id: 'de-db-oltp-olap', name: 'OLTP vs OLAP', blogSlug: 'de-db-oltp-olap' }
+            ]
+          },
+          {
+            id: 'de-model-concepts',
+            name: 'Data Modeling Concepts',
+            subtopics: [
+              { id: 'de-model-scd', name: 'Slowly Changing Dimension - SCD', blogSlug: 'de-model-scd' },
+              { id: 'de-model-scaling', name: 'Horizontal vs Vertical Scaling', blogSlug: 'de-model-scaling' },
+              { id: 'de-model-star-snowflake', name: 'Star vs Snowflake Schema', blogSlug: 'de-model-star-snowflake' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-storage',
+        name: 'Data Storage',
+        description: 'Where to store your data.',
+        concepts: [
+          {
+            id: 'de-storage-relational',
+            name: 'Relational Databases',
+            subtopics: [
+              { id: 'de-storage-relational-all', name: 'MySQL, PostgreSQL, MariaDB, Aurora DB, Oracle, MS SQL', blogSlug: 'de-storage-relational' }
+            ]
+          },
+          {
+            id: 'de-storage-nosql',
+            name: 'NoSQL Databases',
+            subtopics: [
+              { id: 'de-storage-nosql-all', name: 'Document, Column, Graph, Key-Value', blogSlug: 'de-storage-nosql' }
+            ]
+          },
+          {
+            id: 'de-storage-warehouse',
+            name: 'Data Warehousing',
+            subtopics: [
+              { id: 'de-storage-warehouse-all', name: 'BigQuery, Snowflake, Redshift, Architectures', blogSlug: 'de-storage-warehouse' }
+            ]
+          },
+          {
+            id: 'de-storage-datalake',
+            name: 'Data Lake',
+            subtopics: [
+              { id: 'de-storage-datalake-all', name: 'Databricks, Snowflake, Onehouse', blogSlug: 'de-storage-datalake' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-ingest',
+        name: 'Data Ingestion',
+        description: 'How to move data.',
+        concepts: [
+          {
+            id: 'de-ingest-types',
+            name: 'Types of Data Ingestion',
+            subtopics: [
+              { id: 'de-ingest-types-all', name: 'Batch, Hybrid, Realtime', blogSlug: 'de-ingest-types' }
+            ]
+          },
+          {
+            id: 'de-ingest-pipelines',
+            name: 'Data Pipelines',
+            subtopics: [
+              { id: 'de-ingest-etl', name: 'ETL Process', blogSlug: 'de-ingest-etl' },
+              { id: 'de-ingest-tools', name: 'Data Pipeline Tools (Airflow, dbt, etc.)', blogSlug: 'de-ingest-tools' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-cloud',
+        name: 'Cloud Computing',
+        description: 'Cloud architectures and providers.',
+        concepts: [
+          {
+            id: 'de-cloud-all',
+            name: 'Cloud Foundations',
+            subtopics: [
+              { id: 'de-cloud-architectures', name: 'Cloud Architectures', blogSlug: 'de-cloud-architectures' },
+              { id: 'de-cloud-providers', name: 'Cloud Providers (AWS, Azure, GCP)', blogSlug: 'de-cloud-providers' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-cluster',
+        name: 'Cluster Computing Basics',
+        description: 'Cluster fundamentals.',
+        concepts: [
+          {
+            id: 'de-cluster-concepts',
+            name: 'Cluster Concepts',
+            subtopics: [
+              { id: 'de-cluster-what-is', name: 'What is Cluster Computing', blogSlug: 'de-cluster-what-is' },
+              { id: 'de-cluster-hdfs', name: 'Distributed File Systems (HDFS)', blogSlug: 'de-cluster-hdfs' },
+              { id: 'de-cluster-jobs', name: 'Job Scheduling', blogSlug: 'de-cluster-jobs' },
+              { id: 'de-cluster-management', name: 'Cluster Management Tools (K8s, YARN)', blogSlug: 'de-cluster-management' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-bigdata',
+        name: 'Big Data Tools',
+        description: 'Spark and Hadoop ecosystem.',
+        concepts: [
+          {
+            id: 'de-bigdata-concepts',
+            name: 'Tools & Ecosystems',
+            subtopics: [
+              { id: 'de-bigdata-spark', name: 'Apache Spark', blogSlug: 'de-bigdata-spark' },
+              { id: 'de-bigdata-hadoop', name: 'Hadoop Ecosystem', blogSlug: 'de-bigdata-hadoop' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-containers',
+        name: 'Containers & Orchestration',
+        description: 'Docker and Kubernetes.',
+        concepts: [
+          {
+            id: 'de-containers-tools',
+            name: 'Containerization Tools',
+            subtopics: [
+              { id: 'de-containers-all', name: 'Docker, Kubernetes, GKE, EKS', blogSlug: 'de-containers' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-cicd',
+        name: 'CI/CD & Monitoring',
+        description: 'Deployment and observability.',
+        concepts: [
+          {
+            id: 'de-cicd-concepts',
+            name: 'Pipelines & Observation',
+            subtopics: [
+              { id: 'de-cicd-tools', name: 'GitHub Actions, Circle CI, GitLab CI, ArgoCD', blogSlug: 'de-cicd' },
+              { id: 'de-monitoring-tools', name: 'Prometheus, Datadog, Sentry, New Relic', blogSlug: 'de-monitoring' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-message',
+        name: 'Messaging Systems',
+        description: 'Async queues and streams.',
+        concepts: [
+          {
+            id: 'de-message-concepts',
+            name: 'Messaging Fundamentals',
+            subtopics: [
+              { id: 'de-message-why', name: 'What and why use them?', blogSlug: 'de-message-why' },
+              { id: 'de-message-async', name: 'Async vs Sync Communication', blogSlug: 'de-message-async' },
+              { id: 'de-message-streams', name: 'Messages vs Streams', blogSlug: 'de-message-streams' },
+              { id: 'de-message-practices', name: 'Best Practices', blogSlug: 'de-message-practices' },
+              { id: 'de-message-tools', name: 'Common Tools (Kafka, RabbitMQ, etc.)', blogSlug: 'de-message-tools' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-testing',
+        name: 'Testing & IaC',
+        description: 'Ensuring code and infrastructure quality.',
+        concepts: [
+          {
+            id: 'de-testing-concepts',
+            name: 'Testing Types',
+            subtopics: [
+              { id: 'de-testing-types', name: 'Unit, Integration, E2E, Load Testing...', blogSlug: 'de-testing-types' }
+            ]
+          },
+          {
+            id: 'de-iac-concepts',
+            name: 'Infrastructure as Code',
+            subtopics: [
+              { id: 'de-iac-fundamentals', name: 'Declarative vs Imperative, Idempotency', blogSlug: 'de-iac-concepts' },
+              { id: 'de-iac-tools-list', name: 'Common Tools (Terraform, CDK)', blogSlug: 'de-iac-tools' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-security',
+        name: 'Security & Governance',
+        description: 'Data protection and compliance.',
+        concepts: [
+          {
+            id: 'de-security-concepts',
+            name: 'Security Principles',
+            subtopics: [
+              { id: 'de-security-all', name: 'Auth, Encryption, Masking', blogSlug: 'de-security-concepts' }
+            ]
+          },
+          {
+            id: 'de-gov-concepts',
+            name: 'Data Governance & Privacy',
+            subtopics: [
+              { id: 'de-gov-all', name: 'Data Quality, Lineage, Metadata', blogSlug: 'de-gov-concepts' },
+              { id: 'de-privacy-all', name: 'GDPR, ECPA, EU AI Act', blogSlug: 'de-privacy-regulations' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-serving',
+        name: 'Data Serving',
+        description: 'Analytics, BI, and ML.',
+        concepts: [
+          {
+            id: 'de-serving-concepts',
+            name: 'Serving Layer',
+            subtopics: [
+              { id: 'de-serving-analytics', name: 'Data Analytics', blogSlug: 'de-serving-analytics' },
+              { id: 'de-serving-bi', name: 'Business Intelligence & BI Tools', blogSlug: 'de-serving-bi' },
+              { id: 'de-serving-reverse-etl', name: 'Reverse ETL', blogSlug: 'de-serving-reverse-etl' }
+            ]
+          },
+          {
+            id: 'de-ml-concepts',
+            name: 'Machine Learning',
+            subtopics: [
+              { id: 'de-ml-basics', name: 'Machine Learning Basics', blogSlug: 'de-ml' },
+              { id: 'de-mlops', name: 'MLOps', blogSlug: 'de-mlops' }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'android-development',
+    number: '05',
+    name: 'Android Development',
+    difficulty: 'Medium',
+    hours: 97,
+    visualizerAvailable: false,
+    learningStatus: 'Not Started',
+    description: 'Learn Kotlin, Java, core App Components, Jetpack Compose layouts, legacy XML views, storage options, networking APIs, debugging, and distribution frameworks.',
+    topics: [
+      {
+        id: 'android-languages-intro',
+        name: 'Pick a Language & VCS',
+        description: 'VCS services, languages, and version control.',
+        concepts: [
+          {
+            id: 'pick-android-language',
+            name: 'Pick a Language',
+            subtopics: [
+              { id: 'android-lang-kotlin', name: 'Kotlin', blogSlug: 'android-lang-kotlin' },
+              { id: 'android-lang-java', name: 'Java', blogSlug: 'android-lang-java' }
+            ]
+          },
+          {
+            id: 'android-vcs-concepts',
+            name: 'Version Control Systems',
+            subtopics: [
+              { id: 'android-git', name: 'Git', blogSlug: 'android-git' }
+            ]
+          },
+          {
+            id: 'android-vcs-hosting',
+            name: 'VCS Hosting',
+            subtopics: [
+              { id: 'android-github', name: 'GitHub', blogSlug: 'android-github' },
+              { id: 'android-bitbucket', name: 'Bitbucket', blogSlug: 'android-bitbucket' },
+              { id: 'android-gitlab', name: 'GitLab', blogSlug: 'android-gitlab' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-fundamentals-gradle',
+        name: 'The Fundamentals & Core Components',
+        description: 'Development environment, Gradle configuration, lifecycle states, and intents.',
+        concepts: [
+          {
+            id: 'android-basics',
+            name: 'Android Core Fundamentals',
+            subtopics: [
+              { id: 'android-ide', name: 'Development IDE', blogSlug: 'android-ide' },
+              { id: 'android-kotlin-basics', name: 'Basics of Kotlin', blogSlug: 'android-kotlin-basics' },
+              { id: 'android-oop-basics', name: 'Basics of OOP', blogSlug: 'android-oop-basics' },
+              { id: 'android-dsa-basics', name: 'Data Structures and Algorithms', blogSlug: 'android-dsa-basics' },
+              { id: 'android-gradle', name: 'What is and how to use Gradle?', blogSlug: 'android-gradle' },
+              { id: 'android-hello-world', name: 'Create a Basic Hello World App', blogSlug: 'android-hello-world' }
+            ]
+          },
+          {
+            id: 'android-components',
+            name: 'Core Components',
+            subtopics: [
+              { id: 'android-activity-lifecycle', name: 'Activity LifeCycle', blogSlug: 'android-activity-lifecycle' },
+              { id: 'android-state-changes', name: 'State Changes', blogSlug: 'android-state-changes' },
+              { id: 'android-tasks-backstack', name: 'Tasks & Backstack', blogSlug: 'android-tasks-backstack' },
+              { id: 'android-implicit-intents', name: 'Implicit Intents', blogSlug: 'android-implicit-intents' },
+              { id: 'android-explicit-intents', name: 'Explicit Intents', blogSlug: 'android-explicit-intents' },
+              { id: 'android-intent-filters', name: 'Intent Filters', blogSlug: 'android-intent-filters' },
+              { id: 'android-content-provider', name: 'Content Provider', blogSlug: 'android-content-provider' },
+              { id: 'android-broadcast-receiver', name: 'Broadcast Receiver', blogSlug: 'android-broadcast-receiver' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-layouts-compose',
+        name: 'Interface & Navigation',
+        description: 'Jetpack Compose components, states, side effects, and legacy XML layout structures.',
+        concepts: [
+          {
+            id: 'android-jetpack-compose',
+            name: 'Jetpack Compose UI',
+            subtopics: [
+              { id: 'compose-column-row', name: 'Column / Row', blogSlug: 'compose-column-row' },
+              { id: 'compose-lazy-column-row', name: 'Lazy Column / Row', blogSlug: 'compose-lazy-column-row' },
+              { id: 'compose-box', name: 'Box', blogSlug: 'compose-box' },
+              { id: 'compose-scaffold', name: 'Scaffold', blogSlug: 'compose-scaffold' },
+              { id: 'compose-constraint-layout', name: 'ConstraintLayout', blogSlug: 'compose-constraint-layout' },
+              { id: 'compose-text', name: 'Text Element', blogSlug: 'compose-text' },
+              { id: 'compose-button', name: 'Button Element', blogSlug: 'compose-button' },
+              { id: 'compose-icon', name: 'Icon Element', blogSlug: 'compose-icon' },
+              { id: 'compose-image', name: 'Image Element', blogSlug: 'compose-image' },
+              { id: 'compose-textfield', name: 'TextField Element', blogSlug: 'compose-textfield' },
+              { id: 'compose-card', name: 'Card Element', blogSlug: 'compose-card' },
+              { id: 'compose-bottomsheet', name: 'BottomSheet', blogSlug: 'compose-bottomsheet' },
+              { id: 'compose-tabrow', name: 'TabRow', blogSlug: 'compose-tabrow' },
+              { id: 'compose-dialog', name: 'Dialog', blogSlug: 'compose-dialog' },
+              { id: 'compose-animations', name: 'Animations', blogSlug: 'compose-animations' },
+              { id: 'compose-drawer', name: 'Drawer', blogSlug: 'compose-drawer' }
+            ]
+          },
+          {
+            id: 'android-compose-state',
+            name: 'Compose State & Navigation',
+            subtopics: [
+              { id: 'compose-navhost', name: 'NavHost', blogSlug: 'compose-navhost' },
+              { id: 'compose-remember-state', name: 'remember / State', blogSlug: 'compose-remember-state' },
+              { id: 'compose-viewmodel-state', name: 'ViewModel state', blogSlug: 'compose-viewmodel-state' },
+              { id: 'compose-side-effects', name: 'Side effects', blogSlug: 'compose-side-effects' }
+            ]
+          },
+          {
+            id: 'android-legacy-views',
+            name: 'Legacy XML Views',
+            subtopics: [
+              { id: 'xml-textview', name: 'TextView', blogSlug: 'xml-textview' },
+              { id: 'xml-imageview', name: 'ImageView', blogSlug: 'xml-imageview' },
+              { id: 'xml-fragments', name: 'Fragments', blogSlug: 'xml-fragments' },
+              { id: 'xml-recyclerview', name: 'RecyclerView', blogSlug: 'xml-recyclerview' },
+              { id: 'xml-constraint', name: 'ConstraintLayout XML', blogSlug: 'xml-constraint' }
+            ]
+          },
+          {
+            id: 'android-navigation-components',
+            name: 'Navigation Components',
+            subtopics: [
+              { id: 'android-jetpack-compose-core', name: 'Jetpack Compose Layout', blogSlug: 'android-jetpack-compose-core' },
+              { id: 'android-app-shortcuts', name: 'App Shortcuts', blogSlug: 'android-app-shortcuts' },
+              { id: 'android-navigation-core', name: 'Navigation Components', blogSlug: 'android-navigation-core' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-design-architecture',
+        name: 'Design & Architecture',
+        description: 'Architectural patterns, code design patterns, and dependency injections.',
+        concepts: [
+          {
+            id: 'android-arch-patterns',
+            name: 'Architectural Patterns',
+            subtopics: [
+              { id: 'arch-mvi', name: 'MVI', blogSlug: 'arch-mvi' },
+              { id: 'arch-mvvm', name: 'MVVM', blogSlug: 'arch-mvvm' },
+              { id: 'arch-mvp', name: 'MVP', blogSlug: 'arch-mvp' },
+              { id: 'arch-mvc', name: 'MVC', blogSlug: 'arch-mvc' }
+            ]
+          },
+          {
+            id: 'android-design-patterns',
+            name: 'Design Patterns',
+            subtopics: [
+              { id: 'pattern-android-repository', name: 'Repository Pattern', blogSlug: 'pattern-android-repository' },
+              { id: 'pattern-android-builder', name: 'Builder Pattern', blogSlug: 'pattern-android-builder' },
+              { id: 'pattern-android-factory', name: 'Factory Pattern', blogSlug: 'pattern-android-factory' },
+              { id: 'pattern-android-observer', name: 'Observer Pattern', blogSlug: 'pattern-android-observer' },
+              { id: 'pattern-android-flow', name: 'Flow', blogSlug: 'pattern-android-flow' },
+              { id: 'pattern-android-rxkotlin', name: 'RxKotlin', blogSlug: 'pattern-android-rxkotlin' },
+              { id: 'pattern-android-rxjava', name: 'RxJava', blogSlug: 'pattern-android-rxjava' },
+              { id: 'pattern-android-livedata', name: 'LiveData', blogSlug: 'pattern-android-livedata' }
+            ]
+          },
+          {
+            id: 'android-di',
+            name: 'Dependency Injection',
+            subtopics: [
+              { id: 'di-dagger', name: 'Dagger', blogSlug: 'di-dagger' },
+              { id: 'di-hilt', name: 'Hilt', blogSlug: 'di-hilt' },
+              { id: 'di-koin', name: 'Koin', blogSlug: 'di-koin' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-data-network',
+        name: 'Storage, Network & Asynchronism',
+        description: 'Room persistence database, Retrofit network requests, threads, and coroutine execution.',
+        concepts: [
+          {
+            id: 'android-storage',
+            name: 'Storage Options',
+            subtopics: [
+              { id: 'storage-shared-preferences', name: 'Shared Preferences', blogSlug: 'storage-shared-preferences' },
+              { id: 'storage-datastore', name: 'DataStore', blogSlug: 'storage-datastore' },
+              { id: 'storage-room', name: 'Room Database', blogSlug: 'storage-room' },
+              { id: 'storage-filesystem', name: 'File System', blogSlug: 'storage-filesystem' }
+            ]
+          },
+          {
+            id: 'android-security',
+            name: 'Security',
+            subtopics: [
+              { id: 'android-security-keystore', name: 'Cryptography / Keystore', blogSlug: 'android-security-keystore' }
+            ]
+          },
+          {
+            id: 'android-network',
+            name: 'Network Tier',
+            subtopics: [
+              { id: 'network-retrofit', name: 'Retrofit', blogSlug: 'network-retrofit' },
+              { id: 'network-okhttp', name: 'OkHttp', blogSlug: 'network-okhttp' },
+              { id: 'network-apollo', name: 'Apollo-Android', blogSlug: 'network-apollo' },
+              { id: 'android-logger-timber', name: 'Timber', blogSlug: 'android-logger-timber' },
+              { id: 'android-leakcanary', name: 'Leak Canary', blogSlug: 'android-leakcanary' },
+              { id: 'android-chucker', name: 'Chucker', blogSlug: 'android-chucker' },
+              { id: 'android-benchmark', name: 'Jetpack Benchmark', blogSlug: 'android-benchmark' }
+            ]
+          },
+          {
+            id: 'android-async',
+            name: 'Asynchronism',
+            subtopics: [
+              { id: 'async-coroutines', name: 'Coroutines', blogSlug: 'async-coroutines' },
+              { id: 'async-threads', name: 'Threads', blogSlug: 'async-threads' },
+              { id: 'async-rxjava', name: 'RxJava Async', blogSlug: 'async-rxjava' },
+              { id: 'async-rxkotlin', name: 'RxKotlin Async', blogSlug: 'async-rxkotlin' },
+              { id: 'async-workmanager', name: 'WorkManager', blogSlug: 'async-workmanager' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-testing-debugging',
+        name: 'Testing & Debugging',
+        description: 'Espresso unit checks, static lint configurations, and ADB debugging services.',
+        concepts: [
+          {
+            id: 'android-testing',
+            name: 'Testing Frameworks',
+            subtopics: [
+              { id: 'test-espresso', name: 'Espresso', blogSlug: 'test-espresso' },
+              { id: 'test-junit', name: 'JUnit', blogSlug: 'test-junit' }
+            ]
+          },
+          {
+            id: 'android-linting',
+            name: 'Linting & Checking',
+            subtopics: [
+              { id: 'lint-ktlint', name: 'Ktlint', blogSlug: 'lint-ktlint' },
+              { id: 'lint-detekt', name: 'Detekt', blogSlug: 'lint-detekt' }
+            ]
+          },
+          {
+            id: 'android-debugging',
+            name: 'Debugging Tools',
+            subtopics: [
+              { id: 'android-adb-debugging', name: 'Android Debug Bridge / Profiler', blogSlug: 'android-adb-debugging' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-distribution-services',
+        name: 'Common Services & Distribution',
+        description: 'Firebase cloud settings, Google play configurations, and app releases.',
+        concepts: [
+          {
+            id: 'android-common-services',
+            name: 'Common Services',
+            subtopics: [
+              { id: 'service-firebase-auth', name: 'Authentication', blogSlug: 'service-firebase-auth' },
+              { id: 'service-crashlytics', name: 'Crashlytics', blogSlug: 'service-crashlytics' },
+              { id: 'service-remote-config', name: 'Remote Config', blogSlug: 'service-remote-config' },
+              { id: 'service-cloud-messaging', name: 'Cloud Messaging', blogSlug: 'service-cloud-messaging' },
+              { id: 'service-firestore', name: 'FireStore', blogSlug: 'service-firestore' },
+              { id: 'service-firebase-core', name: 'Firebase SDK', blogSlug: 'service-firebase-core' },
+              { id: 'service-admob', name: 'Google Admob', blogSlug: 'service-admob' },
+              { id: 'service-play-services', name: 'Google Play Services', blogSlug: 'service-play-services' },
+              { id: 'service-maps', name: 'Google Maps', blogSlug: 'service-maps' }
+            ]
+          },
+          {
+            id: 'android-distribution',
+            name: 'App Distribution',
+            subtopics: [
+              { id: 'dist-signed-apk', name: 'Signed APK', blogSlug: 'dist-signed-apk' },
+              { id: 'dist-firebase', name: 'Firebase Distribution', blogSlug: 'dist-firebase' },
+              { id: 'dist-playstore', name: 'Google Playstore', blogSlug: 'dist-playstore' }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+
 ];
+

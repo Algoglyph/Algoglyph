@@ -9,7 +9,7 @@ import {
   Search
 } from 'lucide-react';
 import { ROADMAP_ZONES } from '../config/roadmapData';
-import type { Concept, Topic } from '../config/roadmapData';
+import type { Concept, RoadmapZone, Topic } from '../config/roadmapData';
 import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
 import { ML_BLOG_DATA } from '../config/mlBlogData';
@@ -127,7 +127,13 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     );
   }, []);
 
-  const totalHours = ROADMAP_ZONES.reduce((sum, z) => sum + z.hours, 0);
+  const getZoneSubtopicCount = (zone: RoadmapZone) =>
+    zone.topics.reduce((topicSum, topic) =>
+      topicSum + topic.concepts.reduce((conceptSum, concept) => conceptSum + concept.subtopics.length, 0), 0);
+
+  const getModuleHours = (zone: RoadmapZone) => getZoneSubtopicCount(zone);
+
+  const totalHours = ROADMAP_ZONES.reduce((sum, z) => sum + getModuleHours(z), 0);
   const totalConcepts = allSubConcepts.length;
 
   const activeModule = useMemo(() => {
@@ -328,7 +334,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         {/* Header Block */}
         <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
           <div className="flex flex-col gap-2">
-            <span className="text-blue-400 text-[10px] font-sans font-semibold tracking-[0.08em]">
+            <span className="text-white text-[10px] font-sans font-semibold tracking-[0.08em]">
               {label || activeModule?.name.toUpperCase()}
             </span>
             <h2 className="text-xl font-bold text-white tracking-tight font-sans">
@@ -372,7 +378,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   <h3 className="font-semibold text-[15px] text-white mt-3 tracking-tight font-sans">
                     {concept.name}
                   </h3>
-                  <p className="text-[12px] leading-relaxed text-zinc-400 mt-2 font-sans font-normal line-clamp-2">
+                  <p className="text-[12px] leading-relaxed text-white mt-2 font-sans font-normal line-clamp-2">
                     {preview}
                   </p>
                 </div>
@@ -409,6 +415,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               activeModuleId === 'machine-learning' ||
               activeModuleId === 'ai-data-scientist' ||
               activeModuleId === 'backend' ||
+              activeModuleId === 'data-engineering' ||
               activeModuleId === 'android-development' ||
               activeModuleId === 'software-engineering' ||
               activeModuleId === 'game-developer')
@@ -717,6 +724,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {ROADMAP_ZONES.map((module) => {
               const { status, percent, total } = getModuleStatusStats(module.id);
+              const moduleHours = getModuleHours(module);
               return (
                 <Link
                   key={module.id}
@@ -751,7 +759,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                     <div className="flex items-center justify-between font-mono text-[10px] text-zinc-505">
                       <span className="flex items-center gap-1">
                         <Clock size={11} />
-                        {module.hours} hrs
+                        {moduleHours} hrs
                       </span>
                       <span>{total} subtopics</span>
                     </div>
@@ -791,6 +799,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         activeModuleId === 'blockchain' ||
         activeModuleId === 'cyber-security' ||
         activeModuleId === 'product-manager' ||
+        activeModuleId === 'data-engineering' ||
         activeModuleId === 'android-development' ||
         activeModuleId === 'software-engineering' ||
         activeModuleId === 'game-developer') &&
@@ -1062,3 +1071,5 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     </div>
   );
 };
+
+
