@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { useWorkspaceStore } from '../store/workspaceStore';
 import { ROADMAP_ZONES } from '../config/roadmapData';
 
 interface RoadmapConvergenceProps {
@@ -47,6 +48,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
   
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
+  const isDark = useWorkspaceStore((state) => state.theme) === 'dark';
   useEffect(() => {
     queryRef.current = query.trim().toLowerCase();
   }, [query]);
@@ -225,7 +227,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         canvas.style.cursor = 'grabbing';
         try {
           canvas.setPointerCapture(e.pointerId);
-        } catch (err) {}
+        } catch { /* pointer capture unsupported */ }
       }
     };
 
@@ -239,7 +241,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         }
         try {
           canvas.releasePointerCapture(e.pointerId);
-        } catch (err) {}
+        } catch { /* pointer capture unsupported */ }
 
         if (wasClick && n && n.zoneId) {
           navigate(`/roadmap/${n.zoneId}`);
@@ -391,8 +393,8 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         }
 
         ctx.strokeStyle = hoveredId && (e.a === hoveredId || e.b === hoveredId) 
-          ? 'rgba(255, 255, 255, 0.6)' 
-          : `rgba(63, 63, 70, ${alpha})`;
+          ? (isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(38, 35, 26, 0.6)')
+          : (isDark ? `rgba(255, 255, 255, ${alpha * 0.4})` : `rgba(38, 35, 26, ${alpha * 0.4})`);
         ctx.lineWidth = hoveredId && (e.a === hoveredId || e.b === hoveredId) ? 1.4 : 0.9;
         
         ctx.beginPath();
@@ -411,16 +413,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         let radius = RADIUS[n.kind];
         let fill = `rgba(228, 228, 231, ${alpha})`; // gray node default
 
-        // Map status colors for curriculum zones
-        if (n.kind === 'zone') {
-          const index = ROADMAP_ZONES.findIndex(z => z.id === n.zoneId);
-          if (index !== -1) {
-            const stats = zoneStats[index];
-            fill = stats.color;
-          }
-        } else {
-          fill = '#ffffff'; // root is always white
-        }
+        fill = isDark ? '#ffffff' : '#26231a';
 
         if (hasQuery) {
           if (matches) {
@@ -439,7 +432,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         // Apply glow for hover/search matches
         if (isHovered || matches) {
           const glowGrad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, radius * 3.5);
-          glowGrad.addColorStop(0, n.kind === 'root' ? 'rgba(255,255,255,0.25)' : 'rgba(255, 255, 255, 0.35)');
+          glowGrad.addColorStop(0, isDark ? 'rgba(255, 255, 255, 0.35)' : 'rgba(38, 35, 26, 0.25)');
           glowGrad.addColorStop(1, 'transparent');
           ctx.fillStyle = glowGrad;
           ctx.beginPath();
@@ -449,7 +442,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
 
         // Draw outer ring if hovered
         if (isHovered) {
-          ctx.strokeStyle = '#ffffff';
+          ctx.strokeStyle = isDark ? '#ffffff' : '#26231a';
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.arc(n.x, n.y, radius + 3, 0, Math.PI * 2);
@@ -474,8 +467,8 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
             : '500 9.5px sans-serif';
           
           ctx.fillStyle = isHovered || matches 
-            ? '#ffffff' 
-            : 'rgba(228, 228, 231, 0.75)';
+            ? (isDark ? '#ffffff' : '#26231a')
+            : (isDark ? 'rgba(228, 228, 231, 0.75)' : 'rgba(38, 35, 26, 0.75)');
           
           ctx.textAlign = 'center';
           const tw = ctx.measureText(n.label).width;
@@ -524,26 +517,26 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
   }, [nodes, edges, zoneStats]);
 
   return (
-    <section className="relative w-full py-10 flex flex-col items-center justify-center border-t border-zinc-800/60 mt-10">
+    <section className="relative w-full py-10 flex flex-col items-center justify-center border-t border-[var(--rm-border)] mt-10">
       <div className="relative z-10 w-full flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex flex-col gap-1 text-left">
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-[var(--rm-text)] tracking-tight">
             Curriculum Overview Map
           </h2>
-          <p className="max-w-xl text-[12.5px] text-zinc-400 font-sans">
+          <p className="max-w-xl text-[12.5px] text-[var(--rm-text-muted)] font-sans">
             Visualize the structural connections across all ten domains. Click to open, drag nodes to wiggle.
           </p>
         </div>
 
         <div className="w-full sm:w-72 shrink-0">
-          <div className="flex items-center gap-2 border border-zinc-800 bg-zinc-950/60 rounded-lg px-3 py-2 transition focus-within:border-white/20 focus-within:bg-zinc-900/60 focus-within:ring-1 focus-within:ring-white/10">
-            <Search size={14} className="text-zinc-500 shrink-0" />
+          <div className="flex items-center gap-2 border border-[var(--rm-border)] bg-[var(--rm-bg)] rounded-lg px-3 py-2 transition focus-within:border-[var(--rm-border-strong)] focus-within:ring-1 focus-within:ring-[var(--rm-border-strong)]">
+            <Search size={14} className="text-[var(--rm-text-faint)] shrink-0" />
             <input
               type="text"
               placeholder="Highlight a domain…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="bg-transparent border-none text-[12px] text-zinc-200 !outline-none focus-visible:!outline-none w-full placeholder-zinc-500 font-sans"
+              className="bg-transparent border-none text-[12px] text-[var(--rm-text)] !outline-none focus-visible:!outline-none w-full placeholder-[var(--rm-text-faint)] font-sans"
             />
           </div>
         </div>
@@ -551,20 +544,20 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
 
       <div 
         ref={wrapRef} 
-        className="relative z-10 w-full h-[460px] bg-zinc-950/40 border border-zinc-800 rounded-xl overflow-hidden"
+        className="relative z-10 w-full h-[460px] bg-[var(--rm-bg)] border border-[var(--rm-border)] rounded-xl overflow-hidden"
       >
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full touch-none"
         />
-        <div className="absolute bottom-3 right-4 font-mono text-[9px] text-zinc-600 pointer-events-none">
+        <div className="absolute bottom-3 right-4 font-mono text-[9px] text-[var(--rm-text-faint)] pointer-events-none">
           drag to rearrange · click any node to navigate
         </div>
       </div>
 
       <button
         onClick={onLaunch}
-        className="mt-8 px-5 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white text-[12.5px] font-medium transition cursor-pointer font-sans"
+        className="mt-8 px-5 py-2.5 rounded-lg bg-[var(--rm-btn-bg)] hover:bg-[var(--rm-btn-hover)] border border-[var(--rm-btn-border)] text-[var(--rm-btn-text)] text-[12.5px] font-medium transition cursor-pointer font-sans"
       >
         Open Workspace Sandbox
       </button>

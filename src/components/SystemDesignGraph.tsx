@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
+import { useWorkspaceStore } from '../store/workspaceStore';
 import type { RoadmapZone } from '../config/roadmapData';
 
 /**
@@ -60,6 +61,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
   const wrapRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
+  const isDark = useWorkspaceStore((state) => state.theme) === 'dark';
   useEffect(() => {
     queryRef.current = query.trim().toLowerCase();
   }, [query]);
@@ -238,7 +240,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
         canvas.style.cursor = 'grabbing';
         try {
           canvas.setPointerCapture(e.pointerId);
-        } catch (err) {}
+        } catch { /* pointer capture unsupported */ }
 
         // Reheat simulation on drag start
         if (reduceMotion) {
@@ -257,7 +259,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
         }
         try {
           canvas.releasePointerCapture(e.pointerId);
-        } catch (err) {}
+        } catch { /* pointer capture unsupported */ }
 
         if (wasClick && n) {
           // Leaf → open the article. Hubs → open the card page of their children.
@@ -406,7 +408,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
           const bMatch = b.label.toLowerCase().includes(q);
           alpha = aMatch && bMatch ? 0.45 : 0.03;
         }
-        ctx.strokeStyle = `rgba(160, 170, 190, ${alpha})`;
+        ctx.strokeStyle = isDark ? `rgba(160, 170, 190, ${alpha})` : `rgba(38, 35, 26, ${alpha * 0.4})`;
         ctx.lineWidth = 0.8;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
@@ -422,30 +424,30 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
 
         let alpha = BASE_ALPHA[n.kind];
         let radius = RADIUS[n.kind];
-        let fill = `rgba(226, 232, 244, ${alpha})`;
+        let fill = isDark ? `rgba(226, 232, 244, ${alpha})` : `rgba(38, 35, 26, ${alpha})`;
 
         if (hasQuery) {
           if (matches) {
             alpha = 1;
             radius *= 1.55;
-            fill = `rgba(96, 179, 255, ${alpha})`;
+            fill = isDark ? `rgba(96, 179, 255, ${alpha})` : `rgba(60, 130, 246, ${alpha})`;
           } else {
             alpha = 0.12;
-            fill = `rgba(226, 232, 244, ${alpha})`;
+            fill = isDark ? `rgba(226, 232, 244, ${alpha})` : `rgba(38, 35, 26, ${alpha})`;
           }
         } else if (isHovered) {
           alpha = 1;
           radius *= 1.5;
-          fill = `rgba(255, 255, 255, ${alpha})`;
+          fill = isDark ? `rgba(255, 255, 255, ${alpha})` : `rgba(0, 0, 0, ${alpha})`;
         } else if (isNeighbor) {
           alpha = Math.min(1, alpha + 0.35);
-          fill = `rgba(226, 232, 244, ${alpha})`;
+          fill = isDark ? `rgba(226, 232, 244, ${alpha})` : `rgba(38, 35, 26, ${alpha})`;
         }
 
         if (matches) {
           const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, radius * 3.2);
-          glow.addColorStop(0, 'rgba(96, 179, 255, 0.35)');
-          glow.addColorStop(1, 'rgba(96, 179, 255, 0)');
+          glow.addColorStop(0, isDark ? 'rgba(96, 179, 255, 0.35)' : 'rgba(60, 130, 246, 0.25)');
+          glow.addColorStop(1, isDark ? 'rgba(96, 179, 255, 0)' : 'rgba(60, 130, 246, 0)');
           ctx.fillStyle = glow;
           ctx.beginPath();
           ctx.arc(n.x, n.y, radius * 3.2, 0, Math.PI * 2);
@@ -474,8 +476,8 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
               : '400 9.5px -apple-system, sans-serif';
           ctx.fillStyle =
             matches || isHovered
-              ? 'rgba(255,255,255,0.95)'
-              : `rgba(210, 215, 225, ${n.kind === 'subtopic' ? 0.85 : 0.65})`;
+              ? (isDark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)')
+              : (isDark ? `rgba(210, 215, 225, ${n.kind === 'subtopic' ? 0.85 : 0.65})` : `rgba(38, 35, 26, ${n.kind === 'subtopic' ? 0.85 : 0.65})`);
           ctx.textAlign = 'center';
           // Clamp the label into the canvas so edge-hugging nodes stay readable.
           const tw = ctx.measureText(n.label).width;
@@ -529,25 +531,25 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-4 font-mono text-[10px] text-zinc-500">
           <span>
-            <span className="text-white font-semibold">{stats.topics}</span> topics
+            <span className="text-[var(--rm-text)] font-semibold">{stats.topics}</span> topics
           </span>
           <span>
-            <span className="text-white font-semibold">{stats.concepts}</span> concepts
+            <span className="text-[var(--rm-text)] font-semibold">{stats.concepts}</span> concepts
           </span>
           <span>
-            <span className="text-white font-semibold">{stats.subtopics}</span> articles
+            <span className="text-[var(--rm-text)] font-semibold">{stats.subtopics}</span> articles
           </span>
         </div>
 
         <div className="w-full sm:w-72">
-          <div className="flex items-center gap-2 border border-zinc-800 bg-[#18181b] rounded-lg px-3 py-2 transition focus-within:border-white/20 focus-within:bg-white/[0.04] focus-within:ring-1 focus-within:ring-white/10">
-            <Search size={14} className="text-zinc-500 shrink-0" />
+          <div className="flex items-center gap-2 border border-[var(--rm-border)] bg-[var(--rm-bg)] rounded-lg px-3 py-2 transition focus-within:border-[var(--rm-border-strong)] focus-within:ring-1 focus-within:ring-[var(--rm-border-strong)]">
+            <Search size={14} className="text-[var(--rm-text-faint)] shrink-0" />
             <input
               type="text"
               placeholder="Highlight a node…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="bg-transparent border-none text-[12px] text-zinc-200 !outline-none focus-visible:!outline-none w-full placeholder-zinc-500 font-sans"
+              className="bg-transparent border-none text-[12px] text-[var(--rm-text)] !outline-none focus-visible:!outline-none w-full placeholder-[var(--rm-text-faint)] font-sans"
             />
           </div>
         </div>
@@ -555,7 +557,7 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
 
       <div ref={wrapRef} className="relative w-full h-[85vh] min-h-[720px] overflow-hidden">
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full touch-none" />
-        <div className="absolute bottom-3 right-4 font-mono text-[9.5px] text-zinc-600 pointer-events-none">
+        <div className="absolute bottom-3 right-4 font-mono text-[9.5px] text-[var(--rm-text-faint)] pointer-events-none">
           drag to rearrange · click any node to open it
         </div>
       </div>

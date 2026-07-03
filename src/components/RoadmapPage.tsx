@@ -5,8 +5,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
-  Calendar,
-  Search
+  Search,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { ROADMAP_ZONES } from '../config/roadmapData';
 import type { Concept, RoadmapZone, Topic } from '../config/roadmapData';
@@ -17,7 +18,7 @@ import { useWorkspaceStore } from '../store/workspaceStore';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { python } from '@codemirror/lang-python';
-import { vscodeDark } from '../config/editorTheme';
+import { vscodeDark, vscodeLight } from '../config/editorTheme';
 import { RoadmapConvergence } from './RoadmapConvergence';
 import { RoadmapIllustration } from './RoadmapIllustration';
 
@@ -102,6 +103,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
   const roadmapProgress = useWorkspaceStore((state) => state.roadmapProgress);
   const updateRoadmapProgress = useWorkspaceStore((state) => state.updateRoadmapProgress);
+  const theme = useWorkspaceStore((state) => state.theme);
+  const toggleTheme = useWorkspaceStore((state) => state.toggleTheme);
+  const isDark = theme === 'dark';
 
   // Parse path: /roadmap/:moduleId/:topicId/:conceptId/:blogSlug
   const parts = location.pathname.split('/').filter(Boolean);
@@ -334,15 +338,15 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         className="w-full flex flex-col items-center pb-32"
       >
         {/* Header Block */}
-        <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
+        <div className={`w-full max-w-4xl border rounded-xl p-6 relative overflow-hidden mt-8 text-left border-[var(--rm-border)] bg-[var(--rm-card)]`}>
           <div className="flex flex-col gap-2">
-            <span className="text-white text-[10px] font-sans font-semibold tracking-[0.08em]">
+            <span className={`text-[10px] font-sans font-semibold tracking-[0.08em] text-[var(--rm-text)]`}>
               {label || activeModule?.name.toUpperCase()}
             </span>
-            <h2 className="text-xl font-bold text-white tracking-tight font-sans">
+            <h2 className={`text-xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
               {title}
             </h2>
-            <p className="text-[13px] text-zinc-400 font-sans">
+            <p className={`text-[13px] font-sans text-[var(--rm-text-muted)]`}>
               {subtitle}
             </p>
           </div>
@@ -357,46 +361,46 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               <Link
                 key={concept.id}
                 to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${concept.id}`}
-                className="group border border-zinc-800 bg-[#18181b] rounded-xl p-5 relative overflow-hidden transition-all duration-200 hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 cursor-pointer flex flex-col justify-between min-h-[170px] text-left block no-underline"
+                {...{className: `group border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-xl p-5 relative overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[170px] text-left block no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]`.trim()}}
               >
                 <div>
                   <div className="flex items-center justify-between font-mono">
-                    <span className="text-zinc-500 font-semibold text-[13px]">
+                    <span className={`font-semibold text-[13px] text-[var(--rm-text-faint)]`}>
                       {String(cIdx + 1).padStart(2, '0')}.
                     </span>
                     <span
                       className={`text-[9px] font-mono border px-2 py-0.5 rounded ${
                         status === 'Completed'
-                          ? 'border-blue-500/20 text-blue-400 bg-blue-500/5'
+                          ? 'border-[var(--rm-accent-border)] text-[var(--rm-accent-text)] bg-[var(--rm-accent-bg)]'
                           : status === 'In Progress'
-                          ? 'border-zinc-700 text-zinc-400 bg-zinc-800'
-                          : 'border-zinc-800 text-zinc-500'
+                          ? 'border-[var(--rm-border-strong)] text-[var(--rm-text-muted)] bg-[var(--rm-track)]'
+                          : 'border-[var(--rm-border)] text-[var(--rm-text-faint)]'
                       }`}
                     >
                       {status}
                     </span>
                   </div>
 
-                  <h3 className="font-semibold text-[15px] text-white mt-3 tracking-tight font-sans">
+                  <h3 className={`font-semibold text-[15px] mt-3 tracking-tight font-sans text-[var(--rm-text)]`}>
                     {concept.name}
                   </h3>
-                  <p className="text-[12px] leading-relaxed text-white mt-2 font-sans font-normal line-clamp-2">
+                  <p className="text-[12px] leading-relaxed text-[var(--rm-text-body)] mt-2 font-sans font-normal line-clamp-2">
                     {preview}
                   </p>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-zinc-800/60 flex flex-col gap-2">
-                  <div className="flex items-center justify-between font-mono text-[10px] text-zinc-500">
+                <div className={`mt-5 pt-3 border-t flex flex-col gap-2 ${'border-[var(--rm-border)]'}`}>
+                  <div className={`flex items-center justify-between font-mono text-[10px] text-[var(--rm-text-faint)]`}>
                     <span>{total} subtopics</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="h-1 bg-zinc-800 rounded-full flex-1 overflow-hidden">
+                    <div className={`h-1 rounded-full flex-1 overflow-hidden bg-[var(--rm-track)]`}>
                       <div
-                        className="h-full bg-white transition-all duration-300"
+                        className="h-full bg-[var(--rm-text)] transition-all duration-300"
                         style={{ width: `${percent}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[9px] text-white font-semibold w-7 text-right">
+                    <span className={`font-mono text-[9px] font-semibold w-7 text-right text-[var(--rm-text)]`}>
                       {percent}%
                     </span>
                   </div>
@@ -408,7 +412,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
         <button
           onClick={handleBack}
-          className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5 font-sans"
+          className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 font-sans ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
         >
           <ArrowLeft size={14} />
           <span>{
@@ -427,9 +431,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         </button>
 
         {/* Add TopicDesignGraph below the back button */}
-        <div className="w-full mt-8">
-          <TopicDesignGraph topic={activeCoreTopic} moduleId={activeModuleId} />
-        </div>
+        {activeCoreTopic && activeModuleId && (
+          <div className="w-full mt-8">
+            <TopicDesignGraph topic={activeCoreTopic} moduleId={activeModuleId} />
+          </div>
+        )}
       </motion.div>
     );
   };
@@ -449,15 +455,15 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         >
           {/* Dark Mode Markdown Minimalist Header */}
           <div className="w-full max-w-[700px] flex flex-col gap-8 mt-12 mb-8">
-            <h1 className="text-4xl md:text-[40px] font-serif font-medium tracking-tight text-zinc-100 leading-[1.2]">
+            <h1 className={`text-4xl md:text-[40px] font-serif font-medium tracking-tight leading-[1.2] ${'text-[var(--rm-text)]'}`}>
               {activePost.title}
             </h1>
             
-            <p className="text-[19px] leading-[1.6] text-zinc-400 font-serif">
+            <p className={`text-[19px] leading-[1.6] font-serif ${'text-[var(--rm-text-muted)]'}`}>
               {activePost.tagline}
             </p>
 
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-[13px] text-zinc-500 mt-2 border-t border-zinc-800 pt-6">
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-[13px] mt-2 border-t pt-6 ${'text-[var(--rm-text-faint)] border-[var(--rm-border)]'}`}>
               <div className="flex items-center gap-2">
                 <span>Updated {activePost.lastUpdated}</span>
                 <span>·</span>
@@ -465,7 +471,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               </div>
               
               <div className="flex items-center gap-3">
-                <span className="text-zinc-500">Status:</span>
+                <span className={`text-[var(--rm-text-faint)]`}>Status:</span>
                 {(['Not Started', 'In Progress', 'Completed'] as const).map((status) => (
                   <button
                     key={status}
@@ -489,23 +495,23 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               <RoadmapIllustration slug={activePost.slug} />
             </div>
 
-            <div className="flex flex-col gap-10 text-[17px] leading-[1.8] text-zinc-300 font-serif">
+            <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-serif ${'text-[var(--rm-text-body)]'}`}>
               <section className="flex flex-col gap-4">
-                <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Overview</h2>
+                <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Overview</h2>
                 <p>{activePost.content.introduction}</p>
               </section>
 
               <section className="flex flex-col gap-4">
-                <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Practical Importance</h2>
+                <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Practical Importance</h2>
                 <p>{activePost.content.whyImportant}</p>
               </section>
 
               {activePost.content.realWorldApps && activePost.content.realWorldApps.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Real-World Applications</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Real-World Applications</h2>
                   <ul className="list-disc pl-6 flex flex-col gap-2">
                     {activePost.content.realWorldApps.map((app, idx) => (
-                      <li key={idx} className="pl-1 marker:text-zinc-500">{app}</li>
+                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{app}</li>
                     ))}
                   </ul>
                 </section>
@@ -513,10 +519,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
               {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Structural Mechanics</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Structural Mechanics</h2>
                   <ol className="list-decimal pl-6 flex flex-col gap-2">
                     {activePost.content.algorithmDescription.map((step, idx) => (
-                      <li key={idx} className="pl-1 marker:text-zinc-500">{step}</li>
+                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{step}</li>
                     ))}
                   </ol>
                 </section>
@@ -524,11 +530,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
               {activePost.content.complexity && activePost.content.complexity.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Asymptotic Bounds</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Asymptotic Bounds</h2>
                   <div className="overflow-x-auto my-4">
                     <table className="w-full text-left text-[15px] font-serif border-collapse">
                       <thead>
-                        <tr className="border-y border-zinc-800 text-zinc-200">
+                        <tr className={`border-y ${'border-[var(--rm-border)] text-[var(--rm-text-body)]'}`}>
                           <th className="py-3 px-2 font-semibold font-sans">Measurement</th>
                           <th className="py-3 px-2 font-semibold font-sans">Asymptotic Bound</th>
                           <th className="py-3 px-2 font-semibold font-sans">Context & Constraints</th>
@@ -536,10 +542,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                       </thead>
                       <tbody>
                         {activePost.content.complexity.map((row, idx) => (
-                          <tr key={idx} className="border-b border-zinc-800/50">
-                            <td className="py-3 px-2 text-zinc-300">{row.label}</td>
-                            <td className="py-3 px-2 font-mono text-[14px] text-zinc-300">{row.value}</td>
-                            <td className="py-3 px-2 text-zinc-400">{row.note}</td>
+                          <tr key={idx} className={`border-b ${'border-[var(--rm-border)]'}`}>
+                            <td className={`py-3 px-2 ${'text-[var(--rm-text-body)]'}`}>{row.label}</td>
+                            <td className={`py-3 px-2 font-mono text-[14px] ${'text-[var(--rm-text-body)]'}`}>{row.value}</td>
+                            <td className={`py-3 px-2 ${'text-[var(--rm-text-muted)]'}`}>{row.note}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -552,7 +558,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <section className="flex flex-col gap-4">
                   <div className="flex items-center justify-between mt-4">
                     <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight">Implementation Code</h2>
-                    <div className="flex gap-4 text-[13px] font-sans text-zinc-500">
+                    <div className={`flex gap-4 text-[13px] font-sans text-[var(--rm-text-muted)]`}>
                       <button
                         onClick={() => setSelectedLanguage('cpp')}
                         className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'cpp' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
@@ -567,7 +573,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                       </button>
                     </div>
                   </div>
-                  <div className="relative rounded-lg border border-zinc-800 bg-[#121212] p-4 text-[13px] leading-[1.6] max-h-[400px] overflow-auto roadmap-scroll font-mono shadow-inner my-2">
+                  <div className={`relative rounded-lg border p-4 text-[13px] leading-[1.6] max-h-[400px] overflow-auto roadmap-scroll font-mono shadow-inner my-2 ${'border-[var(--rm-border)] bg-[var(--rm-code-bg)]'}`}>
                     <CodeMirror
                       value={
                         selectedLanguage === 'cpp'
@@ -576,7 +582,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                       }
                       readOnly
                       editable={false}
-                      theme={vscodeDark}
+                      theme={isDark ? vscodeDark : vscodeLight}
                       extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
                       basicSetup={{
                         lineNumbers: false,
@@ -591,10 +597,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
               {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Common Pitfalls</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Common Pitfalls</h2>
                   <ul className="list-disc pl-6 flex flex-col gap-2">
                     {activePost.content.commonMistakes.map((mistake, idx) => (
-                      <li key={idx} className="pl-1 marker:text-zinc-500">{mistake}</li>
+                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{mistake}</li>
                     ))}
                   </ul>
                 </section>
@@ -602,11 +608,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
               {activePost.content.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Interview Preparation</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Interview Preparation</h2>
                   <ol className="list-decimal pl-6 flex flex-col gap-2">
                     {activePost.content.interviewQuestions.map((q, idx) => (
-                      <li key={idx} className="font-semibold text-zinc-100 marker:text-zinc-500">
-                        <span className="text-zinc-300 font-normal">{q}</span>
+                      <li key={idx} className={`font-semibold text-[var(--rm-text)] marker:text-[var(--rm-text-faint)]`}>
+                        <span className={`font-normal text-[var(--rm-text-body)]`}>{q}</span>
                       </li>
                     ))}
                   </ol>
@@ -614,7 +620,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               )}
 
               {activePost.content.summary && (
-                <section className="flex flex-col gap-2 text-zinc-400 italic mt-8 border-l-2 border-zinc-800 pl-4">
+                <section className={`flex flex-col gap-2 italic mt-8 border-l-2 pl-4 ${'text-[var(--rm-text-muted)] border-[var(--rm-border)]'}`}>
                   <p className="leading-[1.8] text-[17px]">{activePost.content.summary}</p>
                 </section>
               )}
@@ -623,7 +629,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
           <button
             onClick={handleBack}
-            className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
           >
             <ArrowLeft size={14} />
             <span>Back to Subtopics</span>
@@ -644,27 +650,27 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           className="w-full flex flex-col items-center pb-32"
         >
           {/* Hero Banner */}
-          <section className="w-full py-12 text-left max-w-5xl border-b border-zinc-800/60 mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+          <section className={`w-full py-12 text-left max-w-5xl border-b mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 ${'border-[var(--rm-border)]'}`}>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white mb-3 font-sans">
+              <h1 className={`text-3xl font-bold tracking-tight mb-3 font-sans ${'text-[var(--rm-text)]'}`}>
                 Computer Science Curriculum
               </h1>
-              <p className="text-[14px] leading-relaxed text-zinc-400 max-w-xl font-sans">
+              <p className={`text-[14px] leading-relaxed max-w-xl font-sans ${'text-[var(--rm-text-muted)]'}`}>
                 Click a module below to inspect its core topics, sub-containers, and syllabus concepts.
               </p>
-              <div className="flex items-center gap-10 mt-6 font-mono text-[11px] text-zinc-400">
+              <div className={`flex items-center gap-10 mt-6 font-mono text-[11px] ${'text-[var(--rm-text-muted)]'}`}>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-white font-bold text-[14px]">{ROADMAP_ZONES.length}</span>
+                  <span className={`font-bold text-[14px] ${'text-[var(--rm-text)]'}`}>{ROADMAP_ZONES.length}</span>
                   <span>Modules</span>
                 </div>
-                <div className="w-px h-3 bg-zinc-800" />
+                <div className={`w-px h-3 ${'bg-[var(--rm-track)]'}`} />
                 <div className="flex items-center gap-1.5">
-                  <span className="text-white font-bold text-[14px]">{totalConcepts}</span>
+                  <span className={`font-bold text-[14px] ${'text-[var(--rm-text)]'}`}>{totalConcepts}</span>
                   <span>Subtopics</span>
                 </div>
-                <div className="w-px h-3 bg-zinc-800" />
+                <div className={`w-px h-3 ${'bg-[var(--rm-track)]'}`} />
                 <div className="flex items-center gap-1.5">
-                  <span className="text-white font-bold text-[14px]">{totalHours}</span>
+                  <span className={`font-bold text-[14px] ${'text-[var(--rm-text)]'}`}>{totalHours}</span>
                   <span>Hours</span>
                 </div>
               </div>
@@ -672,7 +678,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
             {/* Custom Theory Search Bar */}
             <div className="relative w-full sm:w-72 mt-4 sm:mt-0 z-30">
-              <div className="flex items-center gap-2 border border-zinc-800 bg-[#18181b] rounded-lg px-3 py-2 transition focus-within:border-white/20 focus-within:bg-white/[0.04] focus-within:ring-1 focus-within:ring-white/10">
+              <div className="flex items-center gap-2 border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-lg px-3 py-2 transition focus-within:border-[var(--rm-accent-border)] focus-within:bg-[var(--rm-card-hover)] focus-within:ring-1 focus-within:ring-[var(--rm-accent-border)]">
                 <Search size={14} className="text-zinc-500 shrink-0" />
                 <input
                   type="text"
@@ -681,7 +687,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                  className="bg-transparent border-none text-[12px] text-zinc-200 !outline-none focus-visible:!outline-none w-full placeholder-zinc-500 font-sans"
+                  className={`bg-transparent border-none text-[12px] !outline-none focus-visible:!outline-none w-full font-sans ${'text-[var(--rm-text-body)] placeholder-[var(--rm-text-faint)]'}`}
                 />
               </div>
 
@@ -692,18 +698,18 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
-                    className="absolute top-11 left-0 right-0 border border-zinc-800 bg-[#18181b] rounded-lg shadow-xl max-h-60 overflow-y-auto p-1.5 flex flex-col gap-0.5 text-left"
+                    className={`absolute top-11 left-0 right-0 border rounded-lg shadow-xl max-h-60 overflow-y-auto p-1.5 flex flex-col gap-0.5 text-left ${'border-[var(--rm-border)] bg-[var(--rm-card)]'}`}
                   >
                     {filteredBlogs.map((post) => (
                       <button
                         key={post.slug}
                         onMouseDown={() => handleSearchSelect(post)}
-                        className="w-full rounded px-2.5 py-2 hover:bg-zinc-800/80 text-left transition cursor-pointer"
+                        className={`w-full rounded px-2.5 py-2 text-left transition cursor-pointer hover:bg-[var(--rm-card-hover)]`}
                       >
-                        <div className="text-[12px] font-semibold text-white truncate font-sans">
+                        <div className={`text-[12px] font-semibold truncate font-sans text-[var(--rm-text)]`}>
                           {post.title}
                         </div>
-                        <div className="text-[10px] text-zinc-500 font-mono flex items-center gap-1.5 mt-0.5 uppercase tracking-wide">
+                        <div className={`text-[10px] font-mono flex items-center gap-1.5 mt-0.5 uppercase tracking-wide text-[var(--rm-text-faint)]`}>
                           <span>{post.category}</span>
                           <span>•</span>
                           <span>{post.readTime} mins</span>
@@ -725,34 +731,34 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <Link
                   key={module.id}
                   to={`/roadmap/${module.id}`}
-                  className="group border border-zinc-800 bg-[#18181b] rounded-xl p-5 relative overflow-hidden transition-all duration-200 hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 cursor-pointer flex flex-col justify-between min-h-[200px] select-none text-left block no-underline"
+                  {...{className: `group border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-xl p-5 relative overflow-hidden transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[200px] select-none text-left block no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]`.trim()}}
                 >
                   <div>
                     <div className="flex items-center justify-between font-mono">
-                      <span className="text-zinc-500 font-semibold text-[13px]">{module.number}.</span>
+                      <span className={`font-semibold text-[13px] ${'text-[var(--rm-text-faint)]'}`}>{module.number}.</span>
                       <span
                         className={`text-[9px] font-mono border px-2 py-0.5 rounded ${
                           status === 'Completed'
-                            ? 'border-blue-500/20 text-blue-400 bg-blue-500/5'
+                            ? 'border-[var(--rm-accent-border)] text-[var(--rm-accent-text)] bg-[var(--rm-accent-bg)]'
                             : status === 'In Progress'
-                            ? 'border-zinc-700 text-zinc-400 bg-zinc-800'
-                            : 'border-zinc-800 text-zinc-500'
+                            ? 'border-[var(--rm-border-strong)] text-[var(--rm-text-muted)] bg-[var(--rm-track)]'
+                            : 'border-[var(--rm-border)] text-[var(--rm-text-faint)]'
                         }`}
                       >
                         {status}
                       </span>
                     </div>
 
-                    <h3 className="font-semibold text-[16px] text-white mt-3 tracking-tight font-sans">
+                    <h3 className={`font-semibold text-[16px] mt-3 tracking-tight font-sans ${'text-[var(--rm-text)]'}`}>
                       {module.name}
                     </h3>
-                    <p className="text-[12.5px] leading-relaxed text-zinc-400 mt-2 font-sans font-normal line-clamp-3">
+                    <p className={`text-[12.5px] leading-relaxed mt-2 font-sans font-normal line-clamp-3 ${'text-[var(--rm-text-muted)]'}`}>
                       {module.description}
                     </p>
                   </div>
 
-                  <div className="mt-5 pt-3 border-t border-zinc-800/60 flex flex-col gap-2">
-                    <div className="flex items-center justify-between font-mono text-[10px] text-zinc-505">
+                  <div className={`mt-5 pt-3 border-t flex flex-col gap-2 ${'border-[var(--rm-border)]'}`}>
+                    <div className={`flex items-center justify-between font-mono text-[10px] ${'text-[var(--rm-text-faint)]'}`}>
                       <span className="flex items-center gap-1">
                         <Clock size={11} />
                         {moduleHours} hrs
@@ -760,13 +766,13 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                       <span>{total} subtopics</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-1 bg-zinc-800 rounded-full flex-1 overflow-hidden">
+                      <div className={`h-1 rounded-full flex-1 overflow-hidden bg-[var(--rm-track)]`}>
                         <div
-                          className="h-full bg-white transition-all duration-300"
+                          className="h-full bg-[var(--rm-text)] transition-all duration-300"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <span className="font-mono text-[9px] text-white font-semibold w-7 text-right">
+                      <span className={`font-mono text-[9px] font-semibold w-7 text-right text-[var(--rm-text)]`}>
                         {percent}%
                       </span>
                     </div>
@@ -776,7 +782,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
             })}
           </div>
 
-          <div className="w-full max-w-5xl mt-12 pt-6 border-t border-zinc-800/60">
+          <div className={`w-full max-w-5xl mt-12 pt-6 border-t border-[var(--rm-border)]`}>
             <RoadmapConvergence roadmapProgress={roadmapProgress} onLaunch={onLaunch} />
           </div>
         </motion.div>
@@ -810,17 +816,17 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           transition={{ duration: 0.15 }}
           className="w-full flex flex-col items-center pb-32"
         >
-          <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
+          <div className={`w-full max-w-4xl border rounded-xl p-6 relative overflow-hidden mt-8 text-left border-[var(--rm-border)] bg-[var(--rm-card)]`}>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 font-sans">
-                <span className="text-white text-[13px] font-semibold tracking-wide">MODULE {activeModule.number}</span>
+                <span className={`text-[13px] font-semibold tracking-wide text-[var(--rm-text)]`}>MODULE {activeModule.number}</span>
                 <span className="text-zinc-600">/</span>
-                <span className="text-[12px] text-zinc-400 font-medium tracking-wide">KNOWLEDGE GRAPH</span>
+                <span className="text-[12px] font-medium tracking-wide text-[var(--rm-text-faint)]">KNOWLEDGE GRAPH</span>
               </div>
-              <h2 className="text-2xl font-bold text-white tracking-tight font-sans">
+              <h2 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
                 {activeModule.name}
               </h2>
-              <p className="text-[13.5px] leading-relaxed text-zinc-400 font-sans">
+              <p className={`text-[13.5px] leading-relaxed font-sans text-[var(--rm-text-muted)]`}>
                 {activeModule.description}
               </p>
             </div>
@@ -832,7 +838,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
           <button
             onClick={handleBack}
-            className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
           >
             <ArrowLeft size={14} />
             <span>Back to Curriculum</span>
@@ -852,17 +858,17 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           transition={{ duration: 0.15 }}
           className="w-full flex flex-col items-center pb-32"
         >
-          <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
+          <div className={`w-full max-w-4xl border rounded-xl p-6 relative overflow-hidden mt-8 text-left border-[var(--rm-border)] bg-[var(--rm-card)]`}>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 font-sans">
-                <span className="text-white text-[13px] font-semibold tracking-wide">MODULE {activeModule.number}</span>
+                <span className={`text-[13px] font-semibold tracking-wide text-[var(--rm-text)]`}>MODULE {activeModule.number}</span>
                 <span className="text-zinc-600">/</span>
-                <span className="text-[12px] text-zinc-400 font-medium tracking-wide">CORE TOPICS</span>
+                <span className="text-[12px] font-medium tracking-wide text-[var(--rm-text-faint)]">CORE TOPICS</span>
               </div>
-              <h2 className="text-2xl font-bold text-white tracking-tight font-sans">
+              <h2 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
                 {activeModule.name}
               </h2>
-              <p className="text-[13.5px] leading-relaxed text-zinc-400 font-sans">
+              <p className={`text-[13.5px] leading-relaxed font-sans text-[var(--rm-text-muted)]`}>
                 {activeModule.description}
               </p>
             </div>
@@ -875,23 +881,23 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <Link
                   key={topic.id}
                   to={`/roadmap/${activeModuleId}/${topic.id}`}
-                  className="group border border-zinc-800 bg-[#18181b] hover:border-zinc-600 hover:bg-[#202024] hover:ring-1 hover:ring-white/5 rounded-xl p-5 cursor-pointer text-left flex flex-col justify-between transition min-h-[150px] block no-underline"
+                  className="group border border-[var(--rm-border)] bg-[var(--rm-card)] rounded-xl p-5 cursor-pointer text-left flex flex-col justify-between transition min-h-[150px] block no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]"
                 >
                   <div>
-                    <div className="flex items-center justify-between text-[11px] font-mono text-zinc-500">
+                    <div className={`flex items-center justify-between text-[11px] font-mono text-[var(--rm-text-faint)]`}>
                       <span>TOPIC</span>
                       <span className={status === 'Completed' ? 'text-blue-400' : status === 'In Progress' ? 'text-zinc-300' : 'text-zinc-500'}>
                         {status}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-[15px] text-white mt-2 transition font-sans">
+                    <h3 className="font-semibold text-[15px] text-[var(--rm-text)] mt-2 transition font-sans">
                       {topic.name}
                     </h3>
-                    <p className="text-[12.5px] text-zinc-400 mt-1 line-clamp-2 font-sans">
+                    <p className="text-[12.5px] text-[var(--rm-text-muted)] mt-1 line-clamp-2 font-sans">
                       {topic.description}
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-zinc-800/40 flex items-center justify-between text-[10px] font-mono text-zinc-500">
+                  <div className="mt-4 pt-3 border-t border-[var(--rm-border)] flex items-center justify-between text-[10px] font-mono text-[var(--rm-text-faint)]">
                     <span>{total} subtopics</span>
                     <span>{percent}% done</span>
                   </div>
@@ -902,7 +908,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
           <button
             onClick={handleBack}
-            className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5"
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
           >
             <ArrowLeft size={14} />
             <span>Back to Curriculum</span>
@@ -929,11 +935,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         >
           {/* Textbook Chapter Header */}
           <div className="w-full max-w-4xl text-left mt-6">
-            <span className="text-9xl font-black text-white/95 tracking-tight font-sans leading-none block select-none">
+            <span className="text-9xl font-black text-[var(--rm-text)] opacity-95 tracking-tight font-sans leading-none block select-none">
               {activeCoreTopic.concepts.findIndex((c) => c.id === activeSubContainerId) + 1}
             </span>
 
-            <h1 className="text-3xl font-extrabold text-white tracking-tight font-sans mt-4 pb-6 border-b border-zinc-900/80">
+            <h1 className="text-3xl font-extrabold text-[var(--rm-text)] tracking-tight font-sans mt-4 pb-6 border-b border-[var(--rm-border)]">
               {activeSubContainer.name}
             </h1>
           </div>
@@ -949,27 +955,27 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <Link
                   key={subtopic.id}
                   to={`/roadmap/${activeModuleId}/${activeCoreTopicId}/${activeSubContainerId}/${subtopic.blogSlug}`}
-                  className="group flex flex-col gap-2 pb-6 border-b border-zinc-900/80 last:border-b-0 block no-underline transition-all duration-200 cursor-pointer text-left"
+                  className="group flex flex-col gap-2 pb-6 border-b border-[var(--rm-border)] last:border-b-0 block no-underline transition-all duration-200 cursor-pointer text-left"
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-[16px] text-white transition-colors font-sans leading-tight">
+                    <h3 className="font-bold text-[16px] text-[var(--rm-text)] transition-colors font-sans leading-tight">
                       {sIdx + 1}. {subtopic.name}
                     </h3>
 
                     <span
                       className={`text-[9px] font-mono border px-2 py-0.5 rounded transition ${
                         subStatus === 'Completed'
-                          ? 'border-blue-500/20 text-blue-400 bg-blue-500/5'
+                          ? 'border-[var(--rm-accent-border)] text-[var(--rm-accent-text)] bg-[var(--rm-accent-bg)]'
                           : subStatus === 'In Progress'
-                          ? 'border-zinc-700 text-zinc-400 bg-zinc-850/60'
-                          : 'border-zinc-800/80 text-zinc-500'
+                          ? 'border-[var(--rm-border-strong)] text-[var(--rm-text-body)] bg-[var(--rm-surface)]'
+                          : 'border-[var(--rm-border)] text-[var(--rm-text-faint)]'
                       }`}
                     >
                       {subStatus}
                     </span>
                   </div>
 
-                  <p className="text-[13px] leading-relaxed text-zinc-400 group-hover:text-zinc-300 transition-colors font-sans">
+                  <p className={`text-[13px] leading-relaxed transition-colors font-sans ${'text-[var(--rm-text-muted)] group-hover:text-[var(--rm-text-body)]'}`}>
                     {post.tagline}
                   </p>
                 </Link>
@@ -979,7 +985,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
           <button
             onClick={handleBack}
-            className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5 font-sans"
+            className={`mt-10 px-5 py-2.5 rounded-lg border text-[12.5px] transition cursor-pointer flex items-center gap-1.5 font-sans ${'border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
           >
             <ArrowLeft size={14} />
             <span>Back to Concepts</span>
@@ -992,12 +998,12 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#09090b] text-zinc-200 select-none font-sans antialiased overflow-hidden">
+    <div className={`rm-root relative w-full h-screen select-none font-sans antialiased overflow-hidden transition-colors duration-200 ${'bg-[var(--rm-bg)] text-[var(--rm-text-body)]'}`}>
       {/* ── Header ── */}
-      <header className="fixed top-0 left-0 right-0 h-20 border-b border-zinc-800 bg-[#09090b] z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto">
+      <header className={`fixed top-0 left-0 right-0 h-20 border-b z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto transition-colors duration-200 ${'border-[var(--rm-border)] bg-[var(--rm-bg)]'}`}>
         <button
           onClick={handleBack}
-          className="group flex items-center gap-2 text-[13px] text-zinc-400 hover:text-white transition-colors cursor-pointer"
+          className={`group flex items-center gap-2 text-[13px] transition-colors cursor-pointer ${'text-[var(--rm-text-muted)] hover:text-[var(--rm-text)]'}`}
         >
           <ArrowLeft size={16} />
           <span className="font-sans font-medium">
@@ -1006,18 +1012,28 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         </button>
 
         <div className="absolute inset-x-0 top-0 bottom-0 pointer-events-none hidden md:flex justify-center items-center px-8">
-          <span className="font-sans text-[10px] text-zinc-500 tracking-[0.1em] font-semibold uppercase">
+          <span className={`font-sans text-[10px] tracking-[0.1em] font-semibold uppercase ${'text-[var(--rm-text-faint)]'}`}>
             {headerPath()}
           </span>
         </div>
 
-        <button
-          onClick={onLaunch}
-          className="group px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-[13px] font-medium transition flex items-center gap-1.5 cursor-pointer font-sans border border-zinc-700"
-        >
-          <span>Open Workspace</span>
-          <ArrowRight size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${'text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:bg-[var(--rm-card-hover)]'}`}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+          <button
+            onClick={onLaunch}
+            className={`group px-4 py-2 rounded-lg text-[13px] font-medium transition flex items-center gap-1.5 cursor-pointer font-sans ${'bg-[var(--rm-btn-bg)] hover:bg-[var(--rm-btn-hover)] text-[var(--rm-btn-text)] border border-[var(--rm-btn-border)]'}`}
+          >
+            <span>Open Workspace</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
       </header>
 
       {/* ── Scrollable content ── */}
@@ -1025,30 +1041,31 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         ref={containerRef}
         className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col px-6 sm:px-12 md:px-20 pt-20"
       >
+        {/* light-mode scrollbar style is handled globally via isDark class on root */}
         <AnimatePresence mode="wait">
           {renderContent()}
         </AnimatePresence>
 
         {/* Minimal Exit Section */}
-        <section className="w-full py-16 shrink-0 flex items-center justify-center text-center relative border-t border-zinc-800/60 mt-12">
+        <section className={`w-full py-16 shrink-0 flex items-center justify-center text-center relative border-t mt-12 ${'border-[var(--rm-border)]'}`}>
           <div className="max-w-xl mx-auto px-6 flex flex-col items-center gap-4">
-            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight font-sans">
+            <h2 className={`text-xl sm:text-2xl font-bold tracking-tight font-sans ${'text-[var(--rm-text)]'}`}>
               Ready to construct code structures?
             </h2>
-            <p className="text-[13px] leading-relaxed text-zinc-400 font-sans">
+            <p className={`text-[13px] leading-relaxed font-sans ${'text-[var(--rm-text-muted)]'}`}>
               Enter the workspace to drag structures, run script compilers, and test your logic sandboxes.
             </p>
 
             <div className="flex gap-3 mt-2">
               <button
                 onClick={onLaunch}
-                className="px-4 py-2 rounded-lg bg-zinc-200 hover:bg-white text-black text-[12.5px] font-semibold transition cursor-pointer font-sans"
+                className="px-4 py-2 rounded-lg bg-[var(--rm-btn-bg)] hover:bg-[var(--rm-btn-hover)] text-[var(--rm-btn-text)] text-[12.5px] font-semibold transition cursor-pointer font-sans"
               >
                 Launch Workspace
               </button>
               <button
                 onClick={onBack}
-                className="px-4 py-2 rounded-lg border border-zinc-800 bg-zinc-900/10 text-zinc-350 hover:text-white text-[12.5px] font-medium transition cursor-pointer font-sans"
+                className="px-4 py-2 rounded-lg border border-[var(--rm-border)] bg-[var(--rm-card)] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] text-[12.5px] font-medium transition cursor-pointer font-sans"
               >
                 Back to Portal
               </button>

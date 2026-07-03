@@ -650,3 +650,71 @@ body {
     animation-delay: 0s !important;
   }
 }
+
+/* ── Roadmap page theme tokens ───────────────────────────────
+   The roadmap (`.rm-root`) has its own palette, distinct from the app's
+   Geist tokens. Light mode is a warm "paper" scheme inspired by the
+   AI-2027 essay (cream ground, ink-brown text, tan hairlines); dark mode
+   keeps the original zinc scheme. Switched by the global `.dark` class the
+   store puts on <html>, so it follows the roadmap's own theme toggle.
+   The canvas graphs read `isDark` in JS to match. */
+.rm-root {
+  /* light — warm cream paper */
+  --rm-bg: #f4f0e6;
+  --rm-surface: #faf7ef;
+  --rm-card: #fbf8f1;
+  --rm-card-hover: #f1ebdc;
+  --rm-track: #e6ddc8;
+  --rm-code-bg: #efe9db;
+  --rm-border: #e4dcc7;
+  --rm-border-strong: #d0c6aa;
+  --rm-text: #26231a;
+  --rm-text-body: #423d2f;
+  --rm-text-muted: #6d6650;
+  --rm-text-faint: #948c74;
+  --rm-btn-bg: #26231a;
+  --rm-btn-hover: #3a3527;
+  --rm-btn-text: #f4f0e6;
+  --rm-btn-border: #26231a;
+  --rm-accent: #2563eb;
+  --rm-accent-text: #1d4ed8;
+  --rm-accent-bg: rgba(37, 99, 235, 0.08);
+  --rm-accent-border: rgba(37, 99, 235, 0.28);
+}
+
+:root.dark .rm-root,
+.dark .rm-root {
+  /* dark — original zinc scheme */
+  --rm-bg: #09090b;
+  --rm-surface: #09090b;
+  --rm-card: #18181b;
+  --rm-card-hover: #202024;
+  --rm-track: #27272a;
+  --rm-code-bg: #121212;
+  --rm-border: #27272a;
+  --rm-border-strong: #3f3f46;
+  --rm-text: #fafafa;
+  --rm-text-body: #d4d4d8;
+  --rm-text-muted: #a1a1aa;
+  --rm-text-faint: #71717a;
+  --rm-btn-bg: #27272a;
+  --rm-btn-hover: #3f3f46;
+  --rm-btn-text: #ffffff;
+  --rm-btn-border: #3f3f46;
+  --rm-accent: #60a5fa;
+  --rm-accent-text: #60a5fa;
+  --rm-accent-bg: rgba(96, 165, 250, 0.05);
+  --rm-accent-border: rgba(59, 130, 246, 0.2);
+}
+
+/* Subtle paper grain in light mode only — a fixed, non-interactive overlay. */
+.rm-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+.dark .rm-root::before { display: none; }
