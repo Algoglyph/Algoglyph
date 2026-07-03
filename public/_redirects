@@ -7,5 +7,10 @@
 # canonicalizes an /index.html destination and bounces the request to `/`,
 # which is what sent hard refreshes back to the landing page.
 
-# SPA rewrite for the blog section subpaths (e.g. /blog/arrays -> /blog.html)
-/blog/*  /blog.html  200
+# SPA rewrite for nested section subpaths, so a hard refresh / direct hit on a
+# deep URL is served by that section's real HTML entry (which then boots the App
+# and renders the right view from location.pathname) instead of 404ing.
+# These rewrite to the section's own .html — NOT /index.html — to avoid the
+# Cloudflare Pages canonicalization that bounces /index.html back to `/`.
+/blog/*      /blog.html      200
+/roadmap/*   /roadmap.html   200
