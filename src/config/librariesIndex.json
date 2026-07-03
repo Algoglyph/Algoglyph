@@ -5,24 +5,9 @@
     "itemCount": 11
   },
   {
-    "id": "awesome-icons",
-    "name": "Awesome Icons",
-    "itemCount": 24
-  },
-  {
     "id": "aws-architecture-icons",
     "name": "Aws Architecture Icons",
     "itemCount": 249
-  },
-  {
-    "id": "basic-ux-wireframing-elements",
-    "name": "Basic Ux Wireframing Elements",
-    "itemCount": 69
-  },
-  {
-    "id": "cloud",
-    "name": "Cloud",
-    "itemCount": 19
   },
   {
     "id": "cloud-design-patterns",
@@ -45,54 +30,9 @@
     "itemCount": 8
   },
   {
-    "id": "dev-ops",
-    "name": "Dev Ops",
-    "itemCount": 29
-  },
-  {
-    "id": "drwnio",
-    "name": "Drwnio",
-    "itemCount": 18
-  },
-  {
     "id": "dsa-ii",
     "name": "DSA II",
     "itemCount": 22
-  },
-  {
-    "id": "forms",
-    "name": "Forms",
-    "itemCount": 26
-  },
-  {
-    "id": "google-icons",
-    "name": "Google Icons",
-    "itemCount": 139
-  },
-  {
-    "id": "icons",
-    "name": "Icons",
-    "itemCount": 65
-  },
-  {
-    "id": "lo-fi-wireframing-kit",
-    "name": "Lo Fi Wireframing Kit",
-    "itemCount": 23
-  },
-  {
-    "id": "network-topology-icons",
-    "name": "Network Topology Icons",
-    "itemCount": 10
-  },
-  {
-    "id": "software-architecture",
-    "name": "Software Architecture",
-    "itemCount": 7
-  },
-  {
-    "id": "stick-figures",
-    "name": "Stick Figures",
-    "itemCount": 9
   },
   {
     "id": "system-design",
@@ -108,15 +48,5 @@
     "id": "systems-design-components",
     "name": "Systems Design Components",
     "itemCount": 6
-  },
-  {
-    "id": "technology-logos",
-    "name": "Technology Logos",
-    "itemCount": 18
-  },
-  {
-    "id": "uml-er-library",
-    "name": "UML ER Library",
-    "itemCount": 21
   }
 ]

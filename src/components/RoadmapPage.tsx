@@ -855,7 +855,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           <div className="w-full max-w-4xl border border-zinc-800 bg-[#18181b] rounded-xl p-6 relative overflow-hidden mt-8 text-left">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 font-sans">
-                <span className="text-blue-400 text-[13px] font-semibold tracking-wide">MODULE {activeModule.number}</span>
+                <span className="text-white text-[13px] font-semibold tracking-wide">MODULE {activeModule.number}</span>
                 <span className="text-zinc-600">/</span>
                 <span className="text-[12px] text-zinc-400 font-medium tracking-wide">CORE TOPICS</span>
               </div>
