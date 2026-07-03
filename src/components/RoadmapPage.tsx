@@ -82,30 +82,12 @@ Furthermore, mastering the structural mechanics of ${subtopicName} enhances your
         `Compiler optimization passes and syntax parsing engines.`,
         `High-throughput event logs and message routers.`
       ],
-      algorithmDescription: [
-        `Define problem constraints and bounds.`,
-        `Initialize references, pointers, or register allocations.`,
-        `Iterate/recurse through values while validating boundary assertions.`,
-        `Commit new states and clean up workspace references.`
-      ],
-      complexity: [
-        { label: 'Time Complexity (Best)', value: 'O(1)', note: 'Immediate lookup or validation.' },
-        { label: 'Time Complexity (Average)', value: 'O(log N) or O(1)', note: 'Logarithmic search space split or direct table seeks.' },
-        { label: 'Time Complexity (Worst)', value: 'O(N)', note: 'Worst-case structural scan.' },
-        { label: 'Space Complexity', value: 'O(1)', note: 'Operates in-place without dynamic allocations.' }
-      ],
-      implementationCpp: `// C++ implementation example for ${subtopicName}\n#include <iostream>\nusing namespace std;\n\nvoid runLogic() {\n    // Logic for ${subtopicName}\n    cout << "Executing ${subtopicName} implementation..." << endl;\n}`,
-      implementationPython: `# Python implementation example for ${subtopicName}\n\ndef run_logic():\n    # Logic for ${subtopicName}\n    print("Executing ${subtopicName} implementation...")`,
-      commonMistakes: [
-        `Off-by-one errors when checking boundary indices.`,
-        `Failing to clean up dynamic allocations or reference counts.`,
-        `Choosing standard linear scans when tree indices offer better bounds.`
-      ],
-      interviewQuestions: [
-        `Contrast the spatial bounds of ${subtopicName} with alternative structures.`,
-        `Provide a complete implementation of ${subtopicName} from scratch and prove its bounds.`,
-        `How would you adapt ${subtopicName} to support concurrent multi-threaded access?`
-      ],
+      algorithmDescription: [],
+      complexity: [],
+      implementationCpp: "",
+      implementationPython: "",
+      commonMistakes: [],
+      interviewQuestions: [],
       summary: `In summary, mastering ${subtopicName} is key to designing optimal, memory-friendly software systems.`
     }
   };
@@ -421,7 +403,18 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           className="mt-10 px-5 py-2.5 rounded-lg border border-zinc-800 bg-zinc-900/20 text-[12.5px] text-zinc-400 hover:text-white transition cursor-pointer flex items-center gap-1.5 font-sans"
         >
           <ArrowLeft size={14} />
-          <span>{activeModuleId === 'system-design' ? 'Back to Graph' : 'Back to Core Topics'}</span>
+          <span>{
+            (activeModuleId === 'system-design' ||
+              activeModuleId === 'dsa-foundations' ||
+              activeModuleId === 'machine-learning' ||
+              activeModuleId === 'ai-data-scientist' ||
+              activeModuleId === 'backend' ||
+              activeModuleId === 'android-development' ||
+              activeModuleId === 'software-engineering' ||
+              activeModuleId === 'game-developer')
+              ? 'Back to Graph'
+              : 'Back to Core Topics'
+          }</span>
         </button>
       </motion.div>
     );
@@ -792,7 +785,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
       (activeModuleId === 'system-design' ||
         activeModuleId === 'dsa-foundations' ||
         activeModuleId === 'machine-learning' ||
-        activeModuleId === 'ai-data-scientist') &&
+        activeModuleId === 'ai-data-scientist' ||
+        activeModuleId === 'backend' ||
+        activeModuleId === 'android-development' ||
+        activeModuleId === 'software-engineering' ||
+        activeModuleId === 'game-developer') &&
       !activeCoreTopicId
     ) {
       return (

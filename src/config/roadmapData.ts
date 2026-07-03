@@ -347,27 +347,303 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
       }
     ]
   },
-  {
-    id: 'computer-architecture',
+    {
+    id: 'game-developer',
     number: '02',
-    name: 'Computer Systems & Architecture',
+    name: 'Game Developer',
     difficulty: 'Medium',
-    hours: 32,
+    hours: 150,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'Hardware registers, L1/L2/L3 caches, page tables, and pipelining.',
+    description: 'Master Game Mathematics, Physics Engine, Programming Languages, Game Engines, Computer Graphics, Lighting, Visibility, Game AI, APIs, and Advanced physically-based rendering.',
     topics: [
       {
-        id: 'hardware-logic',
-        name: 'CPU & Caching',
-        description: 'Hardware pipelines and cash layouts.',
+        id: 'game-math-languages',
+        name: 'Game Mathematics & Programming Core',
+        description: "Linear algebra calculations, transformation operations, splines, and engine languages.",
         concepts: [
           {
-            id: 'cpu-cache',
-            name: 'Hardware Operations',
+            id: 'linear-algebra-geo',
+            name: 'Linear Algebra & Geometry',
             subtopics: [
-              { id: 'cpu-registers', name: 'CPU Register layouts', blogSlug: 'cpu-register-layouts' },
-              { id: 'caching-levels', name: 'L1/L2/L3 Cache lines', blogSlug: 'l1-cache-hits' }
+              { id: 'game-math-vector', name: 'Vector', blogSlug: 'game-math-vector' },
+              { id: 'game-math-matrix', name: 'Matrix', blogSlug: 'game-math-matrix' },
+              { id: 'game-math-lin-trans', name: 'Linear Transformation', blogSlug: 'game-math-lin-trans' },
+              { id: 'game-math-geometry', name: 'Geometry', blogSlug: 'game-math-geometry' },
+              { id: 'game-math-affine-space', name: 'Affine Space', blogSlug: 'game-math-affine-space' },
+              { id: 'game-math-affine-trans', name: 'Affine Transformation', blogSlug: 'game-math-affine-trans' },
+              { id: 'game-math-projection', name: 'Projection', blogSlug: 'game-math-projection' },
+              { id: 'game-math-orientation', name: 'Orientation', blogSlug: 'game-math-orientation' },
+              { id: 'game-math-perspective', name: 'Perspective', blogSlug: 'game-math-perspective' },
+              { id: 'game-math-quaternion', name: 'Quaternion', blogSlug: 'game-math-quaternion' },
+              { id: 'game-math-orthogonal', name: 'Orthogonal', blogSlug: 'game-math-orthogonal' },
+              { id: 'game-math-euler', name: 'Euler Angle', blogSlug: 'game-math-euler' }
+            ]
+          },
+          {
+            id: 'curves-splines',
+            name: 'Curves & Splines',
+            subtopics: [
+              { id: 'game-math-spline', name: 'Spline', blogSlug: 'game-math-spline' },
+              { id: 'game-math-hermite', name: 'Hermite', blogSlug: 'game-math-hermite' },
+              { id: 'game-math-bezier', name: 'Bezier', blogSlug: 'game-math-bezier' },
+              { id: 'game-math-catmull', name: 'Catmull-Rom', blogSlug: 'game-math-catmull' }
+            ]
+          },
+          {
+            id: 'game-languages-picking',
+            name: 'Programming Languages',
+            subtopics: [
+              { id: 'game-lang-csharp', name: 'C#', blogSlug: 'game-lang-csharp' },
+              { id: 'game-lang-cpp', name: 'C/C++', blogSlug: 'game-lang-cpp' },
+              { id: 'game-lang-rust', name: 'Rust', blogSlug: 'game-lang-rust' },
+              { id: 'game-lang-python', name: 'Python', blogSlug: 'game-lang-python' },
+              { id: 'game-lang-gdscript', name: 'GDScript', blogSlug: 'game-lang-gdscript' }
+            ]
+          },
+          {
+            id: 'game-engine-selections',
+            name: 'Game Engines',
+            subtopics: [
+              { id: 'game-engine-unity', name: 'Unity 3D', blogSlug: 'game-engine-unity' },
+              { id: 'game-engine-unreal', name: 'Unreal Engine', blogSlug: 'game-engine-unreal' },
+              { id: 'game-engine-native', name: 'Native', blogSlug: 'game-engine-native' },
+              { id: 'game-engine-godot', name: 'Godot', blogSlug: 'game-engine-godot' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'game-physics-dynamics-col',
+        name: 'Game Physics',
+        description: "Newtonian force models, inertia tensor calculations, constraint joints, and collision detection phases.",
+        concepts: [
+          {
+            id: 'physics-dynamics-forces',
+            name: 'Rigid Body Dynamics',
+            subtopics: [
+              { id: 'game-phys-mass-center', name: 'Center of Mass', blogSlug: 'game-phys-mass-center' },
+              { id: 'game-phys-inertia', name: 'Moment of Inertia', blogSlug: 'game-phys-inertia' },
+              { id: 'game-phys-acceleration', name: 'Acceleration', blogSlug: 'game-phys-acceleration' },
+              { id: 'game-phys-joints', name: 'Joints', blogSlug: 'game-phys-joints' },
+              { id: 'game-phys-restitution', name: 'Restitution', blogSlug: 'game-phys-restitution' },
+              { id: 'game-phys-force', name: 'Force', blogSlug: 'game-phys-force' },
+              { id: 'game-phys-angular-vel', name: 'Angular Velocity', blogSlug: 'game-phys-angular-vel' },
+              { id: 'game-phys-buoyancy', name: 'Buoyancy', blogSlug: 'game-phys-buoyancy' },
+              { id: 'game-phys-friction', name: 'Friction', blogSlug: 'game-phys-friction' },
+              { id: 'game-phys-linear-vel', name: 'Linear Velocity', blogSlug: 'game-phys-linear-vel' },
+              { id: 'game-phys-dynamics', name: 'Dynamics', blogSlug: 'game-phys-dynamics' }
+            ]
+          },
+          {
+            id: 'collision-phases-detection',
+            name: 'Collision Detection',
+            subtopics: [
+              { id: 'game-phys-ccd', name: 'CCD', blogSlug: 'game-phys-ccd' },
+              { id: 'game-phys-narrow-phase', name: 'Narrow Phase', blogSlug: 'game-phys-narrow-phase' },
+              { id: 'game-phys-broad-phase', name: 'Broad Phase', blogSlug: 'game-phys-broad-phase' }
+            ]
+          },
+          {
+            id: 'bounding-volumes-obb',
+            name: 'Bounding Volume',
+            subtopics: [
+              { id: 'game-phys-obb', name: 'OBB', blogSlug: 'game-phys-obb' },
+              { id: 'game-phys-aabb', name: 'AABB', blogSlug: 'game-phys-aabb' }
+            ]
+          },
+          {
+            id: 'intersection-convexity-sat',
+            name: 'Intersection & Convexity',
+            subtopics: [
+              { id: 'game-phys-sat', name: 'SAT', blogSlug: 'game-phys-sat' },
+              { id: 'game-phys-gjk', name: 'GJK', blogSlug: 'game-phys-gjk' },
+              { id: 'game-phys-epa', name: 'EPA', blogSlug: 'game-phys-epa' },
+              { id: 'game-phys-intersection', name: 'Intersection', blogSlug: 'game-phys-intersection' },
+              { id: 'game-phys-convexity', name: 'Convexity', blogSlug: 'game-phys-convexity' },
+              { id: 'game-phys-convex', name: 'Convex', blogSlug: 'game-phys-convex' },
+              { id: 'game-phys-concave', name: 'Concave', blogSlug: 'game-phys-concave' },
+              { id: 'game-phys-convex-hull', name: 'Convex Hull', blogSlug: 'game-phys-convex-hull' },
+              { id: 'game-phys-convex-dec', name: 'Convex Decomposition', blogSlug: 'game-phys-convex-dec' }
+            ]
+          },
+          {
+            id: 'spatial-partitioning-bvh',
+            name: 'Spatial Partitioning',
+            subtopics: [
+              { id: 'game-phys-sweep', name: 'Sort & Sweep', blogSlug: 'game-phys-sweep' },
+              { id: 'game-phys-dbvt', name: 'DBVT', blogSlug: 'game-phys-dbvt' },
+              { id: 'game-phys-bvh', name: 'BVH', blogSlug: 'game-phys-bvh' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'game-graphics-shading',
+        name: 'Computer Graphics',
+        description: "Raytracing, rasterization math, graphic shading equations, textures, and perception frames.",
+        concepts: [
+          {
+            id: 'graphics-fundamentals-ray',
+            name: 'Graphics Fundamentals',
+            subtopics: [
+              { id: 'game-gfx-ray-tracing', name: 'Ray Tracing', blogSlug: 'game-gfx-ray-tracing' },
+              { id: 'game-gfx-rasterization', name: 'Rasterization', blogSlug: 'game-gfx-rasterization' },
+              { id: 'game-gfx-pipeline', name: 'Graphics Pipeline', blogSlug: 'game-gfx-pipeline' },
+              { id: 'game-gfx-sampling', name: 'Sampling', blogSlug: 'game-gfx-sampling' },
+              { id: 'game-gfx-shader', name: 'Shader', blogSlug: 'game-gfx-shader' },
+              { id: 'game-gfx-rendering-eq', name: 'Rendering Equation', blogSlug: 'game-gfx-rendering-eq' },
+              { id: 'game-gfx-mapping', name: 'Mapping', blogSlug: 'game-gfx-mapping' },
+              { id: 'game-gfx-reflection', name: 'Reflection', blogSlug: 'game-gfx-reflection' },
+              { id: 'game-gfx-texture', name: 'Texture', blogSlug: 'game-gfx-texture' },
+              { id: 'game-gfx-diffuse', name: 'Diffuse', blogSlug: 'game-gfx-diffuse' },
+              { id: 'game-gfx-bump', name: 'Bump', blogSlug: 'game-gfx-bump' },
+              { id: 'game-gfx-specular', name: 'Specular', blogSlug: 'game-gfx-specular' },
+              { id: 'game-gfx-parallax', name: 'Parallax', blogSlug: 'game-gfx-parallax' },
+              { id: 'game-gfx-horizon', name: 'Horizon', blogSlug: 'game-gfx-horizon' }
+            ]
+          },
+          {
+            id: 'animation-perception-color',
+            name: 'Animation & Perception',
+            subtopics: [
+              { id: 'game-gfx-animation', name: 'Computer Animation', blogSlug: 'game-gfx-animation' },
+              { id: 'game-gfx-color', name: 'Color', blogSlug: 'game-gfx-color' },
+              { id: 'game-gfx-perception', name: 'Visual Perception', blogSlug: 'game-gfx-perception' },
+              { id: 'game-gfx-tone', name: 'Tone Reproduction', blogSlug: 'game-gfx-tone' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'lighting-shadow-visibility',
+        name: 'Lighting and Shadow',
+        description: "Directional lights, light probes, shadow map buffers, occluders, and frustum culling checks.",
+        concepts: [
+          {
+            id: 'lighting-shadow-sources',
+            name: 'Lighting and Shadow',
+            subtopics: [
+              { id: 'game-light-shadow-map', name: 'Shadow Map', blogSlug: 'game-light-shadow-map' },
+              { id: 'game-light-source', name: 'Light Source', blogSlug: 'game-light-source' },
+              { id: 'game-light-2d', name: '2D', blogSlug: 'game-light-2d' },
+              { id: 'game-light-cube', name: 'Cube', blogSlug: 'game-light-cube' },
+              { id: 'game-light-directional', name: 'Directional', blogSlug: 'game-light-directional' },
+              { id: 'game-light-spot', name: 'Spot', blogSlug: 'game-light-spot' },
+              { id: 'game-light-cascaded', name: 'Cascaded', blogSlug: 'game-light-cascaded' },
+              { id: 'game-light-infinite', name: 'Infinite', blogSlug: 'game-light-infinite' },
+              { id: 'game-light-point', name: 'Point', blogSlug: 'game-light-point' },
+              { id: 'game-light-stencil-shadow', name: 'Stencil Shadow', blogSlug: 'game-light-stencil-shadow' }
+            ]
+          },
+          {
+            id: 'visibility-occlusion-cull',
+            name: 'Visibility and Occlusion',
+            subtopics: [
+              { id: 'game-vis-occluder', name: 'Occluder', blogSlug: 'game-vis-occluder' },
+              { id: 'game-vis-culling', name: 'Culling', blogSlug: 'game-vis-culling' },
+              { id: 'game-vis-clipping', name: 'Clipping', blogSlug: 'game-vis-clipping' },
+              { id: 'game-vis-fog', name: 'Fog', blogSlug: 'game-vis-fog' },
+              { id: 'game-vis-frustum', name: 'Frustum', blogSlug: 'game-vis-frustum' },
+              { id: 'game-vis-polygon', name: 'Polygon', blogSlug: 'game-vis-polygon' },
+              { id: 'game-vis-light', name: 'Light', blogSlug: 'game-vis-light' },
+              { id: 'game-vis-polyhedron', name: 'Polyhedron', blogSlug: 'game-vis-polyhedron' },
+              { id: 'game-vis-shadow', name: 'Shadow', blogSlug: 'game-vis-shadow' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'game-graphics-apis',
+        name: 'Graphics API',
+        description: "Vulkan, OpenGL ES, Metal runtime binds, and HLSL/GLSL shaders pipelines.",
+        concepts: [
+          {
+            id: 'apis-shading-languages',
+            name: 'Graphics API Core',
+            subtopics: [
+              { id: 'game-api-hlsl', name: 'HLSL', blogSlug: 'game-api-hlsl' },
+              { id: 'game-api-glsl', name: 'GLSL', blogSlug: 'game-api-glsl' },
+              { id: 'game-api-spirv', name: 'SPIR-V', blogSlug: 'game-api-spirv' },
+              { id: 'game-api-directx', name: 'DirectX', blogSlug: 'game-api-directx' },
+              { id: 'game-api-opengl', name: 'OpenGL', blogSlug: 'game-api-opengl' },
+              { id: 'game-api-vulkan', name: 'Vulkan', blogSlug: 'game-api-vulkan' }
+            ]
+          },
+          {
+            id: 'mobile-web-apis',
+            name: 'Mobile & Web APIs',
+            subtopics: [
+              { id: 'game-api-opengles', name: 'OpenGL ES', blogSlug: 'game-api-opengles' },
+              { id: 'game-api-metal', name: 'Metal', blogSlug: 'game-api-metal' },
+              { id: 'game-api-webgl', name: 'WebGL', blogSlug: 'game-api-webgl' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'game-ai-behavior',
+        name: 'Game AI',
+        description: "State machines, behavior tree nodes, pathfinding heuristic rules, and deep learning network brains.",
+        concepts: [
+          {
+            id: 'ai-decision-making-bts',
+            name: 'Decision Making',
+            subtopics: [
+              { id: 'game-ai-decision-tree', name: 'Decision Tree', blogSlug: 'game-ai-decision-tree' },
+              { id: 'game-ai-state-machine', name: 'State Machine', blogSlug: 'game-ai-state-machine' },
+              { id: 'game-ai-behavior-tree', name: 'Behavior Tree', blogSlug: 'game-ai-behavior-tree' },
+              { id: 'game-ai-fuzzy', name: 'Fuzzy Logic', blogSlug: 'game-ai-fuzzy' },
+              { id: 'game-ai-markov', name: 'Markov System', blogSlug: 'game-ai-markov' },
+              { id: 'game-ai-goal-oriented', name: 'Goal Oriented Behavior', blogSlug: 'game-ai-goal-oriented' }
+            ]
+          },
+          {
+            id: 'ai-movement-board-minimax',
+            name: 'Movement & Board Games',
+            subtopics: [
+              { id: 'game-ai-board-game', name: 'Board Game', blogSlug: 'game-ai-board-game' },
+              { id: 'game-ai-minimax', name: 'Minimax', blogSlug: 'game-ai-minimax' },
+              { id: 'game-ai-ab-pruning', name: 'AB Pruning', blogSlug: 'game-ai-ab-pruning' },
+              { id: 'game-ai-mcts', name: 'MCTS', blogSlug: 'game-ai-mcts' }
+            ]
+          },
+          {
+            id: 'ai-machine-learning-nets',
+            name: 'Learning',
+            subtopics: [
+              { id: 'game-ai-naive-bayes', name: 'Naive Bayes Classifier', blogSlug: 'game-ai-naive-bayes' },
+              { id: 'game-ai-decision-learning', name: 'Decision Learning', blogSlug: 'game-ai-decision-learning' },
+              { id: 'game-ai-reinforcement', name: 'Reinforcements Learning', blogSlug: 'game-ai-reinforcement' },
+              { id: 'game-ai-dt-learning', name: 'Decision Tree Learning', blogSlug: 'game-ai-dt-learning' },
+              { id: 'game-ai-deep-learning', name: 'Deep Learning', blogSlug: 'game-ai-deep-learning' },
+              { id: 'game-ai-neural-net', name: 'Artificial Neural Network', blogSlug: 'game-ai-neural-net' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'advanced-rendering-tech',
+        name: 'Advanced Rendering',
+        description: "Microfacet BRDF distributions, translucency buffers, energy conservation checks, and hardware RT pipelines.",
+        concepts: [
+          {
+            id: 'pbr-rendering-math',
+            name: 'Physically-Based Rendering',
+            subtopics: [
+              { id: 'game-adv-microsurface', name: 'Microsurface Scattering', blogSlug: 'game-adv-microsurface' },
+              { id: 'game-adv-translucency', name: 'Translucency & Transparency', blogSlug: 'game-adv-translucency' },
+              { id: 'game-adv-energy-cons', name: 'Conservation of Energy', blogSlug: 'game-adv-energy-cons' },
+              { id: 'game-adv-metallicity', name: 'Metallicity', blogSlug: 'game-adv-metallicity' }
+            ]
+          },
+          {
+            id: 'realtime-raytracing-pipelines',
+            name: 'Real-time Ray Tracing',
+            subtopics: [
+              { id: 'game-adv-dx-rt', name: 'DirectX Ray Tracing', blogSlug: 'game-adv-dx-rt' },
+              { id: 'game-adv-vulkan-rt', name: 'Vulkan Ray Tracing', blogSlug: 'game-adv-vulkan-rt' },
+              { id: 'game-adv-optix', name: 'OptiX', blogSlug: 'game-adv-optix' }
             ]
           }
         ]
@@ -375,26 +651,379 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     ]
   },
   {
-    id: 'database-systems',
+    id: 'backend',
     number: '03',
-    name: 'Database Systems',
+    name: 'Backend',
     difficulty: 'Medium',
-    hours: 36,
+    hours: 120,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'Normal forms, index cost query maps, and distributed NoSQL nodes.',
+    description: 'Learn languages, internet foundations, relational/NoSQL databases, APIs, security, caching, containerization, scaling, and AI in development.',
     topics: [
       {
-        id: 'data-index',
-        name: 'Normalization & Indexing',
-        description: 'Relational logic and B+ index seeks.',
+        id: 'backend-languages-intro',
+        name: 'Backend Languages & Internet Basics',
+        description: 'VCS, languages, and network operations.',
         concepts: [
           {
-            id: 'relational-index',
-            name: 'Database Storage',
+            id: 'pick-language',
+            name: 'Pick a Backend Language',
             subtopics: [
-              { id: 'normalization-db', name: 'Relational Normalization', blogSlug: 'relational-models' },
-              { id: 'b-trees-indexes', name: 'B+ Tree Indexing', blogSlug: 'b-trees-indexes' }
+              { id: 'lang-javascript', name: 'JavaScript', blogSlug: 'lang-javascript' },
+              { id: 'lang-go', name: 'Go', blogSlug: 'lang-go' },
+              { id: 'lang-python', name: 'Python', blogSlug: 'lang-python' },
+              { id: 'lang-ruby', name: 'Ruby', blogSlug: 'lang-ruby' },
+              { id: 'lang-java', name: 'Java', blogSlug: 'lang-java' },
+              { id: 'lang-csharp', name: 'C#', blogSlug: 'lang-csharp' },
+              { id: 'lang-php', name: 'PHP', blogSlug: 'lang-php' },
+              { id: 'lang-rust', name: 'Rust', blogSlug: 'lang-rust' },
+              { id: 'checkpoint-beginner-projects', name: 'Checkpoint - Beginner Project Ideas', blogSlug: 'checkpoint-beginner-projects' }
+            ]
+          },
+          {
+            id: 'internet-foundations',
+            name: 'Internet Foundations',
+            subtopics: [
+              { id: 'internet-how-works-sub', name: 'How does the internet work?', blogSlug: 'internet-how-works-sub' },
+              { id: 'what-is-http', name: 'What is HTTP?', blogSlug: 'what-is-http' },
+              { id: 'what-is-domain-name', name: 'What is Domain Name?', blogSlug: 'what-is-domain-name' },
+              { id: 'what-is-hosting', name: 'What is hosting?', blogSlug: 'what-is-hosting' },
+              { id: 'dns-how-works', name: 'DNS and how it works?', blogSlug: 'dns-how-works' },
+              { id: 'browsers-how-works', name: 'Browsers and how they work?', blogSlug: 'browsers-how-works' }
+            ]
+          },
+          {
+            id: 'frontend-basics',
+            name: 'Frontend Basics',
+            subtopics: [
+              { id: 'frontend-html', name: 'HTML Basics', blogSlug: 'frontend-html' },
+              { id: 'frontend-css', name: 'CSS Basics', blogSlug: 'frontend-css' },
+              { id: 'frontend-javascript', name: 'JavaScript Basics', blogSlug: 'frontend-javascript' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'collaboration-databases',
+        name: 'VCS, Hosting & Relational DBs',
+        description: 'VCS services, schemas, and relational migrations.',
+        concepts: [
+          {
+            id: 'vcs-concepts',
+            name: 'Version Control Systems',
+            subtopics: [
+              { id: 'git-vcs', name: 'Git VCS', blogSlug: 'git-vcs' }
+            ]
+          },
+          {
+            id: 'repo-hosting',
+            name: 'Repository Hosting Services',
+            subtopics: [
+              { id: 'github-hosting', name: 'GitHub', blogSlug: 'github-hosting' },
+              { id: 'gitlab-hosting', name: 'GitLab', blogSlug: 'gitlab-hosting' }
+            ]
+          },
+          {
+            id: 'relational-db-concepts',
+            name: 'Relational Databases',
+            subtopics: [
+              { id: 'db-mysql', name: 'MySQL', blogSlug: 'db-mysql' },
+              { id: 'db-postgresql', name: 'PostgreSQL', blogSlug: 'db-postgresql' },
+              { id: 'db-mariadb', name: 'MariaDB', blogSlug: 'db-mariadb' },
+              { id: 'db-sqlite', name: 'SQLite', blogSlug: 'db-sqlite' },
+              { id: 'db-mssql', name: 'MS SQL', blogSlug: 'db-mssql' },
+              { id: 'db-oracle', name: 'Oracle', blogSlug: 'db-oracle' },
+              { id: 'db-migrations', name: 'Database Migrations', blogSlug: 'db-migrations' },
+              { id: 'n-plus-one-problem', name: 'N+1 Query Problem', blogSlug: 'n-plus-one-problem' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'apis-security',
+        name: 'APIs, Security & Authentication',
+        description: 'Routing patterns, security specs, and hashing methods.',
+        concepts: [
+          {
+            id: 'api-designs',
+            name: 'API Styles & Specs',
+            subtopics: [
+              { id: 'api-style-rest', name: 'REST APIs', blogSlug: 'api-style-rest' },
+              { id: 'api-style-json', name: 'JSON APIs', blogSlug: 'api-style-json' },
+              { id: 'api-style-soap', name: 'SOAP APIs', blogSlug: 'api-style-soap' },
+              { id: 'api-style-grpc', name: 'gRPC', blogSlug: 'api-style-grpc' },
+              { id: 'api-style-graphql', name: 'GraphQL', blogSlug: 'api-style-graphql' },
+              { id: 'openapi-specs', name: 'OpenAPI Specifications', blogSlug: 'openapi-specs' }
+            ]
+          },
+          {
+            id: 'backend-auth',
+            name: 'Authentication & Credentials',
+            subtopics: [
+              { id: 'auth-jwt', name: 'JWT', blogSlug: 'auth-jwt' },
+              { id: 'auth-oauth', name: 'OAuth', blogSlug: 'auth-oauth' },
+              { id: 'auth-basic', name: 'Basic Authentication', blogSlug: 'auth-basic' },
+              { id: 'auth-token', name: 'Token Authentication', blogSlug: 'auth-token' },
+              { id: 'auth-cookie', name: 'Cookie Based Auth', blogSlug: 'auth-cookie' },
+              { id: 'auth-openid', name: 'OpenID Connect', blogSlug: 'auth-openid' },
+              { id: 'auth-saml', name: 'SAML', blogSlug: 'auth-saml' },
+              { id: 'checkpoint-intermediate-projects', name: 'Checkpoint - Intermediate Project Ideas', blogSlug: 'checkpoint-intermediate-projects' }
+            ]
+          },
+          {
+            id: 'web-security-hashing',
+            name: 'Web Security & Hashing',
+            subtopics: [
+              { id: 'sec-https', name: 'HTTPS/TLS', blogSlug: 'sec-https' },
+              { id: 'sec-owasp', name: 'OWASP Risks', blogSlug: 'sec-owasp' },
+              { id: 'sec-cors', name: 'CORS', blogSlug: 'sec-cors' },
+              { id: 'sec-ssl-tls', name: 'SSL/TLS', blogSlug: 'sec-ssl-tls' },
+              { id: 'sec-csp', name: 'CSP', blogSlug: 'sec-csp' },
+              { id: 'sec-server-security', name: 'Server Security', blogSlug: 'sec-server-security' },
+              { id: 'sec-api-best-practices', name: 'API Security Best Practices', blogSlug: 'sec-api-best-practices' }
+            ]
+          },
+          {
+            id: 'cryptography-hashing',
+            name: 'Cryptographic Hashing',
+            subtopics: [
+              { id: 'hash-md5', name: 'MD5', blogSlug: 'hash-md5' },
+              { id: 'hash-sha', name: 'SHA-256', blogSlug: 'hash-sha' },
+              { id: 'hash-scrypt', name: 'scrypt', blogSlug: 'hash-scrypt' },
+              { id: 'hash-bcrypt', name: 'bcrypt', blogSlug: 'hash-bcrypt' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'caching-servers',
+        name: 'Caching & Web Servers',
+        description: 'Memory tiers, web hosts, and reverse proxies.',
+        concepts: [
+          {
+            id: 'cache-servers',
+            name: 'Caching Tier',
+            subtopics: [
+              { id: 'cache-redis', name: 'Redis', blogSlug: 'cache-redis' },
+              { id: 'cache-memcached', name: 'Memcached', blogSlug: 'cache-memcached' },
+              { id: 'cache-http', name: 'HTTP Caching', blogSlug: 'cache-http' }
+            ]
+          },
+          {
+            id: 'servers-web',
+            name: 'Web Servers',
+            subtopics: [
+              { id: 'server-nginx', name: 'Nginx', blogSlug: 'server-nginx' },
+              { id: 'server-apache', name: 'Apache', blogSlug: 'server-apache' },
+              { id: 'server-caddy', name: 'Caddy', blogSlug: 'server-caddy' },
+              { id: 'server-iis', name: 'MS IIS', blogSlug: 'server-iis' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ai-in-dev',
+        name: 'AI in Development & Assisted Coding',
+        description: 'LLM engines, vectors, and AI coding interfaces.',
+        concepts: [
+          {
+            id: 'ai-foundations',
+            name: 'AI Basics in Dev',
+            subtopics: [
+              { id: 'ai-llm-workings', name: 'How LLMs work', blogSlug: 'ai-llm-workings' },
+              { id: 'ai-vs-traditional', name: 'AI vs Traditional Coding', blogSlug: 'ai-vs-traditional' },
+              { id: 'ai-embeddings', name: 'Embeddings', blogSlug: 'ai-embeddings' },
+              { id: 'ai-vectors', name: 'Vectors', blogSlug: 'ai-vectors' },
+              { id: 'ai-rags', name: 'RAGs', blogSlug: 'ai-rags' }
+            ]
+          },
+          {
+            id: 'ai-coding-tools',
+            name: 'AI Assisted Coding Tools',
+            subtopics: [
+              { id: 'tool-claude-code', name: 'Claude Code', blogSlug: 'tool-claude-code' },
+              { id: 'tool-cursor', name: 'Cursor', blogSlug: 'tool-cursor' },
+              { id: 'tool-copilot', name: 'Copilot', blogSlug: 'tool-copilot' },
+              { id: 'tool-antigravity', name: 'Antigravity', blogSlug: 'tool-antigravity' }
+            ]
+          },
+          {
+            id: 'ai-dev-apps',
+            name: 'AI Development Applications',
+            subtopics: [
+              { id: 'ai-app-code-reviews', name: 'Code Reviews', blogSlug: 'ai-app-code-reviews' },
+              { id: 'ai-app-refactoring', name: 'Refactoring', blogSlug: 'ai-app-refactoring' },
+              { id: 'ai-app-docs', name: 'Documentation Generation', blogSlug: 'ai-app-docs' },
+              { id: 'ai-app-streaming', name: 'Streaming', blogSlug: 'ai-app-streaming' },
+              { id: 'ai-app-structured-outputs', name: 'Structured Outputs', blogSlug: 'ai-app-structured-outputs' }
+            ]
+          },
+          {
+            id: 'prompting-agents',
+            name: 'Prompting & Agents',
+            subtopics: [
+              { id: 'prompt-techniques', name: 'Prompting Techniques', blogSlug: 'prompt-techniques' },
+              { id: 'agent-architecture', name: 'Agents', blogSlug: 'agent-architecture' },
+              { id: 'mcp-protocol', name: 'MCP', blogSlug: 'mcp-protocol' },
+              { id: 'agent-skills', name: 'Skills', blogSlug: 'agent-skills' },
+              { id: 'agent-roadmap', name: 'AI Agents Roadmap', blogSlug: 'agent-roadmap' }
+            ]
+          },
+          {
+            id: 'ai-vendors',
+            name: 'AI Providers',
+            subtopics: [
+              { id: 'provider-gemini', name: 'Gemini', blogSlug: 'provider-gemini' },
+              { id: 'provider-openai', name: 'OpenAI', blogSlug: 'provider-openai' },
+              { id: 'provider-anthropic', name: 'Anthropic', blogSlug: 'provider-anthropic' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'advanced-backend-testing',
+        name: 'CI/CD, Databases & Testing',
+        description: 'Deployment scripts, database internals, and testing.',
+        concepts: [
+          {
+            id: 'advanced-ci-cd',
+            name: 'Continuous Integration & Delivery',
+            subtopics: [
+              { id: 'cicd-integration', name: 'Continuous Integration', blogSlug: 'cicd-integration' },
+              { id: 'cicd-deployment', name: 'Continuous Deployment', blogSlug: 'cicd-deployment' }
+            ]
+          },
+          {
+            id: 'testing-types',
+            name: 'Testing Methodologies',
+            subtopics: [
+              { id: 'test-integration', name: 'Integration Testing', blogSlug: 'test-integration' },
+              { id: 'test-unit', name: 'Unit Testing', blogSlug: 'test-unit' },
+              { id: 'test-functional', name: 'Functional Testing', blogSlug: 'test-functional' }
+            ]
+          },
+          {
+            id: 'advanced-db',
+            name: 'Advanced Relational Databases',
+            subtopics: [
+              { id: 'db-transactions', name: 'Database Transactions', blogSlug: 'db-transactions' },
+              { id: 'db-orms', name: 'ORMs', blogSlug: 'db-orms' },
+              { id: 'db-acid', name: 'ACID Properties', blogSlug: 'db-acid' },
+              { id: 'db-normalization-advanced', name: 'Database Normalization', blogSlug: 'db-normalization-advanced' },
+              { id: 'db-failure-modes', name: 'Failure Modes', blogSlug: 'db-failure-modes' },
+              { id: 'db-performance-profiling', name: 'Profiling Performance', blogSlug: 'db-performance-profiling' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'containers-brokers',
+        name: 'Containers & Messaging',
+        description: 'Docker clusters and message queue networks.',
+        concepts: [
+          {
+            id: 'containers-orch',
+            name: 'Containerization & Orchestration',
+            subtopics: [
+              { id: 'container-docker', name: 'Docker', blogSlug: 'container-docker' },
+              { id: 'container-lxc', name: 'LXC', blogSlug: 'container-lxc' },
+              { id: 'orch-kubernetes', name: 'Kubernetes', blogSlug: 'orch-kubernetes' }
+            ]
+          },
+          {
+            id: 'messaging-systems',
+            name: 'Message Brokers',
+            subtopics: [
+              { id: 'broker-kafka', name: 'Kafka', blogSlug: 'broker-kafka' },
+              { id: 'broker-rabbitmq', name: 'RabbitMQ', blogSlug: 'broker-rabbitmq' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'architecture-search-realtime',
+        name: 'Architecture & Real-Time Data',
+        description: 'Systems topologies, searching, and web feeds.',
+        concepts: [
+          {
+            id: 'architecture-patterns-concepts',
+            name: 'Architectural Patterns',
+            subtopics: [
+              { id: 'pattern-monolith', name: 'Monolith', blogSlug: 'pattern-monolith' },
+              { id: 'pattern-microservices', name: 'Microservices', blogSlug: 'pattern-microservices' },
+              { id: 'pattern-soa', name: 'SOA', blogSlug: 'pattern-soa' },
+              { id: 'pattern-serverless', name: 'Serverless', blogSlug: 'pattern-serverless' },
+              { id: 'pattern-service-mesh', name: 'Service Mesh', blogSlug: 'pattern-service-mesh' },
+              { id: 'pattern-twelve-factor', name: 'Twelve Factor Apps', blogSlug: 'pattern-twelve-factor' }
+            ]
+          },
+          {
+            id: 'search-engines-concepts',
+            name: 'Search Engines',
+            subtopics: [
+              { id: 'search-elasticsearch', name: 'Elasticsearch', blogSlug: 'search-elasticsearch' },
+              { id: 'search-solr', name: 'Solr', blogSlug: 'search-solr' }
+            ]
+          },
+          {
+            id: 'real-time-protocols',
+            name: 'Real-Time Communication',
+            subtopics: [
+              { id: 'realtime-sse', name: 'Server Sent Events', blogSlug: 'realtime-sse' },
+              { id: 'realtime-websockets', name: 'WebSockets', blogSlug: 'realtime-websockets' },
+              { id: 'realtime-polling', name: 'Long / Short Polling', blogSlug: 'realtime-polling' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'scaling-nosql',
+        name: 'Scaling Databases & NoSQL Systems',
+        description: 'Load shielding, NoSQL types, and failover bounds.',
+        concepts: [
+          {
+            id: 'scaling-relational',
+            name: 'Scaling Databases',
+            subtopics: [
+              { id: 'scale-db-indexes', name: 'Database Indexes', blogSlug: 'scale-db-indexes' },
+              { id: 'scale-data-replication', name: 'Data Replication', blogSlug: 'scale-data-replication' },
+              { id: 'scale-sharding', name: 'Sharding Strategies', blogSlug: 'scale-sharding' },
+              { id: 'scale-cap-theorem', name: 'CAP Theorem', blogSlug: 'scale-cap-theorem' }
+            ]
+          },
+          {
+            id: 'nosql-db-systems',
+            name: 'NoSQL Databases',
+            subtopics: [
+              { id: 'nosql-firebase', name: 'Firebase', blogSlug: 'nosql-firebase' },
+              { id: 'nosql-rethinkdb', name: 'RethinkDB', blogSlug: 'nosql-rethinkdb' },
+              { id: 'nosql-mongodb', name: 'MongoDB', blogSlug: 'nosql-mongodb' },
+              { id: 'nosql-couchdb', name: 'CouchDB', blogSlug: 'nosql-couchdb' },
+              { id: 'nosql-redis', name: 'Redis', blogSlug: 'nosql-redis' },
+              { id: 'nosql-dynamodb', name: 'DynamoDB', blogSlug: 'nosql-dynamodb' },
+              { id: 'nosql-clickhouse', name: 'ClickHouse', blogSlug: 'nosql-clickhouse' },
+              { id: 'nosql-cassandra', name: 'Cassandra', blogSlug: 'nosql-cassandra' },
+              { id: 'nosql-scylladb', name: 'ScyllaDB', blogSlug: 'nosql-scylladb' },
+              { id: 'nosql-neo4j', name: 'Neo4j', blogSlug: 'nosql-neo4j' },
+              { id: 'nosql-neptune', name: 'AWS Neptune', blogSlug: 'nosql-neptune' },
+              { id: 'nosql-dgraph', name: 'DGraph', blogSlug: 'nosql-dgraph' },
+              { id: 'nosql-influxdb', name: 'Influx DB', blogSlug: 'nosql-influxdb' },
+              { id: 'nosql-timescaledb', name: 'TimescaleDB', blogSlug: 'nosql-timescaledb' }
+            ]
+          },
+          {
+            id: 'scaling-mitigation',
+            name: 'Building for Scale & Mitigation',
+            subtopics: [
+              { id: 'scale-obs-core', name: 'Observability Core Concepts', blogSlug: 'scale-obs-core' },
+              { id: 'scale-obs-instrumentation', name: 'Instrumentation', blogSlug: 'scale-obs-instrumentation' },
+              { id: 'scale-obs-monitoring', name: 'Monitoring', blogSlug: 'scale-obs-monitoring' },
+              { id: 'scale-obs-telemetry', name: 'Telemetry', blogSlug: 'scale-obs-telemetry' },
+              { id: 'mit-graceful', name: 'Graceful Degradation', blogSlug: 'mit-graceful' },
+              { id: 'mit-throttling', name: 'Throttling', blogSlug: 'mit-throttling' },
+              { id: 'mit-backpressure', name: 'Backpressure', blogSlug: 'mit-backpressure' },
+              { id: 'mit-loadshifting', name: 'Loadshifting', blogSlug: 'mit-loadshifting' },
+              { id: 'mit-circuit', name: 'Circuit Breaker', blogSlug: 'mit-circuit' }
             ]
           }
         ]
@@ -429,26 +1058,283 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     ]
   },
   {
-    id: 'operating-systems',
+    id: 'android-development',
     number: '05',
-    name: 'Operating Systems',
-    difficulty: 'Hard',
-    hours: 38,
+    name: 'Android Development',
+    difficulty: 'Medium',
+    hours: 100,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'Process schedulers, context switching, semaphore locks, and inodes.',
+    description: 'Learn Kotlin, Java, core App Components, Jetpack Compose layouts, legacy XML views, storage options, networking APIs, debugging, and distribution frameworks.',
     topics: [
       {
-        id: 'scheduler-locks',
-        name: 'OS Kernels',
-        description: 'Context queues scheduling and locks.',
+        id: 'android-languages-intro',
+        name: 'Pick a Language & VCS',
+        description: 'VCS services, languages, and version control.',
         concepts: [
           {
-            id: 'processes-concurrency',
-            name: 'Processes & Concurrency',
+            id: 'pick-android-language',
+            name: 'Pick a Language',
             subtopics: [
-              { id: 'pcb-scheduler', name: 'PCB & CPU Scheduler', blogSlug: 'process-control-blocks-pcb' },
-              { id: 'mutex-locks', name: 'Mutex locks & Semaphores', blogSlug: 'thread-mutex-variables' }
+              { id: 'android-lang-kotlin', name: 'Kotlin', blogSlug: 'android-lang-kotlin' },
+              { id: 'android-lang-java', name: 'Java', blogSlug: 'android-lang-java' }
+            ]
+          },
+          {
+            id: 'android-vcs-concepts',
+            name: 'Version Control Systems',
+            subtopics: [
+              { id: 'android-git', name: 'Git', blogSlug: 'android-git' }
+            ]
+          },
+          {
+            id: 'android-vcs-hosting',
+            name: 'VCS Hosting',
+            subtopics: [
+              { id: 'android-github', name: 'GitHub', blogSlug: 'android-github' },
+              { id: 'android-bitbucket', name: 'Bitbucket', blogSlug: 'android-bitbucket' },
+              { id: 'android-gitlab', name: 'GitLab', blogSlug: 'android-gitlab' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-fundamentals-gradle',
+        name: 'The Fundamentals & Core Components',
+        description: 'Development environment, Gradle configuration, lifecycle states, and intents.',
+        concepts: [
+          {
+            id: 'android-basics',
+            name: 'Android Core Fundamentals',
+            subtopics: [
+              { id: 'android-ide', name: 'Development IDE', blogSlug: 'android-ide' },
+              { id: 'android-kotlin-basics', name: 'Basics of Kotlin', blogSlug: 'android-kotlin-basics' },
+              { id: 'android-oop-basics', name: 'Basics of OOP', blogSlug: 'android-oop-basics' },
+              { id: 'android-dsa-basics', name: 'Data Structures and Algorithms', blogSlug: 'android-dsa-basics' },
+              { id: 'android-gradle', name: 'What is and how to use Gradle?', blogSlug: 'android-gradle' },
+              { id: 'android-hello-world', name: 'Create a Basic Hello World App', blogSlug: 'android-hello-world' }
+            ]
+          },
+          {
+            id: 'android-components',
+            name: 'Core Components',
+            subtopics: [
+              { id: 'android-activity-lifecycle', name: 'Activity LifeCycle', blogSlug: 'android-activity-lifecycle' },
+              { id: 'android-state-changes', name: 'State Changes', blogSlug: 'android-state-changes' },
+              { id: 'android-tasks-backstack', name: 'Tasks & Backstack', blogSlug: 'android-tasks-backstack' },
+              { id: 'android-implicit-intents', name: 'Implicit Intents', blogSlug: 'android-implicit-intents' },
+              { id: 'android-explicit-intents', name: 'Explicit Intents', blogSlug: 'android-explicit-intents' },
+              { id: 'android-intent-filters', name: 'Intent Filters', blogSlug: 'android-intent-filters' },
+              { id: 'android-content-provider', name: 'Content Provider', blogSlug: 'android-content-provider' },
+              { id: 'android-broadcast-receiver', name: 'Broadcast Receiver', blogSlug: 'android-broadcast-receiver' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-layouts-compose',
+        name: 'Interface & Navigation',
+        description: 'Jetpack Compose components, states, side effects, and legacy XML layout structures.',
+        concepts: [
+          {
+            id: 'android-jetpack-compose',
+            name: 'Jetpack Compose UI',
+            subtopics: [
+              { id: 'compose-column-row', name: 'Column / Row', blogSlug: 'compose-column-row' },
+              { id: 'compose-lazy-column-row', name: 'Lazy Column / Row', blogSlug: 'compose-lazy-column-row' },
+              { id: 'compose-box', name: 'Box', blogSlug: 'compose-box' },
+              { id: 'compose-scaffold', name: 'Scaffold', blogSlug: 'compose-scaffold' },
+              { id: 'compose-constraint-layout', name: 'ConstraintLayout', blogSlug: 'compose-constraint-layout' },
+              { id: 'compose-text', name: 'Text Element', blogSlug: 'compose-text' },
+              { id: 'compose-button', name: 'Button Element', blogSlug: 'compose-button' },
+              { id: 'compose-icon', name: 'Icon Element', blogSlug: 'compose-icon' },
+              { id: 'compose-image', name: 'Image Element', blogSlug: 'compose-image' },
+              { id: 'compose-textfield', name: 'TextField Element', blogSlug: 'compose-textfield' },
+              { id: 'compose-card', name: 'Card Element', blogSlug: 'compose-card' },
+              { id: 'compose-bottomsheet', name: 'BottomSheet', blogSlug: 'compose-bottomsheet' },
+              { id: 'compose-tabrow', name: 'TabRow', blogSlug: 'compose-tabrow' },
+              { id: 'compose-dialog', name: 'Dialog', blogSlug: 'compose-dialog' },
+              { id: 'compose-animations', name: 'Animations', blogSlug: 'compose-animations' },
+              { id: 'compose-drawer', name: 'Drawer', blogSlug: 'compose-drawer' }
+            ]
+          },
+          {
+            id: 'android-compose-state',
+            name: 'Compose State & Navigation',
+            subtopics: [
+              { id: 'compose-navhost', name: 'NavHost', blogSlug: 'compose-navhost' },
+              { id: 'compose-remember-state', name: 'remember / State', blogSlug: 'compose-remember-state' },
+              { id: 'compose-viewmodel-state', name: 'ViewModel state', blogSlug: 'compose-viewmodel-state' },
+              { id: 'compose-side-effects', name: 'Side effects', blogSlug: 'compose-side-effects' }
+            ]
+          },
+          {
+            id: 'android-legacy-views',
+            name: 'Legacy XML Views',
+            subtopics: [
+              { id: 'xml-textview', name: 'TextView', blogSlug: 'xml-textview' },
+              { id: 'xml-imageview', name: 'ImageView', blogSlug: 'xml-imageview' },
+              { id: 'xml-fragments', name: 'Fragments', blogSlug: 'xml-fragments' },
+              { id: 'xml-recyclerview', name: 'RecyclerView', blogSlug: 'xml-recyclerview' },
+              { id: 'xml-constraint', name: 'ConstraintLayout XML', blogSlug: 'xml-constraint' }
+            ]
+          },
+          {
+            id: 'android-navigation-components',
+            name: 'Navigation Components',
+            subtopics: [
+              { id: 'android-jetpack-compose-core', name: 'Jetpack Compose Layout', blogSlug: 'android-jetpack-compose-core' },
+              { id: 'android-app-shortcuts', name: 'App Shortcuts', blogSlug: 'android-app-shortcuts' },
+              { id: 'android-navigation-core', name: 'Navigation Components', blogSlug: 'android-navigation-core' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-design-architecture',
+        name: 'Design & Architecture',
+        description: 'Architectural patterns, code design patterns, and dependency injections.',
+        concepts: [
+          {
+            id: 'android-arch-patterns',
+            name: 'Architectural Patterns',
+            subtopics: [
+              { id: 'arch-mvi', name: 'MVI', blogSlug: 'arch-mvi' },
+              { id: 'arch-mvvm', name: 'MVVM', blogSlug: 'arch-mvvm' },
+              { id: 'arch-mvp', name: 'MVP', blogSlug: 'arch-mvp' },
+              { id: 'arch-mvc', name: 'MVC', blogSlug: 'arch-mvc' }
+            ]
+          },
+          {
+            id: 'android-design-patterns',
+            name: 'Design Patterns',
+            subtopics: [
+              { id: 'pattern-android-repository', name: 'Repository Pattern', blogSlug: 'pattern-android-repository' },
+              { id: 'pattern-android-builder', name: 'Builder Pattern', blogSlug: 'pattern-android-builder' },
+              { id: 'pattern-android-factory', name: 'Factory Pattern', blogSlug: 'pattern-android-factory' },
+              { id: 'pattern-android-observer', name: 'Observer Pattern', blogSlug: 'pattern-android-observer' },
+              { id: 'pattern-android-flow', name: 'Flow', blogSlug: 'pattern-android-flow' },
+              { id: 'pattern-android-rxkotlin', name: 'RxKotlin', blogSlug: 'pattern-android-rxkotlin' },
+              { id: 'pattern-android-rxjava', name: 'RxJava', blogSlug: 'pattern-android-rxjava' },
+              { id: 'pattern-android-livedata', name: 'LiveData', blogSlug: 'pattern-android-livedata' }
+            ]
+          },
+          {
+            id: 'android-di',
+            name: 'Dependency Injection',
+            subtopics: [
+              { id: 'di-dagger', name: 'Dagger', blogSlug: 'di-dagger' },
+              { id: 'di-hilt', name: 'Hilt', blogSlug: 'di-hilt' },
+              { id: 'di-koin', name: 'Koin', blogSlug: 'di-koin' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-data-network',
+        name: 'Storage, Network & Asynchronism',
+        description: 'Room persistence database, Retrofit network requests, threads, and coroutine execution.',
+        concepts: [
+          {
+            id: 'android-storage',
+            name: 'Storage Options',
+            subtopics: [
+              { id: 'storage-shared-preferences', name: 'Shared Preferences', blogSlug: 'storage-shared-preferences' },
+              { id: 'storage-datastore', name: 'DataStore', blogSlug: 'storage-datastore' },
+              { id: 'storage-room', name: 'Room Database', blogSlug: 'storage-room' },
+              { id: 'storage-filesystem', name: 'File System', blogSlug: 'storage-filesystem' }
+            ]
+          },
+          {
+            id: 'android-security',
+            name: 'Security',
+            subtopics: [
+              { id: 'android-security-keystore', name: 'Cryptography / Keystore', blogSlug: 'android-security-keystore' }
+            ]
+          },
+          {
+            id: 'android-network',
+            name: 'Network Tier',
+            subtopics: [
+              { id: 'network-retrofit', name: 'Retrofit', blogSlug: 'network-retrofit' },
+              { id: 'network-okhttp', name: 'OkHttp', blogSlug: 'network-okhttp' },
+              { id: 'network-apollo', name: 'Apollo-Android', blogSlug: 'network-apollo' },
+              { id: 'android-logger-timber', name: 'Timber', blogSlug: 'android-logger-timber' },
+              { id: 'android-leakcanary', name: 'Leak Canary', blogSlug: 'android-leakcanary' },
+              { id: 'android-chucker', name: 'Chucker', blogSlug: 'android-chucker' },
+              { id: 'android-benchmark', name: 'Jetpack Benchmark', blogSlug: 'android-benchmark' }
+            ]
+          },
+          {
+            id: 'android-async',
+            name: 'Asynchronism',
+            subtopics: [
+              { id: 'async-coroutines', name: 'Coroutines', blogSlug: 'async-coroutines' },
+              { id: 'async-threads', name: 'Threads', blogSlug: 'async-threads' },
+              { id: 'async-rxjava', name: 'RxJava Async', blogSlug: 'async-rxjava' },
+              { id: 'async-rxkotlin', name: 'RxKotlin Async', blogSlug: 'async-rxkotlin' },
+              { id: 'async-workmanager', name: 'WorkManager', blogSlug: 'async-workmanager' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-testing-debugging',
+        name: 'Testing & Debugging',
+        description: 'Espresso unit checks, static lint configurations, and ADB debugging services.',
+        concepts: [
+          {
+            id: 'android-testing',
+            name: 'Testing Frameworks',
+            subtopics: [
+              { id: 'test-espresso', name: 'Espresso', blogSlug: 'test-espresso' },
+              { id: 'test-junit', name: 'JUnit', blogSlug: 'test-junit' }
+            ]
+          },
+          {
+            id: 'android-linting',
+            name: 'Linting & Checking',
+            subtopics: [
+              { id: 'lint-ktlint', name: 'Ktlint', blogSlug: 'lint-ktlint' },
+              { id: 'lint-detekt', name: 'Detekt', blogSlug: 'lint-detekt' }
+            ]
+          },
+          {
+            id: 'android-debugging',
+            name: 'Debugging Tools',
+            subtopics: [
+              { id: 'android-adb-debugging', name: 'Android Debug Bridge / Profiler', blogSlug: 'android-adb-debugging' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'android-distribution-services',
+        name: 'Common Services & Distribution',
+        description: 'Firebase cloud settings, Google play configurations, and app releases.',
+        concepts: [
+          {
+            id: 'android-common-services',
+            name: 'Common Services',
+            subtopics: [
+              { id: 'service-firebase-auth', name: 'Authentication', blogSlug: 'service-firebase-auth' },
+              { id: 'service-crashlytics', name: 'Crashlytics', blogSlug: 'service-crashlytics' },
+              { id: 'service-remote-config', name: 'Remote Config', blogSlug: 'service-remote-config' },
+              { id: 'service-cloud-messaging', name: 'Cloud Messaging', blogSlug: 'service-cloud-messaging' },
+              { id: 'service-firestore', name: 'FireStore', blogSlug: 'service-firestore' },
+              { id: 'service-firebase-core', name: 'Firebase SDK', blogSlug: 'service-firebase-core' },
+              { id: 'service-admob', name: 'Google Admob', blogSlug: 'service-admob' },
+              { id: 'service-play-services', name: 'Google Play Services', blogSlug: 'service-play-services' },
+              { id: 'service-maps', name: 'Google Maps', blogSlug: 'service-maps' }
+            ]
+          },
+          {
+            id: 'android-distribution',
+            name: 'App Distribution',
+            subtopics: [
+              { id: 'dist-signed-apk', name: 'Signed APK', blogSlug: 'dist-signed-apk' },
+              { id: 'dist-firebase', name: 'Firebase Distribution', blogSlug: 'dist-firebase' },
+              { id: 'dist-playstore', name: 'Google Playstore', blogSlug: 'dist-playstore' }
             ]
           }
         ]
@@ -1257,24 +2143,156 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
   {
     id: 'software-engineering',
     number: '09',
-    name: 'Software Engineering Practices',
+    name: 'Full Stack Development',
     difficulty: 'Medium',
-    hours: 28,
+    hours: 78,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'OOP vs Functional, SOLID patterns, Git version trees, and testing.',
+    description: 'Master frontend markup, styling, React components, Node.js servers, databases, caching, and CI/CD operations.',
     topics: [
       {
-        id: 'paradigms-git',
-        name: 'Engineering Practices',
-        description: 'Design paradigms and version controllers.',
+        id: 'frontend-foundations-git',
+        name: 'Frontend Core & Collaboration',
+        description: 'HTML, CSS, JS, package managers, and version control structures.',
         concepts: [
           {
-            id: 'coding-paradigms',
-            name: 'System Coding',
+            id: 'html-css',
+            name: 'HTML & CSS Foundations',
             subtopics: [
-              { id: 'oop-functional', name: 'OOP & Functional stubs', blogSlug: 'oop-class-inheritance-stubs' },
-              { id: 'solid-rules', name: 'SOLID rules design', blogSlug: 'solid-single-responsibility-rules' }
+              { id: 'html-semantics', name: 'HTML Structure & Semantics', blogSlug: 'html-semantics' },
+              { id: 'css-layouts', name: 'CSS Layouts & Responsive Design', blogSlug: 'css-layouts' },
+              { id: 'checkpoint-static', name: 'Checkpoint - Static Webpages', blogSlug: 'checkpoint-static' }
+            ]
+          },
+          {
+            id: 'js-npm',
+            name: 'JavaScript & Packages',
+            subtopics: [
+              { id: 'javascript-basics', name: 'JavaScript Syntax & DOM', blogSlug: 'javascript-basics' },
+              { id: 'npm-ecosystem', name: 'npm & Package Ecosystem', blogSlug: 'npm-ecosystem' },
+              { id: 'checkpoint-interactivity', name: 'Checkpoint - Interactivity', blogSlug: 'checkpoint-interactivity' }
+            ]
+          },
+          {
+            id: 'version-control',
+            name: 'Git & Collaboration',
+            subtopics: [
+              { id: 'git-version-control', name: 'Git Version Control', blogSlug: 'git-version-control' },
+              { id: 'github-collaboration', name: 'GitHub Collaboration', blogSlug: 'github-collaboration' },
+              { id: 'checkpoint-collaborative', name: 'Checkpoint - Collaborative Work', blogSlug: 'checkpoint-collaborative' },
+              { id: 'checkpoint-external-packages', name: 'Checkpoint - External Packages', blogSlug: 'checkpoint-external-packages' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'frontend-frameworks',
+        name: 'UI Libraries & Frontend Apps',
+        description: 'React core components, state hooks, utility styling, and deployment targets.',
+        concepts: [
+          {
+            id: 'react-tailwind',
+            name: 'React & Tailwind CSS',
+            subtopics: [
+              { id: 'react-components', name: 'React Components & Hooks', blogSlug: 'react-components' },
+              { id: 'tailwind-css', name: 'Tailwind CSS Utility Styling', blogSlug: 'tailwind-css' },
+              { id: 'checkpoint-frontend-apps', name: 'Checkpoint - Frontend Apps', blogSlug: 'checkpoint-frontend-apps' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'backend-runtime-databases',
+        name: 'Backend Dev & Persistence',
+        description: 'Node.js server code, SQL relational engines, and CRUD databases.',
+        concepts: [
+          {
+            id: 'node-js',
+            name: 'Node.js Server Environment',
+            subtopics: [
+              { id: 'node-js-runtime', name: 'Node.js Runtime Engine', blogSlug: 'node-js-runtime' },
+              { id: 'checkpoint-cli-apps', name: 'Checkpoint - CLI Apps', blogSlug: 'checkpoint-cli-apps' }
+            ]
+          },
+          {
+            id: 'databases-sql',
+            name: 'Relational Databases & SQL',
+            subtopics: [
+              { id: 'postgresql-databases', name: 'PostgreSQL Relational DB', blogSlug: 'postgresql-databases' },
+              { id: 'checkpoint-crud-apps', name: 'Checkpoint - Simple CRUD Apps', blogSlug: 'checkpoint-crud-apps' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'api-auth-cache',
+        name: 'REST APIs, JWT & Cache Tiers',
+        description: 'Stateless server services, cryptographic access controls, and cache memories.',
+        concepts: [
+          {
+            id: 'apis-auth',
+            name: 'APIs & JWT Authentication',
+            subtopics: [
+              { id: 'restful-api-design', name: 'RESTful API Patterns', blogSlug: 'restful-api-design' },
+              { id: 'jwt-authentication', name: 'JWT Secure Authentication', blogSlug: 'jwt-authentication' }
+            ]
+          },
+          {
+            id: 'caching-tier',
+            name: 'Caching & Integration',
+            subtopics: [
+              { id: 'redis-caching', name: 'Redis Distributed Cache', blogSlug: 'redis-caching' },
+              { id: 'checkpoint-complete-app', name: 'Checkpoint - Complete App', blogSlug: 'checkpoint-complete-app' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'devops-cloud-topologies',
+        name: 'DevOps, Cloud Services & Mesh',
+        description: 'Linux systems, AWS resources, and distributed mesh structures.',
+        concepts: [
+          {
+            id: 'linux-aws',
+            name: 'Linux & Cloud Basics',
+            subtopics: [
+              { id: 'linux-cli-basics', name: 'Linux Command Line Basics', blogSlug: 'linux-cli-basics' },
+              { id: 'basic-aws-services', name: 'Basic AWS Services (EC2, S3, VPC)', blogSlug: 'basic-aws-services' },
+              { id: 'checkpoint-deployment', name: 'Checkpoint - Deployment', blogSlug: 'checkpoint-deployment' }
+            ]
+          },
+          {
+            id: 'mesh-topologies',
+            name: 'Mesh Topologies & Services',
+            subtopics: [
+              { id: 'mesh-like-structures', name: 'Mesh-like Structures & Topologies', blogSlug: 'mesh-like-structures' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'automation-cicd-monitoring',
+        name: 'Automation, CI/CD & Monitoring',
+        description: 'Ansible playbooks, Terraform config blueprints, Actions deployment workflows, and monit triggers.',
+        concepts: [
+          {
+            id: 'automation-iac',
+            name: 'Automation & Infrastructure',
+            subtopics: [
+              { id: 'ansible-configuration', name: 'Ansible Automations', blogSlug: 'ansible-configuration' },
+              { id: 'terraform-iac', name: 'Terraform IaC Provisions', blogSlug: 'terraform-iac' },
+              { id: 'checkpoint-automation', name: 'Checkpoint - Automation', blogSlug: 'checkpoint-automation' },
+              { id: 'checkpoint-infrastructure', name: 'Checkpoint - Infrastructure', blogSlug: 'checkpoint-infrastructure' }
+            ]
+          },
+          {
+            id: 'delivery-monitoring',
+            name: 'Delivery Pipeline & Health',
+            subtopics: [
+              { id: 'github-actions-cicd', name: 'GitHub Actions CI/CD', blogSlug: 'github-actions-cicd' },
+              { id: 'monit-monitoring', name: 'Monit Health Monitoring', blogSlug: 'monit-monitoring' },
+              { id: 'checkpoint-cicd', name: 'Checkpoint - CI/CD', blogSlug: 'checkpoint-cicd' },
+              { id: 'checkpoint-monitoring', name: 'Checkpoint - Monitoring', blogSlug: 'checkpoint-monitoring' }
             ]
           }
         ]
