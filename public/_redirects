@@ -7,5 +7,14 @@
 # canonicalizes an /index.html destination and bounces the request to `/`,
 # which is what sent hard refreshes back to the landing page.
 
-# SPA rewrite for the blog section subpaths (e.g. /blog/arrays -> /blog.html)
-/blog/*  /blog.html  200
+# SPA rewrite for nested section subpaths, so a hard refresh / direct hit on a
+# deep URL is served by that section's SPA shell (which then boots the App and
+# renders the right view from location.pathname) instead of 404ing.
+#
+# The destination MUST be the clean, extensionless URL (/roadmap), NOT the .html
+# file (/roadmap.html). Cloudflare Pages' Clean URLs canonicalize ANY .html
+# destination and 308-redirect it to its extensionless form — so /roadmap.html
+# bounces the request to /roadmap, dropping the deep path. The clean URL is
+# already canonical, so it is proxied (200) in place with the deep URL preserved.
+/blog/*      /blog      200
+/roadmap/*   /roadmap   200
