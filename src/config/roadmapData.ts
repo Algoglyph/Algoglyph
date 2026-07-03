@@ -37,7 +37,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '01',
     name: 'Data Structures & Algorithms',
     difficulty: 'Medium',
-    hours: 45,
+    hours: 88,
     visualizerAvailable: true,
     learningStatus: 'Not Started',
     description: 'Master data organization and computational routines.',
@@ -352,7 +352,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '02',
     name: 'Game Developer',
     difficulty: 'Medium',
-    hours: 150,
+    hours: 122,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Master Game Mathematics, Physics Engine, Programming Languages, Game Engines, Computer Graphics, Lighting, Visibility, Game AI, APIs, and Advanced physically-based rendering.',
@@ -655,7 +655,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '03',
     name: 'Backend',
     difficulty: 'Medium',
-    hours: 120,
+    hours: 137,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Learn languages, internet foundations, relational/NoSQL databases, APIs, security, caching, containerization, scaling, and AI in development.',
@@ -1031,26 +1031,337 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     ]
   },
   {
-    id: 'networks-web',
+    id: 'data-engineering',
     number: '04',
-    name: 'Computer Networks & Web Tech',
-    difficulty: 'Medium',
-    hours: 38,
+    name: 'Data Engineer',
+    difficulty: 'Hard',
+    hours: 58,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'TCP handshakes, DNS caches, edge CDNs, and API serialization.',
+    description: 'Learn the foundational and advanced concepts of Data Engineering, from data generation to data serving.',
     topics: [
       {
-        id: 'protocols',
-        name: 'Networks Stack',
-        description: 'OSI routing layers and socket handlers.',
+        id: 'de-intro',
+        name: 'Introduction',
+        description: 'What is data engineering and its lifecycle.',
         concepts: [
           {
-            id: 'osi-sockets',
-            name: 'Transmission Protocols',
+            id: 'de-intro-concept',
+            name: 'Introduction to DE',
             subtopics: [
-              { id: 'sockets-stack', name: 'OSI TCP/IP Sockets', blogSlug: 'osi-layer-boundaries' },
-              { id: 'dns-cdn', name: 'DNS & CDN resolution', blogSlug: 'dns-root-authority-resolution' }
+              { id: 'de-intro-what-is', name: 'What is Data Engineering?', blogSlug: 'de-intro-what-is' },
+              { id: 'de-intro-vs-ds', name: 'Data Engineering vs Data Science', blogSlug: 'de-intro-vs-ds' },
+              { id: 'de-intro-skills', name: 'Skills and Responsibilities', blogSlug: 'de-intro-skills' },
+              { id: 'de-intro-lifecycle', name: 'Data Engineering Lifecycle', blogSlug: 'de-intro-lifecycle' },
+              { id: 'de-intro-tech', name: 'Choosing the Right Technologies', blogSlug: 'de-intro-tech' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-basics',
+        name: 'Learn the Basics',
+        description: 'Programming skills and core fundamentals.',
+        concepts: [
+          {
+            id: 'de-basics-prog',
+            name: 'Programming Skills',
+            subtopics: [
+              { id: 'de-basics-programming', name: 'Python, Java, Scala, Go', blogSlug: 'de-basics-programming' }
+            ]
+          },
+          {
+            id: 'de-basics-fundamentals',
+            name: 'Fundamentals',
+            subtopics: [
+              { id: 'de-basics-dsa', name: 'Data Structures and Algorithms', blogSlug: 'de-basics-dsa' },
+              { id: 'de-basics-git', name: 'Git and GitHub', blogSlug: 'de-basics-git' },
+              { id: 'de-basics-linux', name: 'Linux Basics', blogSlug: 'de-basics-linux' },
+              { id: 'de-basics-network', name: 'Networking Fundamentals', blogSlug: 'de-basics-network' },
+              { id: 'de-basics-distributed', name: 'Distributed Systems Basics', blogSlug: 'de-basics-distributed' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-lifecycle',
+        name: 'Data Engineering Lifecycle',
+        description: 'Understand Different Steps.',
+        concepts: [
+          {
+            id: 'de-lifecycle-steps',
+            name: 'Understand Different Steps',
+            subtopics: [
+              { id: 'de-lifecycle-generation', name: 'Data Generation', blogSlug: 'de-lifecycle-generation' },
+              { id: 'de-lifecycle-storage', name: 'Data Storage', blogSlug: 'de-lifecycle-storage' },
+              { id: 'de-lifecycle-ingestion', name: 'Data Ingestion', blogSlug: 'de-lifecycle-ingestion' },
+              { id: 'de-lifecycle-serving', name: 'Data Serving', blogSlug: 'de-lifecycle-serving' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-gen',
+        name: 'Data Generation',
+        description: 'Sources of Data and Considerations.',
+        concepts: [
+          {
+            id: 'de-gen-sources',
+            name: 'Sources of Data',
+            subtopics: [
+              { id: 'de-gen-sources-all', name: 'Database, APIs, Logs, Mobile Apps, IoT', blogSlug: 'de-gen-sources' }
+            ]
+          },
+          {
+            id: 'de-gen-cons',
+            name: 'Data Collection Considerations',
+            subtopics: [
+              { id: 'de-gen-considerations', name: 'Collection Considerations', blogSlug: 'de-gen-considerations' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-db',
+        name: 'Database Fundamentals',
+        description: 'Database design and scaling concepts.',
+        concepts: [
+          {
+            id: 'de-db-fundamentals',
+            name: 'Core Concepts',
+            subtopics: [
+              { id: 'de-db-normalization', name: 'Data Normalization', blogSlug: 'de-db-normalization' },
+              { id: 'de-db-modelling', name: 'Data Modelling Techniques', blogSlug: 'de-db-modelling' },
+              { id: 'de-db-cap', name: 'CAP Theorem', blogSlug: 'de-db-cap' },
+              { id: 'de-db-oltp-olap', name: 'OLTP vs OLAP', blogSlug: 'de-db-oltp-olap' }
+            ]
+          },
+          {
+            id: 'de-model-concepts',
+            name: 'Data Modeling Concepts',
+            subtopics: [
+              { id: 'de-model-scd', name: 'Slowly Changing Dimension - SCD', blogSlug: 'de-model-scd' },
+              { id: 'de-model-scaling', name: 'Horizontal vs Vertical Scaling', blogSlug: 'de-model-scaling' },
+              { id: 'de-model-star-snowflake', name: 'Star vs Snowflake Schema', blogSlug: 'de-model-star-snowflake' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-storage',
+        name: 'Data Storage',
+        description: 'Where to store your data.',
+        concepts: [
+          {
+            id: 'de-storage-relational',
+            name: 'Relational Databases',
+            subtopics: [
+              { id: 'de-storage-relational-all', name: 'MySQL, PostgreSQL, MariaDB, Aurora DB, Oracle, MS SQL', blogSlug: 'de-storage-relational' }
+            ]
+          },
+          {
+            id: 'de-storage-nosql',
+            name: 'NoSQL Databases',
+            subtopics: [
+              { id: 'de-storage-nosql-all', name: 'Document, Column, Graph, Key-Value', blogSlug: 'de-storage-nosql' }
+            ]
+          },
+          {
+            id: 'de-storage-warehouse',
+            name: 'Data Warehousing',
+            subtopics: [
+              { id: 'de-storage-warehouse-all', name: 'BigQuery, Snowflake, Redshift, Architectures', blogSlug: 'de-storage-warehouse' }
+            ]
+          },
+          {
+            id: 'de-storage-datalake',
+            name: 'Data Lake',
+            subtopics: [
+              { id: 'de-storage-datalake-all', name: 'Databricks, Snowflake, Onehouse', blogSlug: 'de-storage-datalake' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-ingest',
+        name: 'Data Ingestion',
+        description: 'How to move data.',
+        concepts: [
+          {
+            id: 'de-ingest-types',
+            name: 'Types of Data Ingestion',
+            subtopics: [
+              { id: 'de-ingest-types-all', name: 'Batch, Hybrid, Realtime', blogSlug: 'de-ingest-types' }
+            ]
+          },
+          {
+            id: 'de-ingest-pipelines',
+            name: 'Data Pipelines',
+            subtopics: [
+              { id: 'de-ingest-etl', name: 'ETL Process', blogSlug: 'de-ingest-etl' },
+              { id: 'de-ingest-tools', name: 'Data Pipeline Tools (Airflow, dbt, etc.)', blogSlug: 'de-ingest-tools' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-cloud',
+        name: 'Cloud Computing',
+        description: 'Cloud architectures and providers.',
+        concepts: [
+          {
+            id: 'de-cloud-all',
+            name: 'Cloud Foundations',
+            subtopics: [
+              { id: 'de-cloud-architectures', name: 'Cloud Architectures', blogSlug: 'de-cloud-architectures' },
+              { id: 'de-cloud-providers', name: 'Cloud Providers (AWS, Azure, GCP)', blogSlug: 'de-cloud-providers' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-cluster',
+        name: 'Cluster Computing Basics',
+        description: 'Cluster fundamentals.',
+        concepts: [
+          {
+            id: 'de-cluster-concepts',
+            name: 'Cluster Concepts',
+            subtopics: [
+              { id: 'de-cluster-what-is', name: 'What is Cluster Computing', blogSlug: 'de-cluster-what-is' },
+              { id: 'de-cluster-hdfs', name: 'Distributed File Systems (HDFS)', blogSlug: 'de-cluster-hdfs' },
+              { id: 'de-cluster-jobs', name: 'Job Scheduling', blogSlug: 'de-cluster-jobs' },
+              { id: 'de-cluster-management', name: 'Cluster Management Tools (K8s, YARN)', blogSlug: 'de-cluster-management' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-bigdata',
+        name: 'Big Data Tools',
+        description: 'Spark and Hadoop ecosystem.',
+        concepts: [
+          {
+            id: 'de-bigdata-concepts',
+            name: 'Tools & Ecosystems',
+            subtopics: [
+              { id: 'de-bigdata-spark', name: 'Apache Spark', blogSlug: 'de-bigdata-spark' },
+              { id: 'de-bigdata-hadoop', name: 'Hadoop Ecosystem', blogSlug: 'de-bigdata-hadoop' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-containers',
+        name: 'Containers & Orchestration',
+        description: 'Docker and Kubernetes.',
+        concepts: [
+          {
+            id: 'de-containers-tools',
+            name: 'Containerization Tools',
+            subtopics: [
+              { id: 'de-containers-all', name: 'Docker, Kubernetes, GKE, EKS', blogSlug: 'de-containers' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-cicd',
+        name: 'CI/CD & Monitoring',
+        description: 'Deployment and observability.',
+        concepts: [
+          {
+            id: 'de-cicd-concepts',
+            name: 'Pipelines & Observation',
+            subtopics: [
+              { id: 'de-cicd-tools', name: 'GitHub Actions, Circle CI, GitLab CI, ArgoCD', blogSlug: 'de-cicd' },
+              { id: 'de-monitoring-tools', name: 'Prometheus, Datadog, Sentry, New Relic', blogSlug: 'de-monitoring' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-message',
+        name: 'Messaging Systems',
+        description: 'Async queues and streams.',
+        concepts: [
+          {
+            id: 'de-message-concepts',
+            name: 'Messaging Fundamentals',
+            subtopics: [
+              { id: 'de-message-why', name: 'What and why use them?', blogSlug: 'de-message-why' },
+              { id: 'de-message-async', name: 'Async vs Sync Communication', blogSlug: 'de-message-async' },
+              { id: 'de-message-streams', name: 'Messages vs Streams', blogSlug: 'de-message-streams' },
+              { id: 'de-message-practices', name: 'Best Practices', blogSlug: 'de-message-practices' },
+              { id: 'de-message-tools', name: 'Common Tools (Kafka, RabbitMQ, etc.)', blogSlug: 'de-message-tools' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-testing',
+        name: 'Testing & IaC',
+        description: 'Ensuring code and infrastructure quality.',
+        concepts: [
+          {
+            id: 'de-testing-concepts',
+            name: 'Testing Types',
+            subtopics: [
+              { id: 'de-testing-types', name: 'Unit, Integration, E2E, Load Testing...', blogSlug: 'de-testing-types' }
+            ]
+          },
+          {
+            id: 'de-iac-concepts',
+            name: 'Infrastructure as Code',
+            subtopics: [
+              { id: 'de-iac-fundamentals', name: 'Declarative vs Imperative, Idempotency', blogSlug: 'de-iac-concepts' },
+              { id: 'de-iac-tools-list', name: 'Common Tools (Terraform, CDK)', blogSlug: 'de-iac-tools' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-security',
+        name: 'Security & Governance',
+        description: 'Data protection and compliance.',
+        concepts: [
+          {
+            id: 'de-security-concepts',
+            name: 'Security Principles',
+            subtopics: [
+              { id: 'de-security-all', name: 'Auth, Encryption, Masking', blogSlug: 'de-security-concepts' }
+            ]
+          },
+          {
+            id: 'de-gov-concepts',
+            name: 'Data Governance & Privacy',
+            subtopics: [
+              { id: 'de-gov-all', name: 'Data Quality, Lineage, Metadata', blogSlug: 'de-gov-concepts' },
+              { id: 'de-privacy-all', name: 'GDPR, ECPA, EU AI Act', blogSlug: 'de-privacy-regulations' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'de-serving',
+        name: 'Data Serving',
+        description: 'Analytics, BI, and ML.',
+        concepts: [
+          {
+            id: 'de-serving-concepts',
+            name: 'Serving Layer',
+            subtopics: [
+              { id: 'de-serving-analytics', name: 'Data Analytics', blogSlug: 'de-serving-analytics' },
+              { id: 'de-serving-bi', name: 'Business Intelligence & BI Tools', blogSlug: 'de-serving-bi' },
+              { id: 'de-serving-reverse-etl', name: 'Reverse ETL', blogSlug: 'de-serving-reverse-etl' }
+            ]
+          },
+          {
+            id: 'de-ml-concepts',
+            name: 'Machine Learning',
+            subtopics: [
+              { id: 'de-ml-basics', name: 'Machine Learning Basics', blogSlug: 'de-ml' },
+              { id: 'de-mlops', name: 'MLOps', blogSlug: 'de-mlops' }
             ]
           }
         ]
@@ -1062,7 +1373,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '05',
     name: 'Android Development',
     difficulty: 'Medium',
-    hours: 100,
+    hours: 97,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Learn Kotlin, Java, core App Components, Jetpack Compose layouts, legacy XML views, storage options, networking APIs, debugging, and distribution frameworks.',
@@ -1346,7 +1657,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '06',
     name: 'System Design & Distributed Systems',
     difficulty: 'Hard',
-    hours: 44,
+    hours: 106,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Load balancers, LRU caches, Kafka event streaming, and Raft consensus.',
@@ -1640,7 +1951,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '07',
     name: 'Machine Learning',
     difficulty: 'Hard',
-    hours: 45,
+    hours: 86,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Matrix algebra, probability, data processing, and supervised/unsupervised algorithms.',
@@ -1900,7 +2211,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '08',
     name: 'AI & Data Scientist',
     difficulty: 'Hard',
-    hours: 40,
+    hours: 49,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Advanced mathematics, statistics, econometrics, exploratory data analysis, machine learning, deep learning, MLOps, prompt engineering, and vibe coding.',
@@ -2145,7 +2456,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '09',
     name: 'Full Stack Development',
     difficulty: 'Medium',
-    hours: 78,
+    hours: 33,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'Master frontend markup, styling, React components, Node.js servers, databases, caching, and CI/CD operations.',
@@ -2304,7 +2615,7 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     number: '10',
     name: 'Theoretical Computer Science',
     difficulty: 'Hard',
-    hours: 36,
+    hours: 2,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
     description: 'DFAs, grammars, Turing tapes, halting proofs, and NP-completeness reductions.',
@@ -2327,3 +2638,4 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     ]
   }
 ];
+

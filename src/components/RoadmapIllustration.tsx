@@ -1,6 +1,7 @@
-import { BLOG_POSTS } from '../config/blogData';
 import { SYSTEM_DESIGN_DIAGRAMS } from '../config/illustrationData';
 import { ML_DIAGRAMS } from '../config/mlIllustrationData';
+import { DE_DIAGRAMS } from '../config/deIllustrationData';
+import { getCuratedRoadmapDiagram } from '../config/topicIllustrationData';
 import React from 'react';
 
 interface RoadmapIllustrationProps {
@@ -9,7 +10,7 @@ interface RoadmapIllustrationProps {
 
 export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }) => {
   const sLower = slug.toLowerCase();
-  const customConfig = SYSTEM_DESIGN_DIAGRAMS[sLower] || ML_DIAGRAMS[sLower];
+  const customConfig = getCuratedRoadmapDiagram(sLower) || SYSTEM_DESIGN_DIAGRAMS[sLower] || ML_DIAGRAMS[sLower] || DE_DIAGRAMS[sLower];
 
   if (customConfig) {
     return (
@@ -131,6 +132,8 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     | 'heap-allocation'
     | 'big-o'
     | 'time-complexity'
+    | 'program-flow'
+    | 'practice-platforms'
     | 'two-pointers'
     | 'sliding-window'
     | 'fast-slow-pointer'
@@ -233,66 +236,6 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
       return 'circuit-breaker';
     }
 
-    // ----------------------------------------------------
-    // GLOBAL SMART FALLBACK FOR 100% COVERAGE
-    // ----------------------------------------------------
-    const post = BLOG_POSTS.find(p => p.slug === s);
-    const cat = post ? post.category : '';
-
-    if (cat === 'Data Structures' || cat === 'DSA Foundations') {
-      if (s.includes('list')) return 'singly-linked-list';
-      if (s.includes('tree') || s.includes('traversal')) return 'binary-tree';
-      if (s.includes('graph')) return 'graph';
-      if (s.includes('stack')) return 'lifo-stack';
-      if (s.includes('queue')) return 'fifo-queue';
-      if (s.includes('heap')) return 'min-heap';
-      if (s.includes('hash') || s.includes('collision')) return 'hash-function';
-      return 'big-o';
-    }
-    if (cat === 'Algorithms') {
-      if (s.includes('sort')) return 'bubble-sort';
-      if (s.includes('search')) return 'binary-search';
-      if (s.includes('path') || s.includes('mst') || s.includes('graph') || s.includes('traversal')) return 'dijkstra';
-      return 'recursion';
-    }
-    if (cat === 'Computer Systems' || cat === 'Operating Systems') {
-      if (s.includes('memory') || s.includes('page') || s.includes('tlb') || s.includes('cache')) return 'cdn-caching';
-      if (s.includes('thread') || s.includes('scheduler') || s.includes('job') || s.includes('process') || s.includes('queue')) return 'fifo-queue';
-      if (s.includes('lock') || s.includes('mutex') || s.includes('semaphore') || s.includes('race') || s.includes('deadlock')) return 'circuit-breaker';
-      if (s.includes('file') || s.includes('descriptor') || s.includes('inode')) return 'trie';
-      return 'stack-allocation';
-    }
-    if (cat === 'Databases' || cat === 'System Design' || cat === 'Computer Networks') {
-      if (s.includes('sql') || s.includes('table') || s.includes('schema') || s.includes('relation') || s.includes('transaction') || s.includes('isolation')) return 'sql-vs-nosql';
-      if (s.includes('http') || s.includes('tcp') || s.includes('udp') || s.includes('socket') || s.includes('conn') || s.includes('dns') || s.includes('protocol') || s.includes('rest') || s.includes('graphql') || s.includes('grpc') || s.includes('rpc') || s.includes('token') || s.includes('auth')) return 'tcp-handshake';
-      if (s.includes('cache') || s.includes('cdn')) return 'cdn-caching';
-      if (s.includes('balancer') || s.includes('proxy')) return 'load-balancer-l4-l7';
-      if (s.includes('discovery') || s.includes('service') || s.includes('registry') || s.includes('gateway') || s.includes('ambassador') || s.includes('sidecar')) return 'service-discovery';
-      if (s.includes('hash') || s.includes('shard') || s.includes('partition')) return 'consistent-hashing';
-      if (s.includes('queue') || s.includes('bus') || s.includes('event') || s.includes('job')) return 'message-queues';
-      if (s.includes('cqrs') || s.includes('source') || s.includes('view') || s.includes('materialized')) return 'cqrs-event-sourcing';
-      if (s.includes('leader') || s.includes('failover') || s.includes('replicated') || s.includes('consensus') || s.includes('raft')) return 'leader-election';
-      if (s.includes('key') || s.includes('ssl') || s.includes('crypt') || s.includes('encrypt') || s.includes('security')) return 'encryption-ssl';
-      if (s.includes('circuit') || s.includes('breaker') || s.includes('retry') || s.includes('noisy') || s.includes('limit')) return 'circuit-breaker';
-      return 'cap-theorem';
-    }
-    if (cat === 'Machine Learning') {
-      if (s.includes('matrix') || s.includes('vector') || s.includes('product') || s.includes('gradient')) return 'static-array';
-      if (s.includes('tree')) return 'binary-search-tree';
-      return 'recursion';
-    }
-    if (cat === 'Software Engineering') {
-      if (s.includes('test') || s.includes('mock') || s.includes('assert') || s.includes('debt') || s.includes('clean')) return 'circuit-breaker';
-      return 'service-discovery';
-    }
-    if (cat === 'Theoretical CS') {
-      if (s.includes('complexity') || s.includes('time') || s.includes('space') || s.includes('bounds')) return 'time-complexity';
-      if (s.includes('turing') || s.includes('state') || s.includes('automata') || s.includes('grammar') || s.includes('language')) return 'trie';
-      return 'big-o';
-    }
-
-    // Default safe fallback
-    return 'big-o';
     if (s === 'two-three-trees') {
       return 'b-tree';
     }
@@ -318,6 +261,19 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
       return null;
     }
 
+    // DSA foundations mapping
+    if (s === 'what-is-dsa' || s === 'importance-dsa') {
+      return 'graph';
+    }
+    if (s === 'procedural-state-pipelines' || s === 'functions-basic-i-o') {
+      return 'program-flow';
+    }
+    if (s === 'time-vs-space' || s === 'calculate-complexity' || s === 'common-runtimes' || s === 'big-theta-notation' || s === 'big-omega-notation' || s === 'space-complexity-analysis') {
+      return 'time-complexity';
+    }
+    if (s === 'leetcode-platform' || s === 'edabit-platform') {
+      return 'practice-platforms';
+    }
     // Arrays mapping
     if (s === 'static-arrays' || s === 'arrays') {
       return 'static-array';
@@ -372,7 +328,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     if (s === 'binary-search-trees') {
       return 'binary-search-tree';
     }
-    if (s === 'tree-traversal') {
+    if (s === 'tree-traversal' || s === 'in-order-traversal' || s === 'pre-order-traversal' || s === 'post-order-traversal') {
       return 'tree-traversal';
     }
     if (s === 'avl-trees') {
@@ -411,21 +367,24 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
       return 'fibonacci-heap';
     }
 
-    if (
-      s === 'suffix-trees' ||
-      s === 'b-trees'
-    ) {
+    if (s === 'b-trees') {
+      return 'b-tree';
+    }
+    if (s === 'suffix-trees') {
       return 'tree';
     }
     
     // Graphs mapping
+    if (s === 'directed-graphs' || s === 'undirected-graphs') {
+      return 'graph';
+    }
     if (s === 'graph-representations') {
       return 'graph-representations';
     }
-    if (s === 'bfs-traversal') {
+    if (s === 'bfs-traversal' || s === 'tree-bfs') {
       return 'bfs-traversal';
     }
-    if (s === 'dfs-traversal') {
+    if (s === 'dfs-traversal' || s === 'tree-dfs') {
       return 'dfs-traversal';
     }
     if (s === 'topological-sort') {
@@ -446,7 +405,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     if (s === 'prim-mst') {
       return 'prim-mst';
     }
-    if (s === 'mst-union-find') {
+    if (s === 'mst-union-find' || s === 'disjoint-set-union') {
       return 'dsu';
     }
 
@@ -455,6 +414,15 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     }
     
     // Recursion and Paradigms mapping
+    if (s === 'brute-force') {
+      return 'time-complexity';
+    }
+    if (s === 'randomized-algorithms') {
+      return 'quick-sort';
+    }
+    if (s === 'kth-element') {
+      return 'two-heaps';
+    }
     if (s === 'divide-and-conquer') {
       return 'divide-conquer';
     }
@@ -472,7 +440,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     }
     
     // Sorting & Searching mapping
-    if (s === 'bubble-sort') {
+    if (s === 'bubble-sort' || s === 'selection-sort') {
       return 'bubble-sort';
     }
     if (s === 'insertion-sort') {
@@ -1151,6 +1119,80 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
         </svg>
       )}
 
+      {type === 'program-flow' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Procedural State Pipeline</text>
+
+          <rect x="55" y="78" width="86" height="44" rx="3" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="98" y="96" fill="#60a5fa" fontSize="10" textAnchor="middle" fontFamily="monospace">INPUT</text>
+          <text x="98" y="110" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">read x</text>
+
+          <rect x="178" y="66" width="96" height="68" rx="3" fill="none" stroke="#fb923c" strokeWidth="2" />
+          <text x="226" y="86" fill="#fb923c" fontSize="10" textAnchor="middle" fontFamily="monospace">STATE</text>
+          <text x="226" y="102" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">x = x + 1</text>
+          <text x="226" y="118" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">typed variable</text>
+
+          <polygon points="350,62 420,100 350,138 280,100" fill="none" stroke="#f472b6" strokeWidth="2" />
+          <text x="350" y="96" fill="#f472b6" fontSize="10" textAnchor="middle" fontFamily="monospace">if / loop</text>
+          <text x="350" y="112" fill="#e4e4e7" fontSize="8" textAnchor="middle" fontFamily="monospace">control path</text>
+
+          <rect x="458" y="78" width="88" height="44" rx="3" fill="none" stroke="#4ade80" strokeWidth="2" />
+          <text x="502" y="96" fill="#4ade80" fontSize="10" textAnchor="middle" fontFamily="monospace">OUTPUT</text>
+          <text x="502" y="110" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">print result</text>
+
+          <path d="M 144 100 L 172 100" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-program-flow)" />
+          <path d="M 276 100 L 306 100" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-program-flow)" />
+          <path d="M 420 100 L 452 100" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-program-flow)" />
+          <path d="M 350 140 C 350 172, 225 172, 225 138" stroke="#71717a" strokeWidth="1.2" strokeDasharray="4 2" fill="none" markerEnd="url(#arrow-program-loop)" />
+
+          <text x="85" y="165" fill="#a1a1aa" fontSize="9" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Functions package this pipeline into reusable blocks</text>
+          <text x="85" y="181" fill="#a1a1aa" fontSize="9" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Operators mutate state; branches choose which block runs next</text>
+
+          <defs>
+            <marker id="arrow-program-flow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+            <marker id="arrow-program-loop" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#71717a" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'practice-platforms' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Practice Platform Feedback Loop</text>
+
+          <rect x="65" y="68" width="112" height="56" rx="4" fill="none" stroke="#60a5fa" strokeWidth="2" />
+          <text x="121" y="91" fill="#60a5fa" fontSize="10" textAnchor="middle" fontFamily="monospace">PROBLEM</text>
+          <text x="121" y="108" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">constraints + examples</text>
+
+          <rect x="238" y="62" width="124" height="68" rx="4" fill="none" stroke="#fb923c" strokeWidth="2" />
+          <text x="300" y="84" fill="#fb923c" fontSize="10" textAnchor="middle" fontFamily="monospace">CODE</text>
+          <text x="300" y="101" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">choose pattern</text>
+          <text x="300" y="116" fill="#a1a1aa" fontSize="8" textAnchor="middle" fontFamily="monospace">array / graph / dp</text>
+
+          <rect x="424" y="68" width="112" height="56" rx="4" fill="none" stroke="#4ade80" strokeWidth="2" />
+          <text x="480" y="91" fill="#4ade80" fontSize="10" textAnchor="middle" fontFamily="monospace">JUDGE</text>
+          <text x="480" y="108" fill="#e4e4e7" fontSize="9" textAnchor="middle" fontFamily="monospace">tests + runtime</text>
+
+          <path d="M 180 96 L 232 96" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-practice)" />
+          <path d="M 365 96 L 418 96" stroke="#fb923c" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-practice)" />
+          <path d="M 480 128 C 455 176, 168 176, 121 128" stroke="#f472b6" strokeWidth="1.5" fill="none" markerEnd="url(#arrow-practice-fail)" />
+
+          <text x="300" y="166" fill="#f472b6" fontSize="10" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Wrong answer or TLE loops back into learning</text>
+          <text x="300" y="184" fill="#a1a1aa" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Accepted submissions build pattern memory over many small problems</text>
+
+          <defs>
+            <marker id="arrow-practice" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#fb923c" />
+            </marker>
+            <marker id="arrow-practice-fail" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#f472b6" />
+            </marker>
+          </defs>
+        </svg>
+      )}
       {type === 'lifo-stack' && (
         <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
           <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">LIFO Stack (Last-In First-Out)</text>
