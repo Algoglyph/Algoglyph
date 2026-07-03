@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name algoglyph",
     "electron": "electron .",
-    "electron:build": "ELECTRON_BUILD=1 npm run build && electron-builder"
+    "electron:build": "ELECTRON_BUILD=1 npm run build && electron-builder",
+    "seo:sitemap": "node scripts/generateSitemap.js",
+    "prebuild": "node scripts/generateSitemap.js"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",

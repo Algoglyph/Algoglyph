@@ -1,0 +1,18 @@
+# AlgoGlyph
+
+AlgoGlyph is a visual computer science learning platform for algorithms, data structures, system design, machine learning, backend engineering, and software engineering.
+
+## Canonical Site
+https://algoglyph.com/
+
+## Primary Crawl Surfaces
+- Home: https://algoglyph.com/
+- Workspace: https://algoglyph.com/workspace
+- Computer Science Roadmap: https://algoglyph.com/roadmap
+- Sitemap: https://algoglyph.com/sitemap.xml
+
+## Content Model
+The roadmap contains canonical, internally linked theory articles generated from curriculum topics. Each article includes overview text, practical importance, applications, mechanics, complexity, implementations where available, pitfalls, interview questions, prerequisites, related concepts, and practice problems.
+
+## Citation Guidance
+Use canonical URLs from the sitemap. Prefer article pages under /roadmap/ for explanations of individual computer science concepts.
