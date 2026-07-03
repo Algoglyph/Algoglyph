@@ -20,7 +20,9 @@ import { python } from '@codemirror/lang-python';
 import { vscodeDark } from '../config/editorTheme';
 import { RoadmapConvergence } from './RoadmapConvergence';
 import { RoadmapIllustration } from './RoadmapIllustration';
+
 import { SystemDesignGraph } from './SystemDesignGraph';
+import { TopicDesignGraph } from './TopicDesignGraph';
 
 interface RoadmapPageProps {
   onBack: () => void;
@@ -423,6 +425,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               : 'Back to Core Topics'
           }</span>
         </button>
+
+        {/* Add TopicDesignGraph below the back button */}
+        <div className="w-full mt-8">
+          <TopicDesignGraph topic={activeCoreTopic} moduleId={activeModuleId} />
+        </div>
       </motion.div>
     );
   };
@@ -440,29 +447,33 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           transition={{ duration: 0.15 }}
           className="w-full flex flex-col items-center pb-32 text-left"
         >
-          <nav className="w-full max-w-3xl flex items-center gap-1.5 text-[10px] font-sans font-medium text-zinc-500 uppercase tracking-[0.08em] mt-8">
-            <span>Roadmap</span>
-            <span>&gt;</span>
-            <span>{activePost.category}</span>
-            <span>&gt;</span>
-            <span className="text-zinc-100 font-semibold">{activePost.title.split(' (')[0]}</span>
-          </nav>
+          {/* Dark Mode Markdown Minimalist Header */}
+          <div className="w-full max-w-[700px] flex flex-col gap-8 mt-12 mb-8">
+            <h1 className="text-4xl md:text-[40px] font-serif font-medium tracking-tight text-zinc-100 leading-[1.2]">
+              {activePost.title}
+            </h1>
+            
+            <p className="text-[19px] leading-[1.6] text-zinc-400 font-serif">
+              {activePost.tagline}
+            </p>
 
-          <div className="w-full max-w-3xl flex flex-col gap-6 mt-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-              <h1 className="text-3xl font-bold tracking-tight text-white leading-tight font-sans">
-                {activePost.title}
-              </h1>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] font-mono text-zinc-500">Progress:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-[13px] text-zinc-500 mt-2 border-t border-zinc-800 pt-6">
+              <div className="flex items-center gap-2">
+                <span>Updated {activePost.lastUpdated}</span>
+                <span>·</span>
+                <span>{activePost.readTime} min read</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <span className="text-zinc-500">Status:</span>
                 {(['Not Started', 'In Progress', 'Completed'] as const).map((status) => (
                   <button
                     key={status}
                     onClick={() => updateRoadmapProgress(activePost.title, status)}
-                    className={`px-2 py-0.5 rounded border text-[9px] font-mono transition cursor-pointer ${
+                    className={`hover:text-zinc-200 transition-colors cursor-pointer ${
                       progressStatus === status
-                        ? 'border-blue-500/30 bg-blue-500/10 text-blue-400 font-semibold'
-                        : 'border-zinc-800 bg-zinc-900/40 text-zinc-550 hover:text-zinc-350'
+                        ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700'
+                        : 'text-zinc-500 hover:underline hover:underline-offset-4 hover:decoration-zinc-700/50'
                     }`}
                   >
                     {status}
@@ -470,78 +481,65 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 ))}
               </div>
             </div>
+          </div>
 
-            <p className="text-[16px] leading-relaxed text-zinc-400 font-serif font-normal italic">
-              {activePost.tagline}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[11px] font-mono text-zinc-500 border-b border-zinc-800 pb-3.5">
-              <div className="flex items-center gap-1.5">
-                <Calendar size={13} className="text-blue-400" />
-                <span>Updated: <span className="text-zinc-300 font-medium">{activePost.lastUpdated}</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock size={13} className="text-blue-400" />
-                <span>Read Time: <span className="text-zinc-300 font-medium">{activePost.readTime} mins</span></span>
-              </div>
+          <div className="w-full max-w-[700px] flex flex-col gap-10 mt-4 mb-16">
+            {/* Topic Illustration Banner */}
+            <div className="my-6">
+              <RoadmapIllustration slug={activePost.slug} />
             </div>
 
-            {/* Topic Illustration Banner */}
-            <RoadmapIllustration slug={activePost.slug} />
-
-
-
-            <div className="flex flex-col gap-8 text-[15.5px] leading-relaxed text-zinc-300 font-serif mt-4">
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">1. Overview</h2>
+            <div className="flex flex-col gap-10 text-[17px] leading-[1.8] text-zinc-300 font-serif">
+              <section className="flex flex-col gap-4">
+                <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Overview</h2>
                 <p>{activePost.content.introduction}</p>
               </section>
 
-              <section className="flex flex-col gap-2.5">
-                <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">2. Practical Importance</h2>
+              <section className="flex flex-col gap-4">
+                <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Practical Importance</h2>
                 <p>{activePost.content.whyImportant}</p>
               </section>
 
               {activePost.content.realWorldApps && activePost.content.realWorldApps.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">3. Real-World Applications</h2>
-                  <ul className="list-disc pl-5 flex flex-col gap-1.5">
+                <section className="flex flex-col gap-4">
+                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Real-World Applications</h2>
+                  <ul className="list-disc pl-6 flex flex-col gap-2">
                     {activePost.content.realWorldApps.map((app, idx) => (
-                      <li key={idx}>{app}</li>
+                      <li key={idx} className="pl-1 marker:text-zinc-500">{app}</li>
                     ))}
                   </ul>
                 </section>
               )}
 
               {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">4. Structural Mechanics</h2>
-                  <ol className="list-decimal pl-5 flex flex-col gap-1.5">
+                <section className="flex flex-col gap-4">
+                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Structural Mechanics</h2>
+                  <ol className="list-decimal pl-6 flex flex-col gap-2">
                     {activePost.content.algorithmDescription.map((step, idx) => (
-                      <li key={idx}>{step}</li>
+                      <li key={idx} className="pl-1 marker:text-zinc-500">{step}</li>
                     ))}
                   </ol>
                 </section>
               )}
 
               {activePost.content.complexity && activePost.content.complexity.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">5. Asymptotic Bounds</h2>
-                  <div className="overflow-x-auto border border-zinc-800 rounded-lg bg-zinc-950/20">
-                    <table className="w-full text-left border-collapse text-[12.5px] font-sans">
+                <section className="flex flex-col gap-4">
+                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Asymptotic Bounds</h2>
+                  <div className="overflow-x-auto my-4">
+                    <table className="w-full text-left text-[15px] font-serif border-collapse">
                       <thead>
-                        <tr className="border-b border-zinc-800 bg-[#18181b] font-mono text-[10px] text-zinc-400 uppercase">
-                          <th className="p-3">Measurement</th>
-                          <th className="p-3">Asymptotic Bound</th>
-                          <th className="p-3">Context & Constraints</th>
+                        <tr className="border-y border-zinc-800 text-zinc-200">
+                          <th className="py-3 px-2 font-semibold font-sans">Measurement</th>
+                          <th className="py-3 px-2 font-semibold font-sans">Asymptotic Bound</th>
+                          <th className="py-3 px-2 font-semibold font-sans">Context & Constraints</th>
                         </tr>
                       </thead>
                       <tbody>
                         {activePost.content.complexity.map((row, idx) => (
-                          <tr key={idx} className="border-b border-zinc-800/60 hover:bg-[#18181b]/20">
-                            <td className="p-3 font-semibold text-white">{row.label}</td>
-                            <td className="p-3 font-mono text-blue-400">{row.value}</td>
-                            <td className="p-3 text-zinc-400">{row.note}</td>
+                          <tr key={idx} className="border-b border-zinc-800/50">
+                            <td className="py-3 px-2 text-zinc-300">{row.label}</td>
+                            <td className="py-3 px-2 font-mono text-[14px] text-zinc-300">{row.value}</td>
+                            <td className="py-3 px-2 text-zinc-400">{row.note}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -551,26 +549,25 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               )}
 
               {(activePost.content.implementationCpp || activePost.content.implementationPython) && (
-                <section className="flex flex-col gap-2.5">
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-1">
-                    <h2 className="text-base font-bold text-white font-sans">6. Implementation Code</h2>
-                    <div className="flex gap-2 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                <section className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between mt-4">
+                    <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight">Implementation Code</h2>
+                    <div className="flex gap-4 text-[13px] font-sans text-zinc-500">
                       <button
                         onClick={() => setSelectedLanguage('cpp')}
-                        className={`hover:text-white cursor-pointer ${selectedLanguage === 'cpp' ? 'text-blue-400 font-semibold' : ''}`}
+                        className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'cpp' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
                       >
                         C++
                       </button>
-                      <span>/</span>
                       <button
                         onClick={() => setSelectedLanguage('py')}
-                        className={`hover:text-white cursor-pointer ${selectedLanguage === 'py' ? 'text-blue-400 font-semibold' : ''}`}
+                        className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'py' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
                       >
                         Python
                       </button>
                     </div>
                   </div>
-                  <div className="relative rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-[11px] leading-[1.5] max-h-[300px] overflow-auto roadmap-scroll font-sans">
+                  <div className="relative rounded-lg border border-zinc-800 bg-[#121212] p-4 text-[13px] leading-[1.6] max-h-[400px] overflow-auto roadmap-scroll font-mono shadow-inner my-2">
                     <CodeMirror
                       value={
                         selectedLanguage === 'cpp'
@@ -593,22 +590,22 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               )}
 
               {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">7. Common Pitfalls</h2>
-                  <ul className="list-disc pl-5 flex flex-col gap-1.5">
+                <section className="flex flex-col gap-4">
+                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Common Pitfalls</h2>
+                  <ul className="list-disc pl-6 flex flex-col gap-2">
                     {activePost.content.commonMistakes.map((mistake, idx) => (
-                      <li key={idx}>{mistake}</li>
+                      <li key={idx} className="pl-1 marker:text-zinc-500">{mistake}</li>
                     ))}
                   </ul>
                 </section>
               )}
 
               {activePost.content.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
-                <section className="flex flex-col gap-2.5">
-                  <h2 className="text-base font-bold text-white border-b border-zinc-800 pb-1 font-sans">8. Interview Preparation</h2>
-                  <ol className="list-decimal pl-5 flex flex-col gap-2">
+                <section className="flex flex-col gap-4">
+                  <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight mt-4">Interview Preparation</h2>
+                  <ol className="list-decimal pl-6 flex flex-col gap-2">
                     {activePost.content.interviewQuestions.map((q, idx) => (
-                      <li key={idx} className="font-semibold text-white">
+                      <li key={idx} className="font-semibold text-zinc-100 marker:text-zinc-500">
                         <span className="text-zinc-300 font-normal">{q}</span>
                       </li>
                     ))}
@@ -617,9 +614,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               )}
 
               {activePost.content.summary && (
-                <section className="flex flex-col gap-2 bg-[#18181b]/30 p-4 border border-zinc-850 rounded-xl mt-4 font-sans">
-                  <h2 className="text-[10px] font-mono tracking-widest text-blue-400 uppercase">Syllabus Summary</h2>
-                  <p className="leading-relaxed text-[13px]">{activePost.content.summary}</p>
+                <section className="flex flex-col gap-2 text-zinc-400 italic mt-8 border-l-2 border-zinc-800 pl-4">
+                  <p className="leading-[1.8] text-[17px]">{activePost.content.summary}</p>
                 </section>
               )}
             </div>
@@ -956,7 +952,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   className="group flex flex-col gap-2 pb-6 border-b border-zinc-900/80 last:border-b-0 block no-underline transition-all duration-200 cursor-pointer text-left"
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-[16px] text-white group-hover:text-blue-400 transition-colors font-sans leading-tight">
+                    <h3 className="font-bold text-[16px] text-white transition-colors font-sans leading-tight">
                       {sIdx + 1}. {subtopic.name}
                     </h3>
 

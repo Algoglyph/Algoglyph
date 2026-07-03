@@ -391,7 +391,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         }
 
         ctx.strokeStyle = hoveredId && (e.a === hoveredId || e.b === hoveredId) 
-          ? 'rgba(59, 130, 246, 0.6)' 
+          ? 'rgba(255, 255, 255, 0.6)' 
           : `rgba(63, 63, 70, ${alpha})`;
         ctx.lineWidth = hoveredId && (e.a === hoveredId || e.b === hoveredId) ? 1.4 : 0.9;
         
@@ -439,7 +439,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         // Apply glow for hover/search matches
         if (isHovered || matches) {
           const glowGrad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, radius * 3.5);
-          glowGrad.addColorStop(0, n.kind === 'root' ? 'rgba(255,255,255,0.25)' : 'rgba(59, 130, 246, 0.35)');
+          glowGrad.addColorStop(0, n.kind === 'root' ? 'rgba(255,255,255,0.25)' : 'rgba(255, 255, 255, 0.35)');
           glowGrad.addColorStop(1, 'transparent');
           ctx.fillStyle = glowGrad;
           ctx.beginPath();
