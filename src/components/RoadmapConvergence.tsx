@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { useWorkspaceStore } from '../store/workspaceStore';
 import { ROADMAP_ZONES } from '../config/roadmapData';
 
 interface RoadmapConvergenceProps {
@@ -48,7 +47,6 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
   
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
-  const isDark = useWorkspaceStore((state) => state.theme) === 'dark';
   useEffect(() => {
     queryRef.current = query.trim().toLowerCase();
   }, [query]);
@@ -116,15 +114,15 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
     });
 
     // Wire up sequence and triangulated mesh connections between zones
-    const numZones = ROADMAP_ZONES.length;
-    for (let i = 0; i < numZones; i++) {
-      const nextId = `zone:${ROADMAP_ZONES[(i + 1) % numZones].id}`;
-      const skipId = `zone:${ROADMAP_ZONES[(i + 2) % numZones].id}`;
-      const currId = `zone:${ROADMAP_ZONES[i].id}`;
+    // const numZones = ROADMAP_ZONES.length;
+    // for (let i = 0; i < numZones; i++) {
+    //   const nextId = `zone:${ROADMAP_ZONES[(i + 1) % numZones].id}`;
+    //   const skipId = `zone:${ROADMAP_ZONES[(i + 2) % numZones].id}`;
+    //   const currId = `zone:${ROADMAP_ZONES[i].id}`;
 
-      // edgeList.push({ a: currId, b: nextId, targetLength: 120 }); // removed internode connections
-      // edgeList.push({ a: currId, b: skipId, targetLength: 210 }); // removed internode connections
-    }
+    //   // edgeList.push({ a: currId, b: nextId, targetLength: 120 }); // removed internode connections
+    //   // edgeList.push({ a: currId, b: skipId, targetLength: 210 }); // removed internode connections
+    // }
 
     return { nodes: nodeList, edges: edgeList };
   }, []);
@@ -369,6 +367,11 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
     };
 
     const draw = () => {
+      // Read the theme live each frame. This effect + its RAF loop are set up once
+      // at mount, so a captured `isDark` goes stale on theme toggle and keeps
+      // painting the old palette until a refresh. The store mirrors the theme onto
+      // <html class="dark">, so read it here to repaint correctly the moment it flips.
+      const isDark = document.documentElement.classList.contains('dark');
       const q = queryRef.current;
       const hasQuery = q.length > 0;
       const hoverNeighbors = hoveredId ? neighbors.get(hoveredId) : null;
@@ -411,9 +414,7 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
 
         let alpha = BASE_ALPHA[n.kind];
         let radius = RADIUS[n.kind];
-        let fill = `rgba(228, 228, 231, ${alpha})`; // gray node default
-
-        fill = isDark ? '#ffffff' : '#26231a';
+        const fill = isDark ? '#ffffff' : '#26231a';
 
         if (hasQuery) {
           if (matches) {

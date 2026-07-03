@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { useWorkspaceStore } from '../store/workspaceStore';
 import type { RoadmapZone } from '../config/roadmapData';
 
 /**
@@ -61,7 +60,6 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
   const wrapRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
-  const isDark = useWorkspaceStore((state) => state.theme) === 'dark';
   useEffect(() => {
     queryRef.current = query.trim().toLowerCase();
   }, [query]);
@@ -389,6 +387,11 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
     };
 
     const draw = () => {
+      // Read the theme live each frame. This effect + its RAF loop are set up once
+      // at mount, so a captured `isDark` goes stale on theme toggle and keeps
+      // painting the old palette until a refresh. The store mirrors the theme onto
+      // <html class="dark">, so read it here to repaint correctly the moment it flips.
+      const isDark = document.documentElement.classList.contains('dark');
       const q = queryRef.current;
       const hasQuery = q.length > 0;
       const hoverNeighbors = hoveredId ? neighbors.get(hoveredId) : null;
