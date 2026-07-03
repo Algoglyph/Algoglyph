@@ -476,10 +476,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   <button
                     key={status}
                     onClick={() => updateRoadmapProgress(activePost.title, status)}
-                    className={`hover:text-zinc-200 transition-colors cursor-pointer ${
+                    className={`transition-colors cursor-pointer ${
                       progressStatus === status
-                        ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700'
-                        : 'text-zinc-500 hover:underline hover:underline-offset-4 hover:decoration-zinc-700/50'
+                        ? 'text-[var(--rm-text)] underline underline-offset-4 decoration-[var(--rm-border-strong)]'
+                        : 'text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:underline hover:underline-offset-4 hover:decoration-[var(--rm-border)]'
                     }`}
                   >
                     {status}

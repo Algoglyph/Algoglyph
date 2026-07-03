@@ -9,7 +9,8 @@ import {
   Layers,
   Network,
   BookOpen,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 import { MockWorkspace } from './landing/MockWorkspace';
 import { MorphingArena } from './landing/MorphingArena';
@@ -147,6 +148,98 @@ const listItemVariants: Variants = {
     x: 0,
     transition: { duration: 0.35, ease: 'easeOut' },
   },
+};
+
+const FAQ_ITEMS = [
+  {
+    q: 'What is Algoglyph?',
+    a: 'Algoglyph is a visual, spatial workspace for computer‑science studying. It combines notes, code, interactive diagrams and a full CS roadmap in a single canvas.',
+  },
+  {
+    q: 'How is Algoglyph different from Notion?',
+    a: 'Notion is a linear document editor. Algoglyph is a 2‑D sandbox where notes are placed on a canvas, connected to live code snippets and algorithm visualizers, giving you immediate, interactive feedback.',
+  },
+  {
+    q: 'Can I create visual computer‑science notes?',
+    a: 'Yes – you can draw diagrams with Excalidraw, embed graphs, and attach code blocks that render live results right alongside your notes.',
+  },
+  {
+    q: 'Does Algoglyph include interactive algorithm visualizers?',
+    a: 'Absolutely. The Visualizer workspace runs step‑by‑step simulations for sorting arrays, trees, DP tables, graph traversals, N‑Queens, and more.',
+  },
+  {
+    q: 'Does Algoglyph include a complete Computer Science roadmap?',
+    a: 'Yes – the roadmap covers data structures, algorithms, system design, and interview‑ready topics, all visualized as an interactive knowledge graph.',
+  },
+  {
+    q: 'Can I connect notes across different topics?',
+    a: 'Any node on the canvas can be dragged and wired to any other, letting you build cross‑topic reference networks naturally.',
+  },
+  {
+    q: 'Can I write code while studying?',
+    a: 'A built‑in CodeMirror editor lets you write C++, Python, Java, Go, Rust, or JavaScript and run it live via the Wandbox API—right next to your notes.',
+  },
+  {
+    q: 'Is Algoglyph free?',
+    a: 'Algoglyph is completely free for personal learning. Paid enterprise tiers with collaboration features are on the roadmap.',
+  },
+];
+
+const FaqSection: React.FC = () => {
+  const [openIdx, setOpenIdx] = React.useState<number | null>(null);
+  const toggle = (i: number) => setOpenIdx(prev => (prev === i ? null : i));
+
+  return (
+    <section id="faq" className="py-24 border-y border-white/[0.04] bg-[#09090b]/30 z-10 relative">
+      <div className="max-w-3xl mx-auto px-6 sm:px-12 flex flex-col gap-10">
+        <div className="text-center">
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
+            Frequently asked questions
+          </h2>
+        </div>
+        <div className="flex flex-col">
+          {FAQ_ITEMS.map((item, i) => {
+            const isOpen = openIdx === i;
+            return (
+              <div key={i} className="border-b border-white/[0.07]">
+                <button
+                  onClick={() => toggle(i)}
+                  className="w-full flex items-center justify-between gap-6 py-5 text-left group cursor-pointer"
+                  aria-expanded={isOpen}
+                >
+                  <span className="text-[15px] font-medium text-white/80 group-hover:text-white transition-colors leading-snug">
+                    {item.q}
+                  </span>
+                  <span
+                    className="shrink-0 w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-white/60 group-hover:bg-white/[0.1] transition-all"
+                    style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }}
+                  >
+                    <ChevronDown size={15} />
+                  </span>
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      key="answer"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-[14px] leading-relaxed text-[#a1a1a1] pb-5 pr-12">
+                        {item.a}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
 };
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) => {
@@ -987,6 +1080,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         </div>
       </section>
 
+        {/* FAQ Section */}
+        <FaqSection />
+        
       {/* Final CTA */}
       <section className="py-32 relative z-10 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.008),transparent_60%)] pointer-events-none" />

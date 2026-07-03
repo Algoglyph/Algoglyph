@@ -122,8 +122,8 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
       const skipId = `zone:${ROADMAP_ZONES[(i + 2) % numZones].id}`;
       const currId = `zone:${ROADMAP_ZONES[i].id}`;
 
-      edgeList.push({ a: currId, b: nextId, targetLength: 120 });
-      edgeList.push({ a: currId, b: skipId, targetLength: 210 });
+      // edgeList.push({ a: currId, b: nextId, targetLength: 120 }); // removed internode connections
+      // edgeList.push({ a: currId, b: skipId, targetLength: 210 }); // removed internode connections
     }
 
     return { nodes: nodeList, edges: edgeList };
@@ -461,10 +461,10 @@ export const RoadmapConvergence: React.FC<RoadmapConvergenceProps> = ({
         const showLabel = n.kind === 'root' || isHovered || isNeighbor || matches || !hasQuery;
         if (showLabel) {
           ctx.font = n.kind === 'root'
-            ? '600 11px "JetBrains Mono", monospace'
+            ? '600 11px "Inter", sans-serif'
             : isHovered
-            ? 'bold 9.5px sans-serif'
-            : '500 9.5px sans-serif';
+            ? '600 9.5px "Inter", sans-serif'
+            : '500 9.5px "Inter", sans-serif';
           
           ctx.fillStyle = isHovered || matches 
             ? (isDark ? '#ffffff' : '#26231a')

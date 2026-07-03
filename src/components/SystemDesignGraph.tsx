@@ -468,12 +468,13 @@ export const SystemDesignGraph: React.FC<SystemDesignGraphProps> = ({ zone }) =>
           matches;
 
         if (showLabel) {
-          ctx.font =
-            n.kind === 'root'
-              ? '600 11px "JetBrains Mono", monospace'
-              : n.kind === 'topic'
-              ? '600 10px -apple-system, sans-serif'
-              : '400 9.5px -apple-system, sans-serif';
+          ctx.font = n.kind === 'root'
+            ? '600 13px "Inter", sans-serif'
+            : n.kind === 'topic'
+            ? '600 12px "Inter", sans-serif'
+            : n.kind === 'concept'
+            ? '500 11px "Inter", sans-serif'
+            : '400 10px "Inter", sans-serif';
           ctx.fillStyle =
             matches || isHovered
               ? (isDark ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)')
