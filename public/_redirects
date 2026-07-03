@@ -8,9 +8,13 @@
 # which is what sent hard refreshes back to the landing page.
 
 # SPA rewrite for nested section subpaths, so a hard refresh / direct hit on a
-# deep URL is served by that section's real HTML entry (which then boots the App
-# and renders the right view from location.pathname) instead of 404ing.
-# These rewrite to the section's own .html — NOT /index.html — to avoid the
-# Cloudflare Pages canonicalization that bounces /index.html back to `/`.
-/blog/*      /blog.html      200
-/roadmap/*   /roadmap.html   200
+# deep URL is served by that section's SPA shell (which then boots the App and
+# renders the right view from location.pathname) instead of 404ing.
+#
+# The destination MUST be the clean, extensionless URL (/roadmap), NOT the .html
+# file (/roadmap.html). Cloudflare Pages' Clean URLs canonicalize ANY .html
+# destination and 308-redirect it to its extensionless form — so /roadmap.html
+# bounces the request to /roadmap, dropping the deep path. The clean URL is
+# already canonical, so it is proxied (200) in place with the deep URL preserved.
+/blog/*      /blog      200
+/roadmap/*   /roadmap   200
