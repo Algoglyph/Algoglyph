@@ -1031,26 +1031,297 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     ]
   },
   {
-    id: 'networks-web',
+    id: 'network-engineering',
     number: '04',
-    name: 'Computer Networks & Web Tech',
+    name: 'Network Engineering',
     difficulty: 'Medium',
-    hours: 38,
+    hours: 80,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'TCP handshakes, DNS caches, edge CDNs, and API serialization.',
+    description: 'OSI layers, routing protocols, subnetting, VPNs, firewalls, and cloud networking automation.',
     topics: [
       {
-        id: 'protocols',
-        name: 'Networks Stack',
-        description: 'OSI routing layers and socket handlers.',
+        id: 'intro-basics',
+        name: 'Introduction & Basics',
+        description: 'Basic terminology and network classifications.',
         concepts: [
           {
-            id: 'osi-sockets',
-            name: 'Transmission Protocols',
+            id: 'terminology',
+            name: 'Terminology',
             subtopics: [
-              { id: 'sockets-stack', name: 'OSI TCP/IP Sockets', blogSlug: 'osi-layer-boundaries' },
-              { id: 'dns-cdn', name: 'DNS & CDN resolution', blogSlug: 'dns-root-authority-resolution' }
+              { id: 'client-server-host', name: 'Client, Server, Host', blogSlug: 'client-server-host' },
+              { id: 'packets-frames', name: 'Packets & Frames', blogSlug: 'packets-frames' },
+              { id: 'bandwidth-latency', name: 'Bandwidth & Latency', blogSlug: 'bandwidth-latency' },
+              { id: 'ports-sockets', name: 'Ports & Sockets', blogSlug: 'ports-sockets' },
+              { id: 'mac-arp', name: 'MAC Address & ARP', blogSlug: 'mac-arp' }
+            ]
+          },
+          {
+            id: 'network-types',
+            name: 'Network Types',
+            subtopics: [
+              { id: 'lan-wan', name: 'LAN & WAN', blogSlug: 'lan-wan' },
+              { id: 'vpn-cloud', name: 'VPN & Cloud', blogSlug: 'vpn-cloud' },
+              { id: 'p2p-client-server', name: 'P2P vs Client-Server', blogSlug: 'p2p-client-server' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'architectures',
+        name: 'Network Architectures',
+        description: 'Reference models and design principles.',
+        concepts: [
+          {
+            id: 'models',
+            name: 'Models',
+            subtopics: [
+              { id: 'osi-model', name: 'OSI 7 Layers', blogSlug: 'osi-model' },
+              { id: 'tcp-ip-model', name: 'TCP/IP Model', blogSlug: 'tcp-ip-model' }
+            ]
+          },
+          {
+            id: 'design-principles',
+            name: 'Design Principles',
+            subtopics: [
+              { id: 'two-three-tier', name: 'Two-Tier & Three-Tier', blogSlug: 'two-three-tier' },
+              { id: 'spine-leaf', name: 'Spine-Leaf', blogSlug: 'spine-leaf' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'devices-simulators',
+        name: 'Devices & Simulators',
+        description: 'Physical hardware and virtual testing.',
+        concepts: [
+          {
+            id: 'hardware',
+            name: 'Hardware',
+            subtopics: [
+              { id: 'routers-switches', name: 'Routers & Switches', blogSlug: 'routers-switches' },
+              { id: 'hubs-modems', name: 'Hubs & Modems', blogSlug: 'hubs-modems' },
+              { id: 'access-points', name: 'Access Points', blogSlug: 'access-points' }
+            ]
+          },
+          {
+            id: 'simulators',
+            name: 'Simulators',
+            subtopics: [
+              { id: 'packet-tracer', name: 'Cisco Packet Tracer', blogSlug: 'packet-tracer' },
+              { id: 'gns3-eve', name: 'GNS3 & EVE-NG', blogSlug: 'gns3-eve' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'protocols-dns',
+        name: 'Protocols & DNS',
+        description: 'Core application layer protocols and resolution.',
+        concepts: [
+          {
+            id: 'core-protocols',
+            name: 'Core Protocols',
+            subtopics: [
+              { id: 'http-https', name: 'HTTP / HTTPS', blogSlug: 'http-https' },
+              { id: 'ssh-ssl-tls', name: 'SSH & SSL/TLS', blogSlug: 'ssh-ssl-tls' },
+              { id: 'ftp-smtp-dhcp', name: 'FTP, SMTP, DHCP', blogSlug: 'ftp-smtp-dhcp' }
+            ]
+          },
+          {
+            id: 'dns',
+            name: 'DNS',
+            subtopics: [
+              { id: 'dns-resolution', name: 'DNS Resolution', blogSlug: 'dns-resolution' },
+              { id: 'dns-servers', name: 'Cloudflare & Google DNS', blogSlug: 'dns-servers' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ip-subnetting',
+        name: 'IP Addressing & Subnetting',
+        description: 'IPv4, IPv6, NAT, and Subnet math.',
+        concepts: [
+          {
+            id: 'addressing',
+            name: 'Addressing',
+            subtopics: [
+              { id: 'ipv4-ipv6', name: 'IPv4 vs IPv6', blogSlug: 'ipv4-ipv6' },
+              { id: 'public-private', name: 'Public vs Private', blogSlug: 'public-private' },
+              { id: 'nat-pat', name: 'Static/Dynamic NAT & PAT', blogSlug: 'nat-pat' }
+            ]
+          },
+          {
+            id: 'subnetting',
+            name: 'Subnetting',
+            subtopics: [
+              { id: 'subnet-masks', name: 'Subnet Masks', blogSlug: 'subnet-masks' },
+              { id: 'cidr-vlsm', name: 'CIDR & VLSM', blogSlug: 'cidr-vlsm' },
+              { id: 'supernetting', name: 'Supernetting', blogSlug: 'supernetting' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'routing-switching',
+        name: 'Routing & Switching',
+        description: 'Routing protocols, VLANs, and secure tunneling.',
+        concepts: [
+          {
+            id: 'routing',
+            name: 'Routing',
+            subtopics: [
+              { id: 'bgp-ospf', name: 'BGP & OSPF', blogSlug: 'bgp-ospf' },
+              { id: 'rip-eigrp-mpls', name: 'RIP, EIGRP, MPLS', blogSlug: 'rip-eigrp-mpls' },
+              { id: 'static-dynamic', name: 'Static vs Dynamic', blogSlug: 'static-dynamic' }
+            ]
+          },
+          {
+            id: 'switching',
+            name: 'Switching',
+            subtopics: [
+              { id: 'vlans-vxlan', name: 'VLANs & VXLAN', blogSlug: 'vlans-vxlan' },
+              { id: 'stp-mac', name: 'STP & MAC Tables', blogSlug: 'stp-mac' }
+            ]
+          },
+          {
+            id: 'tunneling-vpns',
+            name: 'Tunneling & VPNs',
+            subtopics: [
+              { id: 'ipsec-ssl-vpn', name: 'IPSec vs SSL VPN', blogSlug: 'ipsec-ssl-vpn' },
+              { id: 'site-to-remote', name: 'Site-to-Site vs Remote', blogSlug: 'site-to-remote' },
+              { id: 'mpls-gre', name: 'MPLS VPN & GRE', blogSlug: 'mpls-gre' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'wireless-tech',
+        name: 'Wireless Technologies',
+        description: 'WiFi standards, security, and mobile networks.',
+        concepts: [
+          {
+            id: 'standards',
+            name: 'Standards',
+            subtopics: [
+              { id: 'wifi-bluetooth', name: 'WiFi & Bluetooth', blogSlug: 'wifi-bluetooth' },
+              { id: 'nfc-mobile', name: 'NFC & Mobile Networks', blogSlug: 'nfc-mobile' }
+            ]
+          },
+          {
+            id: 'management',
+            name: 'Management',
+            subtopics: [
+              { id: 'ap-placement', name: 'AP Placement & Coverage', blogSlug: 'ap-placement' },
+              { id: 'channel-planning', name: 'Channel Planning & Roaming', blogSlug: 'channel-planning' },
+              { id: 'wireless-security', name: 'WPA vs WPS', blogSlug: 'wireless-security' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'ha-traffic',
+        name: 'High Availability & Traffic',
+        description: 'Redundancy and shaping traffic for performance.',
+        concepts: [
+          {
+            id: 'redundancy',
+            name: 'Redundancy',
+            subtopics: [
+              { id: 'hsrp-vrrp', name: 'HSRP & VRRP', blogSlug: 'hsrp-vrrp' },
+              { id: 'glbp', name: 'GLBP', blogSlug: 'glbp' }
+            ]
+          },
+          {
+            id: 'traffic-management',
+            name: 'Traffic Management',
+            subtopics: [
+              { id: 'qos-shaping', name: 'QoS & Traffic Shaping', blogSlug: 'qos-shaping' },
+              { id: 'load-balancing-algos', name: 'Round Robin & Least Conn', blogSlug: 'load-balancing-algos' },
+              { id: 'failover', name: 'Failover', blogSlug: 'failover' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'security-troubleshooting',
+        name: 'Network Security & Troubleshooting',
+        description: 'Firewalls, attack mitigation, and diagnostic tools.',
+        concepts: [
+          {
+            id: 'firewalls',
+            name: 'Firewalls',
+            subtopics: [
+              { id: 'packet-filtering', name: 'Packet Filtering', blogSlug: 'packet-filtering' },
+              { id: 'stateful-proxy', name: 'Stateful & Proxy', blogSlug: 'stateful-proxy' },
+              { id: 'next-gen-waf', name: 'Next-Gen & WAF', blogSlug: 'next-gen-waf' }
+            ]
+          },
+          {
+            id: 'protection',
+            name: 'Protection',
+            subtopics: [
+              { id: 'ids-ips', name: 'IDS / IPS & ACLs', blogSlug: 'ids-ips' },
+              { id: 'zero-trust', name: 'Zero Trust Architecture', blogSlug: 'zero-trust' },
+              { id: 'dos-ddos', name: 'DoS & DDoS Mitigation', blogSlug: 'dos-ddos' }
+            ]
+          },
+          {
+            id: 'troubleshooting',
+            name: 'Troubleshooting',
+            subtopics: [
+              { id: 'ping-traceroute', name: 'Ping & Traceroute', blogSlug: 'ping-traceroute' },
+              { id: 'netstat-wireshark', name: 'Netstat & Wireshark', blogSlug: 'netstat-wireshark' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'cloud-networking',
+        name: 'Cloud Networking',
+        description: 'VPCs, Cloud VPNs, and provider architectures.',
+        concepts: [
+          {
+            id: 'cloud-providers',
+            name: 'Cloud Providers',
+            subtopics: [
+              { id: 'aws-vpc', name: 'AWS VPCs', blogSlug: 'aws-vpc' },
+              { id: 'azure-vnet', name: 'Azure & GCP', blogSlug: 'azure-vnet' }
+            ]
+          },
+          {
+            id: 'cloud-architecture',
+            name: 'Cloud Architecture',
+            subtopics: [
+              { id: 'cloud-routing', name: 'Cloud Routing & LB', blogSlug: 'cloud-routing' },
+              { id: 'security-groups', name: 'Security Groups', blogSlug: 'security-groups' },
+              { id: 'cloud-vpn', name: 'Cloud VPN', blogSlug: 'cloud-vpn' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'automation-observability',
+        name: 'Automation & Observability',
+        description: 'IaC, Python networking, and monitoring tools.',
+        concepts: [
+          {
+            id: 'automation-iac',
+            name: 'Automation & IaC',
+            subtopics: [
+              { id: 'python-networking', name: 'Python for Networking', blogSlug: 'python-networking' },
+              { id: 'netconf-restconf', name: 'NETCONF & RESTCONF', blogSlug: 'netconf-restconf' },
+              { id: 'ansible-terraform', name: 'Ansible & Terraform', blogSlug: 'ansible-terraform' }
+            ]
+          },
+          {
+            id: 'monitoring',
+            name: 'Monitoring',
+            subtopics: [
+              { id: 'snmp-netflow', name: 'SNMP & NetFlow', blogSlug: 'snmp-netflow' },
+              { id: 'prometheus-grafana', name: 'Prometheus & Grafana', blogSlug: 'prometheus-grafana' },
+              { id: 'datadog', name: 'Datadog & Dynatrace', blogSlug: 'datadog' }
             ]
           }
         ]
@@ -2300,26 +2571,634 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     ]
   },
   {
-    id: 'theoretical-cs',
+    id: 'blockchain',
     number: '10',
-    name: 'Theoretical Computer Science',
+    name: 'Blockchain',
     difficulty: 'Hard',
-    hours: 36,
+    hours: 45,
     visualizerAvailable: false,
     learningStatus: 'Not Started',
-    description: 'DFAs, grammars, Turing tapes, halting proofs, and NP-completeness reductions.',
+    description: 'Decentralization, smart contracts, dApps, and web3 ecosystem.',
     topics: [
       {
-        id: 'limits-hardness',
-        name: 'Limits of Computability',
-        description: 'Grammars, automatas, and hardness classes.',
+        id: 'blockchain-introduction',
+        name: 'Introduction',
+        description: 'Core concepts and applications of blockchain technology.',
         concepts: [
           {
-            id: 'automatas-complexity',
-            name: 'Computation Bounds',
+            id: 'intro-basics',
+            name: 'Blockchain Fundamentals',
             subtopics: [
-              { id: 'dfa-grammars', name: 'DFA State transitions', blogSlug: 'dfa-state-transitions-automatas' },
-              { id: 'p-np-limits', name: 'P vs NP hardness bounds', blogSlug: 'p-vs-np-class-limits' }
+              { id: 'what-is-blockchain', name: 'What is Blockchain', blogSlug: 'what-is-blockchain' },
+              { id: 'why-it-matters', name: 'Why it matters?', blogSlug: 'why-blockchain-matters' },
+              { id: 'applications-and-uses', name: 'Applications and Uses', blogSlug: 'blockchain-applications' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'understanding-blockchain',
+        name: 'Understanding Blockchain',
+        description: 'Deep dive into how blockchains operate internally.',
+        concepts: [
+          {
+            id: 'core-mechanics',
+            name: 'Core Mechanics',
+            subtopics: [
+              { id: 'blockchain-structure', name: 'Blockchain Structure', blogSlug: 'blockchain-structure' },
+              { id: 'cryptography-and-hashing', name: 'Cryptography & Hashing', blogSlug: 'cryptography-hashing-blockchain' },
+              { id: 'decentralization', name: 'Decentralization', blogSlug: 'blockchain-decentralization' },
+              { id: 'decentralization-vs-trust', name: 'Decentralization vs Trust', blogSlug: 'decentralization-vs-trust' },
+              { id: 'blockchain-networks', name: 'Blockchain Networks', blogSlug: 'blockchain-networks' }
+            ]
+          },
+          {
+            id: 'consensus-protocols',
+            name: 'Consensus Protocols',
+            subtopics: [
+              { id: 'pow', name: 'PoW', blogSlug: 'proof-of-work' },
+              { id: 'pos', name: 'PoS', blogSlug: 'proof-of-stake' },
+              { id: 'poh', name: 'PoH', blogSlug: 'proof-of-history' },
+              { id: 'bft', name: 'BFT', blogSlug: 'byzantine-fault-tolerance' }
+            ]
+          },
+          {
+            id: 'operations-and-ecosystem',
+            name: 'Operations & Ecosystem',
+            subtopics: [
+              { id: 'basic-blockchain-operations', name: 'Basic Blockchain Operations', blogSlug: 'blockchain-operations' },
+              { id: 'blockchain-interoperability', name: 'Blockchain Interoperability', blogSlug: 'blockchain-interoperability' },
+              { id: 'storage', name: 'Storage', blogSlug: 'blockchain-storage' },
+              { id: 'blockchain-forking', name: 'Blockchain Forking', blogSlug: 'blockchain-forking' },
+              { id: 'cryptocurrencies', name: 'Cryptocurrencies', blogSlug: 'cryptocurrencies-intro' },
+              { id: 'cryptowallets', name: 'Cryptowallets', blogSlug: 'crypto-wallets' },
+              { id: 'mining-incentive-models', name: 'Mining & Incentive Models', blogSlug: 'mining-incentives' },
+              { id: 'environmental-considerations', name: 'Environmental Considerations', blogSlug: 'blockchain-environmental-impact' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'types-of-blockchains',
+        name: 'Types of Blockchains',
+        description: 'Different blockchain architectures and networks.',
+        concepts: [
+          {
+            id: 'evm-based',
+            name: 'EVM-Based',
+            subtopics: [
+              { id: 'ethereum', name: 'Ethereum', blogSlug: 'ethereum-network' },
+              { id: 'polygon', name: 'Polygon', blogSlug: 'polygon-network' },
+              { id: 'bnb-chain', name: 'BNB Chain', blogSlug: 'bnb-chain' },
+              { id: 'gnosis-chain', name: 'Gnosis Chain', blogSlug: 'gnosis-chain' },
+              { id: 'avalanche', name: 'Avalanche', blogSlug: 'avalanche-network' },
+              { id: 'fantom', name: 'Fantom', blogSlug: 'fantom-network' },
+              { id: 'moonbeam-moonriver', name: 'Moonbeam / Moonriver', blogSlug: 'moonbeam-moonriver' }
+            ]
+          },
+          {
+            id: 'other-architectures',
+            name: 'Other Architectures',
+            subtopics: [
+              { id: 'utxo-based', name: 'UTXO-Based', blogSlug: 'utxo-blockchains' },
+              { id: 'tvm-based', name: 'TVM-Based', blogSlug: 'tvm-blockchains' },
+              { id: 'l2-blockchains', name: 'L2 Blockchains', blogSlug: 'l2-blockchains' },
+              { id: 'solana', name: 'Solana', blogSlug: 'solana-network' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'smart-contracts',
+        name: 'Smart Contracts',
+        description: 'Developing, testing, and deploying smart contracts.',
+        concepts: [
+          {
+            id: 'languages-and-tools',
+            name: 'Languages & Tools',
+            subtopics: [
+              { id: 'programming-languages', name: 'Programming Languages', blogSlug: 'smart-contract-languages' },
+              { id: 'ides', name: 'IDEs', blogSlug: 'smart-contract-ides' },
+              { id: 'frameworks-and-vcs', name: 'Frameworks & Version Control', blogSlug: 'smart-contract-frameworks' }
+            ]
+          },
+          {
+            id: 'lifecycle-and-security',
+            name: 'Lifecycle & Ecosystem',
+            subtopics: [
+              { id: 'testing', name: 'Testing', blogSlug: 'smart-contract-testing' },
+              { id: 'deployment', name: 'Deployment', blogSlug: 'smart-contract-deployment' },
+              { id: 'monitoring-and-upgrades', name: 'Monitoring & Upgrades', blogSlug: 'smart-contract-monitoring' },
+              { id: 'erc-tokens', name: 'ERC Tokens', blogSlug: 'erc-tokens' },
+              { id: 'crypto-wallets-integration', name: 'Crypto Wallets Integration', blogSlug: 'wallet-integration' },
+              { id: 'crypto-faucets', name: 'Crypto Faucets', blogSlug: 'crypto-faucets' },
+              { id: 'decentralized-storage', name: 'Decentralized Storage', blogSlug: 'decentralized-storage' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'security-and-oracles',
+        name: 'Security & Oracles',
+        description: 'Securing dApps and connecting them to real-world data.',
+        concepts: [
+          {
+            id: 'blockchain-security',
+            name: 'Security Practices',
+            subtopics: [
+              { id: 'security-tooling', name: 'Security Tooling', blogSlug: 'smart-contract-security-tools' },
+              { id: 'fuzz-testing-static-analysis', name: 'Fuzz Testing & Static Analysis', blogSlug: 'fuzzing-static-analysis' },
+              { id: 'common-threat-vectors', name: 'Common Threat Vectors', blogSlug: 'blockchain-threat-vectors' },
+              { id: 'source-of-randomness-attacks', name: 'Source of Randomness Attacks', blogSlug: 'randomness-attacks' }
+            ]
+          },
+          {
+            id: 'oracles',
+            name: 'Oracles',
+            subtopics: [
+              { id: 'hybrid-smart-contracts', name: 'Hybrid Smart Contracts', blogSlug: 'hybrid-smart-contracts' },
+              { id: 'chainlink', name: 'Chainlink', blogSlug: 'chainlink-oracles' },
+              { id: 'oracle-networks', name: 'Oracle Networks', blogSlug: 'oracle-networks' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'decentralized-applications',
+        name: 'Decentralized Applications',
+        description: 'Building and scaling full-stack dApps.',
+        concepts: [
+          {
+            id: 'dapp-development',
+            name: 'dApp Development',
+            subtopics: [
+              { id: 'dapp-testing-deployment', name: 'Testing & Deployment', blogSlug: 'dapp-testing' },
+              { id: 'dapp-architecture-security', name: 'Architecture & Security', blogSlug: 'dapp-architecture' },
+              { id: 'frontend-frameworks', name: 'Frontend Frameworks', blogSlug: 'dapp-frontend' },
+              { id: 'client-libraries', name: 'Client Libraries', blogSlug: 'web3-client-libraries' },
+              { id: 'supporting-languages', name: 'Supporting Languages', blogSlug: 'dapp-supporting-languages' }
+            ]
+          },
+          {
+            id: 'building-for-scale',
+            name: 'Building for Scale',
+            subtopics: [
+              { id: 'state-payment-channels', name: 'State & Payment Channels', blogSlug: 'state-channels' },
+              { id: 'optimistic-rollups-fraud-proofs', name: 'Optimistic Rollups & Fraud Proofs', blogSlug: 'optimistic-rollups' },
+              { id: 'zk-rollups-zkp', name: 'Zk Rollups & ZKP', blogSlug: 'zk-rollups' },
+              { id: 'ethereum-2-0', name: 'Ethereum 2.0', blogSlug: 'ethereum-2-0' },
+              { id: 'on-chain-scaling', name: 'On-Chain Scaling', blogSlug: 'on-chain-scaling' }
+            ]
+          },
+          {
+            id: 'nodes-and-applicability',
+            name: 'Nodes & Ecosystem',
+            subtopics: [
+              { id: 'client-nodes', name: 'Client Nodes', blogSlug: 'client-nodes' },
+              { id: 'node-as-a-service', name: 'Node as a Service', blogSlug: 'node-as-a-service' },
+              { id: 'applicability', name: 'Applicability', blogSlug: 'blockchain-applicability' }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'cyber-security',
+    number: '11',
+    name: 'Cyber Security',
+    difficulty: 'Hard',
+    hours: 50,
+    visualizerAvailable: false,
+    learningStatus: 'Not Started',
+    description: 'Fundamental IT skills, networking, security practices, tooling, and cloud security.',
+    topics: [
+      {
+        id: 'fundamental-it-skills',
+        name: 'Fundamental IT Skills & OS',
+        description: 'Core hardware, suites, and operating systems knowledge.',
+        concepts: [
+          {
+            id: 'hardware-and-suites',
+            name: 'Hardware & Suites',
+            subtopics: [
+              { id: 'hardware-components', name: 'Computer Hardware Components', blogSlug: 'computer-hardware' },
+              { id: 'connection-types', name: 'Connection Types', blogSlug: 'connection-types' },
+              { id: 'troubleshooting', name: 'OS-Independent Troubleshooting', blogSlug: 'os-troubleshooting' },
+              { id: 'popular-suites', name: 'Popular Suites', blogSlug: 'popular-suites' }
+            ]
+          },
+          {
+            id: 'operating-systems',
+            name: 'Operating Systems',
+            subtopics: [
+              { id: 'windows-linux-macos', name: 'Windows, Linux, MacOS', blogSlug: 'operating-systems-overview' },
+              { id: 'installation-config', name: 'Installation & Configuration', blogSlug: 'os-installation-config' },
+              { id: 'gui-cli-navigation', name: 'GUI & CLI Navigation', blogSlug: 'gui-cli-navigation' },
+              { id: 'permissions', name: 'Understand Permissions', blogSlug: 'os-permissions' },
+              { id: 'file-crud-commands', name: 'File CRUD & Commands', blogSlug: 'file-crud-commands' }
+            ]
+          },
+          {
+            id: 'virtualization',
+            name: 'Virtualization',
+            subtopics: [
+              { id: 'virtualization-tech', name: 'VMWare & VirtualBox', blogSlug: 'virtualization-tech' },
+              { id: 'hypervisor-vms', name: 'Hypervisor, HostOS, GuestOS, VM', blogSlug: 'hypervisor-vms' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'networking-knowledge',
+        name: 'Networking Knowledge',
+        description: 'Protocols, models, topologies, and networking tools.',
+        concepts: [
+          {
+            id: 'networking-fundamentals',
+            name: 'Fundamentals',
+            subtopics: [
+              { id: 'osi-model', name: 'OSI Model', blogSlug: 'osi-model' },
+              { id: 'subnetting', name: 'Subnetting', blogSlug: 'subnetting-basics' },
+              { id: 'ip-addresses', name: 'Public vs Private IP Addresses', blogSlug: 'ip-addresses' },
+              { id: 'ip-terminology', name: 'IP Terminology', blogSlug: 'ip-terminology' }
+            ]
+          },
+          {
+            id: 'topologies-protocols',
+            name: 'Topologies & Protocols',
+            subtopics: [
+              { id: 'network-topologies', name: 'Network Topologies', blogSlug: 'network-topologies' },
+              { id: 'network-protocols', name: 'Network Protocols', blogSlug: 'network-protocols' },
+              { id: 'common-ports', name: 'Common Ports', blogSlug: 'common-ports' },
+              { id: 'nas-san', name: 'NAS & SAN', blogSlug: 'nas-san' }
+            ]
+          },
+          {
+            id: 'terminology-and-tools',
+            name: 'Terminology & Tools',
+            subtopics: [
+              { id: 'networking-terms', name: 'Networking Terms', blogSlug: 'networking-terminology' },
+              { id: 'dhcp-dns-ntp-ipam', name: 'DHCP, DNS, NTP, IPAM', blogSlug: 'dhcp-dns-ntp-ipam' },
+              { id: 'networking-commands', name: 'Networking Commands', blogSlug: 'networking-commands' },
+              { id: 'sniffers-scanners', name: 'Packet Sniffers & Port Scanners', blogSlug: 'sniffers-scanners' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'security-skills-knowledge',
+        name: 'Security Skills & Knowledge',
+        description: 'Practices, frameworks, hardening, cryptography, and attacks.',
+        concepts: [
+          {
+            id: 'core-security-concepts',
+            name: 'Core Concepts',
+            subtopics: [
+              { id: 'defense-in-depth', name: 'Defense in Depth', blogSlug: 'defense-in-depth' },
+              { id: 'zero-trust', name: 'Zero Trust', blogSlug: 'zero-trust' },
+              { id: 'cia-triad', name: 'CIA Triad', blogSlug: 'cia-triad' },
+              { id: 'auth-vs-auth', name: 'Authentication vs Authorization', blogSlug: 'auth-vs-auth' },
+              { id: 'risk-and-compliance', name: 'Risk, Compliance, Auditors', blogSlug: 'risk-compliance' }
+            ]
+          },
+          {
+            id: 'frameworks-and-operations',
+            name: 'Frameworks & Operations',
+            subtopics: [
+              { id: 'cyber-kill-chain', name: 'Cyber Kill Chain & ATT&CK', blogSlug: 'cyber-kill-chain-attack' },
+              { id: 'security-standards', name: 'ISO, NIST, CIS, RMF, CSF', blogSlug: 'security-standards' },
+              { id: 'incident-response', name: 'Incident Response Process', blogSlug: 'incident-response' },
+              { id: 'threat-hunting', name: 'Threat Hunting & Intel (OSINT)', blogSlug: 'threat-hunting' },
+              { id: 'vuln-management', name: 'Vulnerability Management', blogSlug: 'vuln-management' },
+              { id: 'red-blue-purple-teams', name: 'Red / Blue / Purple Teams', blogSlug: 'security-teams' }
+            ]
+          },
+          {
+            id: 'hardening-and-defenses',
+            name: 'Hardening & Defenses',
+            subtopics: [
+              { id: 'os-hardening', name: 'OS Hardening & Isolation', blogSlug: 'os-hardening' },
+              { id: 'ids-ips', name: 'IDS & IPS', blogSlug: 'ids-ips' },
+              { id: 'firewalls-and-edr', name: 'Firewalls, EDR, Antivirus', blogSlug: 'firewalls-edr' },
+              { id: 'sandboxing', name: 'Sandboxing & Honeypots', blogSlug: 'sandboxing-honeypots' },
+              { id: 'network-hardening', name: 'ACLs, Port Blocking, Jump Servers', blogSlug: 'network-hardening' }
+            ]
+          },
+          {
+            id: 'cryptography-and-attacks',
+            name: 'Cryptography & Attacks',
+            subtopics: [
+              { id: 'crypto-basics', name: 'Salting, Hashing, PKI', blogSlug: 'crypto-basics' },
+              { id: 'auth-methodologies', name: 'Kerberos, RADIUS, LDAP, SSO', blogSlug: 'auth-methodologies' },
+              { id: 'malware-and-web-attacks', name: 'Malware & Web Attacks (OWASP10)', blogSlug: 'malware-web-attacks' },
+              { id: 'social-engineering', name: 'Social Engineering (Phishing)', blogSlug: 'social-engineering' },
+              { id: 'network-attacks', name: 'DoS/DDoS, MITM, SQLi, XSS', blogSlug: 'network-attacks' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'offensive-security-tooling',
+        name: 'Offensive Security & Tooling',
+        description: 'Tools, frameworks, and practice platforms for hacking.',
+        concepts: [
+          {
+            id: 'hacking-tools-frameworks',
+            name: 'Tools & Frameworks',
+            subtopics: [
+              { id: 'exploit-frameworks', name: 'Exploit Frameworks', blogSlug: 'exploit-frameworks' },
+              { id: 'incident-response-tools', name: 'IR Tools (Wireshark, FTK Imager)', blogSlug: 'ir-tools' },
+              { id: 'hacking-distros', name: 'Hacking Distros (Kali, ParrotOS)', blogSlug: 'hacking-distros' },
+              { id: 'lolbas-gtfobins', name: 'LOLBAS, GTFOBINS', blogSlug: 'lolbas-gtfobins' },
+              { id: 'common-security-tools', name: 'VirusTotal, urlscan, WHOIS', blogSlug: 'common-security-tools' }
+            ]
+          },
+          {
+            id: 'practice-and-certifications',
+            name: 'Practice & Certifications',
+            subtopics: [
+              { id: 'ctfs', name: 'CTFs (HackTheBox, TryHackMe)', blogSlug: 'ctfs-platforms' },
+              { id: 'beginner-certs', name: 'Beginner Certs (CompTIA, CCNA)', blogSlug: 'beginner-certs' },
+              { id: 'advanced-certs', name: 'Advanced Certs (CEH, OSCP, CISSP)', blogSlug: 'advanced-certs' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'cloud-security',
+        name: 'Cloud Security',
+        description: 'Securing cloud environments and infrastructure as code.',
+        concepts: [
+          {
+            id: 'cloud-concepts',
+            name: 'Cloud Concepts',
+            subtopics: [
+              { id: 'security-in-cloud', name: 'Security in the Cloud', blogSlug: 'security-in-cloud' },
+              { id: 'cloud-vs-on-prem', name: 'Cloud vs On-Premises', blogSlug: 'cloud-vs-on-prem' },
+              { id: 'iac-and-serverless', name: 'Infrastructure as Code & Serverless', blogSlug: 'iac-serverless' },
+              { id: 'cloud-deploying-flow', name: 'Deploying in the Cloud', blogSlug: 'cloud-deploying-flow' }
+            ]
+          },
+          {
+            id: 'cloud-environments-services',
+            name: 'Environments & Services',
+            subtopics: [
+              { id: 'cloud-services', name: 'Cloud Services (SaaS, PaaS, IaaS)', blogSlug: 'cloud-services' },
+              { id: 'cloud-models', name: 'Cloud Models (Public, Private, Hybrid)', blogSlug: 'cloud-models' },
+              { id: 'common-environments', name: 'AWS, GCP, Azure', blogSlug: 'common-cloud-environments' },
+              { id: 'cloud-storage', name: 'Common Cloud Storage', blogSlug: 'common-cloud-storage' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'programming-skills',
+        name: 'Programming Skills',
+        description: 'Languages commonly used in cyber security scripting and tools.',
+        concepts: [
+          {
+            id: 'security-languages',
+            name: 'Security Languages',
+            subtopics: [
+              { id: 'python', name: 'Python', blogSlug: 'python-for-security' },
+              { id: 'go', name: 'Go', blogSlug: 'go-for-security' },
+              { id: 'javascript', name: 'JavaScript', blogSlug: 'javascript-for-security' },
+              { id: 'cpp', name: 'C++', blogSlug: 'cpp-for-security' },
+              { id: 'bash', name: 'Bash', blogSlug: 'bash-for-security' },
+              { id: 'powershell', name: 'PowerShell', blogSlug: 'powershell-for-security' }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'product-manager',
+    number: '12',
+    name: 'Product Manager',
+    difficulty: 'Medium',
+    hours: 40,
+    visualizerAvailable: false,
+    learningStatus: 'Not Started',
+    description: 'Everything you need to know to become a Product Manager, from ideation to launch.',
+    topics: [
+      {
+        id: 'pm-introduction',
+        name: 'Introduction to PM',
+        description: 'Basics of Product Management and the product lifecycle.',
+        concepts: [
+          {
+            id: 'pm-basics',
+            name: 'PM Basics',
+            subtopics: [
+              { id: 'what-is-pm', name: 'What is Product Management?', blogSlug: 'what-is-product-management' },
+              { id: 'product-vs-project', name: 'Product vs Project Management', blogSlug: 'product-vs-project' },
+              { id: 'roles-responsibilities', name: 'Roles and Responsibilities', blogSlug: 'pm-roles-responsibilities' },
+              { id: 'key-skills', name: 'Key Skills', blogSlug: 'pm-key-skills' }
+            ]
+          },
+          {
+            id: 'product-lifecycle',
+            name: 'Product Lifecycle',
+            subtopics: [
+              { id: 'development', name: 'Development', blogSlug: 'pm-development' },
+              { id: 'introduction', name: 'Introduction', blogSlug: 'pm-introduction-phase' },
+              { id: 'growth', name: 'Growth', blogSlug: 'pm-growth' },
+              { id: 'maturity', name: 'Maturity', blogSlug: 'pm-maturity' },
+              { id: 'decline', name: 'Decline', blogSlug: 'pm-decline' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'idea-generation-research',
+        name: 'Idea Generation & Research',
+        description: 'Ideation techniques, problem framing, and market analysis.',
+        concepts: [
+          {
+            id: 'ideation',
+            name: 'Ideation Techniques',
+            subtopics: [
+              { id: 'mind-mapping', name: 'Mind Mapping', blogSlug: 'pm-mind-mapping' },
+              { id: 'brainwriting', name: 'Brainwriting', blogSlug: 'pm-brainwriting' },
+              { id: 'scamper', name: 'SCAMPER', blogSlug: 'pm-scamper' }
+            ]
+          },
+          {
+            id: 'product-identification',
+            name: 'Product Identification',
+            subtopics: [
+              { id: 'iterative-process', name: 'Discovery, Validation, Execution', blogSlug: 'pm-iterative-process' },
+              { id: 'blue-ocean-strategy', name: 'Blue Ocean Strategy', blogSlug: 'blue-ocean-strategy' },
+              { id: 'triz', name: 'TRIZ', blogSlug: 'pm-triz' },
+              { id: 'problem-framing', name: 'Problem Framing', blogSlug: 'problem-framing' }
+            ]
+          },
+          {
+            id: 'market-user-research',
+            name: 'Market & User Research',
+            subtopics: [
+              { id: 'user-personas-interviews', name: 'Personas & Interviews', blogSlug: 'user-personas-interviews' },
+              { id: 'surveys-ethnographic', name: 'Surveys & Ethnographic Research', blogSlug: 'surveys-ethnographic' },
+              { id: 'market-needs-trends', name: 'Identifying Needs & Trends', blogSlug: 'market-needs-trends' },
+              { id: 'competitive-analysis', name: 'Competitive Analysis', blogSlug: 'pm-competitive-analysis' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'product-strategy',
+        name: 'Product Strategy',
+        description: 'Positioning, goals, and competitive strategies.',
+        concepts: [
+          {
+            id: 'positioning-vision',
+            name: 'Positioning & Vision',
+            subtopics: [
+              { id: 'positioning-usp', name: 'USP & Market Segmentation', blogSlug: 'positioning-usp' },
+              { id: 'vision-mission-narrative', name: 'Vision, Mission & Narrative', blogSlug: 'vision-mission' },
+              { id: 'value-proposition', name: 'Value Proposition Canvas', blogSlug: 'value-proposition' }
+            ]
+          },
+          {
+            id: 'goals-competitive-strategy',
+            name: 'Goals & Competitive Strategy',
+            subtopics: [
+              { id: 'defining-goals', name: 'Target, Baseline, Trend, Timeframe', blogSlug: 'defining-pm-goals' },
+              { id: 'five-forces', name: 'Five Forces Analysis', blogSlug: 'five-forces' },
+              { id: 'competitive-advantage', name: 'Competitive Advantage', blogSlug: 'competitive-advantage' },
+              { id: 'strategic-partners', name: 'Strategic Partnerships', blogSlug: 'strategic-partners' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'product-planning-design',
+        name: 'Product Planning & Design',
+        description: 'Roadmaps, backlog management, and UX design principles.',
+        concepts: [
+          {
+            id: 'requirements-backlog',
+            name: 'Requirements & Backlog',
+            subtopics: [
+              { id: 'prds-user-stories', name: 'Writing PRDs & User Stories', blogSlug: 'prds-user-stories' },
+              { id: 'prioritization-techniques', name: 'Prioritization Techniques', blogSlug: 'pm-prioritization' },
+              { id: 'grooming-story-mapping', name: 'Grooming & Story Mapping', blogSlug: 'grooming-story-mapping' }
+            ]
+          },
+          {
+            id: 'product-roadmap',
+            name: 'Product Roadmap',
+            subtopics: [
+              { id: 'creating-roadmap', name: 'Creating & Prioritising', blogSlug: 'creating-roadmap' },
+              { id: 'continuous-outcome-based', name: 'Continuous & Outcome-Based', blogSlug: 'outcome-roadmaps' },
+              { id: 'communicating-roadmap', name: 'Communicating the Roadmap', blogSlug: 'communicating-roadmap' }
+            ]
+          },
+          {
+            id: 'ux-ui-testing',
+            name: 'UX/UI & User Testing',
+            subtopics: [
+              { id: 'design-principles', name: 'Design Principles & Prototyping', blogSlug: 'pm-design-principles' },
+              { id: 'service-interaction-design', name: 'Service & Interaction Design', blogSlug: 'interaction-design' },
+              { id: 'usability-ab-testing', name: 'Usability & A/B Testing', blogSlug: 'usability-ab-testing' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'development-launch-metrics',
+        name: 'Development, Launch & Metrics',
+        description: 'Working with engineering, go-to-market strategies, and analytics.',
+        concepts: [
+          {
+            id: 'agile-engineering',
+            name: 'Agile & Engineering',
+            subtopics: [
+              { id: 'scrum-kanban', name: 'Scrum & Kanban Basics', blogSlug: 'scrum-kanban' },
+              { id: 'sprint-planning-mvp', name: 'Sprint Planning & MVP', blogSlug: 'sprint-planning-mvp' },
+              { id: 'retrospectives-standups', name: 'Standups & Retrospectives', blogSlug: 'agile-ceremonies' }
+            ]
+          },
+          {
+            id: 'gtm-release',
+            name: 'Go-to-Market & Release',
+            subtopics: [
+              { id: 'launch-growth', name: 'Launch Planning & Growth Hacking', blogSlug: 'launch-growth' },
+              { id: 'release-strategies', name: 'Feature Toggles & Rollouts', blogSlug: 'release-strategies' }
+            ]
+          },
+          {
+            id: 'product-metrics',
+            name: 'Metrics & Data Decisions',
+            subtopics: [
+              { id: 'key-metrics', name: 'DAU/MAU, Retention, LTV, CAC', blogSlug: 'key-product-metrics' },
+              { id: 'data-driven', name: 'Cohort Analysis & Predictive Analytics', blogSlug: 'cohort-analysis' },
+              { id: 'feedback-loops', name: 'Feedback Loops', blogSlug: 'feedback-loops' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'stakeholder-risk-management',
+        name: 'Stakeholder & Risk Mgmt',
+        description: 'Communication, managing expectations, and identifying risks.',
+        concepts: [
+          {
+            id: 'communication-skills',
+            name: 'Communication Skills',
+            subtopics: [
+              { id: 'interpersonal', name: 'Active Listening & Conflict Res', blogSlug: 'interpersonal-skills' },
+              { id: 'business-alignment', name: 'Alignment, Buy-In, Showing Impact', blogSlug: 'business-alignment' }
+            ]
+          },
+          {
+            id: 'managing-stakeholders',
+            name: 'Managing Stakeholders',
+            subtopics: [
+              { id: 'stakeholder-mapping', name: 'Identifying & Mapping', blogSlug: 'stakeholder-mapping' },
+              { id: 'stakeholder-engagement', name: 'Engagement & Remote Stakeholders', blogSlug: 'stakeholder-engagement' }
+            ]
+          },
+          {
+            id: 'risk-management',
+            name: 'Risk Management',
+            subtopics: [
+              { id: 'identifying-assessing', name: 'Identifying & Assessing Risks', blogSlug: 'assessing-risks' },
+              { id: 'mitigation-monitoring', name: 'Mitigation Strategies & Monitoring', blogSlug: 'risk-mitigation' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'tools-advanced-topics',
+        name: 'Tools & Advanced Topics',
+        description: 'PM tools, scaling strategies, and leadership.',
+        concepts: [
+          {
+            id: 'pm-tools',
+            name: 'PM Tools',
+            subtopics: [
+              { id: 'roadmapping-project-tools', name: 'Jira, Notion, Product Board', blogSlug: 'pm-software-tools' },
+              { id: 'analytics-communication', name: 'Amplitude, Slack, Teams', blogSlug: 'pm-analytics-tools' }
+            ]
+          },
+          {
+            id: 'advanced-analysis-scaling',
+            name: 'Analysis & Scaling',
+            subtopics: [
+              { id: 'ai-ml-in-pm', name: 'AI & ML in Product Management', blogSlug: 'ai-ml-in-pm' },
+              { id: 'growth-strategies', name: 'Growth & Internationalization', blogSlug: 'scaling-products' },
+              { id: 'portfolio-management', name: 'Portfolio Management', blogSlug: 'portfolio-management' }
+            ]
+          },
+          {
+            id: 'leadership',
+            name: 'Leadership & Influence',
+            subtopics: [
+              { id: 'building-teams', name: 'Building & Leading Teams', blogSlug: 'building-teams' },
+              { id: 'influencing-without-authority', name: 'Influencing without Authority', blogSlug: 'influencing-without-authority' }
             ]
           }
         ]

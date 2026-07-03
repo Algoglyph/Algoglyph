@@ -787,6 +787,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         activeModuleId === 'machine-learning' ||
         activeModuleId === 'ai-data-scientist' ||
         activeModuleId === 'backend' ||
+        activeModuleId === 'network-engineering' ||
+        activeModuleId === 'blockchain' ||
+        activeModuleId === 'cyber-security' ||
+        activeModuleId === 'product-manager' ||
         activeModuleId === 'android-development' ||
         activeModuleId === 'software-engineering' ||
         activeModuleId === 'game-developer') &&
