@@ -14,6 +14,7 @@ import type { Concept, RoadmapZone, Topic } from '../config/roadmapData';
 import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
 import { ML_BLOG_DATA } from '../config/mlBlogData';
+import { getArticleRouteBySlug, getRelatedArticleRoutes } from '../lib/seoRoutes';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
@@ -352,11 +353,11 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
           </div>
         </div>
 
-        {/* Concepts — card grid of the topic's daughter nodes */}
+        {/* Concepts - card grid of the topic's daughter nodes */}
         <div className="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-8">
           {conceptsList.map((concept, cIdx) => {
             const { status, percent, total } = getConceptStatusStats(concept);
-            const preview = concept.subtopics.slice(0, 3).map((s) => s.name).join(' · ');
+            const preview = concept.subtopics.slice(0, 3).map((s) => s.name).join(' / ');
             return (
               <Link
                 key={concept.id}
@@ -444,6 +445,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     // ================== LEVEL 5: TEXTBOOK INLINE READER ==================
     if (selectedBlogSlug && activePost) {
       const progressStatus = roadmapProgress[activePost.title] || 'Not Started';
+      const currentArticlePath = location.pathname.replace(/\/+$/, '');
+      const relatedArticleRoutes = getRelatedArticleRoutes(activePost, currentArticlePath);
       return (
         <motion.div
           key="blog-reader"
@@ -466,7 +469,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
             <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-[13px] mt-2 border-t pt-6 ${'text-[var(--rm-text-faint)] border-[var(--rm-border)]'}`}>
               <div className="flex items-center gap-2">
                 <span>Updated {activePost.lastUpdated}</span>
-                <span>·</span>
+                <span>/</span>
                 <span>{activePost.readTime} min read</span>
               </div>
               
@@ -624,6 +627,55 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                   <p className="leading-[1.8] text-[17px]">{activePost.content.summary}</p>
                 </section>
               )}
+
+              {(activePost.prerequisites.length > 0 || relatedArticleRoutes.length > 0 || activePost.practiceProblems.length > 0) && (
+                <section className="grid grid-cols-1 gap-6 pt-8 border-t border-[var(--rm-border)] font-sans">
+                  {activePost.prerequisites.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Prerequisites</h2>
+                      <div className="flex flex-wrap gap-2">
+                        {activePost.prerequisites.map((slug) => {
+                          const route = getArticleRouteBySlug(slug);
+                          return route ? (
+                            <Link key={slug} to={route.path} className="rounded-full border border-[var(--rm-border)] px-3 py-1.5 text-[13px] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:border-[var(--rm-border-strong)] no-underline">
+                              {route.post?.title || route.subtopic.name}
+                            </Link>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {relatedArticleRoutes.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Related Concepts</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {relatedArticleRoutes.map((route) => (
+                          <Link key={route.path} to={route.path} className="border border-[var(--rm-border)] rounded-lg p-3 no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)] transition">
+                            <span className="block text-[13px] font-semibold text-[var(--rm-text)]">{route.post?.title || route.subtopic.name}</span>
+                            <span className="block text-[11px] mt-1 text-[var(--rm-text-faint)]">{route.zone.name} / {route.concept.name}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activePost.practiceProblems.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Practice Problems</h2>
+                      <ul className="flex flex-col gap-2 list-none p-0 m-0">
+                        {activePost.practiceProblems.map((problem) => (
+                          <li key={problem.url}>
+                            <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] underline underline-offset-4 decoration-[var(--rm-border)]">
+                              {problem.title} ({problem.difficulty})
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </section>
+              )}
             </div>
           </div>
 
@@ -711,7 +763,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                         </div>
                         <div className={`text-[10px] font-mono flex items-center gap-1.5 mt-0.5 uppercase tracking-wide text-[var(--rm-text-faint)]`}>
                           <span>{post.category}</span>
-                          <span>•</span>
+                          <span>/</span>
                           <span>{post.readTime} mins</span>
                         </div>
                       </button>
@@ -999,7 +1051,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
   return (
     <div className={`rm-root relative w-full h-screen select-none font-sans antialiased overflow-hidden transition-colors duration-200 ${'bg-[var(--rm-bg)] text-[var(--rm-text-body)]'}`}>
-      {/* ── Header ── */}
+      {/* Header */}
       <header className={`fixed top-0 left-0 right-0 h-20 border-b z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto transition-colors duration-200 ${'border-[var(--rm-border)] bg-[var(--rm-bg)]'}`}>
         <button
           onClick={handleBack}
@@ -1036,7 +1088,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         </div>
       </header>
 
-      {/* ── Scrollable content ── */}
+      {/* Scrollable content */}
       <div
         ref={containerRef}
         className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col px-6 sm:px-12 md:px-20 pt-20"
@@ -1084,5 +1136,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     </div>
   );
 };
+
+
 
 

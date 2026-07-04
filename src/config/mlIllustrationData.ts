@@ -29219,7 +29219,7 @@ export const ML_DIAGRAMS: Record<string, DiagramConfig> =
       {"type": "text", "x": 405.0, "y": 97.0, "fill": "#ffffff", "fontSize": 8, "textAnchor": "end", "textContent": "id_001 (Document)"},
       {"type": "line", "x1": 180.0, "y1": 115.0, "x2": 420.0, "y2": 115.0, "stroke": "#27272a", "strokeWidth": 1.0},
       {"type": "text", "x": 195.0, "y": 121.0, "fill": "#a1a1aa", "fontSize": 8, "textAnchor": "start", "textContent": "username"},
-      {"type": "text", "x": 405.0, "y": 121.0, "fill": "#ffffff", "fontSize": 8, "textAnchor": "end", "textContent": "\"varun_developer\""},
+      {"type": "text", "x": 405.0, "y": 121.0, "fill": "#ffffff", "fontSize": 8, "textAnchor": "end", "textContent": "\"sample_user\""},
       {"type": "line", "x1": 180.0, "y1": 139.0, "x2": 420.0, "y2": 139.0, "stroke": "#27272a", "strokeWidth": 1.0},
       {"type": "text", "x": 195.0, "y": 145.0, "fill": "#a1a1aa", "fontSize": 8, "textAnchor": "start", "textContent": "created_at"},
       {"type": "text", "x": 405.0, "y": 145.0, "fill": "#ffffff", "fontSize": 8, "textAnchor": "end", "textContent": "1719972300"},

@@ -1,5 +1,27 @@
 User-agent: *
 Allow: /
+Disallow: /404.html
+Disallow: /assets/*.map
 
-# Sitemap Location
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
 Sitemap: https://algoglyph.com/sitemap.xml
