@@ -505,7 +505,6 @@ export const MorphingArena: React.FC<MorphingArenaProps> = ({ activeStage }) => 
         return (
           <motion.div
             key={node.id}
-            layoutId={`morph-node-capsule-${node.id}`}
             animate={{
               x: isHero ? coord.x : coord.x * scaleVal,
               y: isHero ? coord.y : coord.y * scaleVal,
@@ -520,7 +519,7 @@ export const MorphingArena: React.FC<MorphingArenaProps> = ({ activeStage }) => 
                 ? {
                     animation: `ambientFloat-${node.id} ${4 + nodeMetaData.indexOf(node) * 0.8}s ease-in-out infinite alternate`,
                   }
-                : undefined
+                : {}
             }
             className={`absolute w-[54px] h-[54px] rounded-xl border flex flex-col items-center justify-center z-20 shadow-lg select-none transition-all duration-200 ${
               isFocused

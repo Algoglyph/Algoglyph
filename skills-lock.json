@@ -17,7 +17,7 @@
       "source": "coreyhaines31/marketingskills",
       "sourceType": "github",
       "skillPath": "skills/ads/SKILL.md",
-      "computedHash": "3f623f4dd628a2989bf9e181bb8100ddf8998cbacbbfa1dbcff69642fedd9da0"
+      "computedHash": "2b9a75f217e0e025a4e923c92db5d8a6b55fdf4aa8dd2639f6746350beb34fd9"
     },
     "ai-seo": {
       "source": "coreyhaines31/marketingskills",
@@ -162,6 +162,12 @@
       "sourceType": "github",
       "skillPath": "skills/marketing-ideas/SKILL.md",
       "computedHash": "c2a310c97126a0c493bae2b4b0e9fa767598bb2d139a747217fa1d8d7615e85d"
+    },
+    "marketing-loops": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "skillPath": "skills/marketing-loops/SKILL.md",
+      "computedHash": "694ea9841b8f9452e94093ac62d30229ef3a01cb8dc5cc8915b45bf9a3b797cd"
     },
     "marketing-plan": {
       "source": "coreyhaines31/marketingskills",

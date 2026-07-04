@@ -177,7 +177,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I write code while studying?',
-    a: 'A built‑in CodeMirror editor lets you write C++, Python, Java, Go, Rust, or JavaScript and run it live via the Wandbox API—right next to your notes.',
+    a: 'A built‑in CodeMirror editor lets you write C++, Python, Java, Go, Rust, or JavaScript and run it live via the Wandbox API, right next to your notes.',
   },
   {
     q: 'Is Algoglyph free?',
@@ -341,7 +341,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           </motion.h1>
 
           <motion.p variants={heroItemVariants} className="text-[16px] sm:text-[18px] leading-relaxed text-[#9a9a9f] max-w-[640px] text-center text-balance">
-            Algoglyph is a spatial workspace integrating engineering notebooks, infinite drawing canvases, interactive compilers, and state visualizers — one unified feedback loop for building spatial mental models.
+            Notes, an infinite whiteboard, a code runner, and live visualizers, all in one place. Stop juggling six tabs and start seeing how computer science actually works, then check out the roadmap for 1000+ articles.
           </motion.p>
 
           <motion.div variants={heroItemVariants} className="flex flex-col sm:flex-row gap-4 mt-8 justify-center">
@@ -364,9 +364,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           {/* Stat triad — agency "big numbers" */}
           <motion.div variants={heroItemVariants} className="flex items-stretch gap-8 sm:gap-12 mt-6">
             {[
-              { value: '4', label: 'Languages compiled' },
+              { value: '4', label: 'Tools in one workspace' },
               { value: '∞', label: 'Infinite canvas' },
-              { value: '9', label: 'Roadmap zones' },
+              { value: '13+', label: 'Roadmap topics' },
             ].map((s, i) => (
               <React.Fragment key={s.label}>
                 {i > 0 && <span className="w-px self-stretch bg-white/10" />}
@@ -382,7 +382,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             ))}
           </motion.div>
         </motion.div>
-
         <motion.div
           variants={heroWorkspaceVariants}
           initial="hidden"
@@ -416,7 +415,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="max-w-2xl flex flex-col gap-3">
             <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Workspace Fragmentation</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-              Why traditional computer science study feels fragmented
+              Why CS study can feel scattered across tools
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
               Developers split focus across six isolated programs. Explanations live on YouTube tabs, code runs in standalone compilers, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. Algoglyph closes this loop.
@@ -444,9 +443,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(239, 68, 68, 0.02),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               
               <div className="flex flex-col gap-3 relative z-10">
-                <span className="text-[10px] font-mono text-rose-400 tracking-wider uppercase border border-rose-500/20 bg-rose-500/5 px-2.5 py-0.5 rounded-full w-fit">
-                  Fragmented Environment
-                </span>
                 <h3 className="font-display font-bold text-[19px] text-white">Context Switching Cost</h3>
                 <p className="text-[14.5px] text-[#a1a1a1] leading-relaxed">
                   Every jump between tabs resets focus. Static visuals are detached from compiler outputs.
@@ -474,9 +470,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                   </motion.div>
                 </motion.div>
               </div>
-              <div className="mt-5 text-[11.5px] font-mono text-[#6f6f6f] italic relative z-10">
-                Result: Rote memorization of equations rather than spatial understanding.
-              </div>
             </motion.div>
 
             {/* The Unified Workspace */}
@@ -493,9 +486,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255, 255, 255, 0.05),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
               <div className="flex flex-col gap-3 relative z-10">
-                <span className="text-[10px] font-mono text-[#d4d4d4] tracking-wider uppercase border border-[#d4d4d4]/20 bg-[#d4d4d4]/5 px-2.5 py-0.5 rounded-full w-fit">
-                  Connected Loop
-                </span>
                 <h3 className="font-display font-bold text-[19px] text-white">The Unified Feedback Loop</h3>
                 <p className="text-[14.5px] text-[#a1a1a1] leading-relaxed">
                   Notes, code execution, visual representation, and spatial layouts run as a synchronized system.
@@ -508,28 +498,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
                   <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#d4d4d4]/5 border border-[#d4d4d4]/15 hover:bg-[#d4d4d4]/10 transition-colors">
                     <span className="flex items-center gap-2">
                       <LayoutGrid size={11} className="text-[#d4d4d4]" />
-                      Infinite Spatial Canvas
+                      Infinite Canvas
                     </span>
                     <span className="text-[#d4d4d4] font-medium">Active Drawing Sandbox</span>
                   </motion.div>
                   <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#d4d4d4]/5 border border-[#d4d4d4]/15 hover:bg-[#d4d4d4]/10 transition-colors">
                     <span className="flex items-center gap-2">
                       <FileText size={11} className="text-[#d4d4d4]" />
-                      Tiptap Concept Notebook
+                      Note Editor
                     </span>
                     <span className="text-[#d4d4d4] font-medium">Syncs with Canvas</span>
                   </motion.div>
                   <motion.div variants={listItemVariants} className="flex items-center justify-between p-2.5 rounded-lg bg-[#d4d4d4]/5 border border-[#d4d4d4]/15 hover:bg-[#d4d4d4]/10 transition-colors">
                     <span className="flex items-center gap-2">
                       <Terminal size={11} className="text-[#d4d4d4]" />
-                      Active Sandbox Compiler
+                      Compiler
                     </span>
                     <span className="text-[#d4d4d4] font-medium">Visual State Outputs</span>
                   </motion.div>
                 </motion.div>
-              </div>
-              <div className="mt-5 text-[11.5px] font-mono text-[#d4d4d4] font-medium relative z-10">
-                Result: Permanent spatial mental models that scale to complex design problems.
               </div>
             </motion.div>
           </motion.div>
@@ -542,12 +529,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="absolute -right-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(255,255,255,0.015),transparent_70%)] pointer-events-none" />
 
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">The Spatial Canvas</span>
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">FREE CANVAS</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-              An infinite canvas for spatial thinking
+              Infinite canvas for notes and templates
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Data structures are spatial layouts in memory. Algoglyph places your visualizations on an infinite whiteboard. Draw links, organize nodes in frames, zoom out to examine complex system topologies, and map out memory networks manually.
+              Computer science is easier to reason about when you can see it. Algoglyph gives you an infinite whiteboard to sketch out concepts, system designs, and diagrams, or start from a template, then zoom out to see how it all connects.
             </p>
             <div className="flex flex-col gap-2 font-mono text-[13px] text-white/60 mt-1">
               <span className="flex items-center gap-2">
@@ -607,12 +594,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="absolute -left-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(255,255,255,0.015),transparent_70%)] pointer-events-none" />
 
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Notebook Documentation</span>
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">NOTEBOOK DOCUMENTATION</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
               Notebooks built for computer science
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Document your understanding with a Markdown editor. Write detailed descriptions, format mathematical complexity notations with LaTeX equations (such as $O(V + E)$), embed executable compiler blocks, and link paragraphs directly to canvas layout coordinates.
+              Document your understanding with a Markdown editor. Write detailed notes, render mathematical notation with LaTeX equations, embed executable compiler blocks, and link paragraphs directly to canvas layout coordinates.
             </p>
             <div className="flex flex-col gap-2 font-mono text-[13px] text-white/60 mt-1">
               <span className="flex items-center gap-2">
@@ -621,7 +608,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle2 size={11} className="text-[#d4d4d4]" />
-                LaTeX complexity equation parsing
+                LaTeX equation rendering
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle2 size={11} className="text-[#d4d4d4]" />
@@ -668,12 +655,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
           <div className="absolute -right-20 -top-20 w-[300px] h-[300px] bg-[radial-gradient(circle,rgba(255,255,255,0.015),transparent_70%)] pointer-events-none" />
 
           <div className="flex-1 flex flex-col gap-5 max-w-[480px] relative z-10">
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Compiler Runtime</span>
+            <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Compiler Runtime</span>
             <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white leading-tight bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
-              An active sandbox compiler
+              An Active Compiler
             </h2>
             <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-              Write and execute logic in C++, Python, Java, or JavaScript inside the notebook. The runner operates in a sandboxed output panel. Watch print statements, arrays, and memory maps output logs update in sync with your canvas diagrams.
+              Write and execute logic in C++, Python, Java, or JavaScript inside the notebook. The runner operates in a sandboxed output panel powered by the Wandbox API. Watch your standard output and execution logs stream directly into the console alongside your canvas diagrams.
             </p>
 
             <div className="flex flex-wrap gap-2 mt-2">
@@ -829,10 +816,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         <div className="text-center max-w-2xl mx-auto flex flex-col gap-3 mb-12">
           <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Concept Lessons Portal</span>
           <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white">
-            Lessons designed for algorithmic intuition
+            Build a real intuition for algorithms
           </h2>
           <p className="text-[15px] leading-relaxed text-[#a1a1a1]">
-            Algoglyph provides visual intuition breakdowns. Study algorithmic workflows by watching states resolve dynamically, rather than dry traces of code lines.
+            Stop staring at dry blocks of code and endless print statements. Algoglyph lets you actually see how algorithms work under the hood by watching them play out in real-time.
           </p>
         </div>
 
@@ -859,9 +846,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/25 flex items-center justify-center text-[#d4d4d4] shadow-[0_4px_12px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-300">
               <Layers size={18} />
             </div>
-            <h3 className="font-display font-bold text-white text-[17px]">Dynamic Programming Memoization</h3>
+            <h3 className="font-display font-bold text-white text-[17px]">Dynamic Programming</h3>
             <p className="text-[14px] text-[#a1a1a1] leading-relaxed">
-              Visualize memoization tables mapping sub-problems onto coordinate grids. Watch shortest pathways compute sequentially.
+              See exactly how algorithms break down complex problems. Watch memoization tables fill up in real-time as the computer finds the most efficient path.
             </p>
             <span className="mt-auto text-[10px] font-mono text-[#d4d4d4] uppercase tracking-wider font-semibold">Future Roadmap</span>
           </motion.div>
@@ -882,9 +869,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/25 flex items-center justify-center text-[#d4d4d4] shadow-[0_4px_12px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-300">
               <Network size={18} />
             </div>
-            <h3 className="font-display font-bold text-white text-[17px]">Priority Queue Mesh Relaxation</h3>
+            <h3 className="font-display font-bold text-white text-[17px]">Pathfinding & Graphs</h3>
             <p className="text-[14px] text-[#a1a1a1] leading-relaxed">
-              Step through Dijkstra and Bellman-Ford algorithms. Nodes highlight in real-time as priority queue states dynamically re-balance.
+              Step through pathfinding algorithms like Dijkstra line by line. Watch nodes light up and queues re-balance themselves as the shortest routes are discovered.
             </p>
             <span className="mt-auto text-[10px] font-mono text-[#d4d4d4] uppercase tracking-wider font-semibold">Future Roadmap</span>
           </motion.div>
@@ -905,9 +892,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4d4d4]/15 to-[#d4d4d4]/5 border border-[#d4d4d4]/25 flex items-center justify-center text-[#d4d4d4] shadow-[0_4px_12px_rgba(255,255,255,0.1)] group-hover:scale-110 transition-transform duration-300">
               <BookOpen size={18} />
             </div>
-            <h3 className="font-display font-bold text-white text-[17px]">Self-Balancing Binary Trees</h3>
+            <h3 className="font-display font-bold text-white text-[17px]">Self-Balancing Trees</h3>
             <p className="text-[14px] text-[#a1a1a1] leading-relaxed">
-              Understand AVL trees and Red-Black tree rotations. Drag nodes to watch balancing metrics calculate height thresholds automatically.
+              Finally understand how AVL and Red-Black trees actually rotate. Drag and drop nodes yourself and watch the tree automatically re-balance its branches.
             </p>
             <span className="mt-auto text-[10px] font-mono text-[#d4d4d4] uppercase tracking-wider font-semibold">Future Roadmap</span>
           </motion.div>
@@ -935,7 +922,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
               { title: 'Draft Notes', desc: 'Detail variables in text' },
               { title: 'Map Canvas', desc: 'Draw relationships visually' },
               { title: 'Run Compiler', desc: 'Compile active logs' },
-              { title: 'Build Intuition', desc: 'Retain spatial memory' }
+              { title: 'Build Intuition', desc: 'Retain memory' }
             ].map((step, idx, arr) => (
               <React.Fragment key={idx}>
                 <div className="flex flex-col items-center gap-2 relative z-10 text-center flex-1 group">
@@ -956,7 +943,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
 
       <section id="usecases" className="py-28 max-w-7xl mx-auto px-6 sm:px-12 md:px-16 z-10 relative">
         <div className="text-center max-w-2xl mx-auto flex flex-col items-center gap-4 mb-16">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4d4d4] font-bold uppercase bg-[#d4d4d4]/10 border border-[#d4d4d4]/20 px-2.5 py-0.5 rounded-full w-fit">Use Cases</span>
+          <span className="text-[11px] font-mono tracking-[0.2em] text-[#d4d4d4] font-bold uppercase">Use Cases</span>
           <h2 className="font-display text-3xl sm:text-4xl font-semibold tracking-[-0.04em] text-white bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
             Designed for engineers, students, and educators
           </h2>
@@ -974,33 +961,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         >
           {[
             {
-              title: 'Coding Interview Preparation',
-              desc: 'Stop memorizing LeetCode templates. Build spatial memory models that help you generalize to unexpected questions.',
+              title: 'Interview Prep',
+              desc: 'Stop memorizing templates. Truly understand the patterns so you can tackle any question they throw at you.',
               icon: <Terminal size={15} />
             },
             {
-              title: 'Academic Studies & Notes',
-              desc: 'Keep textbook definitions, code logic, and canvas drafts side-by-side. Unify notes and homework testing.',
+              title: 'Class Notes',
+              desc: 'Keep your textbook definitions, class notes, and code experiments all in one place.',
               icon: <FileText size={15} />
             },
             {
-              title: 'Self-Directed CS Study',
-              desc: 'Master complex concepts (MST algorithms, balancing trees, segment trees) by drawing them as you code.',
+              title: 'Self-Taught Learning',
+              desc: 'Master complex concepts like trees and graphs by drawing them out as you learn.',
               icon: <BookOpen size={15} />
             },
             {
-              title: 'Whiteboard Demonstrations',
-              desc: 'Instructors can explain data structures interactively, moving nodes dynamically instead of tracing equations.',
+              title: 'Teaching & Demos',
+              desc: 'Explain data structures to others interactively. Move nodes around instead of drawing on a whiteboard.',
               icon: <LayoutGrid size={15} />
             },
             {
-              title: 'Competitive Programming',
-              desc: 'Draft complex custom cyclic graphs, trace coordinates, and dry run test cases with visual stdout logs.',
+              title: 'Competitive Coding',
+              desc: 'Sketch out complex test cases and trace your code execution visually.',
               icon: <Network size={15} />
             },
             {
-              title: 'Concepts Indexing & Reference',
-              desc: 'Retrieve notes weeks later. Scan spatial canvas drawings to recall complex structural mechanisms instantly.',
+              title: 'Quick Reference',
+              desc: 'Come back weeks later and instantly remember how an algorithm works just by looking at your diagrams.',
               icon: <Layers size={15} />
             }
           ].map((useCase, idx) => (
@@ -1088,14 +1075,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunch, onViewRoadma
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.008),transparent_60%)] pointer-events-none" />
         <div className="max-w-4xl mx-auto px-6 text-center flex flex-col items-center gap-6">
           <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-[-0.05em] text-white leading-[0.98]">
-            Stop memorizing.{' '}
+            Don't just use pen and paper.{' '}
             <span className="italic font-normal text-white/85" style={{ fontFamily: SERIF }}>
-              Start understanding.
+              Use a workspace to connect the dots.
             </span>
           </h2>
           <p className="text-[16px] leading-relaxed text-[#a1a1a1] max-w-md">
             Launch Algoglyph to build mental models, write code, and take seamless notes. <br className="hidden sm:block" />
-            Experience the unified spatial CS sandbox.
+            Experience the unified CS sandbox.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mt-1.5">
