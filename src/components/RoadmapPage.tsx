@@ -22,6 +22,9 @@ import { python } from '@codemirror/lang-python';
 import { vscodeDark, vscodeLight } from '../config/editorTheme';
 import { RoadmapConvergence } from './RoadmapConvergence';
 import { RoadmapIllustration } from './RoadmapIllustration';
+import katex from 'katex';
+import hljs from 'highlight.js';
+import 'katex/dist/katex.min.css';
 
 import { SystemDesignGraph } from './SystemDesignGraph';
 import { TopicDesignGraph } from './TopicDesignGraph';
@@ -30,6 +33,237 @@ interface RoadmapPageProps {
   onBack: () => void;
   onLaunch: () => void;
 }
+
+const escapeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
+
+const renderInlineMarkdown = (text: string): string => {
+  return text
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[var(--rm-accent)] hover:underline font-semibold">$1</a>');
+};
+
+const articleMarkdownToHtml = (markdown: string): string => {
+  const blocks: string[] = [];
+  const mathBlocks: string[] = [];
+  const inlineMathBlocks: string[] = [];
+  
+  // Protect code blocks (```lang...```) and syntax highlight them using highlight.js
+  let content = markdown.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
+    const token = `@@BLOCK_CODE_${blocks.length}@@`;
+    let highlightedCode = escapeHtml(code.trim());
+    let languageClass = '';
+    
+    if (lang) {
+      try {
+        const cleanLang = lang.toLowerCase() === 'cpp' ? 'cpp' : lang.toLowerCase();
+        highlightedCode = hljs.highlight(code.trim(), { language: cleanLang }).value;
+        languageClass = ` class="language-${cleanLang} hljs"`;
+      } catch (e) {
+        try {
+          highlightedCode = hljs.highlightAuto(code.trim()).value;
+          languageClass = ' class="hljs"';
+        } catch (err) {
+          // ignore
+        }
+      }
+    } else {
+      try {
+        highlightedCode = hljs.highlightAuto(code.trim()).value;
+        languageClass = ' class="hljs"';
+      } catch (err) {
+        // ignore
+      }
+    }
+    
+    blocks.push(`<pre><code${languageClass}>${highlightedCode}</code></pre>`);
+    return token;
+  });
+
+  // Protect and render LaTeX block math ($$...$$) using KaTeX
+  content = content.replace(/\$\$([\s\S]+?)\$\$/g, (_, math) => {
+    const token = `@@BLOCK_MATH_${mathBlocks.length}@@`;
+    try {
+      const rendered = katex.renderToString(math.trim(), { displayMode: true, throwOnError: false });
+      mathBlocks.push(rendered);
+    } catch (e) {
+      mathBlocks.push(`<div class="math-error">${escapeHtml(math)}</div>`);
+    }
+    return token;
+  });
+
+  // Protect and render LaTeX inline math ($...$) using KaTeX
+  content = content.replace(/\$([^\$]+?)\$/g, (_, math) => {
+    const token = `@@INLINE_MATH_${inlineMathBlocks.length}@@`;
+    try {
+      const rendered = katex.renderToString(math.trim(), { displayMode: false, throwOnError: false });
+      inlineMathBlocks.push(rendered);
+    } catch (e) {
+      inlineMathBlocks.push(`<span class="math-error">${escapeHtml(math)}</span>`);
+    }
+    return token;
+  });
+
+  // Protect SVG blocks (<svg ... </svg>)
+  content = content.replace(/<svg[\s\S]*?<\/svg>/g, (match) => {
+    const token = `@@BLOCK_SVG_${blocks.length}@@`;
+    blocks.push(match);
+    return token;
+  });
+
+  // Protect HTML table blocks if any
+  content = content.replace(/<table[\s\S]*?<\/table>/g, (match) => {
+    const token = `@@BLOCK_TABLE_${blocks.length}@@`;
+    blocks.push(match);
+    return token;
+  });
+
+  const lines = content.split(/\r?\n/);
+  const htmlLines: string[] = [];
+  let inList: 'ul' | 'ol' | null = null;
+  let inTable = false;
+  let tableRows: string[][] = [];
+
+  const closeList = () => {
+    if (inList) {
+      htmlLines.push(`</${inList}>`);
+      inList = null;
+    }
+  };
+
+  const closeTable = () => {
+    if (inTable) {
+      let tableHtml = `<div class="overflow-x-auto my-6"><table class="w-full text-left text-[15px] font-serif border-collapse">`;
+      tableRows.forEach((row, rIdx) => {
+        const isHeader = rIdx === 0;
+        const tag = isHeader ? 'th' : 'td';
+        const rowClass = isHeader 
+          ? 'border-y border-[var(--rm-border)] text-[var(--rm-text-body)] font-sans font-semibold py-3 px-2' 
+          : 'border-b border-[var(--rm-border)] py-3 px-2 text-[var(--rm-text-body)]';
+        
+        tableHtml += `<tr class="${isHeader ? 'border-y border-[var(--rm-border)]' : ''}">`;
+        row.forEach(cell => {
+          tableHtml += `<${tag} class="${rowClass}">${renderInlineMarkdown(cell)}</${tag}>`;
+        });
+        tableHtml += `</tr>`;
+      });
+      tableHtml += `</table></div>`;
+      htmlLines.push(tableHtml);
+      tableRows = [];
+      inTable = false;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+
+    if (line.startsWith('@@BLOCK_') || line.startsWith('@@INLINE_')) {
+      closeList();
+      closeTable();
+      htmlLines.push(line);
+      continue;
+    }
+
+    if (!line) {
+      closeList();
+      closeTable();
+      continue;
+    }
+
+    if (line.startsWith('|')) {
+      closeList();
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+      }
+      const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+      if (cells.every(c => c.startsWith('-'))) {
+        continue; // skip the separator line |---|---|
+      }
+      tableRows.push(cells);
+      continue;
+    } else {
+      closeTable();
+    }
+
+    if (line.startsWith('# ')) {
+      closeList();
+      htmlLines.push(`<h1>${renderInlineMarkdown(line.slice(2))}</h1>`);
+    } else if (line.startsWith('## ')) {
+      closeList();
+      htmlLines.push(`<h2>${renderInlineMarkdown(line.slice(3))}</h2>`);
+    } else if (line.startsWith('### ')) {
+      closeList();
+      htmlLines.push(`<h3>${renderInlineMarkdown(line.slice(4))}</h3>`);
+    } else if (/^[-*]\s+/.test(line)) {
+      if (inList !== 'ul') {
+        closeList();
+        inList = 'ul';
+        htmlLines.push('<ul class="list-disc pl-6 flex flex-col gap-2 my-4">');
+      }
+      htmlLines.push(`<li class="pl-1 marker:text-[var(--rm-text-faint)]">${renderInlineMarkdown(line.replace(/^[-*]\s+/, ''))}</li>`);
+    } else if (/^\d+\.\s+/.test(line)) {
+      if (inList !== 'ol') {
+        closeList();
+        inList = 'ol';
+        htmlLines.push('<ol class="list-decimal pl-6 flex flex-col gap-2 my-4">');
+      }
+      htmlLines.push(`<li class="pl-1 marker:text-[var(--rm-text-faint)]">${renderInlineMarkdown(line.replace(/^\d+\.\s+/, ''))}</li>`);
+    } else {
+      closeList();
+      htmlLines.push(`<p class="my-4">${renderInlineMarkdown(rawLine)}</p>`);
+    }
+  }
+  closeList();
+  closeTable();
+
+  let finalHtml = htmlLines.join('\n');
+
+  // Substitute blocks
+  blocks.forEach((block, idx) => {
+    finalHtml = finalHtml.replace(`@@BLOCK_CODE_${idx}@@`, block);
+    finalHtml = finalHtml.replace(`@@BLOCK_SVG_${idx}@@`, block);
+    finalHtml = finalHtml.replace(`@@BLOCK_TABLE_${idx}@@`, block);
+  });
+
+  // Substitute math blocks
+  mathBlocks.forEach((mathHtml, idx) => {
+    finalHtml = finalHtml.replace(`@@BLOCK_MATH_${idx}@@`, mathHtml);
+  });
+
+  // Substitute inline math blocks
+  inlineMathBlocks.forEach((mathHtml, idx) => {
+    finalHtml = finalHtml.replace(`@@INLINE_MATH_${idx}@@`, mathHtml);
+  });
+
+  // Remove <p> tag wrappers around blocks
+  finalHtml = finalHtml.replace(/<p class="my-4">@@BLOCK_SVG_(\d+)@@<\/p>/g, (_, id) => blocks[Number(id)]);
+  finalHtml = finalHtml.replace(/<p class="my-4">@@BLOCK_CODE_(\d+)@@<\/p>/g, (_, id) => blocks[Number(id)]);
+  finalHtml = finalHtml.replace(/<p class="my-4">@@BLOCK_MATH_(\d+)@@<\/p>/g, (_, id) => mathBlocks[Number(id)]);
+
+  // Final replacement for safety
+  blocks.forEach((block, idx) => {
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_CODE_${idx}@@`, 'g'), block);
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_SVG_${idx}@@`, 'g'), block);
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_TABLE_${idx}@@`, 'g'), block);
+  });
+
+  mathBlocks.forEach((mathHtml, idx) => {
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_MATH_${idx}@@`, 'g'), mathHtml);
+  });
+
+  inlineMathBlocks.forEach((mathHtml, idx) => {
+    finalHtml = finalHtml.replace(new RegExp(`@@INLINE_MATH_${idx}@@`, 'g'), mathHtml);
+  });
+
+  return finalHtml;
+};
 
 // Fallback generator for new/specific subtopics to guarantee detailed content is always available
 const getFallbackBlogPost = (slug: string, subtopicName: string, category: string): BlogPost => {
@@ -498,185 +732,192 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
               <RoadmapIllustration slug={activePost.slug} />
             </div>
 
-            <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-serif ${'text-[var(--rm-text-body)]'}`}>
-              <section className="flex flex-col gap-4">
-                <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Overview</h2>
-                <p>{activePost.content.introduction}</p>
-              </section>
-
-              <section className="flex flex-col gap-4">
-                <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Practical Importance</h2>
-                <p>{activePost.content.whyImportant}</p>
-              </section>
-
-              {activePost.content.realWorldApps && activePost.content.realWorldApps.length > 0 && (
+            {activePost.markdown ? (
+              <div 
+                className="markdown-article" 
+                dangerouslySetInnerHTML={{ __html: articleMarkdownToHtml(activePost.markdown) }} 
+              />
+            ) : (
+              <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-serif ${'text-[var(--rm-text-body)]'}`}>
                 <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Real-World Applications</h2>
-                  <ul className="list-disc pl-6 flex flex-col gap-2">
-                    {activePost.content.realWorldApps.map((app, idx) => (
-                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{app}</li>
-                    ))}
-                  </ul>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Overview</h2>
+                  <p>{activePost.content.introduction}</p>
                 </section>
-              )}
 
-              {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Structural Mechanics</h2>
-                  <ol className="list-decimal pl-6 flex flex-col gap-2">
-                    {activePost.content.algorithmDescription.map((step, idx) => (
-                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{step}</li>
-                    ))}
-                  </ol>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Practical Importance</h2>
+                  <p>{activePost.content.whyImportant}</p>
                 </section>
-              )}
 
-              {activePost.content.complexity && activePost.content.complexity.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Asymptotic Bounds</h2>
-                  <div className="overflow-x-auto my-4">
-                    <table className="w-full text-left text-[15px] font-serif border-collapse">
-                      <thead>
-                        <tr className={`border-y ${'border-[var(--rm-border)] text-[var(--rm-text-body)]'}`}>
-                          <th className="py-3 px-2 font-semibold font-sans">Measurement</th>
-                          <th className="py-3 px-2 font-semibold font-sans">Asymptotic Bound</th>
-                          <th className="py-3 px-2 font-semibold font-sans">Context & Constraints</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activePost.content.complexity.map((row, idx) => (
-                          <tr key={idx} className={`border-b ${'border-[var(--rm-border)]'}`}>
-                            <td className={`py-3 px-2 ${'text-[var(--rm-text-body)]'}`}>{row.label}</td>
-                            <td className={`py-3 px-2 font-mono text-[14px] ${'text-[var(--rm-text-body)]'}`}>{row.value}</td>
-                            <td className={`py-3 px-2 ${'text-[var(--rm-text-muted)]'}`}>{row.note}</td>
+                {activePost.content.realWorldApps && activePost.content.realWorldApps.length > 0 && (
+                  <section className="flex flex-col gap-4">
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Real-World Applications</h2>
+                    <ul className="list-disc pl-6 flex flex-col gap-2">
+                      {activePost.content.realWorldApps.map((app, idx) => (
+                        <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{app}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
+                  <section className="flex flex-col gap-4">
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Structural Mechanics</h2>
+                    <ol className="list-decimal pl-6 flex flex-col gap-2">
+                      {activePost.content.algorithmDescription.map((step, idx) => (
+                        <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{step}</li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
+
+                {activePost.content.complexity && activePost.content.complexity.length > 0 && (
+                  <section className="flex flex-col gap-4">
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Asymptotic Bounds</h2>
+                    <div className="overflow-x-auto my-4">
+                      <table className="w-full text-left text-[15px] font-serif border-collapse">
+                        <thead>
+                          <tr className={`border-y ${'border-[var(--rm-border)] text-[var(--rm-text-body)]'}`}>
+                            <th className="py-3 px-2 font-semibold font-sans">Measurement</th>
+                            <th className="py-3 px-2 font-semibold font-sans">Asymptotic Bound</th>
+                            <th className="py-3 px-2 font-semibold font-sans">Context & Constraints</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
-
-              {(activePost.content.implementationCpp || activePost.content.implementationPython) && (
-                <section className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between mt-4">
-                    <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight">Implementation Code</h2>
-                    <div className={`flex gap-4 text-[13px] font-sans text-[var(--rm-text-muted)]`}>
-                      <button
-                        onClick={() => setSelectedLanguage('cpp')}
-                        className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'cpp' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
-                      >
-                        C++
-                      </button>
-                      <button
-                        onClick={() => setSelectedLanguage('py')}
-                        className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'py' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
-                      >
-                        Python
-                      </button>
+                        </thead>
+                        <tbody>
+                          {activePost.content.complexity.map((row, idx) => (
+                            <tr key={idx} className={`border-b ${'border-[var(--rm-border)]'}`}>
+                              <td className={`py-3 px-2 ${'text-[var(--rm-text-body)]'}`}>{row.label}</td>
+                              <td className={`py-3 px-2 font-mono text-[14px] ${'text-[var(--rm-text-body)]'}`}>{row.value}</td>
+                              <td className={`py-3 px-2 ${'text-[var(--rm-text-muted)]'}`}>{row.note}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  </div>
-                  <div className={`relative rounded-lg border p-4 text-[13px] leading-[1.6] max-h-[400px] overflow-auto roadmap-scroll font-mono shadow-inner my-2 ${'border-[var(--rm-border)] bg-[var(--rm-code-bg)]'}`}>
-                    <CodeMirror
-                      value={
-                        selectedLanguage === 'cpp'
-                          ? activePost.content.implementationCpp
-                          : activePost.content.implementationPython || activePost.content.implementationCpp
-                      }
-                      readOnly
-                      editable={false}
-                      theme={isDark ? vscodeDark : vscodeLight}
-                      extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
-                      basicSetup={{
-                        lineNumbers: false,
-                        foldGutter: false,
-                        highlightActiveLine: false,
-                        highlightActiveLineGutter: false,
-                      }}
-                    />
-                  </div>
-                </section>
-              )}
+                  </section>
+                )}
 
-              {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Common Pitfalls</h2>
-                  <ul className="list-disc pl-6 flex flex-col gap-2">
-                    {activePost.content.commonMistakes.map((mistake, idx) => (
-                      <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{mistake}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
+                {(activePost.content.implementationCpp || activePost.content.implementationPython) && (
+                  <section className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between mt-4">
+                      <h2 className="text-2xl font-semibold text-zinc-100 font-sans tracking-tight">Implementation Code</h2>
+                      <div className={`flex gap-4 text-[13px] font-sans text-[var(--rm-text-muted)]`}>
+                        <button
+                          onClick={() => setSelectedLanguage('cpp')}
+                          className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'cpp' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
+                        >
+                          C++
+                        </button>
+                        <button
+                          onClick={() => setSelectedLanguage('py')}
+                          className={`hover:text-zinc-200 cursor-pointer transition-colors ${selectedLanguage === 'py' ? 'text-zinc-100 underline underline-offset-4 decoration-zinc-700' : ''}`}
+                        >
+                          Python
+                        </button>
+                      </div>
+                    </div>
+                    <div className={`relative rounded-lg border p-4 text-[13px] leading-[1.6] max-h-[400px] overflow-auto roadmap-scroll font-mono shadow-inner my-2 ${'border-[var(--rm-border)] bg-[var(--rm-code-bg)]'}`}>
+                      <CodeMirror
+                        value={
+                          selectedLanguage === 'cpp'
+                            ? activePost.content.implementationCpp
+                            : activePost.content.implementationPython || activePost.content.implementationCpp
+                        }
+                        readOnly
+                        editable={false}
+                        theme={isDark ? vscodeDark : vscodeLight}
+                        extensions={selectedLanguage === 'cpp' ? [cpp()] : [python()]}
+                        basicSetup={{
+                          lineNumbers: false,
+                          foldGutter: false,
+                          highlightActiveLine: false,
+                          highlightActiveLineGutter: false,
+                        }}
+                      />
+                    </div>
+                  </section>
+                )}
 
-              {activePost.content.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Interview Preparation</h2>
-                  <ol className="list-decimal pl-6 flex flex-col gap-2">
-                    {activePost.content.interviewQuestions.map((q, idx) => (
-                      <li key={idx} className={`font-semibold text-[var(--rm-text)] marker:text-[var(--rm-text-faint)]`}>
-                        <span className={`font-normal text-[var(--rm-text-body)]`}>{q}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              )}
+                {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
+                  <section className="flex flex-col gap-4">
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Common Pitfalls</h2>
+                    <ul className="list-disc pl-6 flex flex-col gap-2">
+                      {activePost.content.commonMistakes.map((mistake, idx) => (
+                        <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{mistake}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
-              {activePost.content.summary && (
-                <section className={`flex flex-col gap-2 italic mt-8 border-l-2 pl-4 ${'text-[var(--rm-text-muted)] border-[var(--rm-border)]'}`}>
-                  <p className="leading-[1.8] text-[17px]">{activePost.content.summary}</p>
-                </section>
-              )}
+                {activePost.content.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
+                  <section className="flex flex-col gap-4">
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Interview Preparation</h2>
+                    <ol className="list-decimal pl-6 flex flex-col gap-2">
+                      {activePost.content.interviewQuestions.map((q, idx) => (
+                        <li key={idx} className={`font-semibold text-[var(--rm-text)] marker:text-[var(--rm-text-faint)]`}>
+                          <span className={`font-normal text-[var(--rm-text-body)]`}>{q}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
 
-              {(activePost.prerequisites.length > 0 || relatedArticleRoutes.length > 0 || activePost.practiceProblems.length > 0) && (
-                <section className="grid grid-cols-1 gap-6 pt-8 border-t border-[var(--rm-border)] font-sans">
-                  {activePost.prerequisites.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Prerequisites</h2>
-                      <div className="flex flex-wrap gap-2">
-                        {activePost.prerequisites.map((slug) => {
-                          const route = getArticleRouteBySlug(slug);
-                          return route ? (
-                            <Link key={slug} to={route.path} className="rounded-full border border-[var(--rm-border)] px-3 py-1.5 text-[13px] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:border-[var(--rm-border-strong)] no-underline">
-                              {route.post?.title || route.subtopic.name}
+                {activePost.content.summary && (
+                  <section className={`flex flex-col gap-2 italic mt-8 border-l-2 pl-4 ${'text-[var(--rm-text-muted)] border-[var(--rm-border)]'}`}>
+                    <p className="leading-[1.8] text-[17px]">{activePost.content.summary}</p>
+                  </section>
+                )}
+
+                {(activePost.prerequisites.length > 0 || relatedArticleRoutes.length > 0 || activePost.practiceProblems.length > 0) && (
+                  <section className="grid grid-cols-1 gap-6 pt-8 border-t border-[var(--rm-border)] font-sans">
+                    {activePost.prerequisites.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Prerequisites</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {activePost.prerequisites.map((slug) => {
+                            const route = getArticleRouteBySlug(slug);
+                            return route ? (
+                              <Link key={slug} to={route.path} className="rounded-full border border-[var(--rm-border)] px-3 py-1.5 text-[13px] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] hover:border-[var(--rm-border-strong)] no-underline">
+                                {route.post?.title || route.subtopic.name}
+                              </Link>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {relatedArticleRoutes.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Related Concepts</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {relatedArticleRoutes.map((route) => (
+                            <Link key={route.path} to={route.path} className="border border-[var(--rm-border)] rounded-lg p-3 no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)] transition">
+                              <span className="block text-[13px] font-semibold text-[var(--rm-text)]">{route.post?.title || route.subtopic.name}</span>
+                              <span className="block text-[11px] mt-1 text-[var(--rm-text-faint)]">{route.zone.name} / {route.concept.name}</span>
                             </Link>
-                          ) : null;
-                        })}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {relatedArticleRoutes.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Related Concepts</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {relatedArticleRoutes.map((route) => (
-                          <Link key={route.path} to={route.path} className="border border-[var(--rm-border)] rounded-lg p-3 no-underline hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)] transition">
-                            <span className="block text-[13px] font-semibold text-[var(--rm-text)]">{route.post?.title || route.subtopic.name}</span>
-                            <span className="block text-[11px] mt-1 text-[var(--rm-text-faint)]">{route.zone.name} / {route.concept.name}</span>
-                          </Link>
-                        ))}
+                    {activePost.practiceProblems.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Practice Problems</h2>
+                        <ul className="flex flex-col gap-2 list-none p-0 m-0">
+                          {activePost.practiceProblems.map((problem) => (
+                            <li key={problem.url}>
+                              <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] underline underline-offset-4 decoration-[var(--rm-border)]">
+                                {problem.title} ({problem.difficulty})
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                  )}
-
-                  {activePost.practiceProblems.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      <h2 className={`text-xl font-semibold tracking-tight ${'text-[var(--rm-text)]'}`}>Practice Problems</h2>
-                      <ul className="flex flex-col gap-2 list-none p-0 m-0">
-                        {activePost.practiceProblems.map((problem) => (
-                          <li key={problem.url}>
-                            <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-[14px] text-[var(--rm-text-muted)] hover:text-[var(--rm-text)] underline underline-offset-4 decoration-[var(--rm-border)]">
-                              {problem.title} ({problem.difficulty})
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </section>
-              )}
-            </div>
+                    )}
+                  </section>
+                )}
+              </div>
+            )}
           </div>
 
           <button

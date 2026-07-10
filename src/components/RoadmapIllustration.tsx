@@ -154,6 +154,7 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     | 'tcp-handshake'
     | 'encryption-ssl'
     | 'circuit-breaker'
+    | 'what-is-dsa'
     | null => {
     const s = slug.toLowerCase();
     
@@ -262,20 +263,144 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     }
 
     // DSA foundations mapping
-    if (s === 'what-is-dsa' || s === 'importance-dsa') {
-      return 'graph';
+    if (
+      s === 'what-is-dsa' || 
+      s === 'importance-dsa' ||
+      s === 'arrays' ||
+      s === 'linked-list' ||
+      s === 'stack' ||
+      s === 'queue' ||
+      s === 'binary-search' ||
+      s === 'bfs' ||
+      s === 'dfs' ||
+      s === 'heap' ||
+      s === 'trie' ||
+      s === 'static-arrays' ||
+      s === 'dynamic-vectors' ||
+      s === 'singly-linked-lists' ||
+      s === 'doubly-linked-lists' ||
+      s === 'circular-linked-lists' ||
+      s === 'skip-lists' ||
+      s === 'lifo-stacks' ||
+      s === 'fifo-queues' ||
+      s === 'double-ended-deques' ||
+      s === 'circular-buffers' ||
+      s === 'min-heaps' ||
+      s === 'max-heaps' ||
+      s === 'leftist-heaps' ||
+      s === 'binomial-heaps' ||
+      s === 'fibonacci-heaps' ||
+      s === 'bfs-traversal' ||
+      s === 'dfs-traversal' ||
+      s === 'dijkstra-algorithm' ||
+      s === 'dynamic-programming' ||
+      s === 'greedy' ||
+      s === 'backtracking' ||
+      s === 'searching' ||
+      s === 'sorting' ||
+      s === 'tree-traversal' ||
+      s === 'mst-union-find' ||
+      s === 'scc-bridges' ||
+      s === 'string-algorithms' ||
+      s === 'advanced-cp' ||
+      s === 'bellman-ford-floyd-warshall' ||
+      s === 'topological-sort' ||
+      s === 'fenwick-tree' ||
+      s === 'sparse-table' ||
+      s === 'avl-red-black-tree' ||
+      s === 'kmp-algorithm' ||
+      s === 'binary-search-trees' ||
+      s === 'avl-trees' ||
+      s === 'red-black-trees' ||
+      s === 'tries' ||
+      s === 'segment-trees' ||
+      s === 'fenwick-trees' ||
+      s === 'sparse-tables' ||
+      s === 'suffix-trees' ||
+      s === 'suffix-arrays' ||
+      s === 'b-trees' ||
+      s === 'quadtrees' ||
+      s === 'k-d-trees' ||
+      s === 'splay-trees' ||
+      s === 'treaps' ||
+      s === 'linear-search' ||
+      s === 'ternary-search' ||
+      s === 'bubble-sort' ||
+      s === 'selection-sort' ||
+      s === 'insertion-sort' ||
+      s === 'merge-sort' ||
+      s === 'quick-sort' ||
+      s === 'heap-sort' ||
+      s === 'counting-sort' ||
+      s === 'radix-sort' ||
+      s === 'bucket-sort' ||
+      s === 'shell-sort' ||
+      s === 'bellman-ford' ||
+      s === 'floyd-warshall' ||
+      s === 'kruskal-mst' ||
+      s === 'prim-mst' ||
+      s === 'tarjan-scc' ||
+      s === 'kosaraju-scc' ||
+      s === 'bridges-cuts' ||
+      s === 'a-search' ||
+      s === 'boyer-moore-search' ||
+      s === 'rabin-karp-search' ||
+      s === 'z-algorithm' ||
+      s === 'manacher-substrings' ||
+      s === 'euler-tour' ||
+      s === 'two-pointer-technique' ||
+      s === 'sliding-window-technique' ||
+      s === 'fast-slow-pointers' ||
+      s === 'cyclic-sort' ||
+      s === 'merge-intervals' ||
+      s === 'two-heaps-pattern' ||
+      s === 'in-order-traversal' ||
+      s === 'pre-order-traversal' ||
+      s === 'post-order-traversal' ||
+      s === 'tree-bfs' ||
+      s === 'tree-dfs' ||
+      s === 'binary-tree' ||
+      s === 'directed-graphs' ||
+      s === 'undirected-graphs' ||
+      s === 'graph-representations' ||
+      s === 'two-three-trees' ||
+      s === 'skip-lists-complex' ||
+      s === 'isam-indexing' ||
+      s === 'linear-indexing' ||
+      s === 'tree-indexing' ||
+      s === 'a-star-algorithm' ||
+      s === 'floyd-warshall-algorithm' ||
+      s === 'disjoint-set-union' ||
+      s === 'collision-resolution' ||
+      s === 'functions-basic-i-o' ||
+      s === 'stack-allocation' ||
+      s === 'heap-allocation' ||
+      s === 'time-vs-space' ||
+      s === 'calculate-complexity' ||
+      s === 'common-runtimes' ||
+      s === 'big-theta-notation' ||
+      s === 'big-omega-notation' ||
+      s === 'time-complexity-analysis' ||
+      s === 'space-complexity-analysis' ||
+      s === 'load-factor-scaling' ||
+      s === 'brute-force' ||
+      s === 'randomized-algorithms' ||
+      s === 'divide-and-conquer' ||
+      s === 'recursion' ||
+      s === 'kth-element' ||
+      s === 'island-traversal' ||
+      s === 'multi-threaded' ||
+      s === 'leetcode-platform' ||
+      s === 'edabit-platform' ||
+      s === 'segment-tree'
+    ) {
+      return null;
     }
-    if (s === 'procedural-state-pipelines' || s === 'functions-basic-i-o') {
+    if (s === 'procedural-state-pipelines') {
       return 'program-flow';
     }
-    if (s === 'time-vs-space' || s === 'calculate-complexity' || s === 'common-runtimes' || s === 'big-theta-notation' || s === 'big-omega-notation' || s === 'space-complexity-analysis') {
-      return 'time-complexity';
-    }
-    if (s === 'leetcode-platform' || s === 'edabit-platform') {
-      return 'practice-platforms';
-    }
     // Arrays mapping
-    if (s === 'static-arrays' || s === 'arrays') {
+    if (s === 'static-arrays') {
       return 'static-array';
     }
     if (s === 'dynamic-vectors') {
@@ -984,6 +1109,71 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
           <defs>
             <marker id="arrow-sp" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
               <path d="M 0 2 L 6 5 L 0 8 z" fill="#c084fc" />
+            </marker>
+          </defs>
+        </svg>
+      )}
+
+      {type === 'what-is-dsa' && (
+        <svg viewBox="0 0 600 220" className="w-full h-full relative z-10" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="32" fill="#eab308" fontSize="13" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Data Layouts in Physical Memory</text>
+          
+          {/* Contiguous Block */}
+          <text x="50" y="60" fill="#60a5fa" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Contiguous Layout (Array in RAM)</text>
+          
+          {/* Elements packed side by side */}
+          <g>
+            {/* Address labels */}
+            <text x="75" y="112" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">0x100</text>
+            <text x="125" y="112" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">0x104</text>
+            <text x="175" y="112" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">0x108</text>
+            <text x="225" y="112" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">0x10C</text>
+
+            <rect x="50" y="68" width="50" height="32" rx="2" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+            <text x="75" y="88" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Val A</text>
+
+            <rect x="100" y="68" width="50" height="32" rx="2" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+            <text x="125" y="88" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Val B</text>
+
+            <rect x="150" y="68" width="50" height="32" rx="2" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+            <text x="175" y="88" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Val C</text>
+
+            <rect x="200" y="68" width="50" height="32" rx="2" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+            <text x="225" y="88" fill="#e4e4e7" fontSize="11" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Val D</text>
+            
+            {/* O(1) pointer math label */}
+            <text x="150" y="132" fill="#60a5fa" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Address = Base + (Index * Size) [O(1) Random Access]</text>
+          </g>
+
+          {/* Linked Block */}
+          <text x="340" y="60" fill="#f472b6" fontSize="11" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive" fontWeight="bold">Linked Layout (Scatter &amp; Pointer Reference)</text>
+
+          {/* Node 1 */}
+          <g>
+            <rect x="340" y="68" width="60" height="32" rx="2" fill="none" stroke="#f472b6" strokeWidth="1.5" />
+            <line x1="380" y1="68" x2="380" y2="100" stroke="#f472b6" strokeWidth="1" />
+            <text x="360" y="88" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Val A</text>
+            <text x="390" y="86" fill="#f472b6" fontSize="8" textAnchor="middle" fontFamily="monospace">0x1A0</text>
+            <text x="370" y="112" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">node @ 0x104</text>
+          </g>
+
+          {/* Arrow Node 1 -> Node 2 */}
+          <path d="M 390 84 Q 440 120 480 120" stroke="#f472b6" strokeWidth="1.5" fill="none" strokeDasharray="3 2" markerEnd="url(#arrow-linked)" />
+
+          {/* Node 2 */}
+          <g>
+            <rect x="470" y="105" width="60" height="32" rx="2" fill="none" stroke="#f472b6" strokeWidth="1.5" />
+            <line x1="510" y1="105" x2="510" y2="137" stroke="#f472b6" strokeWidth="1" />
+            <text x="490" y="125" fill="#e4e4e7" fontSize="10" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Val B</text>
+            <text x="520" y="123" fill="#e4e4e7" fontSize="8" textAnchor="middle" fontFamily="monospace">null</text>
+            <text x="500" y="149" fill="#71717a" fontSize="8" textAnchor="middle" fontFamily="monospace">node @ 0x1A0</text>
+          </g>
+
+          <text x="460" y="172" fill="#f472b6" fontSize="9" textAnchor="middle" fontFamily="'Ink Free', 'Chalkboard SE', 'Comic Sans MS', cursive">Hop-by-hop traversal [O(N) Sequential Access]</text>
+
+          <defs>
+            <marker id="arrow-linked" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto">
+              <path d="M 0 2 L 6 5 L 0 8 z" fill="#f472b6" />
             </marker>
           </defs>
         </svg>
