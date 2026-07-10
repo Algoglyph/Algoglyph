@@ -18,9 +18,18 @@ interface MiddlewareContext {
 const CANONICAL_HOST = 'algoglyph.com';
 const REDIRECT_HOSTS = new Set(['www.algoglyph.com']);
 
+// Crawler-critical files that ad/verification bots fetch directly (Google's
+// AdsBot for ads.txt, generic crawlers for robots.txt/sitemap.xml). Both
+// custom domains serve the identical static build, so there is no storage-
+// consistency reason to redirect these — and ads.txt verification in
+// particular is known to be flaky across redirect hops (even within the
+// nominally-supported limit), so they bypass the www->apex canonicalization
+// entirely and resolve with a direct 200 on whichever host was requested.
+const REDIRECT_EXEMPT_PATHS = new Set(['/ads.txt', '/robots.txt', '/sitemap.xml']);
+
 export async function onRequest(context: MiddlewareContext): Promise<Response> {
   const url = new URL(context.request.url);
-  if (REDIRECT_HOSTS.has(url.hostname)) {
+  if (REDIRECT_HOSTS.has(url.hostname) && !REDIRECT_EXEMPT_PATHS.has(url.pathname)) {
     url.hostname = CANONICAL_HOST;
     // 301 permanent: path + query are preserved by reusing the URL object.
     return Response.redirect(url.toString(), 301);
