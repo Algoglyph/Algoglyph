@@ -331,6 +331,53 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         ]
       },
       {
+        id: 'classic-algorithms',
+        name: 'Classic Algorithms',
+        description: 'Landmark algorithms across strings, graphs, geometry, and probability.',
+        concepts: [
+          {
+            id: 'string-matching-algorithms',
+            name: 'String Matching Algorithms',
+            subtopics: [
+              { id: 'kadanes-algorithm', name: "Kadane's Algorithm", blogSlug: 'kadanes-algorithm' },
+              { id: 'boyer-moore-majority', name: 'Boyer-Moore Majority Vote', blogSlug: 'boyer-moore-majority' },
+              { id: 'aho-corasick', name: 'Aho-Corasick Algorithm', blogSlug: 'aho-corasick' },
+              { id: 'bresenhams-line', name: "Bresenham's Line Algorithm", blogSlug: 'bresenhams-line' }
+            ]
+          },
+          {
+            id: 'graph-network-algorithms',
+            name: 'Graph & Network Algorithms',
+            subtopics: [
+              { id: 'johnsons-algorithm', name: "Johnson's Algorithm", blogSlug: 'johnsons-algorithm' },
+              { id: 'kargers-algorithm', name: "Karger's Algorithm", blogSlug: 'kargers-algorithm' },
+              { id: 'gale-shapley', name: 'Gale-Shapley Algorithm', blogSlug: 'gale-shapley' },
+              { id: 'lee-algorithm', name: 'Lee Algorithm', blogSlug: 'lee-algorithm' }
+            ]
+          },
+          {
+            id: 'computational-geometry',
+            name: 'Computational Geometry',
+            subtopics: [
+              { id: 'graham-scan', name: 'Graham Scan', blogSlug: 'graham-scan' },
+              { id: 'jarvis-march', name: 'Jarvis March (Gift Wrapping)', blogSlug: 'jarvis-march' },
+              { id: 'chans-algorithm', name: "Chan's Algorithm", blogSlug: 'chans-algorithm' },
+              { id: 'kirkpatrick-seidel', name: 'Kirkpatrick-Seidel Algorithm', blogSlug: 'kirkpatrick-seidel' }
+            ]
+          },
+          {
+            id: 'specialized-algorithms',
+            name: 'Specialized Algorithms',
+            subtopics: [
+              { id: 'brents-algorithm', name: "Brent's Algorithm", blogSlug: 'brents-algorithm' },
+              { id: 'mos-algorithm-dsa', name: "Mo's Algorithm", blogSlug: 'mos-algorithm' },
+              { id: 'viterbi-algorithm', name: 'Viterbi Algorithm', blogSlug: 'viterbi-algorithm' },
+              { id: 'cooley-tukey-fft', name: 'Cooley-Tukey FFT', blogSlug: 'cooley-tukey-fft' }
+            ]
+          }
+        ]
+      },
+      {
         id: 'practice-platforms',
         name: 'Platforms to Practice',
         description: 'Coding practice hubs.',
