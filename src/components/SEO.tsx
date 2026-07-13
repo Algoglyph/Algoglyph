@@ -94,7 +94,7 @@ export const SEO: React.FC<SEOProps> = ({
       const post = route?.post || findPostBySlug(activeSlug);
       if (post) {
         title = `${post.title} | AlgoGlyph Computer Science Roadmap`;
-        description = post.tagline || post.content.introduction.substring(0, 150);
+        description = post.tagline || (post as any).excerpt || (post as any).description || post.content?.introduction?.substring(0, 150) || '';
         type = 'article';
 
         jsonLd.push({
@@ -126,11 +126,11 @@ export const SEO: React.FC<SEOProps> = ({
           isAccessibleForFree: true,
         });
 
-        if (post.content.interviewQuestions?.length) {
+        if (post.content?.interviewQuestions?.length) {
           jsonLd.push({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: post.content.interviewQuestions.slice(0, 8).map((question) => ({
+            mainEntity: post.content?.interviewQuestions.slice(0, 8).map((question) => ({
               '@type': 'Question',
               name: question,
               acceptedAnswer: {
