@@ -1987,7 +1987,7 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-mariadb</loc>
+    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-nosql-mongodb</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -1999,13 +1999,7 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-mssql</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-oracle</loc>
+    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/sys-message-queues</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -2041,13 +2035,13 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-json</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-webhooks</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-soap</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/container-docker</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -2060,6 +2054,12 @@
   </url>
   <url>
     <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-graphql</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-websockets</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -2143,19 +2143,13 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-cors</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-cors-csp</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-ssl-tls</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-csp</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sys-observability</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -2531,12 +2525,6 @@
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/backend/containers-brokers/containers-orch/container-docker</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://algoglyph.com/roadmap/backend/containers-brokers/containers-orch/container-lxc</loc>

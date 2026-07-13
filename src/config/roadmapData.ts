@@ -772,14 +772,13 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
           },
           {
             id: 'relational-db-concepts',
-            name: 'Relational Databases',
+            name: 'Databases (SQL & NoSQL)',
             subtopics: [
               { id: 'db-mysql', name: 'MySQL', blogSlug: 'db-mysql' },
               { id: 'db-postgresql', name: 'PostgreSQL', blogSlug: 'db-postgresql' },
-              { id: 'db-mariadb', name: 'MariaDB', blogSlug: 'db-mariadb' },
+              { id: 'db-nosql-mongodb', name: 'MongoDB (NoSQL)', blogSlug: 'db-nosql-mongodb' },
               { id: 'db-sqlite', name: 'SQLite', blogSlug: 'db-sqlite' },
-              { id: 'db-mssql', name: 'MS SQL', blogSlug: 'db-mssql' },
-              { id: 'db-oracle', name: 'Oracle', blogSlug: 'db-oracle' },
+              { id: 'sys-message-queues', name: 'Message Queues (RabbitMQ/Kafka)', blogSlug: 'sys-message-queues' },
               { id: 'db-migrations', name: 'Database Migrations', blogSlug: 'db-migrations' },
               { id: 'n-plus-one-problem', name: 'N+1 Query Problem', blogSlug: 'n-plus-one-problem' }
             ]
@@ -796,10 +795,11 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
             name: 'API Styles & Specs',
             subtopics: [
               { id: 'api-style-rest', name: 'REST APIs', blogSlug: 'api-style-rest' },
-              { id: 'api-style-json', name: 'JSON APIs', blogSlug: 'api-style-json' },
-              { id: 'api-style-soap', name: 'SOAP APIs', blogSlug: 'api-style-soap' },
+              { id: 'api-style-webhooks', name: 'Webhooks & Event APIs', blogSlug: 'api-style-webhooks' },
+              { id: 'container-docker', name: 'Docker Containerization', blogSlug: 'container-docker' },
               { id: 'api-style-grpc', name: 'gRPC', blogSlug: 'api-style-grpc' },
               { id: 'api-style-graphql', name: 'GraphQL', blogSlug: 'api-style-graphql' },
+              { id: 'api-style-websockets', name: 'WebSockets (Real-time)', blogSlug: 'api-style-websockets' },
               { id: 'openapi-specs', name: 'OpenAPI Specifications', blogSlug: 'openapi-specs' }
             ]
           },
@@ -819,13 +819,12 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
           },
           {
             id: 'web-security-hashing',
-            name: 'Web Security & Hashing',
+            name: 'Web Security & Observability',
             subtopics: [
-              { id: 'sec-https', name: 'HTTPS/TLS', blogSlug: 'sec-https' },
+              { id: 'sec-https', name: 'HTTPS & SSL/TLS', blogSlug: 'sec-https' },
               { id: 'sec-owasp', name: 'OWASP Risks', blogSlug: 'sec-owasp' },
-              { id: 'sec-cors', name: 'CORS', blogSlug: 'sec-cors' },
-              { id: 'sec-ssl-tls', name: 'SSL/TLS', blogSlug: 'sec-ssl-tls' },
-              { id: 'sec-csp', name: 'CSP', blogSlug: 'sec-csp' },
+              { id: 'sec-cors-csp', name: 'CORS & CSP Policies', blogSlug: 'sec-cors-csp' },
+              { id: 'sys-observability', name: 'Observability & Logging', blogSlug: 'sys-observability' },
               { id: 'sec-server-security', name: 'Server Security', blogSlug: 'sec-server-security' },
               { id: 'sec-api-best-practices', name: 'API Security Best Practices', blogSlug: 'sec-api-best-practices' }
             ]
