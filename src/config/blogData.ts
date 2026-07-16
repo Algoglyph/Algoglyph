@@ -31,11 +31,11 @@ export interface BlogPost {
   category: string;
   readTime: number;
   lastUpdated: string;
-  visualizerId?: string;
+  visualizerId?: string | null;
   prerequisites: string[];
   related: string[];
-  nextTopic?: string;
-  prevTopic?: string;
+  nextTopic?: string | null;
+  prevTopic?: string | null;
   practiceProblems: PracticeProblem[];
   content: ArticleContent;
 }

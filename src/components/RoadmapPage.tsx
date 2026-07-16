@@ -14,6 +14,7 @@ import type { Concept, RoadmapZone, Topic } from '../config/roadmapData';
 import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
 import { ML_BLOG_DATA } from '../config/mlBlogData';
+import { deBlogData } from '../config/deBlogData';
 import { getArticleRouteBySlug, getRelatedArticleRoutes } from '../lib/seoRoutes';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import CodeMirror from '@uiw/react-codemirror';
@@ -128,6 +129,14 @@ const articleMarkdownToHtml = (markdown: string): string => {
   let inList: 'ul' | 'ol' | null = null;
   let inTable = false;
   let tableRows: string[][] = [];
+  let inBlockquote = false;
+
+  const closeBlockquote = () => {
+    if (inBlockquote) {
+      htmlLines.push('</blockquote>');
+      inBlockquote = false;
+    }
+  };
 
   const closeList = () => {
     if (inList) {
@@ -138,17 +147,14 @@ const articleMarkdownToHtml = (markdown: string): string => {
 
   const closeTable = () => {
     if (inTable) {
-      let tableHtml = `<div class="overflow-x-auto my-6"><table class="w-full text-left text-[15px] font-serif border-collapse">`;
+      let tableHtml = `<div class="overflow-x-auto"><table>`;
       tableRows.forEach((row, rIdx) => {
         const isHeader = rIdx === 0;
         const tag = isHeader ? 'th' : 'td';
-        const rowClass = isHeader 
-          ? 'border-y border-[var(--rm-border)] text-[var(--rm-text-body)] font-sans font-semibold py-3 px-2' 
-          : 'border-b border-[var(--rm-border)] py-3 px-2 text-[var(--rm-text-body)]';
         
-        tableHtml += `<tr class="${isHeader ? 'border-y border-[var(--rm-border)]' : ''}">`;
+        tableHtml += `<tr>`;
         row.forEach(cell => {
-          tableHtml += `<${tag} class="${rowClass}">${renderInlineMarkdown(cell)}</${tag}>`;
+          tableHtml += `<${tag}>${renderInlineMarkdown(cell)}</${tag}>`;
         });
         tableHtml += `</tr>`;
       });
@@ -166,6 +172,7 @@ const articleMarkdownToHtml = (markdown: string): string => {
     if (line.startsWith('@@BLOCK_') || line.startsWith('@@INLINE_')) {
       closeList();
       closeTable();
+      closeBlockquote();
       htmlLines.push(line);
       continue;
     }
@@ -173,11 +180,13 @@ const articleMarkdownToHtml = (markdown: string): string => {
     if (!line) {
       closeList();
       closeTable();
+      closeBlockquote();
       continue;
     }
 
     if (line.startsWith('|')) {
       closeList();
+      closeBlockquote();
       if (!inTable) {
         inTable = true;
         tableRows = [];
@@ -192,36 +201,55 @@ const articleMarkdownToHtml = (markdown: string): string => {
       closeTable();
     }
 
-    if (line.startsWith('# ')) {
+    if (line === '---') {
       closeList();
+      closeBlockquote();
+      htmlLines.push('<hr class="my-8 border-[var(--rm-border)] opacity-30" />');
+    } else if (line.startsWith('>')) {
+      closeList();
+      if (!inBlockquote) {
+        inBlockquote = true;
+        htmlLines.push('<blockquote>');
+      }
+      const bqLine = line.replace(/^>\s*/, '');
+      htmlLines.push(`<p>${renderInlineMarkdown(bqLine)}</p>`);
+    } else if (line.startsWith('# ')) {
+      closeList();
+      closeBlockquote();
       htmlLines.push(`<h1>${renderInlineMarkdown(line.slice(2))}</h1>`);
     } else if (line.startsWith('## ')) {
       closeList();
+      closeBlockquote();
       htmlLines.push(`<h2>${renderInlineMarkdown(line.slice(3))}</h2>`);
     } else if (line.startsWith('### ')) {
       closeList();
+      closeBlockquote();
       htmlLines.push(`<h3>${renderInlineMarkdown(line.slice(4))}</h3>`);
     } else if (/^[-*]\s+/.test(line)) {
+      closeBlockquote();
       if (inList !== 'ul') {
         closeList();
         inList = 'ul';
-        htmlLines.push('<ul class="list-disc pl-6 flex flex-col gap-2 my-4">');
+        htmlLines.push('<ul>');
       }
-      htmlLines.push(`<li class="pl-1 marker:text-[var(--rm-text-faint)]">${renderInlineMarkdown(line.replace(/^[-*]\s+/, ''))}</li>`);
+      htmlLines.push(`<li>${renderInlineMarkdown(line.replace(/^[-*]\s+/, ''))}</li>`);
     } else if (/^\d+\.\s+/.test(line)) {
+      closeBlockquote();
       if (inList !== 'ol') {
         closeList();
         inList = 'ol';
-        htmlLines.push('<ol class="list-decimal pl-6 flex flex-col gap-2 my-4">');
+        htmlLines.push('<ol>');
       }
-      htmlLines.push(`<li class="pl-1 marker:text-[var(--rm-text-faint)]">${renderInlineMarkdown(line.replace(/^\d+\.\s+/, ''))}</li>`);
+      htmlLines.push(`<li>${renderInlineMarkdown(line.replace(/^\d+\.\s+/, ''))}</li>`);
     } else {
       closeList();
-      htmlLines.push(`<p class="my-4">${renderInlineMarkdown(rawLine)}</p>`);
+      closeBlockquote();
+      htmlLines.push(`<p>${renderInlineMarkdown(rawLine)}</p>`);
     }
   }
   closeList();
   closeTable();
+  closeBlockquote();
 
   let finalHtml = htmlLines.join('\n');
 
@@ -267,6 +295,34 @@ const articleMarkdownToHtml = (markdown: string): string => {
 
 // Fallback generator for new/specific subtopics to guarantee detailed content is always available
 const getFallbackBlogPost = (slug: string, subtopicName: string, category: string): BlogPost => {
+  const deMarkdown = deBlogData[slug];
+  if (deMarkdown) {
+    return {
+      slug,
+      title: subtopicName,
+      tagline: `A theoretical guide to the design mechanics, complexity characteristics, and real-world usage of ${subtopicName}.`,
+      category,
+      lastUpdated: 'July 2026',
+      readTime: 7,
+      prerequisites: [],
+      related: [],
+      practiceProblems: [],
+      content: {
+        introduction: `This comprehensive guide covers the core technical structures of ${subtopicName}.`,
+        whyImportant: ``,
+        realWorldApps: [],
+        algorithmDescription: [],
+        complexity: [],
+        implementationCpp: '',
+        implementationPython: '',
+        commonMistakes: [],
+        interviewQuestions: [],
+        summary: ''
+      },
+      markdown: deMarkdown
+    };
+  }
+
   const custom = ML_BLOG_DATA[slug];
   if (custom) {
     return {
@@ -738,7 +794,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 dangerouslySetInnerHTML={{ __html: articleMarkdownToHtml(activePost.markdown) }} 
               />
             ) : (
-              <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-serif ${'text-[var(--rm-text-body)]'}`}>
+              <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-sans ${'text-[var(--rm-text-body)]'}`}>
                 <section className="flex flex-col gap-4">
                   <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Overview</h2>
                   <p>{activePost.content.introduction}</p>
