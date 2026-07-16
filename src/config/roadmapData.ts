@@ -331,6 +331,53 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
         ]
       },
       {
+        id: 'classic-algorithms',
+        name: 'Classic Algorithms',
+        description: 'Landmark algorithms across strings, graphs, geometry, and probability.',
+        concepts: [
+          {
+            id: 'string-matching-algorithms',
+            name: 'String Matching Algorithms',
+            subtopics: [
+              { id: 'kadanes-algorithm', name: "Kadane's Algorithm", blogSlug: 'kadanes-algorithm' },
+              { id: 'boyer-moore-majority', name: 'Boyer-Moore Majority Vote', blogSlug: 'boyer-moore-majority' },
+              { id: 'aho-corasick', name: 'Aho-Corasick Algorithm', blogSlug: 'aho-corasick' },
+              { id: 'bresenhams-line', name: "Bresenham's Line Algorithm", blogSlug: 'bresenhams-line' }
+            ]
+          },
+          {
+            id: 'graph-network-algorithms',
+            name: 'Graph & Network Algorithms',
+            subtopics: [
+              { id: 'johnsons-algorithm', name: "Johnson's Algorithm", blogSlug: 'johnsons-algorithm' },
+              { id: 'kargers-algorithm', name: "Karger's Algorithm", blogSlug: 'kargers-algorithm' },
+              { id: 'gale-shapley', name: 'Gale-Shapley Algorithm', blogSlug: 'gale-shapley' },
+              { id: 'lee-algorithm', name: 'Lee Algorithm', blogSlug: 'lee-algorithm' }
+            ]
+          },
+          {
+            id: 'computational-geometry',
+            name: 'Computational Geometry',
+            subtopics: [
+              { id: 'graham-scan', name: 'Graham Scan', blogSlug: 'graham-scan' },
+              { id: 'jarvis-march', name: 'Jarvis March (Gift Wrapping)', blogSlug: 'jarvis-march' },
+              { id: 'chans-algorithm', name: "Chan's Algorithm", blogSlug: 'chans-algorithm' },
+              { id: 'kirkpatrick-seidel', name: 'Kirkpatrick-Seidel Algorithm', blogSlug: 'kirkpatrick-seidel' }
+            ]
+          },
+          {
+            id: 'specialized-algorithms',
+            name: 'Specialized Algorithms',
+            subtopics: [
+              { id: 'brents-algorithm', name: "Brent's Algorithm", blogSlug: 'brents-algorithm' },
+              { id: 'mos-algorithm-dsa', name: "Mo's Algorithm", blogSlug: 'mos-algorithm' },
+              { id: 'viterbi-algorithm', name: 'Viterbi Algorithm', blogSlug: 'viterbi-algorithm' },
+              { id: 'cooley-tukey-fft', name: 'Cooley-Tukey FFT', blogSlug: 'cooley-tukey-fft' }
+            ]
+          }
+        ]
+      },
+      {
         id: 'practice-platforms',
         name: 'Platforms to Practice',
         description: 'Coding practice hubs.',
@@ -725,14 +772,13 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
           },
           {
             id: 'relational-db-concepts',
-            name: 'Relational Databases',
+            name: 'Databases (SQL & NoSQL)',
             subtopics: [
               { id: 'db-mysql', name: 'MySQL', blogSlug: 'db-mysql' },
               { id: 'db-postgresql', name: 'PostgreSQL', blogSlug: 'db-postgresql' },
-              { id: 'db-mariadb', name: 'MariaDB', blogSlug: 'db-mariadb' },
+              { id: 'db-nosql-mongodb', name: 'MongoDB (NoSQL)', blogSlug: 'db-nosql-mongodb' },
               { id: 'db-sqlite', name: 'SQLite', blogSlug: 'db-sqlite' },
-              { id: 'db-mssql', name: 'MS SQL', blogSlug: 'db-mssql' },
-              { id: 'db-oracle', name: 'Oracle', blogSlug: 'db-oracle' },
+              { id: 'sys-message-queues', name: 'Message Queues (RabbitMQ/Kafka)', blogSlug: 'sys-message-queues' },
               { id: 'db-migrations', name: 'Database Migrations', blogSlug: 'db-migrations' },
               { id: 'n-plus-one-problem', name: 'N+1 Query Problem', blogSlug: 'n-plus-one-problem' }
             ]
@@ -749,10 +795,11 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
             name: 'API Styles & Specs',
             subtopics: [
               { id: 'api-style-rest', name: 'REST APIs', blogSlug: 'api-style-rest' },
-              { id: 'api-style-json', name: 'JSON APIs', blogSlug: 'api-style-json' },
-              { id: 'api-style-soap', name: 'SOAP APIs', blogSlug: 'api-style-soap' },
+              { id: 'api-style-webhooks', name: 'Webhooks & Event APIs', blogSlug: 'api-style-webhooks' },
+              { id: 'container-docker', name: 'Docker Containerization', blogSlug: 'container-docker' },
               { id: 'api-style-grpc', name: 'gRPC', blogSlug: 'api-style-grpc' },
               { id: 'api-style-graphql', name: 'GraphQL', blogSlug: 'api-style-graphql' },
+              { id: 'api-style-websockets', name: 'WebSockets (Real-time)', blogSlug: 'api-style-websockets' },
               { id: 'openapi-specs', name: 'OpenAPI Specifications', blogSlug: 'openapi-specs' }
             ]
           },
@@ -772,13 +819,12 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
           },
           {
             id: 'web-security-hashing',
-            name: 'Web Security & Hashing',
+            name: 'Web Security & Observability',
             subtopics: [
-              { id: 'sec-https', name: 'HTTPS/TLS', blogSlug: 'sec-https' },
+              { id: 'sec-https', name: 'HTTPS & SSL/TLS', blogSlug: 'sec-https' },
               { id: 'sec-owasp', name: 'OWASP Risks', blogSlug: 'sec-owasp' },
-              { id: 'sec-cors', name: 'CORS', blogSlug: 'sec-cors' },
-              { id: 'sec-ssl-tls', name: 'SSL/TLS', blogSlug: 'sec-ssl-tls' },
-              { id: 'sec-csp', name: 'CSP', blogSlug: 'sec-csp' },
+              { id: 'sec-cors-csp', name: 'CORS & CSP Policies', blogSlug: 'sec-cors-csp' },
+              { id: 'sys-observability', name: 'Observability & Logging', blogSlug: 'sys-observability' },
               { id: 'sec-server-security', name: 'Server Security', blogSlug: 'sec-server-security' },
               { id: 'sec-api-best-practices', name: 'API Security Best Practices', blogSlug: 'sec-api-best-practices' }
             ]

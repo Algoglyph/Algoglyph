@@ -745,6 +745,132 @@
     <priority>0.90</priority>
   </url>
   <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.72</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/kadanes-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/boyer-moore-majority</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/aho-corasick</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/bresenhams-line</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.72</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/johnsons-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/kargers-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/gale-shapley</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/lee-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.72</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/graham-scan</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/jarvis-march</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/chans-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/kirkpatrick-seidel</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.72</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/brents-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/mos-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/viterbi-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/cooley-tukey-fft</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
     <loc>https://algoglyph.com/roadmap/dsa-foundations/practice-platforms</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
@@ -1861,7 +1987,7 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-mariadb</loc>
+    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-nosql-mongodb</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -1873,13 +1999,7 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-mssql</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/db-oracle</loc>
+    <loc>https://algoglyph.com/roadmap/backend/collaboration-databases/relational-db-concepts/sys-message-queues</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -1915,13 +2035,13 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-json</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-webhooks</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-soap</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/container-docker</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -1934,6 +2054,12 @@
   </url>
   <url>
     <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-graphql</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/api-designs/api-style-websockets</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -2017,19 +2143,13 @@
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-cors</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-cors-csp</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-ssl-tls</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sec-csp</loc>
+    <loc>https://algoglyph.com/roadmap/backend/apis-security/web-security-hashing/sys-observability</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
@@ -2405,12 +2525,6 @@
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/backend/containers-brokers/containers-orch/container-docker</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
   </url>
   <url>
     <loc>https://algoglyph.com/roadmap/backend/containers-brokers/containers-orch/container-lxc</loc>
