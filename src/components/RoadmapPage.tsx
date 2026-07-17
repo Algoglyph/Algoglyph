@@ -46,8 +46,20 @@ const renderInlineMarkdown = (text: string): string => {
   return text
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/!\[([^\]]*)\]\(([^)]+?)(#light|#dark)?\)/g, (_, alt, src, themeHash) => {
+      let classes = 'my-6 max-w-full rounded-lg border border-[var(--rm-border)] shadow-md mx-auto';
+      if (themeHash === '#light') {
+        classes += ' block dark:hidden';
+      } else if (themeHash === '#dark') {
+        classes += ' hidden dark:block';
+      } else {
+        classes += ' block';
+      }
+      return `<img src="${src}" alt="${alt}" class="${classes}" />`;
+    })
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[var(--rm-accent)] hover:underline font-semibold">$1</a>');
 };
+
 
 const articleMarkdownToHtml = (markdown: string): string => {
   const blocks: string[] = [];

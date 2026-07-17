@@ -10,6 +10,30 @@ interface RoadmapIllustrationProps {
 
 export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }) => {
   const sLower = slug.toLowerCase();
+  
+  const staticImages: Record<string, string> = {
+    'sys-observability': '/images/dsa/sys-observability-dark.png',
+    'performance-vs-scalability': '/images/dsa/performance-vs-scalability-dark.png',
+  };
+
+  if (staticImages[sLower]) {
+    return (
+      <div className="w-full h-[400px] md:h-[480px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-6 select-none relative">
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+             style={{ 
+               backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', 
+               backgroundSize: '20px 20px' 
+             }} 
+        />
+        <img 
+          src={staticImages[sLower]} 
+          alt={slug} 
+          className="max-w-full max-h-full object-contain relative z-10" 
+        />
+      </div>
+    );
+  }
+
   const customConfig = getCuratedRoadmapDiagram(sLower) || SYSTEM_DESIGN_DIAGRAMS[sLower] || ML_DIAGRAMS[sLower] || DE_DIAGRAMS[sLower];
 
   if (customConfig) {
