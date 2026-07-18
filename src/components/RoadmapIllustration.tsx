@@ -16,6 +16,18 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     'performance-vs-scalability': '/images/dsa/performance-vs-scalability-dark.png',
   };
 
+  if (sLower.startsWith('game-')) {
+    return (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+        <img 
+          src={`/images/game-dev/${sLower}-dark.jpg`} 
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  }
+
   if (staticImages[sLower]) {
     return (
       <div className="w-full h-[400px] md:h-[480px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-6 select-none relative">
