@@ -28,6 +28,47 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     );
   }
 
+  // Backend category images
+  const backendSlugs = new Set([
+    'lang-javascript','lang-go','lang-python','lang-ruby','lang-java','lang-csharp','lang-php','lang-rust',
+    'checkpoint-beginner-projects','internet-how-works-sub','what-is-http','what-is-domain-name',
+    'what-is-hosting','dns-how-works','browsers-how-works','frontend-html','frontend-css',
+    'frontend-javascript','git-vcs','github-hosting','gitlab-hosting','db-mysql','db-postgresql',
+    'db-mariadb','db-sqlite','db-mssql','db-oracle','db-migrations','n-plus-one-problem',
+    'api-style-rest','api-style-json','api-style-soap','api-style-grpc','api-style-graphql',
+    'openapi-specs','auth-jwt','auth-oauth','auth-basic','auth-token','auth-cookie','auth-openid',
+    'auth-saml','checkpoint-intermediate-projects','sec-https','sec-owasp','sec-cors','sec-ssl-tls',
+    'sec-csp','sec-server-security','sec-api-best-practices','hash-md5','hash-sha','hash-scrypt',
+    'hash-bcrypt','cache-redis','cache-memcached','cache-http','server-nginx','server-apache',
+    'server-caddy','server-iis','ai-llm-workings','ai-vs-traditional','ai-embeddings','ai-vectors',
+    'ai-rags','tool-claude-code','tool-cursor','tool-copilot','tool-antigravity','ai-app-code-reviews',
+    'ai-app-refactoring','ai-app-docs','ai-app-streaming','ai-app-structured-outputs',
+    'prompt-techniques','agent-architecture','mcp-protocol','agent-skills','agent-roadmap',
+    'provider-gemini','provider-openai','provider-anthropic','cicd-integration','cicd-deployment',
+    'test-integration','test-unit','test-functional','db-transactions','db-orms','db-acid',
+    'db-normalization-advanced','db-failure-modes','db-performance-profiling','container-docker',
+    'container-lxc','orch-kubernetes','broker-kafka','broker-rabbitmq','pattern-monolith',
+    'pattern-microservices','pattern-soa','pattern-serverless','pattern-service-mesh',
+    'pattern-twelve-factor','search-elasticsearch','search-solr','realtime-sse','realtime-websockets',
+    'realtime-polling','scale-db-indexes','scale-data-replication','scale-sharding','scale-cap-theorem',
+    'nosql-firebase','nosql-rethinkdb','nosql-mongodb','nosql-couchdb','nosql-redis','nosql-dynamodb',
+    'nosql-clickhouse','nosql-cassandra','nosql-scylladb','nosql-neo4j','nosql-neptune','nosql-dgraph',
+    'nosql-influxdb','nosql-timescaledb','scale-obs-core','scale-obs-instrumentation',
+    'scale-obs-monitoring','scale-obs-telemetry','mit-graceful','mit-throttling','mit-backpressure',
+    'mit-loadshifting','mit-circuit',
+  ]);
+  if (backendSlugs.has(sLower)) {
+    return (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+        <img 
+          src={`/images/backend/${sLower}-dark.jpg`} 
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  }
+
   if (staticImages[sLower]) {
     return (
       <div className="w-full h-[400px] md:h-[480px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-6 select-none relative">

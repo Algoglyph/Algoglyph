@@ -2757,7 +2757,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring JavaScript parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using JavaScript guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of JavaScript is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of JavaScript is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What is the event loop in Node.js and how does it enable non-blocking I/O?",
+        "Explain the difference between synchronous and asynchronous JavaScript with examples.",
+        "What are Promises and how do they differ from callbacks? What is async/await?",
+        "What is the V8 engine and how does it compile JavaScript to machine code?",
+        "What is closure in JavaScript and how does it relate to scope and memory?",
+        "How does JavaScript handle memory management and garbage collection?",
+        "What are the differences between var, let, and const in terms of scoping?"
+      ]
     }
   },
   "lang-go": {
@@ -2773,7 +2782,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Go parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Go guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Go is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Go is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What are goroutines and how do they differ from OS threads?",
+        "Explain Go channels and how they enable communication between goroutines.",
+        "How does Go's garbage collector work and what makes it suitable for low-latency services?",
+        "What is the difference between value receivers and pointer receivers in Go methods?",
+        "How does Go handle error handling compared to exceptions in other languages?",
+        "What is the Go scheduler and how does it implement M:N threading?",
+        "Explain Go interfaces and how they achieve duck typing at compile time."
+      ]
     }
   },
   "lang-python": {
@@ -2789,7 +2807,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Python parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Python guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Python is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Python is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "Explain the Global Interpreter Lock (GIL) in CPython and its impact on multithreading.",
+        "What is the difference between multiprocessing and threading in Python?",
+        "How does Python's memory management work — reference counting and garbage collection?",
+        "What are Python generators and how do they differ from regular functions?",
+        "Explain Python decorators and a real-world use case for them.",
+        "What is the difference between Django and FastAPI for building backend APIs?",
+        "How does asyncio work in Python and when should you use it over threading?"
+      ]
     }
   },
   "lang-ruby": {
@@ -2805,7 +2832,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Ruby parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Ruby guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Ruby is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Ruby is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What is the Ruby object model and how does everything-is-an-object work?",
+        "Explain Ruby's MRI (Matz's Ruby Interpreter) GIL and its impact on concurrency.",
+        "What is the difference between Ruby threads and fibers for concurrency?",
+        "How does Ruby on Rails use the MVC pattern and convention over configuration?",
+        "What are Ruby blocks, procs, and lambdas and how do they differ?",
+        "Explain ActiveRecord's ORM and how it maps Ruby objects to database rows.",
+        "What is metaprogramming in Ruby and how is it used in Rails DSLs?"
+      ]
     }
   },
   "lang-java": {
@@ -2821,7 +2857,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Java parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Java guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Java is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Java is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "Explain the JVM architecture — class loader, bytecode, JIT compiler, and garbage collector.",
+        "What are Java threads and how do you handle thread safety with synchronized and volatile?",
+        "What is the difference between an interface and an abstract class in Java?",
+        "Explain Java's memory model — heap, stack, metaspace, and how GC works.",
+        "What is the difference between checked and unchecked exceptions in Java?",
+        "How does Spring Boot use dependency injection and auto-configuration?",
+        "What are Java streams and how do they enable functional-style data processing?"
+      ]
     }
   },
   "lang-csharp": {
@@ -2837,7 +2882,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring C# parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using C# guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of C# is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of C# is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What is the .NET CLR and how does it execute C# code through JIT compilation?",
+        "Explain async/await in C# and how it maps to the Task Parallel Library.",
+        "What is the difference between value types (struct) and reference types (class) in C#?",
+        "How does C# handle memory management through the CLR garbage collector?",
+        "What is LINQ and how does it enable SQL-like queries over in-memory collections?",
+        "Explain dependency injection in ASP.NET Core and how the DI container works.",
+        "What is the difference between IEnumerable, IQueryable, and IList in C#?"
+      ]
     }
   },
   "lang-php": {
@@ -2853,7 +2907,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring PHP parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using PHP guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of PHP is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of PHP is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "How does PHP's request lifecycle work — from HTTP request to response?",
+        "What is the difference between PHP-FPM and the traditional CGI model?",
+        "Explain PHP sessions and cookies and how they maintain state across requests.",
+        "What are PHP namespaces and how does Composer manage autoloading?",
+        "How does Laravel's service container and IoC work for dependency injection?",
+        "What is the difference between PDO and MySQLi for database connectivity in PHP?",
+        "How does PHP handle concurrency — and why is it primarily single-threaded per request?"
+      ]
     }
   },
   "lang-rust": {
@@ -2869,7 +2932,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Rust parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Rust guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Rust is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Rust is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "Explain Rust's ownership system and how it prevents memory leaks without garbage collection.",
+        "What is the borrow checker in Rust and how does it enforce memory safety at compile time?",
+        "What are lifetimes in Rust and when do you need to annotate them explicitly?",
+        "Explain Rust's async/await model and how Tokio enables an async runtime.",
+        "What is the difference between Box<T>, Rc<T>, and Arc<T> in Rust?",
+        "How does Rust achieve zero-cost abstractions and what does this mean in practice?",
+        "What are Rust traits and how do they differ from interfaces in other languages?"
+      ]
     }
   },
   "checkpoint-beginner-projects": {
@@ -2885,7 +2957,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Checkpoint - Beginner Project Ideas parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Checkpoint - Beginner Project Ideas guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Checkpoint - Beginner Project Ideas is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Checkpoint - Beginner Project Ideas is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What are good beginner backend projects that teach HTTP and routing fundamentals?",
+        "How do you build a simple REST API from scratch using a language of your choice?",
+        "What is a CRUD application and why is it the standard beginner backend project?",
+        "How would you build a URL shortener service as a beginner backend project?",
+        "What backend skills should a beginner practice through project-based learning?",
+        "How do you add basic authentication (JWT or session) to a beginner backend project?",
+        "What is the role of a database in a beginner backend project and how do you connect to it?"
+      ]
     }
   },
   "internet-how-works-sub": {
@@ -2901,7 +2982,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring How does the internet work? parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using How does the internet work? guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of How does the internet work? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of How does the internet work? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "Explain what happens when you type a URL into your browser and press Enter.",
+        "What is the role of DNS in internet communication and how does DNS resolution work?",
+        "What is the difference between IP addresses, MAC addresses, and domain names?",
+        "How does TCP/IP enable reliable communication across the internet?",
+        "What is the difference between HTTP/1.1, HTTP/2, and HTTP/3?",
+        "What are ISPs (Internet Service Providers) and how do they route internet traffic?",
+        "What is the OSI model and how does each layer contribute to internet communication?"
+      ]
     }
   },
   "what-is-http": {
@@ -2917,7 +3007,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring What is HTTP? parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using What is HTTP? guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of What is HTTP? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of What is HTTP? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What are the main HTTP methods (GET, POST, PUT, PATCH, DELETE) and when do you use each?",
+        "What is the difference between HTTP/1.1, HTTP/2, and HTTP/3 in terms of performance?",
+        "Explain HTTP status codes — what do 2xx, 3xx, 4xx, and 5xx ranges mean?",
+        "What are HTTP headers and how do they carry metadata for requests and responses?",
+        "What is the difference between stateless HTTP and stateful sessions?",
+        "How does HTTP caching work — what are Cache-Control, ETag, and Last-Modified?",
+        "What is the difference between HTTP and HTTPS and how does TLS secure the connection?"
+      ]
     }
   },
   "what-is-domain-name": {
@@ -2933,7 +3032,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring What is Domain Name? parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using What is Domain Name? guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of What is Domain Name? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of What is Domain Name? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What is a domain name and how does it map to an IP address through DNS?",
+        "What is the difference between a domain, subdomain, and TLD (Top Level Domain)?",
+        "How does WHOIS work and what information does it expose about domain registrations?",
+        "What is the difference between a domain registrar and a DNS hosting provider?",
+        "How do DNS propagation and TTL (Time To Live) affect domain name changes?",
+        "What are A records, CNAME records, MX records, and TXT records in DNS?",
+        "What is a wildcard DNS record and when would you use one?"
+      ]
     }
   },
   "what-is-hosting": {
@@ -2949,7 +3057,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring What is hosting? parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using What is hosting? guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of What is hosting? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of What is hosting? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "What are the differences between shared hosting, VPS, dedicated servers, and cloud hosting?",
+        "What is a web server and how does Nginx or Apache serve HTTP requests?",
+        "Explain the difference between vertical scaling and horizontal scaling for hosted services.",
+        "What is a CDN and how does it improve hosting performance for global users?",
+        "What is the difference between PaaS (Heroku, Railway) and IaaS (AWS EC2, DigitalOcean)?",
+        "What is serverless hosting and how does it differ from traditional server hosting?",
+        "How do you deploy a backend application and what is a deployment pipeline?"
+      ]
     }
   },
   "dns-how-works": {
@@ -2965,7 +3082,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring DNS and how it works? parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using DNS and how it works? guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of DNS and how it works? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of DNS and how it works? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "Walk through the full DNS resolution process from query to IP address.",
+        "What is the difference between recursive and iterative DNS resolution?",
+        "What are root nameservers, TLD nameservers, and authoritative nameservers?",
+        "What is DNS caching and how does TTL control how long records are cached?",
+        "What is DNSSEC and how does it prevent DNS spoofing and cache poisoning?",
+        "What is the difference between A, AAAA, CNAME, MX, NS, and TXT DNS record types?",
+        "What happens when a DNS record is changed — how does propagation work globally?"
+      ]
     }
   },
   "browsers-how-works": {
@@ -2981,7 +3107,16 @@ export const ML_BLOG_DATA: Record<string, FallbackBlogOverride> =
         "Optimizing data pipelines and routing schemas by configuring Browsers and how they work? parameters, resulting in reduced CPU latency overheads.",
         "Isolating system nodes and securing network interfaces using Browsers and how they work? guidelines to prevent SQL injects, script scripts, and token leaks."
       ],
-      "summary": "In summary, a comprehensive grasp of Browsers and how they work? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development."
+      "summary": "In summary, a comprehensive grasp of Browsers and how they work? is indispensable for compiling secure, high-performing, and resilient backend systems. By studying its parameters and applying best practices in your codebase, you establish a solid foundation for enterprise full-stack development.",
+      "interviewQuestions": [
+        "Explain the browser rendering pipeline — from HTML parsing to pixels on screen.",
+        "What is the DOM and how does the browser construct it from HTML?",
+        "What is the difference between the DOM tree and the CSSOM tree?",
+        "How does browser reflow and repaint work and what causes layout thrashing?",
+        "What is the browser's JavaScript engine and how does it execute JS code?",
+        "What are browser storage options — cookies, localStorage, sessionStorage, and IndexedDB?",
+        "How does the browser's same-origin policy protect users from cross-site attacks?"
+      ]
     }
   },
   "frontend-html": {
