@@ -42,357 +42,975 @@ export const ROADMAP_ZONES: RoadmapZone[] = [
     learningStatus: 'Not Started',
     description: 'Master data organization and computational routines.',
     topics: [
-      {
-        id: 'basics-memory',
-        name: 'Language Basics & Memory',
-        description: 'Variables, allocations, stack, and heap mechanics.',
-        concepts: [
-          {
-            id: 'intro-dsa',
-            name: 'Introduction to DSA',
-            subtopics: [
-              { id: 'what-is-dsa', name: 'What are Data Structures?', blogSlug: 'what-is-dsa' },
-              { id: 'importance-dsa', name: 'Why are Data Structures Important?', blogSlug: 'importance-dsa' }
-            ]
-          },
-          {
-            id: 'programming-basics',
-            name: 'Programming Basics',
-            subtopics: [
-              { id: 'variables-data-types', name: 'Variables & Data Types', blogSlug: 'static-arrays' },
-              { id: 'operators-control-structures', name: 'Operators & Control Structures', blogSlug: 'procedural-state-pipelines' },
-              { id: 'functions-basic-io', name: 'Functions & Basic I/O', blogSlug: 'functions-basic-i-o' }
-            ]
-          },
-          {
-            id: 'memory-allocation',
-            name: 'Memory Allocation',
-            subtopics: [
-              { id: 'stack-allocation', name: 'Stack Allocation', blogSlug: 'stack-allocation' },
-              { id: 'heap-allocation', name: 'Heap Allocation', blogSlug: 'heap-allocation' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'complexity-analysis',
-        name: 'Complexity Analysis',
-        description: 'Measuring algorithm performance metrics and scale limits.',
-        concepts: [
-          {
-            id: 'complexity-basics',
-            name: 'Complexity Basics',
-            subtopics: [
-              { id: 'time-vs-space', name: 'Time vs Space Complexity', blogSlug: 'time-vs-space' },
-              { id: 'calculate-complexity', name: 'How to Calculate Complexity?', blogSlug: 'calculate-complexity' },
-              { id: 'common-runtimes', name: 'Common Runtimes', blogSlug: 'common-runtimes' }
-            ]
-          },
-          {
-            id: 'asymptotic-notations',
-            name: 'Asymptotic Notations',
-            subtopics: [
-              { id: 'big-o-notation', name: 'Big-O Notation', blogSlug: 'searching' },
-              { id: 'big-theta-notation', name: 'Big-Theta Notation', blogSlug: 'big-theta-notation' },
-              { id: 'big-omega-notation', name: 'Big-Omega Notation', blogSlug: 'big-omega-notation' },
-              { id: 'time-complexity', name: 'Time Complexity', blogSlug: 'time-complexity-analysis' },
-              { id: 'space-complexity', name: 'Space Complexity', blogSlug: 'space-complexity-analysis' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'linear-structures',
-        name: 'Linear Data Structures',
-        description: 'Contiguous arrays, list nodes, buffers, and collision tables.',
-        concepts: [
-          {
-            id: 'arrays',
-            name: 'Arrays',
-            subtopics: [
-              { id: 'static-arrays', name: 'Static Arrays', blogSlug: 'static-arrays' },
-              { id: 'dynamic-arrays', name: 'Dynamic Arrays', blogSlug: 'dynamic-vectors' }
-            ]
-          },
-          {
-            id: 'linked-lists',
-            name: 'Linked Lists',
-            subtopics: [
-              { id: 'singly-linked-list', name: 'Singly Linked List', blogSlug: 'singly-linked-lists' },
-              { id: 'doubly-linked-list', name: 'Doubly Linked List', blogSlug: 'doubly-linked-lists' },
-              { id: 'circular-linked-list', name: 'Circular Linked List', blogSlug: 'circular-linked-lists' },
-              { id: 'skip-list', name: 'Skip List', blogSlug: 'skip-lists' }
-            ]
-          },
-          {
-            id: 'stacks-queues',
-            name: 'Stacks & Queues',
-            subtopics: [
-              { id: 'lifo-stack', name: 'LIFO Stack', blogSlug: 'lifo-stacks' },
-              { id: 'fifo-queue', name: 'FIFO Queue', blogSlug: 'fifo-queues' },
-              { id: 'circular-queue', name: 'Circular Queue', blogSlug: 'circular-buffers' },
-              { id: 'deque', name: 'Double Ended Deque (Deque)', blogSlug: 'double-ended-deques' }
-            ]
-          },
-          {
-            id: 'hash-tables',
-            name: 'Hash Tables',
-            subtopics: [
-              { id: 'hash-functions', name: 'Hash Functions', blogSlug: 'hash-indexes' },
-              { id: 'collision-resolution', name: 'Collision Resolution', blogSlug: 'collision-resolution' },
-              { id: 'load-factor', name: 'Load Factor & Resizing', blogSlug: 'load-factor-scaling' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'sorting-searching',
-        name: 'Sorting & Searching',
-        description: 'Array re-order routines and value locations.',
-        concepts: [
-          {
-            id: 'sorting',
-            name: 'Sorting Algorithms',
-            subtopics: [
-              { id: 'bubble-sort', name: 'Bubble Sort', blogSlug: 'bubble-sort' },
-              { id: 'selection-sort', name: 'Selection Sort', blogSlug: 'selection-sort' },
-              { id: 'insertion-sort', name: 'Insertion Sort', blogSlug: 'insertion-sort' },
-              { id: 'merge-sort', name: 'Merge Sort', blogSlug: 'merge-sort' },
-              { id: 'quick-sort', name: 'Quick Sort', blogSlug: 'quick-sort' },
-              { id: 'heap-sort', name: 'Heap Sort', blogSlug: 'heap-sort' },
-              { id: 'radix-sort', name: 'Radix & Bucket Sort', blogSlug: 'radix-sort' }
-            ]
-          },
-          {
-            id: 'searching',
-            name: 'Searching Algorithms',
-            subtopics: [
-              { id: 'linear-search', name: 'Linear Search', blogSlug: 'linear-search' },
-              { id: 'binary-search', name: 'Binary Search', blogSlug: 'binary-search' },
-              { id: 'ternary-search', name: 'Ternary Search', blogSlug: 'ternary-search' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'tree-structures',
-        name: 'Tree Data Structures',
-        description: 'Hierarchical node trees, prefix searches, and range indexes.',
-        concepts: [
-          {
-            id: 'tree-basics',
-            name: 'Tree Basics',
-            subtopics: [
-              { id: 'binary-tree', name: 'Binary Tree', blogSlug: 'binary-tree' },
-              { id: 'binary-search-tree', name: 'Binary Search Tree (BST)', blogSlug: 'binary-search-trees' },
-              { id: 'avl-tree', name: 'AVL Tree', blogSlug: 'avl-trees' },
-              { id: 'b-tree', name: 'B-Tree', blogSlug: 'b-trees' },
-              { id: 'heaps', name: 'Heap', blogSlug: 'min-heaps' }
-            ]
-          },
-          {
-            id: 'tree-traversal',
-            name: 'Tree Traversal',
-            subtopics: [
-              { id: 'in-order', name: 'In-Order Traversal', blogSlug: 'in-order-traversal' },
-              { id: 'pre-order', name: 'Pre-Order Traversal', blogSlug: 'pre-order-traversal' },
-              { id: 'post-order', name: 'Post-Order Traversal', blogSlug: 'post-order-traversal' }
-            ]
-          },
-          {
-            id: 'tree-search',
-            name: 'Search Algorithms',
-            subtopics: [
-              { id: 'tree-bfs', name: 'Breadth First Search (BFS)', blogSlug: 'tree-bfs' },
-              { id: 'tree-dfs', name: 'Depth First Search (DFS)', blogSlug: 'tree-dfs' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'graph-structures',
-        name: 'Graph Data Structures',
-        description: 'Adjacency structures, path explorations, shortest paths, and spanning networks.',
-        concepts: [
-          {
-            id: 'graph-foundations',
-            name: 'Graph Foundations',
-            subtopics: [
-              { id: 'directed-graph', name: 'Directed Graph', blogSlug: 'directed-graphs' },
-              { id: 'undirected-graph', name: 'Undirected Graph', blogSlug: 'undirected-graphs' },
-              { id: 'graph-representations', name: 'Graph Representations', blogSlug: 'graph-representations' }
-            ]
-          },
-          {
-            id: 'graph-search',
-            name: 'Search Algorithms',
-            subtopics: [
-              { id: 'graph-bfs', name: 'Breadth First Search (BFS)', blogSlug: 'bfs-traversal' },
-              { id: 'graph-dfs', name: 'Depth First Search (DFS)', blogSlug: 'dfs-traversal' }
-            ]
-          },
-          {
-            id: 'shortest-path-algorithms',
-            name: 'Shortest Path Algorithms',
-            subtopics: [
-              { id: 'dijkstra', name: "Dijkstra's Algorithm", blogSlug: 'dijkstra' },
-              { id: 'bellman-ford', name: 'Bellman-Ford Algorithm', blogSlug: 'bellman-ford-floyd-warshall' },
-              { id: 'a-star', name: 'A* Algorithm', blogSlug: 'a-star-algorithm' },
-              { id: 'floyd-warshall', name: 'Floyd-Warshall Algorithm', blogSlug: 'floyd-warshall-algorithm' }
-            ]
-          },
-          {
-            id: 'minimum-spanning-tree',
-            name: 'Minimum Spanning Tree',
-            subtopics: [
-              { id: 'prim-mst', name: "Prim's Algorithm", blogSlug: 'prim-mst' },
-              { id: 'kruskal-mst', name: "Kruskal's Algorithm", blogSlug: 'kruskal-mst' },
-              { id: 'dsu', name: 'Disjoint Set (Union-Find)', blogSlug: 'mst-union-find' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'advanced-structures',
-        name: 'Advanced Data Structures',
-        description: 'Range query logs and topological indexes.',
-        concepts: [
-          {
-            id: 'advanced-nodes',
-            name: 'Advanced Data Structures',
-            subtopics: [
-              { id: 'trie', name: 'Trie', blogSlug: 'trie' },
-              { id: 'segment-tree', name: 'Segment Trees', blogSlug: 'segment-tree' },
-              { id: 'fenwick-tree', name: 'Fenwick Trees', blogSlug: 'fenwick-tree' },
-              { id: 'disjoint-set-union-find', name: 'Disjoint Set (Union-Find)', blogSlug: 'disjoint-set-union' },
-              { id: 'suffix-structures', name: 'Suffix Trees and Arrays', blogSlug: 'suffix-arrays' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'complex-structures',
-        name: 'Complex Data Structures & Indexing',
-        description: 'Advanced storage indexing and B-tree derivations.',
-        concepts: [
-          {
-            id: 'complex-nodes',
-            name: 'Complex Data Structures',
-            subtopics: [
-              { id: '2-3-tree', name: '2-3 Trees', blogSlug: 'two-three-trees' },
-              { id: 'bb-plus-tree', name: 'B/B+ Trees', blogSlug: 'b-trees-index-seeks' },
-              { id: 'skip-list-complex', name: 'Skip List', blogSlug: 'skip-lists-complex' },
-              { id: 'isam', name: 'ISAM', blogSlug: 'isam-indexing' }
-            ]
-          },
-          {
-            id: 'indexing',
-            name: 'Indexing',
-            subtopics: [
-              { id: 'linear-indexing', name: 'Linear Indexing', blogSlug: 'linear-indexing' },
-              { id: 'tree-based-indexing', name: 'Tree-Based Indexing', blogSlug: 'tree-indexing' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'problem-solving-techniques',
-        name: 'Problem Solving Techniques',
-        description: 'Common algorithmic paradigms and patterns.',
-        concepts: [
-          {
-            id: 'algorithmic-patterns-1',
-            name: 'Algorithmic Patterns I',
-            subtopics: [
-              { id: 'brute-force', name: 'Brute Force', blogSlug: 'brute-force' },
-              { id: 'backtracking', name: 'Backtracking', blogSlug: 'backtracking' },
-              { id: 'greedy-algorithms', name: 'Greedy Algorithms', blogSlug: 'greedy' },
-              { id: 'randomized-algorithms', name: 'Randomized Algorithms', blogSlug: 'randomized-algorithms' },
-              { id: 'divide-and-conquer', name: 'Divide and Conquer', blogSlug: 'divide-and-conquer' },
-              { id: 'recursion', name: 'Recursion', blogSlug: 'recursion' },
-              { id: 'dynamic-programming', name: 'Dynamic Programming', blogSlug: 'dynamic-programming' }
-            ]
-          },
-          {
-            id: 'algorithmic-patterns-2',
-            name: 'Algorithmic Patterns II',
-            subtopics: [
-              { id: 'two-pointer', name: 'Two Pointer Technique', blogSlug: 'two-pointer-technique' },
-              { id: 'sliding-window', name: 'Sliding Window Technique', blogSlug: 'sliding-window-technique' },
-              { id: 'fast-slow-pointers', name: 'Fast and Slow Pointers', blogSlug: 'fast-slow-pointers' },
-              { id: 'cyclic-sort', name: 'Cyclic Sort', blogSlug: 'cyclic-sort' },
-              { id: 'merge-intervals', name: 'Merge Intervals', blogSlug: 'merge-intervals' },
-              { id: 'two-heaps', name: 'Two Heaps', blogSlug: 'two-heaps-pattern' },
-              { id: 'kth-element', name: 'Kth Element', blogSlug: 'kth-element' },
-              { id: 'island-traversal', name: 'Island Traversal', blogSlug: 'island-traversal' },
-              { id: 'multi-threaded', name: 'Multi-threaded Algorithms', blogSlug: 'multi-threaded' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'classic-algorithms',
-        name: 'Classic Algorithms',
-        description: 'Landmark algorithms across strings, graphs, geometry, and probability.',
-        concepts: [
-          {
-            id: 'string-matching-algorithms',
-            name: 'String Matching Algorithms',
-            subtopics: [
-              { id: 'kadanes-algorithm', name: "Kadane's Algorithm", blogSlug: 'kadanes-algorithm' },
-              { id: 'boyer-moore-majority', name: 'Boyer-Moore Majority Vote', blogSlug: 'boyer-moore-majority' },
-              { id: 'aho-corasick', name: 'Aho-Corasick Algorithm', blogSlug: 'aho-corasick' },
-              { id: 'bresenhams-line', name: "Bresenham's Line Algorithm", blogSlug: 'bresenhams-line' }
-            ]
-          },
-          {
-            id: 'graph-network-algorithms',
-            name: 'Graph & Network Algorithms',
-            subtopics: [
-              { id: 'johnsons-algorithm', name: "Johnson's Algorithm", blogSlug: 'johnsons-algorithm' },
-              { id: 'kargers-algorithm', name: "Karger's Algorithm", blogSlug: 'kargers-algorithm' },
-              { id: 'gale-shapley', name: 'Gale-Shapley Algorithm', blogSlug: 'gale-shapley' },
-              { id: 'lee-algorithm', name: 'Lee Algorithm', blogSlug: 'lee-algorithm' }
-            ]
-          },
-          {
-            id: 'computational-geometry',
-            name: 'Computational Geometry',
-            subtopics: [
-              { id: 'graham-scan', name: 'Graham Scan', blogSlug: 'graham-scan' },
-              { id: 'jarvis-march', name: 'Jarvis March (Gift Wrapping)', blogSlug: 'jarvis-march' },
-              { id: 'chans-algorithm', name: "Chan's Algorithm", blogSlug: 'chans-algorithm' },
-              { id: 'kirkpatrick-seidel', name: 'Kirkpatrick-Seidel Algorithm', blogSlug: 'kirkpatrick-seidel' }
-            ]
-          },
-          {
-            id: 'specialized-algorithms',
-            name: 'Specialized Algorithms',
-            subtopics: [
-              { id: 'brents-algorithm', name: "Brent's Algorithm", blogSlug: 'brents-algorithm' },
-              { id: 'mos-algorithm-dsa', name: "Mo's Algorithm", blogSlug: 'mos-algorithm' },
-              { id: 'viterbi-algorithm', name: 'Viterbi Algorithm', blogSlug: 'viterbi-algorithm' },
-              { id: 'cooley-tukey-fft', name: 'Cooley-Tukey FFT', blogSlug: 'cooley-tukey-fft' }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'practice-platforms',
-        name: 'Platforms to Practice',
-        description: 'Coding practice hubs.',
-        concepts: [
-          {
-            id: 'platforms',
-            name: 'Practice Platforms',
-            subtopics: [
-              { id: 'leetcode', name: 'Leetcode', blogSlug: 'leetcode-platform' },
-              { id: 'edabit', name: 'Edabit', blogSlug: 'edabit-platform' }
-            ]
-          }
-        ]
-      }
-    ]
+        {
+                "id": "dsa-foundations-topic",
+                "name": "DSA Foundations & Core Mechanics",
+                "description": "Master data organization, memory layouts, complexity calculations, and base structures.",
+                "concepts": [
+                        {
+                                "id": "dsa-basics-concept",
+                                "name": "Introduction & Memory Allocation",
+                                "subtopics": [
+                                        {
+                                                "id": "what-is-dsa",
+                                                "name": "What are Data Structures?",
+                                                "blogSlug": "what-is-dsa"
+                                        },
+                                        {
+                                                "id": "importance-dsa",
+                                                "name": "Why are Data Structures Important?",
+                                                "blogSlug": "importance-dsa"
+                                        },
+                                        {
+                                                "id": "functions-basic-i-o",
+                                                "name": "Functions & Basic I/O",
+                                                "blogSlug": "functions-basic-i-o"
+                                        },
+                                        {
+                                                "id": "stack-allocation",
+                                                "name": "Stack Allocation",
+                                                "blogSlug": "stack-allocation"
+                                        },
+                                        {
+                                                "id": "heap-allocation",
+                                                "name": "Heap Allocation",
+                                                "blogSlug": "heap-allocation"
+                                        },
+                                        {
+                                                "id": "time-vs-space",
+                                                "name": "Time vs Space Complexity",
+                                                "blogSlug": "time-vs-space"
+                                        },
+                                        {
+                                                "id": "calculate-complexity",
+                                                "name": "How to Calculate Complexity?",
+                                                "blogSlug": "calculate-complexity"
+                                        },
+                                        {
+                                                "id": "common-runtimes",
+                                                "name": "Common Runtimes",
+                                                "blogSlug": "common-runtimes"
+                                        },
+                                        {
+                                                "id": "big-theta-notation",
+                                                "name": "Big-Theta Notation",
+                                                "blogSlug": "big-theta-notation"
+                                        },
+                                        {
+                                                "id": "big-omega-notation",
+                                                "name": "Big-Omega Notation",
+                                                "blogSlug": "big-omega-notation"
+                                        },
+                                        {
+                                                "id": "time-complexity-analysis",
+                                                "name": "Time Complexity",
+                                                "blogSlug": "time-complexity-analysis"
+                                        },
+                                        {
+                                                "id": "space-complexity-analysis",
+                                                "name": "Space Complexity",
+                                                "blogSlug": "space-complexity-analysis"
+                                        },
+                                        {
+                                                "id": "collision-resolution",
+                                                "name": "Collision Resolution",
+                                                "blogSlug": "collision-resolution"
+                                        },
+                                        {
+                                                "id": "load-factor-scaling",
+                                                "name": "Load Factor & Resizing",
+                                                "blogSlug": "load-factor-scaling"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "dsa-trees-traversals-concept",
+                                "name": "Trees & Traversals Basics",
+                                "subtopics": [
+                                        {
+                                                "id": "binary-tree",
+                                                "name": "Binary Tree",
+                                                "blogSlug": "binary-tree"
+                                        },
+                                        {
+                                                "id": "in-order-traversal",
+                                                "name": "In-Order Traversal",
+                                                "blogSlug": "in-order-traversal"
+                                        },
+                                        {
+                                                "id": "pre-order-traversal",
+                                                "name": "Pre-Order Traversal",
+                                                "blogSlug": "pre-order-traversal"
+                                        },
+                                        {
+                                                "id": "post-order-traversal",
+                                                "name": "Post-Order Traversal",
+                                                "blogSlug": "post-order-traversal"
+                                        },
+                                        {
+                                                "id": "tree-bfs",
+                                                "name": "Breadth First Search (BFS)",
+                                                "blogSlug": "tree-bfs"
+                                        },
+                                        {
+                                                "id": "tree-dfs",
+                                                "name": "Depth First Search (DFS)",
+                                                "blogSlug": "tree-dfs"
+                                        },
+                                        {
+                                                "id": "directed-graphs",
+                                                "name": "Directed Graph",
+                                                "blogSlug": "directed-graphs"
+                                        },
+                                        {
+                                                "id": "undirected-graphs",
+                                                "name": "Undirected Graph",
+                                                "blogSlug": "undirected-graphs"
+                                        },
+                                        {
+                                                "id": "graph-representations",
+                                                "name": "Graph Representations",
+                                                "blogSlug": "graph-representations"
+                                        },
+                                        {
+                                                "id": "a-star-algorithm",
+                                                "name": "A* Algorithm",
+                                                "blogSlug": "a-star-algorithm"
+                                        },
+                                        {
+                                                "id": "floyd-warshall-algorithm",
+                                                "name": "Floyd-Warshall Algorithm",
+                                                "blogSlug": "floyd-warshall-algorithm"
+                                        },
+                                        {
+                                                "id": "disjoint-set-union",
+                                                "name": "Disjoint Set (Union-Find)",
+                                                "blogSlug": "disjoint-set-union"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "dsa-indexing-paradigms-concept",
+                                "name": "Indexing & Algorithmic Paradigms",
+                                "subtopics": [
+                                        {
+                                                "id": "two-three-trees",
+                                                "name": "2-3 Trees",
+                                                "blogSlug": "two-three-trees"
+                                        },
+                                        {
+                                                "id": "skip-lists-complex",
+                                                "name": "Skip List",
+                                                "blogSlug": "skip-lists-complex"
+                                        },
+                                        {
+                                                "id": "isam-indexing",
+                                                "name": "ISAM",
+                                                "blogSlug": "isam-indexing"
+                                        },
+                                        {
+                                                "id": "linear-indexing",
+                                                "name": "Linear Indexing",
+                                                "blogSlug": "linear-indexing"
+                                        },
+                                        {
+                                                "id": "tree-indexing",
+                                                "name": "Tree-Based Indexing",
+                                                "blogSlug": "tree-indexing"
+                                        },
+                                        {
+                                                "id": "brute-force",
+                                                "name": "Brute Force",
+                                                "blogSlug": "brute-force"
+                                        },
+                                        {
+                                                "id": "randomized-algorithms",
+                                                "name": "Randomized Algorithms",
+                                                "blogSlug": "randomized-algorithms"
+                                        },
+                                        {
+                                                "id": "divide-and-conquer",
+                                                "name": "Divide and Conquer",
+                                                "blogSlug": "divide-and-conquer"
+                                        },
+                                        {
+                                                "id": "recursion",
+                                                "name": "Recursion",
+                                                "blogSlug": "recursion"
+                                        },
+                                        {
+                                                "id": "kth-element",
+                                                "name": "Kth Element",
+                                                "blogSlug": "kth-element"
+                                        },
+                                        {
+                                                "id": "island-traversal",
+                                                "name": "Island Traversal",
+                                                "blogSlug": "island-traversal"
+                                        },
+                                        {
+                                                "id": "multi-threaded",
+                                                "name": "Multi-threaded Algorithms",
+                                                "blogSlug": "multi-threaded"
+                                        },
+                                        {
+                                                "id": "leetcode-platform",
+                                                "name": "Leetcode",
+                                                "blogSlug": "leetcode-platform"
+                                        },
+                                        {
+                                                "id": "edabit-platform",
+                                                "name": "Edabit",
+                                                "blogSlug": "edabit-platform"
+                                        }
+                                ]
+                        }
+                ]
+        },
+        {
+                "id": "data-structures-topic",
+                "name": "Linear, Tree & Advanced Data Structures",
+                "description": "Arrays, lists, stacks, queues, trees, heaps, and probabilistic structures.",
+                "concepts": [
+                        {
+                                "id": "linear-ds-concept",
+                                "name": "Linear Structures & Queues",
+                                "subtopics": [
+                                        {
+                                                "id": "arrays",
+                                                "name": "Contiguous Memory Arrays & Grid Matrices",
+                                                "blogSlug": "arrays"
+                                        },
+                                        {
+                                                "id": "linked-list",
+                                                "name": "Reference-Linked Node Chains",
+                                                "blogSlug": "linked-list"
+                                        },
+                                        {
+                                                "id": "stack",
+                                                "name": "LIFO Call Stacks",
+                                                "blogSlug": "stack"
+                                        },
+                                        {
+                                                "id": "queue",
+                                                "name": "FIFO Message Queues",
+                                                "blogSlug": "queue"
+                                        },
+                                        {
+                                                "id": "heap",
+                                                "name": "Binary Heaps & Priority Queues",
+                                                "blogSlug": "heap"
+                                        },
+                                        {
+                                                "id": "trie",
+                                                "name": "Tries & Prefix Trees",
+                                                "blogSlug": "trie"
+                                        },
+                                        {
+                                                "id": "tree-traversal",
+                                                "name": "Hierarchical Tree Traversals",
+                                                "blogSlug": "tree-traversal"
+                                        },
+                                        {
+                                                "id": "fenwick-tree",
+                                                "name": "Fenwick Tree (Binary Indexed Tree)",
+                                                "blogSlug": "fenwick-tree"
+                                        },
+                                        {
+                                                "id": "sparse-table",
+                                                "name": "Sparse Table: Constant Time Range Queries",
+                                                "blogSlug": "sparse-table"
+                                        },
+                                        {
+                                                "id": "avl-red-black-tree",
+                                                "name": "Balanced Search Trees: AVL & Red-Black Trees",
+                                                "blogSlug": "avl-red-black-tree"
+                                        },
+                                        {
+                                                "id": "static-arrays",
+                                                "name": "Static Arrays",
+                                                "blogSlug": "static-arrays"
+                                        },
+                                        {
+                                                "id": "dynamic-vectors",
+                                                "name": "Dynamic Vectors",
+                                                "blogSlug": "dynamic-vectors"
+                                        },
+                                        {
+                                                "id": "singly-linked-lists",
+                                                "name": "Singly Linked Lists",
+                                                "blogSlug": "singly-linked-lists"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "tree-ds-concept",
+                                "name": "Balanced Trees & Heaps",
+                                "subtopics": [
+                                        {
+                                                "id": "doubly-linked-lists",
+                                                "name": "Doubly Linked Lists",
+                                                "blogSlug": "doubly-linked-lists"
+                                        },
+                                        {
+                                                "id": "circular-linked-lists",
+                                                "name": "Circular Linked Lists",
+                                                "blogSlug": "circular-linked-lists"
+                                        },
+                                        {
+                                                "id": "skip-lists",
+                                                "name": "Skip Lists",
+                                                "blogSlug": "skip-lists"
+                                        },
+                                        {
+                                                "id": "lifo-stacks",
+                                                "name": "LIFO Stacks",
+                                                "blogSlug": "lifo-stacks"
+                                        },
+                                        {
+                                                "id": "fifo-queues",
+                                                "name": "FIFO Queues",
+                                                "blogSlug": "fifo-queues"
+                                        },
+                                        {
+                                                "id": "double-ended-deques",
+                                                "name": "Double Ended Deques",
+                                                "blogSlug": "double-ended-deques"
+                                        },
+                                        {
+                                                "id": "circular-buffers",
+                                                "name": "Circular Buffers",
+                                                "blogSlug": "circular-buffers"
+                                        },
+                                        {
+                                                "id": "min-heaps",
+                                                "name": "Min Heaps",
+                                                "blogSlug": "min-heaps"
+                                        },
+                                        {
+                                                "id": "max-heaps",
+                                                "name": "Max Heaps",
+                                                "blogSlug": "max-heaps"
+                                        },
+                                        {
+                                                "id": "binary-search-trees",
+                                                "name": "Binary Search Trees",
+                                                "blogSlug": "binary-search-trees"
+                                        },
+                                        {
+                                                "id": "avl-trees",
+                                                "name": "AVL Trees",
+                                                "blogSlug": "avl-trees"
+                                        },
+                                        {
+                                                "id": "red-black-trees",
+                                                "name": "Red-Black Trees",
+                                                "blogSlug": "red-black-trees"
+                                        },
+                                        {
+                                                "id": "tries",
+                                                "name": "Tries",
+                                                "blogSlug": "tries"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "probabilistic-spatial-concept",
+                                "name": "Probabilistic & Spatial Index Structures",
+                                "subtopics": [
+                                        {
+                                                "id": "segment-trees",
+                                                "name": "Segment Trees",
+                                                "blogSlug": "segment-trees"
+                                        },
+                                        {
+                                                "id": "fenwick-trees",
+                                                "name": "Fenwick Trees",
+                                                "blogSlug": "fenwick-trees"
+                                        },
+                                        {
+                                                "id": "sparse-tables",
+                                                "name": "Sparse Tables",
+                                                "blogSlug": "sparse-tables"
+                                        },
+                                        {
+                                                "id": "suffix-trees",
+                                                "name": "Suffix Trees",
+                                                "blogSlug": "suffix-trees"
+                                        },
+                                        {
+                                                "id": "suffix-arrays",
+                                                "name": "Suffix Arrays",
+                                                "blogSlug": "suffix-arrays"
+                                        },
+                                        {
+                                                "id": "b-trees",
+                                                "name": "B+ Trees",
+                                                "blogSlug": "b-trees"
+                                        },
+                                        {
+                                                "id": "quadtrees",
+                                                "name": "Quadtrees",
+                                                "blogSlug": "quadtrees"
+                                        },
+                                        {
+                                                "id": "k-d-trees",
+                                                "name": "K-D Trees",
+                                                "blogSlug": "k-d-trees"
+                                        },
+                                        {
+                                                "id": "splay-trees",
+                                                "name": "Splay Trees",
+                                                "blogSlug": "splay-trees"
+                                        },
+                                        {
+                                                "id": "treaps",
+                                                "name": "Treaps",
+                                                "blogSlug": "treaps"
+                                        },
+                                        {
+                                                "id": "leftist-heaps",
+                                                "name": "Leftist Heaps",
+                                                "blogSlug": "leftist-heaps"
+                                        },
+                                        {
+                                                "id": "binomial-heaps",
+                                                "name": "Binomial Heaps",
+                                                "blogSlug": "binomial-heaps"
+                                        },
+                                        {
+                                                "id": "fibonacci-heaps",
+                                                "name": "Fibonacci Heaps",
+                                                "blogSlug": "fibonacci-heaps"
+                                        }
+                                ]
+                        }
+                ]
+        },
+        {
+                "id": "algorithms-searching-sorting-topic",
+                "name": "Searching & Sorting Algorithms",
+                "description": "Logarithmic search boundaries and optimal element ordering schemes.",
+                "concepts": [
+                        {
+                                "id": "searching-sorting-concept",
+                                "name": "Searching & Elementary Sorting",
+                                "subtopics": [
+                                        {
+                                                "id": "binary-search",
+                                                "name": "Binary Search",
+                                                "blogSlug": "binary-search"
+                                        },
+                                        {
+                                                "id": "bfs",
+                                                "name": "Breadth-First Search (BFS)",
+                                                "blogSlug": "bfs"
+                                        },
+                                        {
+                                                "id": "dfs",
+                                                "name": "Depth-First Search (DFS)",
+                                                "blogSlug": "dfs"
+                                        },
+                                        {
+                                                "id": "dijkstra",
+                                                "name": "Dijkstra's Shortest Path",
+                                                "blogSlug": "dijkstra"
+                                        },
+                                        {
+                                                "id": "dynamic-programming",
+                                                "name": "Dynamic Programming (DP)",
+                                                "blogSlug": "dynamic-programming"
+                                        },
+                                        {
+                                                "id": "greedy",
+                                                "name": "Greedy Algorithms",
+                                                "blogSlug": "greedy"
+                                        },
+                                        {
+                                                "id": "backtracking",
+                                                "name": "Constraint Backtracking",
+                                                "blogSlug": "backtracking"
+                                        },
+                                        {
+                                                "id": "searching",
+                                                "name": "Linear, Binary & Multi-Interval Searching",
+                                                "blogSlug": "searching"
+                                        },
+                                        {
+                                                "id": "sorting",
+                                                "name": "Divide-and-Conquer Sorting Paradigms",
+                                                "blogSlug": "sorting"
+                                        },
+                                        {
+                                                "id": "mst-union-find",
+                                                "name": "Minimum Spanning Trees & Disjoint Set Forests",
+                                                "blogSlug": "mst-union-find"
+                                        },
+                                        {
+                                                "id": "scc-bridges",
+                                                "name": "Strongly Connected Components & Bridges",
+                                                "blogSlug": "scc-bridges"
+                                        },
+                                        {
+                                                "id": "string-algorithms",
+                                                "name": "Pattern Matching & String Invariants",
+                                                "blogSlug": "string-algorithms"
+                                        },
+                                        {
+                                                "id": "advanced-cp",
+                                                "name": "Competitive Programming Invariants",
+                                                "blogSlug": "advanced-cp"
+                                        },
+                                        {
+                                                "id": "bellman-ford-floyd-warshall",
+                                                "name": "Bellman-Ford & Floyd-Warshall: Negative Cycles & All-Pairs Paths",
+                                                "blogSlug": "bellman-ford-floyd-warshall"
+                                        },
+                                        {
+                                                "id": "topological-sort",
+                                                "name": "Topological Sort",
+                                                "blogSlug": "topological-sort"
+                                        },
+                                        {
+                                                "id": "kmp-algorithm",
+                                                "name": "Knuth-Morris-Pratt (KMP) Pattern Matching",
+                                                "blogSlug": "kmp-algorithm"
+                                        },
+                                        {
+                                                "id": "linear-search",
+                                                "name": "Linear Search",
+                                                "blogSlug": "linear-search"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "graph-pathfinding-concept",
+                                "name": "Graph Traversal & Pathfinding",
+                                "subtopics": [
+                                        {
+                                                "id": "ternary-search",
+                                                "name": "Ternary Search",
+                                                "blogSlug": "ternary-search"
+                                        },
+                                        {
+                                                "id": "bubble-sort",
+                                                "name": "Bubble Sort",
+                                                "blogSlug": "bubble-sort"
+                                        },
+                                        {
+                                                "id": "selection-sort",
+                                                "name": "Selection Sort",
+                                                "blogSlug": "selection-sort"
+                                        },
+                                        {
+                                                "id": "insertion-sort",
+                                                "name": "Insertion Sort",
+                                                "blogSlug": "insertion-sort"
+                                        },
+                                        {
+                                                "id": "merge-sort",
+                                                "name": "Merge Sort",
+                                                "blogSlug": "merge-sort"
+                                        },
+                                        {
+                                                "id": "quick-sort",
+                                                "name": "Quick Sort",
+                                                "blogSlug": "quick-sort"
+                                        },
+                                        {
+                                                "id": "heap-sort",
+                                                "name": "Heap Sort",
+                                                "blogSlug": "heap-sort"
+                                        },
+                                        {
+                                                "id": "counting-sort",
+                                                "name": "Counting Sort",
+                                                "blogSlug": "counting-sort"
+                                        },
+                                        {
+                                                "id": "radix-sort",
+                                                "name": "Radix Sort",
+                                                "blogSlug": "radix-sort"
+                                        },
+                                        {
+                                                "id": "bucket-sort",
+                                                "name": "Bucket Sort",
+                                                "blogSlug": "bucket-sort"
+                                        },
+                                        {
+                                                "id": "shell-sort",
+                                                "name": "Shell Sort",
+                                                "blogSlug": "shell-sort"
+                                        },
+                                        {
+                                                "id": "bfs-traversal",
+                                                "name": "BFS Traversal",
+                                                "blogSlug": "bfs-traversal"
+                                        },
+                                        {
+                                                "id": "dfs-traversal",
+                                                "name": "DFS Traversal",
+                                                "blogSlug": "dfs-traversal"
+                                        },
+                                        {
+                                                "id": "dijkstra-algorithm",
+                                                "name": "Dijkstra Algorithm",
+                                                "blogSlug": "dijkstra-algorithm"
+                                        },
+                                        {
+                                                "id": "bellman-ford",
+                                                "name": "Bellman-Ford",
+                                                "blogSlug": "bellman-ford"
+                                        },
+                                        {
+                                                "id": "floyd-warshall",
+                                                "name": "Floyd-Warshall",
+                                                "blogSlug": "floyd-warshall"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "algorithmic-patterns-concept",
+                                "name": "Algorithmic Patterns & Substring Search",
+                                "subtopics": [
+                                        {
+                                                "id": "kruskal-mst",
+                                                "name": "Kruskal MST",
+                                                "blogSlug": "kruskal-mst"
+                                        },
+                                        {
+                                                "id": "prim-mst",
+                                                "name": "Prim MST",
+                                                "blogSlug": "prim-mst"
+                                        },
+                                        {
+                                                "id": "tarjan-scc",
+                                                "name": "Tarjan SCC",
+                                                "blogSlug": "tarjan-scc"
+                                        },
+                                        {
+                                                "id": "kosaraju-scc",
+                                                "name": "Kosaraju SCC",
+                                                "blogSlug": "kosaraju-scc"
+                                        },
+                                        {
+                                                "id": "bridges-cuts",
+                                                "name": "Bridges & Cuts",
+                                                "blogSlug": "bridges-cuts"
+                                        },
+                                        {
+                                                "id": "a-search",
+                                                "name": "A* Search",
+                                                "blogSlug": "a-search"
+                                        },
+                                        {
+                                                "id": "boyer-moore-search",
+                                                "name": "Boyer-Moore Search",
+                                                "blogSlug": "boyer-moore-search"
+                                        },
+                                        {
+                                                "id": "rabin-karp-search",
+                                                "name": "Rabin-Karp Search",
+                                                "blogSlug": "rabin-karp-search"
+                                        },
+                                        {
+                                                "id": "z-algorithm",
+                                                "name": "Z-Algorithm",
+                                                "blogSlug": "z-algorithm"
+                                        },
+                                        {
+                                                "id": "manacher-substrings",
+                                                "name": "Manacher Substrings",
+                                                "blogSlug": "manacher-substrings"
+                                        },
+                                        {
+                                                "id": "euler-tour",
+                                                "name": "Euler Tour",
+                                                "blogSlug": "euler-tour"
+                                        },
+                                        {
+                                                "id": "two-pointer-technique",
+                                                "name": "Two Pointer Technique",
+                                                "blogSlug": "two-pointer-technique"
+                                        },
+                                        {
+                                                "id": "sliding-window-technique",
+                                                "name": "Sliding Window Technique",
+                                                "blogSlug": "sliding-window-technique"
+                                        },
+                                        {
+                                                "id": "fast-slow-pointers",
+                                                "name": "Fast & Slow Pointers (Floyd Cycle Detection)",
+                                                "blogSlug": "fast-slow-pointers"
+                                        },
+                                        {
+                                                "id": "cyclic-sort",
+                                                "name": "Cyclic Sort Pattern",
+                                                "blogSlug": "cyclic-sort"
+                                        },
+                                        {
+                                                "id": "merge-intervals",
+                                                "name": "Merge Intervals Pattern",
+                                                "blogSlug": "merge-intervals"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "specialized-computational-concept",
+                                "name": "Specialized Routines & Computational Geometry",
+                                "subtopics": [
+                                        {
+                                                "id": "two-heaps-pattern",
+                                                "name": "Two Heaps Pattern",
+                                                "blogSlug": "two-heaps-pattern"
+                                        },
+                                        {
+                                                "id": "kadanes-algorithm",
+                                                "name": "Kadane's Algorithm",
+                                                "blogSlug": "kadanes-algorithm"
+                                        },
+                                        {
+                                                "id": "boyer-moore-majority",
+                                                "name": "Boyer-Moore Majority Vote Algorithm",
+                                                "blogSlug": "boyer-moore-majority"
+                                        },
+                                        {
+                                                "id": "brents-algorithm",
+                                                "name": "Brent's Algorithm",
+                                                "blogSlug": "brents-algorithm"
+                                        },
+                                        {
+                                                "id": "lee-algorithm",
+                                                "name": "Lee Algorithm",
+                                                "blogSlug": "lee-algorithm"
+                                        },
+                                        {
+                                                "id": "mos-algorithm",
+                                                "name": "Mo's Algorithm",
+                                                "blogSlug": "mos-algorithm"
+                                        },
+                                        {
+                                                "id": "gale-shapley",
+                                                "name": "Gale-Shapley Algorithm",
+                                                "blogSlug": "gale-shapley"
+                                        },
+                                        {
+                                                "id": "johnsons-algorithm",
+                                                "name": "Johnson's Algorithm",
+                                                "blogSlug": "johnsons-algorithm"
+                                        },
+                                        {
+                                                "id": "kargers-algorithm",
+                                                "name": "Karger's Algorithm",
+                                                "blogSlug": "kargers-algorithm"
+                                        },
+                                        {
+                                                "id": "viterbi-algorithm",
+                                                "name": "Viterbi Algorithm",
+                                                "blogSlug": "viterbi-algorithm"
+                                        },
+                                        {
+                                                "id": "cooley-tukey-fft",
+                                                "name": "Cooley-Tukey Algorithm (FFT)",
+                                                "blogSlug": "cooley-tukey-fft"
+                                        },
+                                        {
+                                                "id": "graham-scan",
+                                                "name": "Graham Scan",
+                                                "blogSlug": "graham-scan"
+                                        },
+                                        {
+                                                "id": "jarvis-march",
+                                                "name": "Jarvis March (Gift Wrapping)",
+                                                "blogSlug": "jarvis-march"
+                                        },
+                                        {
+                                                "id": "chans-algorithm",
+                                                "name": "Chan's Algorithm",
+                                                "blogSlug": "chans-algorithm"
+                                        },
+                                        {
+                                                "id": "kirkpatrick-seidel",
+                                                "name": "Kirkpatrick-Seidel Algorithm",
+                                                "blogSlug": "kirkpatrick-seidel"
+                                        },
+                                        {
+                                                "id": "aho-corasick",
+                                                "name": "Aho-Corasick Algorithm",
+                                                "blogSlug": "aho-corasick"
+                                        },
+                                        {
+                                                "id": "bresenhams-line",
+                                                "name": "Bresenham's Line Algorithm",
+                                                "blogSlug": "bresenhams-line"
+                                        }
+                                ]
+                        }
+                ]
+        },
+        {
+                "id": "theoretical-cs-topic",
+                "name": "Theoretical Computer Science & Automata Theory",
+                "description": "Formal language machines, computability limits, P vs NP, and zero-knowledge proofs.",
+                "concepts": [
+                        {
+                                "id": "automata-computability-concept",
+                                "name": "Automata, Grammars & Turing Computability",
+                                "subtopics": [
+                                        {
+                                                "id": "dfa-state-transitions-automatas",
+                                                "name": "DFA State transitions automatas",
+                                                "blogSlug": "dfa-state-transitions-automatas"
+                                        },
+                                        {
+                                                "id": "cfg-production-grammars-bounds",
+                                                "name": "CFG production grammars bounds",
+                                                "blogSlug": "cfg-production-grammars-bounds"
+                                        },
+                                        {
+                                                "id": "regular-language-matches-expressions",
+                                                "name": "Regular language matches expressions",
+                                                "blogSlug": "regular-language-matches-expressions"
+                                        },
+                                        {
+                                                "id": "turing-tape-state-transitions",
+                                                "name": "Turing tape state transitions",
+                                                "blogSlug": "turing-tape-state-transitions"
+                                        },
+                                        {
+                                                "id": "halting-problem-undecidability-contradiction",
+                                                "name": "Halting Problem undecidability contradiction",
+                                                "blogSlug": "halting-problem-undecidability-contradiction"
+                                        },
+                                        {
+                                                "id": "p-vs-np-class-limits",
+                                                "name": "P vs NP class limits",
+                                                "blogSlug": "p-vs-np-class-limits"
+                                        },
+                                        {
+                                                "id": "np-complete-polynomial-reductions",
+                                                "name": "NP-Complete polynomial reductions",
+                                                "blogSlug": "np-complete-polynomial-reductions"
+                                        },
+                                        {
+                                                "id": "polynomial-time-verification-runs",
+                                                "name": "Polynomial time verification runs",
+                                                "blogSlug": "polynomial-time-verification-runs"
+                                        },
+                                        {
+                                                "id": "cook-levin-theorem-sat-formulas",
+                                                "name": "Cook-Levin theorem SAT formulas",
+                                                "blogSlug": "cook-levin-theorem-sat-formulas"
+                                        },
+                                        {
+                                                "id": "pushdown-automata-stack-transitions",
+                                                "name": "Pushdown Automata stack transitions",
+                                                "blogSlug": "pushdown-automata-stack-transitions"
+                                        },
+                                        {
+                                                "id": "chomsky-grammar-hierarchies",
+                                                "name": "Chomsky grammar hierarchies",
+                                                "blogSlug": "chomsky-grammar-hierarchies"
+                                        },
+                                        {
+                                                "id": "g-del-incompleteness-logic-limits",
+                                                "name": "Gödel incompleteness logic limits",
+                                                "blogSlug": "g-del-incompleteness-logic-limits"
+                                        },
+                                        {
+                                                "id": "church-turing-computability-lambda-calculus",
+                                                "name": "Church-Turing computability lambda calculus",
+                                                "blogSlug": "church-turing-computability-lambda-calculus"
+                                        }
+                                ]
+                        },
+                        {
+                                "id": "complexity-classes-proofs-concept",
+                                "name": "Complexity Classes, P vs NP & Zero-Knowledge Proofs",
+                                "subtopics": [
+                                        {
+                                                "id": "deterministic-vs-non-deterministic-complexity",
+                                                "name": "Deterministic vs Non-deterministic complexity",
+                                                "blogSlug": "deterministic-vs-non-deterministic-complexity"
+                                        },
+                                        {
+                                                "id": "space-complexity-class-pspace",
+                                                "name": "Space complexity class PSPACE",
+                                                "blogSlug": "space-complexity-class-pspace"
+                                        },
+                                        {
+                                                "id": "time-hierarchy-theorem-bounds",
+                                                "name": "Time hierarchy theorem bounds",
+                                                "blogSlug": "time-hierarchy-theorem-bounds"
+                                        },
+                                        {
+                                                "id": "circuit-complexity-gates-bounds",
+                                                "name": "Circuit complexity gates bounds",
+                                                "blogSlug": "circuit-complexity-gates-bounds"
+                                        },
+                                        {
+                                                "id": "interactive-proofs-ip-classes",
+                                                "name": "Interactive proofs IP classes",
+                                                "blogSlug": "interactive-proofs-ip-classes"
+                                        },
+                                        {
+                                                "id": "zero-knowledge-proof-protocols-verification",
+                                                "name": "Zero-Knowledge proof protocols verification",
+                                                "blogSlug": "zero-knowledge-proof-protocols-verification"
+                                        },
+                                        {
+                                                "id": "approximation-algorithm-bounds-bounds",
+                                                "name": "Approximation algorithm bounds bounds",
+                                                "blogSlug": "approximation-algorithm-bounds-bounds"
+                                        },
+                                        {
+                                                "id": "randomized-algorithm-probability-checks",
+                                                "name": "Randomized algorithm probability checks",
+                                                "blogSlug": "randomized-algorithm-probability-checks"
+                                        },
+                                        {
+                                                "id": "parameterized-complexity-tractability-splits",
+                                                "name": "Parameterized complexity tractability splits",
+                                                "blogSlug": "parameterized-complexity-tractability-splits"
+                                        },
+                                        {
+                                                "id": "quantum-complexity-bqp-bounds",
+                                                "name": "Quantum complexity BQP bounds",
+                                                "blogSlug": "quantum-complexity-bqp-bounds"
+                                        },
+                                        {
+                                                "id": "graph-isomorphism-classification",
+                                                "name": "Graph isomorphism classification",
+                                                "blogSlug": "graph-isomorphism-classification"
+                                        },
+                                        {
+                                                "id": "boolean-satisfiability-solvers-algorithms",
+                                                "name": "Boolean satisfiability solvers algorithms",
+                                                "blogSlug": "boolean-satisfiability-solvers-algorithms"
+                                        }
+                                ]
+                        }
+                ]
+        },
+        {
+                "id": "advanced-cp-topic",
+                "name": "Advanced Competitive Programming",
+                "description": "High-level competitive programming techniques and advanced invariants.",
+                "concepts": [
+                        {
+                                "id": "advanced-cp-concept",
+                                "name": "Competitive Programming Techniques",
+                                "subtopics": [
+                                        {
+                                                "id": "segment-tree",
+                                                "name": "Segment Trees & Lazy Propagation",
+                                                "blogSlug": "segment-tree"
+                                        }
+                                ]
+                        }
+                ]
+        }
+]
   },
     {
     id: 'game-developer',

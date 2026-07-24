@@ -66,8 +66,27 @@ const articleMarkdownToHtml = (markdown: string): string => {
   const mathBlocks: string[] = [];
   const inlineMathBlocks: string[] = [];
   
+  // Strip leading hero image tags to prevent double rendering with RoadmapIllustration banner
+  let content = markdown
+    .replace(/^(#\s+[^\n]+\r?\n\r?\n)(?:!\[[^\]]*\]\(\/images\/[^\)]+\)\r?\n\r?\n)+/i, '$1')
+    .replace(/^(?:!\[[^\]]*\]\(\/images\/[^\)]+\)\r?\n\r?\n)+/i, '');
+
   // Protect code blocks (```lang...```) and syntax highlight them using highlight.js
-  let content = markdown.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
+  content = content.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
+    const cleanLang = (lang || '').toLowerCase().trim();
+    const trimmedCode = code.trim();
+    const hasSvgTag = trimmedCode.includes('<svg') && trimmedCode.includes('</svg>');
+
+    // If code block is tagged ```svg OR contains an <svg>...</svg> diagram, extract and render as visual SVG
+    if (cleanLang === 'svg' || (hasSvgTag && (cleanLang === 'xml' || cleanLang === 'html' || cleanLang === 'text' || !cleanLang || trimmedCode.startsWith('<svg')))) {
+      const svgMatch = trimmedCode.match(/<svg[\s\S]*?<\/svg>/i);
+      if (svgMatch) {
+        const token = `@@BLOCK_SVG_${blocks.length}@@`;
+        blocks.push(`<div class="my-6 max-w-full overflow-x-auto flex justify-center">${svgMatch[0]}</div>`);
+        return token;
+      }
+    }
+
     const token = `@@BLOCK_CODE_${blocks.length}@@`;
     let highlightedCode = escapeHtml(code.trim());
     let languageClass = '';
@@ -110,8 +129,8 @@ const articleMarkdownToHtml = (markdown: string): string => {
     return token;
   });
 
-  // Protect and render LaTeX inline math ($...$) using KaTeX
-  content = content.replace(/\$([^\$]+?)\$/g, (_, math) => {
+  // Protect and render LaTeX inline math ($...$) using KaTeX (single line only)
+  content = content.replace(/\$([^\$\n]+?)\$/g, (_, math) => {
     const token = `@@INLINE_MATH_${inlineMathBlocks.length}@@`;
     try {
       const rendered = katex.renderToString(math.trim(), { displayMode: false, throwOnError: false });
@@ -123,9 +142,9 @@ const articleMarkdownToHtml = (markdown: string): string => {
   });
 
   // Protect SVG blocks (<svg ... </svg>)
-  content = content.replace(/<svg[\s\S]*?<\/svg>/g, (match) => {
+  content = content.replace(/<svg[\s\S]*?<\/svg>/gi, (match) => {
     const token = `@@BLOCK_SVG_${blocks.length}@@`;
-    blocks.push(match);
+    blocks.push(`<div class="my-6 max-w-full overflow-x-auto flex justify-center">${match}</div>`);
     return token;
   });
 
@@ -265,41 +284,22 @@ const articleMarkdownToHtml = (markdown: string): string => {
 
   let finalHtml = htmlLines.join('\n');
 
-  // Substitute blocks
+  // Strip <p> wrappers from standalone block tokens
+  finalHtml = finalHtml.replace(/<p>\s*(@@BLOCK_[A-Z]+_\d+@@)\s*<\/p>/gi, '$1');
+
+  // Substitute blocks safely using replacer functions (never raw string substitution!)
   blocks.forEach((block, idx) => {
-    finalHtml = finalHtml.replace(`@@BLOCK_CODE_${idx}@@`, block);
-    finalHtml = finalHtml.replace(`@@BLOCK_SVG_${idx}@@`, block);
-    finalHtml = finalHtml.replace(`@@BLOCK_TABLE_${idx}@@`, block);
-  });
-
-  // Substitute math blocks
-  mathBlocks.forEach((mathHtml, idx) => {
-    finalHtml = finalHtml.replace(`@@BLOCK_MATH_${idx}@@`, mathHtml);
-  });
-
-  // Substitute inline math blocks
-  inlineMathBlocks.forEach((mathHtml, idx) => {
-    finalHtml = finalHtml.replace(`@@INLINE_MATH_${idx}@@`, mathHtml);
-  });
-
-  // Remove <p> tag wrappers around blocks
-  finalHtml = finalHtml.replace(/<p class="my-4">@@BLOCK_SVG_(\d+)@@<\/p>/g, (_, id) => blocks[Number(id)]);
-  finalHtml = finalHtml.replace(/<p class="my-4">@@BLOCK_CODE_(\d+)@@<\/p>/g, (_, id) => blocks[Number(id)]);
-  finalHtml = finalHtml.replace(/<p class="my-4">@@BLOCK_MATH_(\d+)@@<\/p>/g, (_, id) => mathBlocks[Number(id)]);
-
-  // Final replacement for safety
-  blocks.forEach((block, idx) => {
-    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_CODE_${idx}@@`, 'g'), block);
-    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_SVG_${idx}@@`, 'g'), block);
-    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_TABLE_${idx}@@`, 'g'), block);
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_CODE_${idx}@@`, 'g'), () => block);
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_SVG_${idx}@@`, 'g'), () => block);
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_TABLE_${idx}@@`, 'g'), () => block);
   });
 
   mathBlocks.forEach((mathHtml, idx) => {
-    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_MATH_${idx}@@`, 'g'), mathHtml);
+    finalHtml = finalHtml.replace(new RegExp(`@@BLOCK_MATH_${idx}@@`, 'g'), () => mathHtml);
   });
 
   inlineMathBlocks.forEach((mathHtml, idx) => {
-    finalHtml = finalHtml.replace(new RegExp(`@@INLINE_MATH_${idx}@@`, 'g'), mathHtml);
+    finalHtml = finalHtml.replace(new RegExp(`@@INLINE_MATH_${idx}@@`, 'g'), () => mathHtml);
   });
 
   return finalHtml;
@@ -801,10 +801,24 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
             </div>
 
             {activePost.markdown ? (
-              <div 
-                className="markdown-article" 
-                dangerouslySetInnerHTML={{ __html: articleMarkdownToHtml(activePost.markdown) }} 
-              />
+              <>
+                <div 
+                  className="markdown-article" 
+                  dangerouslySetInnerHTML={{ __html: articleMarkdownToHtml(activePost.markdown) }} 
+                />
+                {activePost.content?.interviewQuestions && activePost.content.interviewQuestions.length > 0 && (
+                  <section className={`flex flex-col gap-4 text-[17px] leading-[1.8] font-sans ${'text-[var(--rm-text-body)]'}`}>
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Interview Preparation</h2>
+                    <ol className="list-decimal pl-6 flex flex-col gap-2">
+                      {activePost.content.interviewQuestions.map((q, idx) => (
+                        <li key={idx} className={`font-semibold text-[var(--rm-text)] marker:text-[var(--rm-text-faint)]`}>
+                          <span className={`font-normal text-[var(--rm-text-body)]`}>{q}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
+              </>
             ) : (
               <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-sans ${'text-[var(--rm-text-body)]'}`}>
                 <section className="flex flex-col gap-4">
