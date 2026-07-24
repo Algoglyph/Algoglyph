@@ -119,9 +119,50 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     'service-admob', 'service-play-services', 'service-maps', 'dist-signed-apk', 'dist-firebase', 'dist-playstore'
   ]);
 
+  const systemDesignSlugs = new Set([
+    'what-is-system-design', 'how-to-approach-system-design', 'performance-vs-scalability', 'latency-vs-throughput',
+    'availability-vs-consistency', 'cap-theorem-consistency', 'weak-consistency', 'eventual-consistency',
+    'strong-consistency', 'failover-replication-dns-updates', 'replication-master-slave-master-master',
+    'availability-in-numbers', 'background-jobs', 'event-driven-jobs', 'schedule-driven-jobs', 'returning-job-results',
+    'dns-root-authority-resolution', 'cdn-edge-caching-strategies', 'pull-cdns', 'push-cdns', 'sql-vs-nosql',
+    'key-value-store', 'document-store', 'wide-column-store', 'graph-databases', 'database-replication-lags',
+    'database-sharding-partitions', 'federation', 'denormalization', 'sql-tuning', 'microservices', 'service-discovery',
+    'reverse-proxy-caches', 'load-balancing-algorithms', 'layer-7-load-balancing', 'load-balancer-layer-4-routing',
+    'horizontal-scaling', 'cache-aside', 'write-through', 'write-behind', 'refresh-ahead', 'client-caching',
+    'cdn-caching', 'web-server-caching', 'database-caching', 'application-caching', 'backpressure-queues-sizing',
+    'task-queues', 'message-queues', 'http', 'tcp', 'udp', 'rpc', 'grpc', 'rest', 'graphql', 'idempotent-operations',
+    'improper-instantiation', 'monolithic-persistence', 'noisy-neighbor', 'synchronous-io', 'extraneous-fetching',
+    'busy-database', 'busy-frontend', 'chatty-io', 'retry-storm', 'no-caching', 'health-monitoring',
+    'availability-monitoring', 'performance-monitoring', 'security-monitoring', 'usage-monitoring', 'instrumentation',
+    'visualization-alerts', 'strangler-fig', 'sidecar', 'static-content-hosting-design', 'leader-election',
+    'cqrs-design', 'pipes-filters-design', 'ambassador', 'gateway-routing', 'gateway-offloading', 'gateway-aggregation',
+    'external-config-store', 'compute-resource-consolidation', 'backends-for-frontend', 'anti-corruption-layer',
+    'valet-key', 'static-content-hosting-data', 'sharding-data', 'materialized-view', 'index-table', 'event-sourcing',
+    'cqrs-data', 'cache-aside-data', 'sequential-convoy', 'scheduling-agent-supervisor', 'queue-based-load-leveling',
+    'publishersubscriber', 'priority-queue'
+  ]);
+
   let imageElement: React.ReactNode = null;
 
-  if (androidSlugs.has(sLower)) {
+  if (systemDesignSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/system-design/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/system-design/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (androidSlugs.has(sLower)) {
     imageElement = (
       <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
         <img 
