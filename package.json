@@ -6,6 +6,7 @@
   "main": "main.cjs",
   "scripts": {
     "dev": "vite",
+    "mcp:connector": "node scripts/algoglyph-mcp-connector.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -25,6 +26,7 @@
     "@excalidraw/excalidraw": "^0.18.1",
     "@fontsource-variable/geist": "^5.2.9",
     "@fontsource-variable/geist-mono": "^5.2.8",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@remotion/tailwind": "^4.0.482",
     "@tiptap/extension-code-block-lowlight": "^3.26.1",
     "@tiptap/extension-table": "^3.26.1",

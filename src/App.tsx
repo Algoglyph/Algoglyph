@@ -8,6 +8,8 @@ import { CommandPalette } from './components/CommandPalette';
 import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
 import { MobileNav } from './components/MobileNav';
+import { McpConnectDialog } from './components/McpConnectDialog';
+import { bootstrapMcpConnection } from './lib/mcp/bootstrap';
 import { useIsMobile } from './hooks/useIsMobile';
 import { SEO } from './components/SEO';
 
@@ -101,6 +103,9 @@ const AppContent: React.FC = () => {
   // Initialize workspace from IndexedDB on load and map navigation APIs globally
   useEffect(() => {
     initializeWorkspace();
+    // One-click MCP connect from the connector's printed link (or a remembered
+    // session token) — no dialog or token pasting needed.
+    void bootstrapMcpConnection();
     (window as any).useWorkspaceStore = useWorkspaceStore;
     (window as any).goToLanding = () => navigate('/');
     (window as any).navigateTo = (next: string, customPath?: string) => {
@@ -122,7 +127,7 @@ const AppContent: React.FC = () => {
   // Dynamically inject Google AdSense Auto Ads, but ONLY on non-workspace pages.
   useEffect(() => {
     if (location.pathname.startsWith('/workspace')) return;
-    
+
     // Prevent injecting duplicates
     if (!document.querySelector('script[src*="adsbygoogle.js"]')) {
       const script = document.createElement('script');
@@ -283,6 +288,7 @@ const AppContent: React.FC = () => {
           element={
             <div className="flex flex-col h-full w-full overflow-hidden">
               <Toolbar />
+              <McpConnectDialog />
               {!showVisualizer && <TabBar />}
               <Suspense
                 fallback={

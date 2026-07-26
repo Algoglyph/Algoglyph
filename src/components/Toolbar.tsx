@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useMcpStore } from '../store/mcpStore';
 import { serializeAsJSON } from '@excalidraw/excalidraw';
 import {
   Upload,
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   Sun,
   Moon,
+  PlugZap,
   MoreHorizontal
 } from 'lucide-react';
 
@@ -26,6 +28,9 @@ export const Toolbar: React.FC = () => {
   const showNotification = useWorkspaceStore((state) => state.showNotification);
   const theme = useWorkspaceStore((state) => state.theme);
   const toggleTheme = useWorkspaceStore((state) => state.toggleTheme);
+  const openMcpPanel = useMcpStore((state) => state.openMcpPanel);
+  const mcpConnectionState = useMcpStore((state) => state.connectionState);
+  const mcpConnected = mcpConnectionState === 'ready';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportingCanvas, setExportingCanvas] = useState(false);
@@ -297,6 +302,33 @@ ${JSON.stringify(data, null, 2)}
           onChange={handleImportWorkspace}
           className="hidden"
         />
+
+        {/* MCP connector — kept adjacent to the global theme utility. */}
+        <button
+          onClick={openMcpPanel}
+          className={`relative flex items-center gap-1.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-canvas-soft hover:text-ink ${
+            mcpConnected
+              ? 'text-ink [text-shadow:0_0_8px_rgba(255,255,255,0.35)]'
+              : 'text-body'
+          }`}
+          title={mcpConnected ? 'MCP connector connected' : 'Connect MCP'}
+          aria-label={mcpConnected ? 'MCP connector connected' : 'Connect MCP'}
+          aria-haspopup="dialog"
+        >
+          <span className="relative flex h-4 w-4 items-center justify-center">
+            <PlugZap
+              size={14}
+              className={mcpConnected ? 'drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]' : ''}
+            />
+            <span
+              aria-hidden="true"
+              className={`absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full border border-canvas ${
+                mcpConnected ? 'bg-ink shadow-[0_0_6px_1px_rgba(255,255,255,0.55)]' : 'bg-mute/70'
+              }`}
+            />
+          </span>
+          <span className="hidden lg:inline font-mono text-[11px]">MCP</span>
+        </button>
 
         {/* Theme toggle */}
         <button

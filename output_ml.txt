@@ -1,0 +1,202 @@
+--- de-ml ---
+# Machine Learning Foundations for Data Engineers
+
+Data Engineers are increasingly responsible for the pipelines that feed Machine Learning models. The phrase "Garbage In, Garbage Out" applies directly to ML: the quality, freshness, and structural integrity of data determine model performance. Data engineering for ML differs fundamentally from traditional BI analytics because models are extremely sensitive to **data leakage** and **training-serving skew**.
+
+### The Feature Engineering Pipeline
+
+A feature is a measurable property or characteristic of a phenomenon being observed. Feature engineering transforms raw data (e.g., timestamps, log events) into features (e.g., "sessions in last 7 days").
+
+<svg viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="240" rx="8" fill="#000" stroke="#27272a" stroke-width="1.5"/>
+  <text x="30" y="30" fill="#a855f7" font-size="13" font-family="sans-serif" font-weight="bold">Training vs. Inference Pipelines</text>
+  
+  <!-- Batch Pipeline -->
+  <rect x="30" y="60" width="100" height="40" rx="4" fill="#27272a"/>
+  <text x="45" y="85" fill="#fff" font-size="12" font-family="sans-serif">Data Warehouse</text>
+  
+  <path d="M130 80 L170 80" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="180" y="60" width="120" height="40" rx="4" fill="#18181b" stroke="#3b82f6"/>
+  <text x="195" y="85" fill="#3b82f6" font-size="12" font-family="sans-serif">Batch Aggregations</text>
+  
+  <path d="M300 80 L340 80" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="350" y="60" width="100" height="40" rx="4" fill="#27272a"/>
+  <text x="360" y="85" fill="#fff" font-size="12" font-family="sans-serif">Model Training</text>
+
+  <!-- Real-time Pipeline -->
+  <rect x="30" y="140" width="100" height="40" rx="4" fill="#27272a"/>
+  <text x="50" y="165" fill="#fff" font-size="12" font-family="sans-serif">Kafka Stream</text>
+  
+  <path d="M130 160 L170 160" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="180" y="140" width="120" height="40" rx="4" fill="#18181b" stroke="#10b981"/>
+  <text x="190" y="165" fill="#10b981" font-size="12" font-family="sans-serif">Streaming Computes</text>
+  
+  <path d="M300 160 L340 160" stroke="#10b981" stroke-width="2" marker-end="url(#arrow)"/>
+  
+  <rect x="350" y="140" width="100" height="40" rx="4" fill="#27272a"/>
+  <text x="355" y="165" fill="#fff" font-size="12" font-family="sans-serif">Real-time Inference</text>
+
+  <!-- Skew Warning -->
+  <path d="M240 100 L240 140" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,4"/>
+  <text x="250" y="125" fill="#ef4444" font-size="11" font-family="sans-serif">Risk: Training-Serving Skew</text>
+</svg>
+
+### Training-Serving Skew and Point-in-Time Correctness
+
+**Training-serving skew** happens when the data used to train the model differs from the data used during live predictions. If your batch training pipeline calculates "total_purchases" by looking at the entire history up to today, but your streaming inference pipeline calculates it using an imperfect sliding window, the model will output unpredictable results in production.
+
+Furthermore, training data generation must enforce **point-in-time correctness** (also known as avoiding "future leak"). You cannot use a feature value from Wednesday to predict an event that happened on Tuesday.
+
+### Code Example: Point-in-Time Join in PySpark
+
+To prevent future leakage, you must use an "AS OF" join when merging labels with features.
+
+```python
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+
+spark = SparkSession.builder.getOrCreate()
+
+# Labels: The events we want to predict (e.g., user clicked an ad at a specific time)
+# Columns: user_id, click_time, label
+labels_df = spark.read.parquet("s3://data/labels/")
+
+# Features: Historical feature states recorded over time
+# Columns: user_id, feature_timestamp, lifetime_purchases
+features_df = spark.read.parquet("s3://data/features/")
+
+# A standard join would leak future data. 
+# We need to find the latest feature_timestamp that is <= click_time.
+# In newer Spark versions or data warehouses (like Snowflake/BigQuery), ASOF joins are native.
+# In standard Spark, window functions achieve point-in-time correctness:
+
+from pyspark.sql.window import Window
+
+joined_df = labels_df.join(
+    features_df, 
+    on="user_id", 
+    how="inner"
+).filter(F.col("feature_timestamp") <= F.col("click_time"))
+
+# Keep only the most recent feature record prior to the click
+window_spec = Window.partitionBy("user_id", "click_time").orderBy(F.col("feature_timestamp").desc())
+
+training_data = joined_df.withColumn("rn", F.row_number().over(window_spec)) \
+                         .filter(F.col("rn") == 1) \
+                         .drop("rn")
+
+training_data.show()
+```
+
+### Feature Stores vs Data Warehouses
+
+| Property | Data Warehouse | Feature Store |
+| :--- | :--- | :--- |
+| **Primary Consumer** | BI Dashboards, Analysts | ML Models, Inference Endpoints |
+| **Latency Requirement** | Minutes to Hours | Milliseconds (Online) / Hours (Offline) |
+| **Temporal Logic** | Standard Joins | Point-in-Time Joins (AS OF) built-in |
+| **Serving Pattern** | Batch Queries | Dual: Bulk Batch + Low-latency Key-Value lookups |
+
+### Further Reading
+* [Google Cloud Architecture Center: MLOps](https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning): A definitive guide to ML pipeline maturity.
+* [Feast - Open Source Feature Store](https://feast.dev/): Understand the architecture of a real feature store.
+
+--- de-mlops ---
+# MLOps: Machine Learning Operations
+
+MLOps bridges the gap between a data scientist's Jupyter notebook and a production-grade software system. For Data Engineers, MLOps means treating ML models like software artifacts: they need version control, CI/CD pipelines, automated testing, and rigorous monitoring for degradation in production.
+
+### The MLOps Architecture
+
+At the heart of MLOps is the realization that **code is only a tiny fraction of an ML system**. The surrounding infrastructure—data verification, feature extraction, model registries, and serving infrastructure—is where engineering happens.
+
+<svg viewBox="0 0 600 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="240" rx="8" fill="#000" stroke="#27272a" stroke-width="1.5"/>
+  <text x="30" y="30" fill="#a855f7" font-size="13" font-family="sans-serif" font-weight="bold">Model Registry & CI/CD Lifecycle</text>
+  
+  <g transform="translate(40, 60)">
+    <!-- Experimentation -->
+    <rect x="0" y="0" width="110" height="40" rx="4" fill="#27272a"/>
+    <text x="15" y="25" fill="#fff" font-size="12" font-family="sans-serif">Experimentation</text>
+    
+    <path d="M110 20 L150 20" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Model Registry -->
+    <rect x="160" y="-10" width="120" height="60" rx="4" fill="#18181b" stroke="#3b82f6"/>
+    <text x="175" y="15" fill="#3b82f6" font-size="12" font-family="sans-serif" font-weight="bold">Model Registry</text>
+    <text x="175" y="35" fill="#9ca3af" font-size="10" font-family="monospace">v1.2 (Staging)</text>
+    
+    <path d="M280 20 L320 20" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Automated CI/CD -->
+    <rect x="330" y="0" width="100" height="40" rx="4" fill="#18181b" stroke="#10b981"/>
+    <text x="345" y="25" fill="#10b981" font-size="12" font-family="sans-serif">CI/CD Pipeline</text>
+    
+    <path d="M430 20 L470 20" stroke="#10b981" stroke-width="2" marker-end="url(#arrow)"/>
+    
+    <!-- Production -->
+    <rect x="480" y="0" width="90" height="40" rx="4" fill="#27272a"/>
+    <text x="495" y="25" fill="#fff" font-size="12" font-family="sans-serif">Prod API</text>
+    
+    <!-- Feedback loop -->
+    <path d="M525 40 L525 90 L60 90 L60 40" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,4" fill="none"/>
+    <text x="250" y="85" fill="#ef4444" font-size="11" font-family="sans-serif">Drift Monitoring & Triggered Retraining</text>
+  </g>
+</svg>
+
+### The Model Registry
+
+A Model Registry (like MLflow or Weights & Biases) is the equivalent of Docker Hub or npm, but for ML models. It stores model artifacts (the actual serialized weights, like a `.pkl` or `.onnx` file), alongside hyperparameters, training metrics, and lineage (which dataset version trained this model). It manages state transitions: moving a model from `Staging` to `Production` to `Archived`.
+
+### Code Example: Experiment Tracking with MLflow
+
+Here is how Data Engineers instrument training code so it properly logs to a registry.
+
+```python
+import mlflow
+import mlflow.sklearn
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+
+# Set the tracking URI (points to a remote MLflow server)
+mlflow.set_tracking_uri("http://mlflow-server:5000")
+mlflow.set_experiment("housing_price_prediction")
+
+def train_model(X_train, y_train, X_test, y_test, n_estimators):
+    with mlflow.start_run():
+        # 1. Log Hyperparameters
+        mlflow.log_param("n_estimators", n_estimators)
+        
+        # 2. Train the model
+        model = RandomForestRegressor(n_estimators=n_estimators)
+        model.fit(X_train, y_train)
+        
+        # 3. Evaluate and Log Metrics
+        predictions = model.predict(X_test)
+        mse = mean_squared_error(y_test, predictions)
+        mlflow.log_metric("mse", mse)
+        
+        # 4. Log the model artifact itself
+        # This serializes the model and pushes it to the registry artifact store (e.g., S3)
+        mlflow.sklearn.log_model(model, "random_forest_model")
+        
+        print(f"Run completed with MSE: {mse}")
+
+# train_model(X_train, y_train, X_test, y_test, 100)
+```
+
+### Monitoring: Data Drift vs Concept Drift
+
+Once a model is deployed, its performance will inevitably degrade as the real world changes. MLOps systems must monitor for two specific types of drift:
+
+| Type of Drift | Definition | Example | Mitigation |
+| :--- | :--- | :--- | :--- |
+| **Data Drift** (Covariate Shift) | The statistical distribution of the *input features* changes over time. | Income levels in the user base increase due to inflation, making historical income bins invalid. | Retrain the model on newer data; update feature scaling parameters. |
+| **Concept Drift** | The relationship between the inputs and the *target variable* changes. The definition of what you are predicting fundamentally shifts. | A credit card fraud model fails because fraudsters invent a completely new evasion tactic. | Requires new feature engineering and a model redesign, not just simple retraining. |
+
+### Further Reading
+* [Hidden Technical Debt in Machine Learning Systems](https://papers.nips.cc/paper/2015/file/86df7dcfd896fcaf2674f757a2463eba-Paper.pdf): The classic Google paper that defined the need for MLOps.
+* [MLflow Documentation](https://mlflow.org/docs/latest/index.html): Learn how the open-source standard for Model Registries operates.

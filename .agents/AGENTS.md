@@ -21,6 +21,7 @@ This document provides context and guidelines for AI agents working on the Scrat
    
 2. **Local Persistence (`IndexedDB`)**
    - Handled in `src/db/indexedDB.ts`.
+   
    - Auto-saves the `WorkspaceData` state via debouncing.
    - Uses structural cloning to serialize states safely and avoid circular reference errors.
 

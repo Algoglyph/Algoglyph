@@ -1,9 +1,40 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { useMcpStore } from '../store/mcpStore';
 import { StructuresPanel } from './StructuresPanel';
 import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
+import { generateCanvasResponse, insertCanvasSkeletons, CanvasAiError } from '../lib/ai/diagram';
 import '@excalidraw/excalidraw/index.css';
+
+/**
+ * Read the user's request from the canvas: the text element(s) they typed.
+ * Prefers the element being edited, then the current selection (joined in
+ * reading order), then the most-recently-edited text element.
+ */
+function readCanvasPrompt(api: any): string | null {
+  const appState = api.getAppState();
+  const editing = appState.editingElement;
+  if (editing && editing.type === 'text' && typeof editing.text === 'string' && editing.text.trim()) {
+    return editing.text.trim();
+  }
+
+  const texts = api
+    .getSceneElements()
+    .filter((el: any) => !el.isDeleted && el.type === 'text' && typeof el.text === 'string' && el.text.trim());
+  if (!texts.length) return null;
+
+  const selectedIds = appState.selectedElementIds || {};
+  const selected = texts.filter((el: any) => selectedIds[el.id]);
+  if (selected.length) {
+    selected.sort((a: any, b: any) => a.y - b.y || a.x - b.x);
+    return selected.map((el: any) => el.text.trim()).join('\n').trim();
+  }
+
+  texts.sort((a: any, b: any) => (b.updated || 0) - (a.updated || 0));
+  return texts[0].text.trim();
+}
 
 export const Canvas: React.FC = () => {
   // Select only loading, import counters, and save methods reactively.
@@ -17,6 +48,70 @@ export const Canvas: React.FC = () => {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [localLastImportTime, setLocalLastImportTime] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // AI-native diagram generation: read the prompt off the canvas → generate.
+  const [aiBusy, setAiBusy] = useState(false);
+  const aiAbortRef = useRef<AbortController | null>(null);
+
+  const runCanvasAi = useCallback(async () => {
+    const api = (window as any).excalidrawAPI;
+    if (!api || aiAbortRef.current) return;
+
+    const notify = useWorkspaceStore.getState().showNotification;
+    const prompt = readCanvasPrompt(api);
+    if (!prompt) {
+      notify('Type your request as text on the canvas, then Ask AI.', 'info');
+      return;
+    }
+
+    const mcp = useMcpStore.getState();
+    if (!mcp.connectorToken) {
+      notify('Run `npm run mcp:connector` and open its Quick connect link, then try Ask AI.', 'error');
+      mcp.openMcpPanel();
+      return;
+    }
+
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+    setAiBusy(true);
+    notify('Thinking…', 'info');
+    try {
+      const { intent, skeletons } = await generateCanvasResponse(prompt, {
+        connectorEndpoint: mcp.connectorEndpoint,
+        connectorToken: mcp.connectorToken,
+        agentId: mcp.activeAgentId || undefined,
+        signal: controller.signal,
+      });
+      if (!skeletons.length) {
+        notify('The AI did not produce a canvas response. Try rewording the request.', 'info');
+        return;
+      }
+      const added = insertCanvasSkeletons(skeletons);
+      const verb = intent === 'answer' || intent === 'explain' ? 'Answered' : 'Drew';
+      notify(`${verb} on the canvas · ${added} elements`, 'success');
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        notify(error instanceof CanvasAiError ? error.message : 'Canvas AI failed.', 'error');
+      }
+    } finally {
+      aiAbortRef.current = null;
+      setAiBusy(false);
+    }
+  }, []);
+
+  // ⌘/Ctrl + Enter runs the canvas AI, except while typing in the notes editor.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!((e.metaKey || e.ctrlKey) && e.key === 'Enter')) return;
+      const target = e.target as HTMLElement;
+      if (target.closest('.ProseMirror')) return;
+      if ((target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && !target.closest('.excalidraw')) return;
+      e.preventDefault();
+      void runCanvasAi();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [runCanvasAi]);
 
   // Capture the initial data only once when the canvas mount occurs (after loading completes)
   const initialElements = useRef<any[]>([]);
@@ -290,6 +385,17 @@ export const Canvas: React.FC = () => {
           onChange={handleCanvasChange}
           UIOptions={UIOptions}
         />
+
+        {/* AI-native: type a request as text on the canvas, then generate a diagram. */}
+        <button
+          type="button"
+          onClick={() => (aiBusy ? aiAbortRef.current?.abort() : void runCanvasAi())}
+          className="absolute bottom-4 right-4 z-20 inline-flex h-9 items-center gap-2 rounded-full border border-hairline bg-canvas px-3.5 text-xs font-medium text-ink shadow-[var(--shadow-modal)] transition-colors hover:border-ink hover:bg-canvas-soft"
+          title="Type your request as text on the canvas, then Ask AI (⌘/Ctrl+Enter)"
+        >
+          {aiBusy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          {aiBusy ? 'Generating…' : 'Ask AI'}
+        </button>
       </div>
     </div>
   );

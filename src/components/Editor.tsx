@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from '@tiptap/markdown';
@@ -28,7 +28,21 @@ import {
   Sigma as SigmaIcon,
   FunctionSquare as FunctionSquareIcon,
   Upload as UploadIcon,
+  Sparkles as SparklesIcon,
+  Loader2 as Loader2Icon,
+  FileText as FileTextIcon,
+  Network as NetworkIcon,
+  ScrollText as ScrollTextIcon,
 } from 'lucide-react';
+import { useMcpStore } from '../store/mcpStore';
+import {
+  generateNotesMarkdown,
+  appendNotesMarkdown,
+  serializeCanvasForNotes,
+  readNotesTopic,
+  NotesGenerationError,
+  type NotesMode,
+} from '../lib/ai/notes';
 
 const lowlight = createLowlight(common);
 
@@ -46,6 +60,57 @@ export const Editor: React.FC = () => {
   // Find now uses the search palette UI (Ctrl+F = this tab) instead of a find bar.
   const openSearchPalette = useWorkspaceStore((state) => state.openSearchPalette);
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  // AI note-making: three modes, one connector-backed engine.
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const aiAbortRef = useRef<AbortController | null>(null);
+
+  const runNotesAi = async (mode: NotesMode) => {
+    setAiMenuOpen(false);
+    if (aiAbortRef.current) return;
+    const notify = useWorkspaceStore.getState().showNotification;
+
+    const input = mode === 'topic' ? readNotesTopic() : serializeCanvasForNotes();
+    if (!input) {
+      notify(
+        mode === 'topic'
+          ? 'Select or type a topic in the notes, then try AI notes.'
+          : 'Open the canvas with a diagram first, then try again.',
+        'info',
+      );
+      return;
+    }
+
+    const mcp = useMcpStore.getState();
+    if (!mcp.connectorToken) {
+      notify('Connect the MCP bridge first, then try AI notes.', 'error');
+      mcp.openMcpPanel();
+      return;
+    }
+
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
+    setAiBusy(true);
+    notify('Writing notes…', 'info');
+    try {
+      const markdown = await generateNotesMarkdown(mode, input, {
+        connectorEndpoint: mcp.connectorEndpoint,
+        connectorToken: mcp.connectorToken,
+        agentId: mcp.activeAgentId || undefined,
+        signal: controller.signal,
+      });
+      appendNotesMarkdown(markdown);
+      notify('Notes added.', 'success');
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        notify(error instanceof NotesGenerationError ? error.message : 'Note generation failed.', 'error');
+      }
+    } finally {
+      aiAbortRef.current = null;
+      setAiBusy(false);
+    }
+  };
 
   const editor = useEditor({
     extensions: [
@@ -298,14 +363,56 @@ export const Editor: React.FC = () => {
           </button>
         </div>
 
-        {/* Search icon opens the search palette scoped to this tab */}
-        <button
-          onClick={() => openSearchPalette('current')}
-          className="p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer text-body"
-          title="Search (Ctrl+F)"
-        >
-          <SearchIcon size={14} />
-        </button>
+        {/* Right-side actions: AI note-making + search */}
+        <div className="flex items-center gap-1 shrink-0">
+          <div className="relative">
+            <button
+              onClick={() => (aiBusy ? aiAbortRef.current?.abort() : setAiMenuOpen((open) => !open))}
+              className={`flex items-center gap-1 rounded px-1.5 py-1.5 transition-colors cursor-pointer ${aiMenuOpen ? 'text-link bg-canvas-soft' : 'text-body hover:text-ink hover:bg-canvas-soft'}`}
+              title="AI notes — from a topic, or from the canvas"
+            >
+              {aiBusy ? <Loader2Icon size={14} className="animate-spin" /> : <SparklesIcon size={14} />}
+              <span className="text-[11px] font-medium">{aiBusy ? 'Writing…' : 'AI'}</span>
+            </button>
+            {aiMenuOpen && !aiBusy && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setAiMenuOpen(false)} />
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-md border border-hairline bg-canvas py-1 shadow-[var(--shadow-modal)]">
+                  <button
+                    onClick={() => void runNotesAi('topic')}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-body transition-colors hover:bg-canvas-soft hover:text-ink"
+                  >
+                    <FileTextIcon size={13} className="shrink-0" />
+                    Notes from topic
+                  </button>
+                  <button
+                    onClick={() => void runNotesAi('explain')}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-body transition-colors hover:bg-canvas-soft hover:text-ink"
+                  >
+                    <NetworkIcon size={13} className="shrink-0" />
+                    Explain canvas diagram
+                  </button>
+                  <button
+                    onClick={() => void runNotesAi('summarize')}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-body transition-colors hover:bg-canvas-soft hover:text-ink"
+                  >
+                    <ScrollTextIcon size={13} className="shrink-0" />
+                    Summarize canvas
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Search icon opens the search palette scoped to this tab */}
+          <button
+            onClick={() => openSearchPalette('current')}
+            className="p-1.5 rounded hover:bg-canvas-soft transition-colors cursor-pointer text-body"
+            title="Search (Ctrl+F)"
+          >
+            <SearchIcon size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Hidden input backing the Import button — accepts markdown and PDFs */}
