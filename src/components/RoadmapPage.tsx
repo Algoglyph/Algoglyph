@@ -43,8 +43,22 @@ const escapeHtml = (text: string): string => {
 };
 
 const renderInlineMarkdown = (text: string): string => {
-  return text
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+  const inlineCodes: string[] = [];
+  
+  // 1. Protect and escape inline code blocks
+  let parsedText = text.replace(/`([^`]+)`/g, (_, code) => {
+    const token = `@@INLINE_CODE_${inlineCodes.length}@@`;
+    inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
+    return token;
+  });
+
+  // 2. Escape all < and > in the remaining text, preserving <br>
+  parsedText = parsedText
+    .replace(/<(?!br\s*\/?>)/gi, '&lt;')
+    .replace(/(?<!<br\s*\/?)>/gi, '&gt;');
+
+  // 3. Render bold, images, and links
+  let html = parsedText
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/!\[([^\]]*)\]\(([^)]+?)(#light|#dark)?\)/g, (_, alt, src, themeHash) => {
       let classes = 'my-6 max-w-full rounded-lg border border-[var(--rm-border)] shadow-md mx-auto';
@@ -58,6 +72,13 @@ const renderInlineMarkdown = (text: string): string => {
       return `<img src="${src}" alt="${alt}" class="${classes}" />`;
     })
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[var(--rm-accent)] hover:underline font-semibold">$1</a>');
+
+  // 4. Restore the inline code blocks
+  inlineCodes.forEach((codeHtml, idx) => {
+    html = html.replace(new RegExp(`@@INLINE_CODE_${idx}@@`, 'g'), () => codeHtml);
+  });
+
+  return html;
 };
 
 

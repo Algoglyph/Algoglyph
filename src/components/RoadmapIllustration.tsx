@@ -142,9 +142,172 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     'publishersubscriber', 'priority-queue'
   ]);
 
+  const aiDataScientistSlugs = new Set([
+    'introduction-to-statistics',
+    'probability-and-statistics',
+    'hypothesis-testing',
+    'experiment-design',
+    'minimum-detectable-effect',
+    'improving-test-sensitivity',
+    'improving-sensitivity-cuped',
+    'cuped-at-booking',
+    'doordash-cupac',
+    'ratio-metrics',
+    'microsoft-delta-method',
+    'algebra-differential-calculus',
+    'mathematics-for-machine-learning',
+    'fundamentals-of-econometrics',
+    'intro-to-econometrics',
+    'econometrics-course',
+    'time-series-basics',
+    'arima-model-for-time-series',
+    'time-series-models',
+    'forecasting-task-with-solution',
+    'linear-regression-econ',
+    'learn-python-kaggle',
+    'algorithmic-exercises',
+    'study-plans-leetcode',
+    'algorithms-specialization',
+    'sql-tutorial-course',
+    'exploratory-data-analysis-with-python-and-pandas',
+    'exploratory-data-analysis-for-machine-learning',
+    'exploratory-data-analysis-with-seaborn',
+    'open-machine-learning-course',
+    'machine-learning-specialization',
+    'pattern-recognition-ml',
+    'pattern-recognition-github',
+    'deep-learning-specialization',
+    'deep-learning-book',
+    'attention-is-all-you-need',
+    'illustrated-transformer',
+    'mlops-specialization',
+    'google-ai-courses',
+    'hugging-face-nlp',
+    'prompt-engineering-guide',
+    'rag-for-knowledge-intensive-nlp-tasks',
+    'vibe-coding-fundamentals',
+    'claude-code-docs',
+    'agentic-coding-handbook'
+  ]);
+
+  const aiDataScientistImageMap: Record<string, string> = {
+    'pattern-recognition-github': 'pattern-recognition-ml'
+  };
+  const fullstackSlugs = new Set([
+    'html-semantics',
+    'css-layouts',
+    'checkpoint-static',
+    'javascript-basics',
+    'npm-ecosystem',
+    'checkpoint-interactivity',
+    'git-version-control',
+    'github-collaboration',
+    'checkpoint-collaborative',
+    'checkpoint-external-packages',
+    'react-components',
+    'tailwind-css',
+    'checkpoint-frontend-apps',
+    'node-js-runtime',
+    'checkpoint-cli-apps',
+    'postgresql-databases',
+    'checkpoint-crud-apps',
+    'restful-api-design',
+    'jwt-authentication',
+    'redis-caching',
+    'checkpoint-complete-app',
+    'linux-cli-basics',
+    'basic-aws-services',
+    'checkpoint-deployment',
+    'mesh-like-structures',
+    'ansible-configuration',
+    'terraform-iac',
+    'checkpoint-automation',
+    'checkpoint-infrastructure',
+    'github-actions-cicd',
+    'monit-monitoring',
+    'checkpoint-cicd',
+    'checkpoint-monitoring'
+  ]);
+
+  const blockchainSlugs = new Set([
+    'what-is-blockchain', 'why-blockchain-matters', 'blockchain-applications',
+    'blockchain-structure', 'cryptography-hashing-blockchain', 'blockchain-decentralization',
+    'decentralization-vs-trust', 'blockchain-networks', 'proof-of-work', 'proof-of-stake',
+    'proof-of-history', 'byzantine-fault-tolerance', 'blockchain-operations',
+    'blockchain-interoperability', 'blockchain-storage', 'blockchain-forking',
+    'cryptocurrencies-intro', 'crypto-wallets', 'mining-incentives', 'blockchain-environmental-impact',
+    'ethereum-network', 'polygon-network', 'bnb-chain', 'gnosis-chain',
+    'avalanche-network', 'fantom-network', 'moonbeam-moonriver',
+    'utxo-blockchains', 'tvm-blockchains', 'l2-blockchains',
+    'solana-network', 'smart-contract-languages', 'smart-contract-ides',
+    'smart-contract-frameworks', 'smart-contract-testing', 'smart-contract-deployment',
+    'smart-contract-monitoring', 'erc-tokens', 'wallet-integration', 'crypto-faucets',
+    'decentralized-storage', 'smart-contract-security-tools', 'fuzzing-static-analysis',
+    'blockchain-threat-vectors', 'randomness-attacks', 'hybrid-smart-contracts',
+    'chainlink-oracles', 'oracle-networks', 'dapp-testing', 'dapp-architecture',
+    'dapp-frontend', 'web3-client-libraries', 'dapp-supporting-languages',
+    'state-channels', 'optimistic-rollups', 'zk-rollups', 'ethereum-2-0',
+    'on-chain-scaling', 'client-nodes', 'node-as-a-service', 'blockchain-applicability'
+  ]);
+
   let imageElement: React.ReactNode = null;
 
-  if (systemDesignSlugs.has(sLower)) {
+  if (fullstackSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/full-stack/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/full-stack/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (blockchainSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/blockchain/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/blockchain/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (aiDataScientistSlugs.has(sLower)) {
+    const imgSlug = aiDataScientistImageMap[sLower] || sLower;
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/ai-data-scientist/${imgSlug}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/ai-data-scientist/${imgSlug}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (systemDesignSlugs.has(sLower)) {
     imageElement = (
       <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
         <img 

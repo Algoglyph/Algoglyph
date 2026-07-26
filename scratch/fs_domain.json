@@ -1,0 +1,159 @@
+{
+    id: 'software-engineering',
+    number: '09',
+    name: 'Full Stack Development',
+    difficulty: 'Medium',
+    hours: 33,
+    visualizerAvailable: false,
+    learningStatus: 'Not Started',
+    description: 'Master frontend markup, styling, React components, Node.js servers, databases, caching, and CI/CD operations.',
+    topics: [
+      {
+        id: 'frontend-foundations-git',
+        name: 'Frontend Core & Collaboration',
+        description: 'HTML, CSS, JS, package managers, and version control structures.',
+        concepts: [
+          {
+            id: 'html-css',
+            name: 'HTML & CSS Foundations',
+            subtopics: [
+              { id: 'html-semantics', name: 'HTML Structure & Semantics', blogSlug: 'html-semantics' },
+              { id: 'css-layouts', name: 'CSS Layouts & Responsive Design', blogSlug: 'css-layouts' },
+              { id: 'checkpoint-static', name: 'Checkpoint - Static Webpages', blogSlug: 'checkpoint-static' }
+            ]
+          },
+          {
+            id: 'js-npm',
+            name: 'JavaScript & Packages',
+            subtopics: [
+              { id: 'javascript-basics', name: 'JavaScript Syntax & DOM', blogSlug: 'javascript-basics' },
+              { id: 'npm-ecosystem', name: 'npm & Package Ecosystem', blogSlug: 'npm-ecosystem' },
+              { id: 'checkpoint-interactivity', name: 'Checkpoint - Interactivity', blogSlug: 'checkpoint-interactivity' }
+            ]
+          },
+          {
+            id: 'version-control',
+            name: 'Git & Collaboration',
+            subtopics: [
+              { id: 'git-version-control', name: 'Git Version Control', blogSlug: 'git-version-control' },
+              { id: 'github-collaboration', name: 'GitHub Collaboration', blogSlug: 'github-collaboration' },
+              { id: 'checkpoint-collaborative', name: 'Checkpoint - Collaborative Work', blogSlug: 'checkpoint-collaborative' },
+              { id: 'checkpoint-external-packages', name: 'Checkpoint - External Packages', blogSlug: 'checkpoint-external-packages' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'frontend-frameworks',
+        name: 'UI Libraries & Frontend Apps',
+        description: 'React core components, state hooks, utility styling, and deployment targets.',
+        concepts: [
+          {
+            id: 'react-tailwind',
+            name: 'React & Tailwind CSS',
+            subtopics: [
+              { id: 'react-components', name: 'React Components & Hooks', blogSlug: 'react-components' },
+              { id: 'tailwind-css', name: 'Tailwind CSS Utility Styling', blogSlug: 'tailwind-css' },
+              { id: 'checkpoint-frontend-apps', name: 'Checkpoint - Frontend Apps', blogSlug: 'checkpoint-frontend-apps' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'backend-runtime-databases',
+        name: 'Backend Dev & Persistence',
+        description: 'Node.js server code, SQL relational engines, and CRUD databases.',
+        concepts: [
+          {
+            id: 'node-js',
+            name: 'Node.js Server Environment',
+            subtopics: [
+              { id: 'node-js-runtime', name: 'Node.js Runtime Engine', blogSlug: 'node-js-runtime' },
+              { id: 'checkpoint-cli-apps', name: 'Checkpoint - CLI Apps', blogSlug: 'checkpoint-cli-apps' }
+            ]
+          },
+          {
+            id: 'databases-sql',
+            name: 'Relational Databases & SQL',
+            subtopics: [
+              { id: 'postgresql-databases', name: 'PostgreSQL Relational DB', blogSlug: 'postgresql-databases' },
+              { id: 'checkpoint-crud-apps', name: 'Checkpoint - Simple CRUD Apps', blogSlug: 'checkpoint-crud-apps' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'api-auth-cache',
+        name: 'REST APIs, JWT & Cache Tiers',
+        description: 'Stateless server services, cryptographic access controls, and cache memories.',
+        concepts: [
+          {
+            id: 'apis-auth',
+            name: 'APIs & JWT Authentication',
+            subtopics: [
+              { id: 'restful-api-design', name: 'RESTful API Patterns', blogSlug: 'restful-api-design' },
+              { id: 'jwt-authentication', name: 'JWT Secure Authentication', blogSlug: 'jwt-authentication' }
+            ]
+          },
+          {
+            id: 'caching-tier',
+            name: 'Caching & Integration',
+            subtopics: [
+              { id: 'redis-caching', name: 'Redis Distributed Cache', blogSlug: 'redis-caching' },
+              { id: 'checkpoint-complete-app', name: 'Checkpoint - Complete App', blogSlug: 'checkpoint-complete-app' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'devops-cloud-topologies',
+        name: 'DevOps, Cloud Services & Mesh',
+        description: 'Linux systems, AWS resources, and distributed mesh structures.',
+        concepts: [
+          {
+            id: 'linux-aws',
+            name: 'Linux & Cloud Basics',
+            subtopics: [
+              { id: 'linux-cli-basics', name: 'Linux Command Line Basics', blogSlug: 'linux-cli-basics' },
+              { id: 'basic-aws-services', name: 'Basic AWS Services (EC2, S3, VPC)', blogSlug: 'basic-aws-services' },
+              { id: 'checkpoint-deployment', name: 'Checkpoint - Deployment', blogSlug: 'checkpoint-deployment' }
+            ]
+          },
+          {
+            id: 'mesh-topologies',
+            name: 'Mesh Topologies & Services',
+            subtopics: [
+              { id: 'mesh-like-structures', name: 'Mesh-like Structures & Topologies', blogSlug: 'mesh-like-structures' }
+            ]
+          }
+        ]
+      },
+      {
+        id: 'automation-cicd-monitoring',
+        name: 'Automation, CI/CD & Monitoring',
+        description: 'Ansible playbooks, Terraform config blueprints, Actions deployment workflows, and monit triggers.',
+        concepts: [
+          {
+            id: 'automation-iac',
+            name: 'Automation & Infrastructure',
+            subtopics: [
+              { id: 'ansible-configuration', name: 'Ansible Automations', blogSlug: 'ansible-configuration' },
+              { id: 'terraform-iac', name: 'Terraform IaC Provisions', blogSlug: 'terraform-iac' },
+              { id: 'checkpoint-automation', name: 'Checkpoint - Automation', blogSlug: 'checkpoint-automation' },
+              { id: 'checkpoint-infrastructure', name: 'Checkpoint - Infrastructure', blogSlug: 'checkpoint-infrastructure' }
+            ]
+          },
+          {
+            id: 'delivery-monitoring',
+            name: 'Delivery Pipeline & Health',
+            subtopics: [
+              { id: 'github-actions-cicd', name: 'GitHub Actions CI/CD', blogSlug: 'github-actions-cicd' },
+              { id: 'monit-monitoring', name: 'Monit Health Monitoring', blogSlug: 'monit-monitoring' },
+              { id: 'checkpoint-cicd', name: 'Checkpoint - CI/CD', blogSlug: 'checkpoint-cicd' },
+              { id: 'checkpoint-monitoring', name: 'Checkpoint - Monitoring', blogSlug: 'checkpoint-monitoring' }
+            ]
+          }
+        ]
+      }
+    ]
+  }
