@@ -249,6 +249,10 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     'state-channels', 'optimistic-rollups', 'zk-rollups', 'ethereum-2-0',
     'on-chain-scaling', 'client-nodes', 'node-as-a-service', 'blockchain-applicability'
   ]);
+  const cybersecuritySlugs = new Set([
+    'computer-hardware', 'connection-types', 'os-troubleshooting', 'popular-suites', 'operating-systems-overview', 'os-installation-config', 'gui-cli-navigation', 'os-permissions', 'file-crud-commands', 'virtualization-tech', 'hypervisor-vms', 'osi-model', 'subnetting-basics', 'ip-addresses', 'ip-terminology', 'network-topologies', 'network-protocols', 'common-ports', 'nas-san', 'networking-terminology', 'dhcp-dns-ntp-ipam', 'networking-commands', 'sniffers-scanners', 'defense-in-depth', 'zero-trust', 'cia-triad', 'auth-vs-auth', 'risk-compliance', 'cyber-kill-chain-attack', 'security-standards', 'incident-response', 'threat-hunting', 'vuln-management', 'security-teams', 'os-hardening', 'ids-ips', 'firewalls-edr', 'sandboxing-honeypots', 'network-hardening', 'crypto-basics', 'auth-methodologies', 'malware-web-attacks', 'social-engineering', 'network-attacks', 'exploit-frameworks', 'ir-tools', 'hacking-distros', 'lolbas-gtfobins', 'common-security-tools', 'ctfs-platforms', 'beginner-certs', 'advanced-certs', 'security-in-cloud', 'cloud-vs-on-prem', 'iac-serverless', 'cloud-deploying-flow', 'cloud-services', 'cloud-models', 'common-cloud-environments', 'common-cloud-storage', 'python-for-security', 'go-for-security', 'javascript-for-security', 'cpp-for-security', 'bash-for-security', 'powershell-for-security'
+  ]);
+
 
   let imageElement: React.ReactNode = null;
 
@@ -279,6 +283,24 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
             const target = e.currentTarget;
             if (target.src.endsWith('-dark.png')) {
               target.src = `/images/blockchain/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (cybersecuritySlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/cybersecurity/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/cybersecurity/${sLower}.png`;
             } else {
               target.style.display = 'none';
             }
