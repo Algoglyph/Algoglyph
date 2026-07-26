@@ -252,6 +252,10 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
   const cybersecuritySlugs = new Set([
     'computer-hardware', 'connection-types', 'os-troubleshooting', 'popular-suites', 'operating-systems-overview', 'os-installation-config', 'gui-cli-navigation', 'os-permissions', 'file-crud-commands', 'virtualization-tech', 'hypervisor-vms', 'osi-model', 'subnetting-basics', 'ip-addresses', 'ip-terminology', 'network-topologies', 'network-protocols', 'common-ports', 'nas-san', 'networking-terminology', 'dhcp-dns-ntp-ipam', 'networking-commands', 'sniffers-scanners', 'defense-in-depth', 'zero-trust', 'cia-triad', 'auth-vs-auth', 'risk-compliance', 'cyber-kill-chain-attack', 'security-standards', 'incident-response', 'threat-hunting', 'vuln-management', 'security-teams', 'os-hardening', 'ids-ips', 'firewalls-edr', 'sandboxing-honeypots', 'network-hardening', 'crypto-basics', 'auth-methodologies', 'malware-web-attacks', 'social-engineering', 'network-attacks', 'exploit-frameworks', 'ir-tools', 'hacking-distros', 'lolbas-gtfobins', 'common-security-tools', 'ctfs-platforms', 'beginner-certs', 'advanced-certs', 'security-in-cloud', 'cloud-vs-on-prem', 'iac-serverless', 'cloud-deploying-flow', 'cloud-services', 'cloud-models', 'common-cloud-environments', 'common-cloud-storage', 'python-for-security', 'go-for-security', 'javascript-for-security', 'cpp-for-security', 'bash-for-security', 'powershell-for-security'
   ]);
+  const productManagerSlugs = new Set([
+    'what-is-product-management', 'product-vs-project', 'pm-roles-responsibilities', 'pm-key-skills', 'pm-development', 'pm-introduction-phase', 'pm-growth', 'pm-maturity', 'pm-decline', 'pm-mind-mapping', 'pm-brainwriting', 'pm-scamper', 'pm-iterative-process', 'blue-ocean-strategy', 'pm-triz', 'problem-framing', 'user-personas-interviews', 'surveys-ethnographic', 'market-needs-trends', 'pm-competitive-analysis', 'positioning-usp', 'vision-mission', 'value-proposition', 'defining-pm-goals', 'five-forces', 'competitive-advantage', 'strategic-partners', 'prds-user-stories', 'pm-prioritization', 'grooming-story-mapping', 'creating-roadmap', 'outcome-roadmaps', 'communicating-roadmap', 'pm-design-principles', 'interaction-design', 'usability-ab-testing', 'scrum-kanban', 'sprint-planning-mvp', 'agile-ceremonies', 'launch-growth', 'release-strategies', 'key-product-metrics', 'cohort-analysis', 'feedback-loops', 'interpersonal-skills', 'business-alignment', 'stakeholder-mapping', 'stakeholder-engagement', 'assessing-risks', 'risk-mitigation', 'pm-software-tools', 'pm-analytics-tools', 'ai-ml-in-pm', 'scaling-products', 'portfolio-management', 'building-teams', 'influencing-without-authority'
+  ]);
+
 
 
   let imageElement: React.ReactNode = null;
@@ -301,6 +305,24 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
             const target = e.currentTarget;
             if (target.src.endsWith('-dark.png')) {
               target.src = `/images/cybersecurity/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (productManagerSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/product-manager/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/product-manager/${sLower}.png`;
             } else {
               target.style.display = 'none';
             }
