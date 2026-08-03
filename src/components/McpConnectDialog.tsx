@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ChevronDown,
   CircleAlert,
+  Copy,
   Cpu,
   KeyRound,
   Loader2,
@@ -9,20 +10,30 @@ import {
   RefreshCw,
   Server,
   Terminal,
+  Unplug,
   X,
 } from 'lucide-react';
 import {
   McpConnectorRequestError,
   inspectMcpConnector,
   normalizeConnectorEndpoint,
+  pairMcpConnector,
+  revokeMcpConnectorSession,
   testMcpServer,
 } from '../lib/mcp/connectorClient';
 import type { McpServerTestResult } from '../lib/mcp/types';
 import { useMcpStore } from '../store/mcpStore';
 
-// Inputs stay monochrome: a white (ink) border on focus, never the blue accent.
 const inputClassName =
   'h-9 w-full rounded-md border border-hairline bg-canvas px-2.5 font-mono text-xs text-ink outline-none transition-colors placeholder:text-mute focus:border-ink';
+
+const connectorCommand = (): string => {
+  if (typeof window === 'undefined') return 'npx @algoglyph/mcp-connector';
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1'
+    ? 'npm run mcp:connector'
+    : 'npx @algoglyph/mcp-connector';
+};
 
 const errorMessage = (error: unknown): string => {
   if (error instanceof McpConnectorRequestError) return error.message;
@@ -34,7 +45,7 @@ const resultLabel = (result: McpServerTestResult): string => {
   if (result.capabilities.tools) parts.push(`${result.tools.length} tools`);
   if (result.capabilities.resources) parts.push('resources');
   if (result.capabilities.prompts) parts.push('prompts');
-  return parts.length ? parts.join(' · ') : 'No advertised capabilities';
+  return parts.length ? parts.join(' / ') : 'No advertised capabilities';
 };
 
 const endpointHost = (endpoint: string): string => {
@@ -60,16 +71,16 @@ export const McpConnectDialog: React.FC = () => {
   const setActiveAgentId = useMcpStore((state) => state.setActiveAgentId);
 
   const endpointInputRef = useRef<HTMLInputElement>(null);
-  // Seed from any token adopted via the one-click link / remembered this session,
-  // so "Check connector" reuses it instead of forcing a re-paste.
   const [connectorToken, setConnectorToken] = useState(() => useMcpStore.getState().connectorToken || '');
-  const [editingConnection, setEditingConnection] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [editingConnection, setEditingConnection] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState(false);
   const [serverEndpoint, setServerEndpoint] = useState('');
   const [serverToken, setServerToken] = useState('');
   const [serverResult, setServerResult] = useState<McpServerTestResult | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState(false);
+
 
   const closeDialog = useCallback(() => {
     setServerToken('');
@@ -86,6 +97,54 @@ export const McpConnectDialog: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [closeDialog, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || useMcpStore.getState().connectionState === 'ready') return;
+
+    let cancelled = false;
+    let timer: number | undefined;
+    let attempt = 0;
+
+    const schedule = () => {
+      const delay = attempt < 8 ? 1500 : 4000;
+      timer = window.setTimeout(() => void connect(), delay);
+    };
+
+    const connect = async () => {
+      attempt += 1;
+      setServerResult(null);
+      setServerError(null);
+
+      try {
+        const endpoint = normalizeConnectorEndpoint(connectorEndpoint);
+        setConnectionState(attempt === 1 ? 'searching' : 'checking');
+        const snapshot = await pairMcpConnector(endpoint);
+        if (cancelled) return;
+        setConnectorEndpoint(endpoint);
+        setStoredConnectorToken(snapshot.sessionToken);
+        setConnectorToken(snapshot.sessionToken);
+        setConnectionState('ready', snapshot.health, snapshot.catalog);
+        setEditingConnection(false);
+      } catch (error) {
+        if (cancelled) return;
+        if (error instanceof McpConnectorRequestError && error.status === 404) {
+          setConnectionState('needs-token', connectorHealth, null, 'Connector detected, but it does not support automatic pairing yet.');
+          return;
+        }
+        const message = errorMessage(error);
+        const isReachabilityError = message === 'Could not reach the local connector.' || message === 'The connector did not respond in time.';
+        setConnectionState(isReachabilityError ? 'not-found' : 'error', null, null, message);
+        if (isReachabilityError) schedule();
+      }
+    };
+
+    void connect();
+
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [connectorEndpoint, connectorHealth, isOpen, setConnectionState, setConnectorEndpoint, setStoredConnectorToken]);
 
   const checkConnector = async () => {
     setConnectionState('checking');
@@ -115,6 +174,30 @@ export const McpConnectDialog: React.FC = () => {
     }
   };
 
+  const disconnectConnector = async () => {
+    const token = useMcpStore.getState().connectorToken || connectorToken;
+    try {
+      await revokeMcpConnectorSession(connectorEndpoint, token || undefined);
+    } catch {
+      // Local disconnect should still clear the browser-side session if revoke fails.
+    } finally {
+      setStoredConnectorToken(null);
+      setConnectorToken('');
+      setConnectionState('idle');
+      setEditingConnection(false);
+    }
+  };
+
+  const copyCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(connectorCommand());
+      setCopiedCommand(true);
+      window.setTimeout(() => setCopiedCommand(false), 1500);
+    } catch {
+      setCopiedCommand(false);
+    }
+  };
+
   const testServer = async () => {
     if (connectionState !== 'ready') {
       setServerError('Connect the local connector before testing an MCP server.');
@@ -140,13 +223,32 @@ export const McpConnectDialog: React.FC = () => {
 
   if (!isOpen) return null;
 
-  const isChecking = connectionState === 'checking';
   const isReady = connectionState === 'ready';
-  const showConnectionForm = !isReady || editingConnection;
-
+  const isSearching = connectionState === 'searching' || connectionState === 'checking' || connectionState === 'pairing';
+  const showManualConnectionForm = advancedOpen || editingConnection || connectionState === 'needs-token';
   const agents = connectorCatalog?.agents ?? [];
   const availableAgents = agents.filter((agent) => agent.available);
   const activeAgent = agents.find((agent) => agent.id === activeAgentId) || null;
+
+  const statusTitle = isReady
+    ? 'Local Agent Connected'
+    : connectionState === 'not-found'
+      ? 'Local connector not running'
+      : connectionState === 'needs-token'
+        ? 'Connector detected'
+        : connectionState === 'error'
+          ? 'Connection needs attention'
+          : 'Looking for AlgoGlyph Connector...';
+
+  const statusDescription = isReady
+    ? `Connected to ${endpointHost(connectorEndpoint)}${connectorHealth?.version ? ` / v${connectorHealth.version}` : ''}`
+    : connectionState === 'needs-token'
+      ? connectionError || 'Automatic pairing is unavailable for this connector. Use Advanced to connect manually.'
+      : connectionState === 'error'
+        ? connectionError || 'The connector request failed.'
+        : connectionState === 'not-found'
+          ? 'Start the connector locally. This page will connect as soon as it appears.'
+          : 'Searching localhost and pairing automatically when the connector is ready.';
 
   return (
     <div
@@ -165,10 +267,10 @@ export const McpConnectDialog: React.FC = () => {
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-body">
               <PlugZap size={15} aria-hidden="true" />
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em]">MCP bridge</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.18em]">Local AI Agent</span>
             </div>
             <h2 id="mcp-connect-title" className="mt-2 text-base font-semibold text-ink">
-              Local AI connection
+              {statusTitle}
             </h2>
           </div>
           <button
@@ -183,66 +285,56 @@ export const McpConnectDialog: React.FC = () => {
         </header>
 
         <div className="px-5 py-4">
-          {/* Connection status */}
-          <div className="flex items-center justify-between gap-4">
-            {isReady ? (
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink" aria-hidden="true" />
-                <span className="text-sm font-medium text-ink">Connected</span>
-                <span className="truncate font-mono text-[11px] text-mute">
-                  v{connectorHealth?.version} · {endpointHost(connectorEndpoint)}
-                </span>
-              </div>
-            ) : (
-              <div className="flex min-w-0 items-center gap-2">
-                {connectionState === 'error' && <CircleAlert size={15} className="shrink-0 text-error" aria-hidden="true" />}
-                <span className="text-sm font-medium text-ink">
-                  {connectionState === 'needs-token'
-                    ? 'Token required'
-                    : connectionState === 'error'
-                      ? 'Not connected'
-                      : 'Not connected'}
-                </span>
-              </div>
-            )}
-            {isReady && (
-              <button
-                type="button"
-                onClick={() => setEditingConnection((value) => !value)}
-                className="shrink-0 text-[11px] font-medium text-body transition-colors hover:text-ink"
-              >
-                {editingConnection ? 'Hide' : 'Edit'}
-              </button>
-            )}
+          <div className="flex items-start gap-3">
+            <span
+              className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                isReady ? 'bg-ink' : connectionState === 'error' ? 'bg-error' : isSearching ? 'bg-mute animate-pulse' : 'bg-mute/70'
+              }`}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink">{statusTitle}</p>
+              <p className="mt-1 text-xs leading-5 text-body">{statusDescription}</p>
+            </div>
+            {connectionState === 'error' && <CircleAlert size={16} className="mt-0.5 shrink-0 text-error" aria-hidden="true" />}
+            {isSearching && <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin text-body" aria-hidden="true" />}
           </div>
 
           {!isReady && (
-            <p className="mt-1.5 text-xs leading-5 text-body">
-              {connectionState === 'needs-token'
-                ? 'Connector found. Paste its token below, or open the Quick connect link it prints.'
-                : connectionState === 'error'
-                  ? connectionError || 'Connector unavailable.'
-                  : 'Run the connector, then open its Quick connect link — no token to paste.'}
-            </p>
+            <section className="mt-5 rounded-md border border-hairline bg-canvas-soft/45 px-3 py-3" aria-label="Start connector">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-ink">Start the AlgoGlyph Connector</p>
+                  <div className="mt-2 flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-canvas px-2.5 py-2">
+                    <Terminal size={13} className="shrink-0 text-body" aria-hidden="true" />
+                    <code className="truncate font-mono text-[11px] text-ink">{connectorCommand()}</code>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyCommand()}
+                  className="mt-6 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-hairline px-2.5 text-[11px] font-medium text-body transition-colors hover:border-hairline-strong hover:text-ink"
+                >
+                  <Copy size={13} />
+                  {copiedCommand ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] leading-4 text-mute">Waiting for connector...</p>
+            </section>
           )}
 
-          {/* AI agent selector — which CLI powers the AI */}
           {isReady && (
             <section className="mt-5" aria-labelledby="ai-agent-title">
               <div className="flex items-center gap-2">
                 <Cpu size={14} className="text-body" aria-hidden="true" />
-                <h3 id="ai-agent-title" className="text-sm font-medium text-ink">
-                  AI agent
-                </h3>
+                <h3 id="ai-agent-title" className="text-sm font-medium text-ink">AI agent</h3>
               </div>
               <p className="mt-1 text-xs leading-5 text-body">
                 Powers Ask AI on the canvas and note-making. {activeAgent ? `Using ${activeAgent.label}.` : ''}
               </p>
 
               {availableAgents.length === 0 ? (
-                <p className="mt-3 text-xs text-mute">
-                  No CLI detected. Install Codex, Claude Code, or Antigravity and reconnect.
-                </p>
+                <p className="mt-3 text-xs text-mute">No CLI detected. Install Codex, Claude Code, or Antigravity and reconnect.</p>
               ) : (
                 <div className="mt-3 grid gap-1.5" role="radiogroup" aria-label="AI agent">
                   {agents.map((agent) => {
@@ -256,15 +348,11 @@ export const McpConnectDialog: React.FC = () => {
                         disabled={!agent.available}
                         onClick={() => setActiveAgentId(agent.id)}
                         className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-                          selected
-                            ? 'border-ink bg-canvas-soft'
-                            : 'border-hairline hover:border-hairline-strong'
+                          selected ? 'border-ink bg-canvas-soft' : 'border-hairline hover:border-hairline-strong'
                         }`}
                       >
                         <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                            selected ? 'border-ink' : 'border-hairline-strong'
-                          }`}
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-ink' : 'border-hairline-strong'}`}
                           aria-hidden="true"
                         >
                           {selected && <span className="h-2 w-2 rounded-full bg-ink" />}
@@ -274,9 +362,7 @@ export const McpConnectDialog: React.FC = () => {
                             <span className="text-xs font-medium text-ink">{agent.label}</span>
                             <span className="font-mono text-[10px] text-mute">{agent.command}</span>
                           </div>
-                          {agent.version && (
-                            <p className="mt-0.5 truncate font-mono text-[10px] text-mute">{agent.version}</p>
-                          )}
+                          {agent.version && <p className="mt-0.5 truncate font-mono text-[10px] text-mute">{agent.version}</p>}
                         </div>
                         <span className="shrink-0 font-mono text-[10px] text-mute">
                           {!agent.available ? 'not installed' : selected ? 'active' : ''}
@@ -289,95 +375,98 @@ export const McpConnectDialog: React.FC = () => {
             </section>
           )}
 
-          {/* Connection settings — collapsed once connected */}
-          {showConnectionForm && (
-            <form
-              className={`grid gap-3 ${isReady ? 'mt-5 border-t border-hairline pt-5' : 'mt-4'}`}
-              onSubmit={(event) => {
-                event.preventDefault();
-                void checkConnector();
-              }}
+          <div className="mt-5 border-t border-hairline pt-4">
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((value) => !value)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+              aria-expanded={advancedOpen}
             >
-              <label className="grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-connector-endpoint">
-                Connector URL
-                <input
-                  ref={endpointInputRef}
-                  id="mcp-connector-endpoint"
-                  value={connectorEndpoint}
-                  onChange={(event) => setConnectorEndpoint(event.target.value)}
-                  className={inputClassName}
-                  spellCheck={false}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  inputMode="url"
-                />
-              </label>
+              <span className="text-xs font-medium text-body">Advanced settings</span>
+              <ChevronDown
+                size={15}
+                className={`shrink-0 text-mute transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+                aria-hidden="true"
+              />
+            </button>
 
-              <label className="grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-connector-token">
-                Connector token
-                <div className="relative">
-                  <KeyRound size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mute" />
-                  <input
-                    id="mcp-connector-token"
-                    type="password"
-                    value={connectorToken}
-                    onChange={(event) => setConnectorToken(event.target.value)}
-                    className={`${inputClassName} pl-8`}
-                    placeholder="Session token"
-                    spellCheck={false}
-                    autoComplete="off"
-                  />
-                </div>
-              </label>
-
-              <p className="-mt-1 text-[11px] leading-4 text-mute">
-                Tip: open the <span className="text-body">Quick connect</span> link the connector prints — it fills this in
-                and connects automatically.
-              </p>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-                <div className="flex items-center gap-2 text-[11px] font-mono text-mute">
-                  <Terminal size={13} aria-hidden="true" />
-                  <code>npm run mcp:connector</code>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isChecking}
-                  className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-3 text-xs font-medium text-canvas transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            {(showManualConnectionForm || advancedOpen) && (
+              <div className="mt-4 grid gap-4">
+                <form
+                  className="grid gap-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void checkConnector();
+                  }}
                 >
-                  {isChecking ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                  {isChecking ? 'Checking' : 'Check connector'}
-                </button>
-              </div>
-            </form>
-          )}
+                  <label className="grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-connector-endpoint">
+                    Connector URL
+                    <input
+                      ref={endpointInputRef}
+                      id="mcp-connector-endpoint"
+                      value={connectorEndpoint}
+                      onChange={(event) => setConnectorEndpoint(event.target.value)}
+                      className={inputClassName}
+                      spellCheck={false}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      inputMode="url"
+                    />
+                  </label>
 
-          {/* Advanced: test an MCP server — collapsed by default */}
-          {isReady && (
-            <div className="mt-5 border-t border-hairline pt-4">
-              <button
-                type="button"
-                onClick={() => setAdvancedOpen((value) => !value)}
-                className="flex w-full items-center justify-between gap-3 text-left"
-                aria-expanded={advancedOpen}
-              >
-                <span className="text-xs font-medium text-body">Advanced · test an MCP server</span>
-                <ChevronDown
-                  size={15}
-                  className={`shrink-0 text-mute transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
-                  aria-hidden="true"
-                />
-              </button>
+                  <label className="grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-connector-token">
+                    Manual token / session
+                    <div className="relative">
+                      <KeyRound size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mute" />
+                      <input
+                        id="mcp-connector-token"
+                        type="password"
+                        value={connectorToken}
+                        onChange={(event) => setConnectorToken(event.target.value)}
+                        className={`${inputClassName} pl-8`}
+                        placeholder="Fallback token"
+                        spellCheck={false}
+                        autoComplete="off"
+                      />
+                    </div>
+                  </label>
 
-              {advancedOpen && (
-                <div className="mt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+                    {isReady ? (
+                      <button
+                        type="button"
+                        onClick={() => void disconnectConnector()}
+                        className="inline-flex h-9 items-center gap-2 rounded-md border border-hairline px-3 text-xs font-medium text-body transition-colors hover:border-hairline-strong hover:text-ink"
+                      >
+                        <Unplug size={14} />
+                        Disconnect
+                      </button>
+                    ) : (
+                      <span className="text-[11px] leading-4 text-mute">Use this only if automatic pairing is unavailable.</span>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={connectionState === 'checking'}
+                      className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-3 text-xs font-medium text-canvas transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {connectionState === 'checking' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      {connectionState === 'checking' ? 'Checking' : 'Check connector'}
+                    </button>
+                  </div>
+                </form>
+
+                {isReady && (
                   <form
-                    className="grid gap-3"
+                    className="grid gap-3 border-t border-hairline pt-4"
                     onSubmit={(event) => {
                       event.preventDefault();
                       void testServer();
                     }}
                   >
+                    <div className="flex items-center gap-2">
+                      <Server size={14} className="text-body" aria-hidden="true" />
+                      <span className="text-xs font-medium text-body">Test an MCP server</span>
+                    </div>
                     <label className="grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-server-endpoint">
                       Server URL
                       <input
@@ -418,24 +507,22 @@ export const McpConnectDialog: React.FC = () => {
                       </button>
                     </div>
                   </form>
+                )}
+              </div>
+            )}
+          </div>
 
-                  {serverError && (
-                    <p className="mt-3 border-l-2 border-error pl-3 text-xs leading-5 text-error">{serverError}</p>
-                  )}
+          {serverError && <p className="mt-3 border-l-2 border-error pl-3 text-xs leading-5 text-error">{serverError}</p>}
 
-                  {serverResult && (
-                    <div className="mt-4 rounded-md border border-hairline px-3 py-3">
-                      <p className="truncate text-xs font-medium text-ink">
-                        {serverResult.server.name}
-                        {serverResult.server.version ? ` v${serverResult.server.version}` : ''}
-                      </p>
-                      <p className="mt-1 font-mono text-[10px] text-mute">
-                        {serverResult.transport} · {resultLabel(serverResult)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+          {serverResult && (
+            <div className="mt-4 rounded-md border border-hairline px-3 py-3">
+              <p className="truncate text-xs font-medium text-ink">
+                {serverResult.server.name}
+                {serverResult.server.version ? ` v${serverResult.server.version}` : ''}
+              </p>
+              <p className="mt-1 font-mono text-[10px] text-mute">
+                {serverResult.transport} / {resultLabel(serverResult)}
+              </p>
             </div>
           )}
         </div>

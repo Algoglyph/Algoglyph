@@ -1,0 +1,32 @@
+{
+  "name": "@algoglyph/mcp-connector",
+  "version": "0.1.0",
+  "description": "Local loopback connector for pairing AlgoGlyph with local AI agents and MCP servers.",
+  "type": "module",
+  "bin": {
+    "algoglyph-mcp-connector": "bin/algoglyph-mcp-connector.js"
+  },
+  "files": [
+    "bin/algoglyph-mcp-connector.js",
+    "bin/algoglyph-mcp-connector.mjs",
+    "README.md"
+  ],
+  "keywords": [
+    "algoglyph",
+    "mcp",
+    "connector",
+    "local-first",
+    "ai-agent"
+  ],
+  "homepage": "https://algoglyph.com",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

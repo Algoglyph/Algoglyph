@@ -3,13 +3,17 @@ export const MCP_CONNECTOR_STORAGE_KEY = 'algoglyph-mcp-connector-v1';
 
 export type McpConnectionState =
   | 'idle'
+  | 'searching'
   | 'checking'
+  | 'pairing'
   | 'ready'
   | 'needs-token'
+  | 'not-found'
   | 'error';
 
 export interface McpConnectorHealth {
   service: 'algoglyph-local-connector';
+  status?: 'ready';
   version: string;
   protocolVersion: number;
   requiresToken: boolean;
@@ -54,6 +58,22 @@ export interface McpServerTestResult {
 export interface McpConnectorSnapshot {
   health: McpConnectorHealth;
   catalog: McpConnectorCatalog | null;
+}
+
+export interface McpPairingCredential {
+  pairingToken: string;
+  expiresAt: string;
+  ttlSeconds: number;
+}
+
+export interface McpConnectorSession {
+  sessionToken: string;
+  tokenType: 'Bearer';
+}
+
+export interface McpPairedConnectorSnapshot extends McpConnectorSnapshot {
+  sessionToken: string;
+  catalog: McpConnectorCatalog;
 }
 
 export interface McpAgentRunRequest {

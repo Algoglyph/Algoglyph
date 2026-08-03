@@ -1,56 +1,119 @@
-import { useMcpStore } from '../../store/mcpStore';
-import { McpConnectorRequestError, inspectMcpConnector, normalizeConnectorEndpoint } from './connectorClient';
+﻿import { useMcpStore } from '../../store/mcpStore';
+import {
+  McpConnectorRequestError,
+  inspectMcpConnector,
+  normalizeConnectorEndpoint,
+  pairMcpConnector,
+  pairMcpConnectorWithCredential,
+} from './connectorClient';
+
+interface UrlConnectionParams {
+  endpoint?: string;
+  legacyToken?: string;
+  pairingToken?: string;
+}
+
+let pendingUrlConnection: UrlConnectionParams | null | undefined;
+
+const readParams = (source: string): URLSearchParams => new URLSearchParams(source.replace(/^#/, '').replace(/^\?/, ''));
+
+const valueFrom = (params: URLSearchParams, key: string): string | undefined => {
+  const value = params.get(key)?.trim();
+  return value || undefined;
+};
 
 /**
- * One-click / silent MCP connect, run once on app load.
+ * Removes MCP pairing data from the visible URL before analytics or pageview
+ * tracking can read it. The one-time pairing code is normally carried in the
+ * hash fragment, but legacy query params are still scrubbed for compatibility.
+ */
+export const scrubMcpConnectionUrl = (): UrlConnectionParams | null => {
+  if (typeof window === 'undefined') return null;
+  if (pendingUrlConnection !== undefined) return pendingUrlConnection;
+
+  const url = new URL(window.location.href);
+  const search = url.searchParams;
+  const hash = readParams(url.hash);
+
+  const pairingToken = valueFrom(hash, 'mcpPair') || valueFrom(search, 'mcpPair');
+  const legacyToken = valueFrom(search, 'mcpToken') || valueFrom(hash, 'mcpToken');
+  const endpoint = valueFrom(search, 'mcpEndpoint') || valueFrom(hash, 'mcpEndpoint');
+
+  const hadMcpParams = Boolean(pairingToken || legacyToken || endpoint);
+  if (hadMcpParams) {
+    search.delete('mcpPair');
+    search.delete('mcpToken');
+    search.delete('mcpEndpoint');
+    hash.delete('mcpPair');
+    hash.delete('mcpToken');
+    hash.delete('mcpEndpoint');
+
+    const nextHash = hash.toString();
+    url.search = search.toString();
+    url.hash = nextHash ? `#${nextHash}` : '';
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  pendingUrlConnection = hadMcpParams ? { endpoint, legacyToken, pairingToken } : null;
+  return pendingUrlConnection;
+};
+
+const adoptPairedSnapshot = (endpoint: string, sessionToken: string, snapshot: Awaited<ReturnType<typeof pairMcpConnector>>) => {
+  const store = useMcpStore.getState();
+  store.setConnectorEndpoint(endpoint);
+  store.setConnectionState('ready', snapshot.health, snapshot.catalog);
+  store.setConnectorToken(sessionToken);
+};
+
+/**
+ * One-click and silent MCP connect, run once on app load.
  *
- * 1. If the URL carries `?mcpToken=` (and optional `?mcpEndpoint=`) — the link
- *    the connector prints on startup — adopt it, then immediately scrub those
- *    params from the address bar and history so the token isn't left in the URL.
- * 2. Otherwise fall back to a token remembered from earlier this session.
- * 3. Connect quietly. A missing/asleep connector must never disrupt page load,
- *    so failures are swallowed (a stale token is cleared on 401).
- *
- * This mirrors PenEcho's frictionless "run it and open the link" flow across the
- * app↔connector origin boundary, where a same-origin cookie isn't available.
+ * - Redeems a one-time `mcpPair` credential from the connector's quick link.
+ * - Keeps legacy `mcpToken` links/manual sessions working.
+ * - If no URL credential exists, quietly attempts local discovery + pairing so
+ *   an already-running connector can reconnect without opening the dialog.
  */
 export async function bootstrapMcpConnection(): Promise<void> {
   if (typeof window === 'undefined') return;
 
   const store = useMcpStore.getState();
-
-  const url = new URL(window.location.href);
-  const urlToken = url.searchParams.get('mcpToken');
-  const urlEndpoint = url.searchParams.get('mcpEndpoint');
-
-  if (urlToken || urlEndpoint) {
-    url.searchParams.delete('mcpToken');
-    url.searchParams.delete('mcpEndpoint');
-    // Remove the token from the visible URL and this history entry right away.
-    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
-  }
-
-  const endpoint = urlEndpoint || store.connectorEndpoint;
-  const token = urlToken || store.connectorToken || undefined;
-  if (!token) return;
+  const urlConnection = scrubMcpConnectionUrl();
+  const endpoint = urlConnection?.endpoint || store.connectorEndpoint;
 
   try {
     const normalized = normalizeConnectorEndpoint(endpoint);
-    store.setConnectionState('checking');
-    const snapshot = await inspectMcpConnector(normalized, token);
-    store.setConnectorEndpoint(normalized);
 
-    if (snapshot.catalog) {
-      store.setConnectionState('ready', snapshot.health, snapshot.catalog);
-      store.setConnectorToken(token);
-    } else {
-      store.setConnectionState('needs-token', snapshot.health);
+    if (urlConnection?.pairingToken) {
+      store.setConnectionState('pairing');
+      const snapshot = await pairMcpConnectorWithCredential(normalized, urlConnection.pairingToken);
+      adoptPairedSnapshot(normalized, snapshot.sessionToken, snapshot);
+      return;
     }
-  } catch (error) {
-    // Clear a token the connector rejected; otherwise stay quiet on load.
-    if (error instanceof McpConnectorRequestError && error.status === 401) {
-      store.setConnectorToken(null);
+
+    const token = urlConnection?.legacyToken || store.connectorToken || undefined;
+    if (token) {
+      store.setConnectionState('checking');
+      try {
+        const snapshot = await inspectMcpConnector(normalized, token);
+        store.setConnectorEndpoint(normalized);
+        if (snapshot.catalog) {
+          store.setConnectionState('ready', snapshot.health, snapshot.catalog);
+          store.setConnectorToken(token);
+          return;
+        }
+      } catch (error) {
+        if (error instanceof McpConnectorRequestError && error.status === 401) {
+          store.setConnectorToken(null);
+        } else {
+          throw error;
+        }
+      }
     }
+
+    const paired = await pairMcpConnector(normalized);
+    adoptPairedSnapshot(normalized, paired.sessionToken, paired);
+  } catch {
+    // A missing/asleep connector must never disrupt page load.
     store.setConnectionState('idle');
   }
 }

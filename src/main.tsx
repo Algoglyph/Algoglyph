@@ -5,7 +5,10 @@ import { PostHogProvider } from 'posthog-js/react'
 import { HelmetProvider } from 'react-helmet-async'
 import './index.css'
 import App from './App.tsx'
+import { scrubMcpConnectionUrl } from './lib/mcp/bootstrap'
 import { ErrorBoundary } from './components/ErrorBoundary'
+
+scrubMcpConnectionUrl()
 
 if (import.meta.env.VITE_POSTHOG_KEY) {
   posthog.init(import.meta.env.VITE_POSTHOG_KEY, {

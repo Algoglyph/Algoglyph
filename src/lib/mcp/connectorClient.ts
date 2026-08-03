@@ -5,7 +5,10 @@ import {
   type McpAgentStatus,
   type McpConnectorCatalog,
   type McpConnectorHealth,
+  type McpConnectorSession,
   type McpConnectorSnapshot,
+  type McpPairedConnectorSnapshot,
+  type McpPairingCredential,
   type McpServerTestResult,
   type McpToolSummary,
 } from './types';
@@ -127,6 +130,7 @@ const parseHealth = (payload: unknown): McpConnectorHealth => {
 
   return {
     service: 'algoglyph-local-connector',
+    ...(payload.status === 'ready' ? { status: 'ready' as const } : {}),
     version,
     protocolVersion,
     requiresToken: payload.requiresToken,
@@ -183,6 +187,32 @@ const parseTool = (value: unknown): McpToolSummary | null => {
   };
 };
 
+const parsePairingCredential = (payload: unknown): McpPairingCredential => {
+  if (!isRecord(payload)) {
+    throw new McpConnectorRequestError('The connector returned an invalid pairing credential.');
+  }
+  const pairingToken = asTrimmedString(payload.pairingToken);
+  const expiresAt = asTrimmedString(payload.expiresAt);
+  const ttlSeconds = payload.ttlSeconds;
+
+  if (!pairingToken || !expiresAt || typeof ttlSeconds !== 'number') {
+    throw new McpConnectorRequestError('The connector returned incomplete pairing data.');
+  }
+
+  return { pairingToken, expiresAt, ttlSeconds };
+};
+
+const parseSession = (payload: unknown): McpConnectorSession => {
+  if (!isRecord(payload)) {
+    throw new McpConnectorRequestError('The connector returned an invalid session.');
+  }
+  const sessionToken = asTrimmedString(payload.sessionToken);
+  if (!sessionToken || payload.tokenType !== 'Bearer') {
+    throw new McpConnectorRequestError('The connector returned incomplete session data.');
+  }
+  return { sessionToken, tokenType: 'Bearer' };
+};
+
 const parseMcpServerTest = (payload: unknown): McpServerTestResult => {
   if (!isRecord(payload) || !isRecord(payload.server) || !isRecord(payload.capabilities)) {
     throw new McpConnectorRequestError('The connector returned an invalid MCP server result.');
@@ -221,11 +251,52 @@ const parseMcpServerTest = (payload: unknown): McpServerTestResult => {
   };
 };
 
+export const inspectMcpConnectorHealth = async (endpoint: string): Promise<McpConnectorHealth> =>
+  parseHealth(await requestJson(endpoint, 'health'));
+
+export const createMcpPairingCredential = async (endpoint: string): Promise<McpPairingCredential> =>
+  parsePairingCredential(await requestJson(endpoint, 'v1/pairings', undefined, {}));
+
+export const redeemMcpPairingCredential = async (
+  endpoint: string,
+  pairingToken: string,
+): Promise<McpConnectorSession> =>
+  parseSession(await requestJson(endpoint, 'v1/session', undefined, { pairingToken }));
+
+export const pairMcpConnectorWithCredential = async (
+  endpoint: string,
+  pairingToken: string,
+): Promise<McpPairedConnectorSnapshot> => {
+  const normalized = normalizeConnectorEndpoint(endpoint);
+  const health = await inspectMcpConnectorHealth(normalized);
+  const session = await redeemMcpPairingCredential(normalized, pairingToken);
+  const catalog = parseCatalog(await requestJson(normalized, 'v1/catalog', session.sessionToken));
+  return { health, catalog, sessionToken: session.sessionToken };
+};
+
+export const pairMcpConnector = async (endpoint: string): Promise<McpPairedConnectorSnapshot> => {
+  const normalized = normalizeConnectorEndpoint(endpoint);
+  const health = await inspectMcpConnectorHealth(normalized);
+  const pairing = await createMcpPairingCredential(normalized);
+  const session = await redeemMcpPairingCredential(normalized, pairing.pairingToken);
+  const catalog = parseCatalog(await requestJson(normalized, 'v1/catalog', session.sessionToken));
+  return { health, catalog, sessionToken: session.sessionToken };
+};
+
+export const revokeMcpConnectorSession = async (
+  endpoint: string,
+  connectorToken: string | undefined,
+): Promise<void> => {
+  const token = connectorToken?.trim();
+  if (!token) return;
+  await requestJson(endpoint, 'v1/session/revoke', token, {});
+};
+
 export const inspectMcpConnector = async (
   endpoint: string,
   accessToken?: string,
 ): Promise<McpConnectorSnapshot> => {
-  const health = parseHealth(await requestJson(endpoint, 'v1/health'));
+  const health = await inspectMcpConnectorHealth(endpoint);
   const token = accessToken?.trim();
 
   if (health.requiresToken && !token) {
