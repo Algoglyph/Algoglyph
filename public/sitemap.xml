@@ -37,859 +37,1135 @@
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/intro-dsa</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/intro-dsa/what-is-dsa</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/what-is-dsa</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/intro-dsa/importance-dsa</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/importance-dsa</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/programming-basics</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/functions-basic-i-o</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/stack-allocation</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/heap-allocation</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/time-vs-space</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/calculate-complexity</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/common-runtimes</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/big-theta-notation</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/big-omega-notation</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/time-complexity-analysis</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/space-complexity-analysis</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/collision-resolution</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/load-factor-scaling</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/programming-basics/static-arrays</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/binary-tree</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/programming-basics/procedural-state-pipelines</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/in-order-traversal</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/programming-basics/functions-basic-i-o</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/pre-order-traversal</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/memory-allocation</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/post-order-traversal</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/tree-bfs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/tree-dfs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/directed-graphs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/undirected-graphs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/graph-representations</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/a-star-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/floyd-warshall-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/disjoint-set-union</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/memory-allocation/stack-allocation</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/two-three-trees</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/basics-memory/memory-allocation/heap-allocation</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/skip-lists-complex</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/isam-indexing</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/linear-indexing</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/tree-indexing</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/brute-force</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/randomized-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/divide-and-conquer</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/recursion</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/kth-element</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/island-traversal</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/multi-threaded</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/leetcode-platform</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/edabit-platform</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/complexity-basics</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/complexity-basics/time-vs-space</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/arrays</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/complexity-basics/calculate-complexity</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/linked-list</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/complexity-basics/common-runtimes</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/stack</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/queue</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/heap</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/trie</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/tree-traversal</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/fenwick-tree</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/sparse-table</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/avl-red-black-tree</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/static-arrays</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/dynamic-vectors</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/singly-linked-lists</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/searching</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/doubly-linked-lists</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/big-theta-notation</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/circular-linked-lists</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/big-omega-notation</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/skip-lists</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/time-complexity-analysis</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/lifo-stacks</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/space-complexity-analysis</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/fifo-queues</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/double-ended-deques</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/circular-buffers</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/min-heaps</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/max-heaps</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/binary-search-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/avl-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/red-black-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/tries</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.72</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/segment-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/fenwick-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/sparse-tables</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/suffix-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/suffix-arrays</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/b-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/quadtrees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/k-d-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/splay-trees</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/treaps</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/leftist-heaps</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/binomial-heaps</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/data-structures-topic/probabilistic-spatial-concept/fibonacci-heaps</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/arrays</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/arrays/dynamic-vectors</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/binary-search</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/linked-lists</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/bfs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/dfs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/dijkstra</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/dynamic-programming</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/greedy</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/backtracking</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/searching</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/sorting</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/mst-union-find</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/scc-bridges</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/string-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/advanced-cp</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/bellman-ford-floyd-warshall</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/topological-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/kmp-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/linear-search</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/linked-lists/singly-linked-lists</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/ternary-search</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/linked-lists/doubly-linked-lists</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/bubble-sort</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/linked-lists/circular-linked-lists</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/selection-sort</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/linked-lists/skip-lists</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/insertion-sort</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/stacks-queues</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/merge-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/quick-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/heap-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/counting-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/radix-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/bucket-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/shell-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/bfs-traversal</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/dfs-traversal</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/dijkstra-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/bellman-ford</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/floyd-warshall</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/stacks-queues/lifo-stacks</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/kruskal-mst</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/stacks-queues/fifo-queues</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/prim-mst</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/stacks-queues/circular-buffers</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/tarjan-scc</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/stacks-queues/double-ended-deques</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/kosaraju-scc</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/hash-tables</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/bridges-cuts</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/a-search</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/boyer-moore-search</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/rabin-karp-search</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/z-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/manacher-substrings</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/euler-tour</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/two-pointer-technique</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/sliding-window-technique</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/fast-slow-pointers</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/cyclic-sort</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/merge-intervals</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/hash-tables/hash-indexes</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/two-heaps-pattern</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/hash-tables/collision-resolution</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/kadanes-algorithm</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/linear-structures/hash-tables/load-factor-scaling</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/boyer-moore-majority</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/brents-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/lee-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/mos-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/gale-shapley</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/johnsons-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/kargers-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/viterbi-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/cooley-tukey-fft</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/graham-scan</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/jarvis-march</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/chans-algorithm</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/kirkpatrick-seidel</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/aho-corasick</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/bresenhams-line</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/bubble-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/dfa-state-transitions-automatas</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/selection-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/cfg-production-grammars-bounds</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/insertion-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/regular-language-matches-expressions</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/merge-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/turing-tape-state-transitions</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/quick-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/halting-problem-undecidability-contradiction</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/heap-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/p-vs-np-class-limits</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/sorting/radix-sort</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/np-complete-polynomial-reductions</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/searching</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/polynomial-time-verification-runs</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/cook-levin-theorem-sat-formulas</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/pushdown-automata-stack-transitions</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/chomsky-grammar-hierarchies</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/g-del-incompleteness-logic-limits</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/automata-computability-concept/church-turing-computability-lambda-calculus</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/searching/linear-search</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/deterministic-vs-non-deterministic-complexity</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/searching/binary-search</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/space-complexity-class-pspace</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/sorting-searching/searching/ternary-search</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/time-hierarchy-theorem-bounds</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/circuit-complexity-gates-bounds</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/interactive-proofs-ip-classes</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/zero-knowledge-proof-protocols-verification</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/approximation-algorithm-bounds-bounds</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/randomized-algorithm-probability-checks</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/parameterized-complexity-tractability-splits</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/quantum-complexity-bqp-bounds</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/graph-isomorphism-classification</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/theoretical-cs-topic/complexity-classes-proofs-concept/boolean-satisfiability-solvers-algorithms</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-cp-topic</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-basics</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-cp-topic/advanced-cp-concept</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.72</priority>
   </url>
   <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-basics/binary-tree</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-basics/binary-search-trees</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-basics/avl-trees</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-basics/b-trees</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-basics/min-heaps</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-traversal/in-order-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-traversal/pre-order-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-traversal/post-order-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-search</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-search/tree-bfs</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/tree-structures/tree-search/tree-dfs</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-foundations</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-foundations/directed-graphs</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-foundations/undirected-graphs</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-foundations/graph-representations</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-search</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-search/bfs-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/graph-search/dfs-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/dijkstra</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/bellman-ford-floyd-warshall</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/a-star-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/floyd-warshall-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/minimum-spanning-tree</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/minimum-spanning-tree/prim-mst</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/minimum-spanning-tree/kruskal-mst</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/graph-structures/minimum-spanning-tree/mst-union-find</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures/advanced-nodes</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures/advanced-nodes/trie</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures/advanced-nodes/segment-tree</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures/advanced-nodes/fenwick-tree</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures/advanced-nodes/disjoint-set-union</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-structures/advanced-nodes/suffix-arrays</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/complex-nodes</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/complex-nodes/two-three-trees</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/complex-nodes/b-trees-index-seeks</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/complex-nodes/skip-lists-complex</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/complex-nodes/isam-indexing</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/indexing</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/indexing/linear-indexing</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/complex-structures/indexing/tree-indexing</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/brute-force</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/backtracking</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/greedy</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/randomized-algorithms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/divide-and-conquer</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/recursion</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/dynamic-programming</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/two-pointer-technique</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/sliding-window-technique</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/fast-slow-pointers</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/cyclic-sort</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/merge-intervals</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/two-heaps-pattern</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/kth-element</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/island-traversal</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/multi-threaded</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/kadanes-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/boyer-moore-majority</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/aho-corasick</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/string-matching-algorithms/bresenhams-line</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/johnsons-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/kargers-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/gale-shapley</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/graph-network-algorithms/lee-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/graham-scan</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/jarvis-march</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/chans-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/computational-geometry/kirkpatrick-seidel</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/brents-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/mos-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/viterbi-algorithm</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/classic-algorithms/specialized-algorithms/cooley-tukey-fft</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/practice-platforms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.80</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/practice-platforms/platforms</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/practice-platforms/platforms/leetcode-platform</loc>
-    <lastmod>2026-07-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.90</priority>
-  </url>
-  <url>
-    <loc>https://algoglyph.com/roadmap/dsa-foundations/practice-platforms/platforms/edabit-platform</loc>
+    <loc>https://algoglyph.com/roadmap/dsa-foundations/advanced-cp-topic/advanced-cp-concept/segment-tree</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.90</priority>

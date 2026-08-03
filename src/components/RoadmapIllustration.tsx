@@ -10,25 +10,45 @@ interface RoadmapIllustrationProps {
 
 export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }) => {
   const sLower = slug.toLowerCase();
+  const dsaAliasMap: Record<string, string> = {
+    'stack': 'lifo-stacks',
+    'queue': 'fifo-queues',
+    'deque': 'double-ended-deques',
+    'linked-list': 'singly-linked-lists',
+    'doubly-linked-list': 'doubly-linked-lists',
+    'circular-linked-list': 'circular-linked-lists',
+    'skip-list': 'skip-lists-complex',
+    'dijkstra-algorithm': 'dijkstra',
+    'a-search': 'a-star-algorithm',
+    'disjoint-set': 'disjoint-set-union',
+    'bellman-ford': 'bellman-ford-floyd-warshall',
+    'floyd-warshall': 'floyd-warshall-algorithm',
+    'k-d-trees': 'kd-tree',
+    'tries': 'trie',
+    'segment-trees': 'segment-tree',
+    'fenwick-trees': 'fenwick-tree',
+    'sparse-tables': 'sparse-table',
+    'suffix-trees': 'suffix-tree',
+    'quadtrees': 'quadtree',
+    'splay-trees': 'splay-tree',
+    'treaps': 'treap',
+    'min-heap': 'min-heaps',
+    'max-heap': 'max-heaps',
+    'binary-search-tree': 'binary-search-trees',
+    'avl-tree': 'avl-trees',
+    'b-tree': 'b-trees',
+    'arrays': 'static-arrays',
+    'heap': 'min-heaps'
+  };
+
+  const imageSlug = dsaAliasMap[sLower] || sLower;
+
   
   const staticImages: Record<string, string> = {
     'sys-observability': '/images/dsa/sys-observability-dark.png',
     'performance-vs-scalability': '/images/dsa/performance-vs-scalability-dark.png',
   };
 
-  if (sLower.startsWith('game-')) {
-    return (
-      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
-        <img 
-          src={`/images/game-dev/${sLower}-dark.jpg`} 
-          alt={slug} 
-          className="w-full object-contain rounded-lg border border-zinc-800" 
-        />
-      </div>
-    );
-  }
-
-  // Backend category images
   const backendSlugs = new Set([
     'lang-javascript','lang-go','lang-python','lang-ruby','lang-java','lang-csharp','lang-php','lang-rust',
     'checkpoint-beginner-projects','internet-how-works-sub','what-is-http','what-is-domain-name',
@@ -57,20 +77,387 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
     'scale-obs-monitoring','scale-obs-telemetry','mit-graceful','mit-throttling','mit-backpressure',
     'mit-loadshifting','mit-circuit',
   ]);
-  if (backendSlugs.has(sLower)) {
-    return (
-      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+
+  const dsaFiles = [
+    'a-star-algorithm','advanced-cp','aho-corasick','approximation-algorithm-bounds-bounds','avl-trees','b-trees','b-trees-index-seeks','backtracking','bellman-ford-floyd-warshall','bfs','bfs-traversal','big-omega-notation','big-theta-notation','binary-search','binary-search-trees','binary-tree','boolean-satisfiability-solvers-algorithms','boyer-moore-majority','boyer-moore-search','brents-algorithm','bresenhams-line','bridges-cuts','brute-force','bubble-sort','bucket-sort','calculate-complexity','cfg-production-grammars-bounds','chans-algorithm','chomsky-grammar-hierarchies','church-turing-computability-lambda-calculus','circuit-complexity-gates-bounds','circular-buffers','circular-linked-lists','collision-resolution','common-runtimes','cook-levin-theorem-sat-formulas','cooley-tukey-fft','counting-sort','cyclic-sort','deterministic-vs-non-deterministic-complexity','dfa-state-transitions-automatas','dfs','dfs-traversal','dijkstra','directed-graphs','directed-vs-undirected','disjoint-set-union','divide-and-conquer','double-ended-deques','doubly-linked-lists','dynamic-programming','dynamic-vectors','edabit-platform','euler-tour','fast-slow-pointers','fenwick-tree','fibonacci-heaps','fifo-queues','floyd-warshall','floyd-warshall-algorithm','functions-basic-i-o','g-del-incompleteness-logic-limits','gale-shapley','graham-scan','graph-isomorphism-classification','graph-representations','greedy','halting-problem-undecidability-contradiction','hash-indexes','heap','heap-allocation','heap-sort','importance-dsa','in-order-traversal','insertion-sort','interactive-proofs-ip-classes','isam-indexing','island-traversal','jarvis-march','johnsons-algorithm','k-d-trees','kadanes-algorithm','kargers-algorithm','kirkpatrick-seidel','kmp-algorithm','kosaraju-scc','kruskal-mst','kth-element','lee-algorithm','leetcode-platform','leftist-heaps','lifo-stacks','linear-indexing','linear-search','load-factor-scaling','manacher-substrings','max-heaps','merge-intervals','merge-sort','min-heaps','mos-algorithm','mst-union-find','multi-interval-search','multi-threaded','np-complete-polynomial-reductions','p-vs-np-class-limits','parameterized-complexity-tractability-splits','performance-vs-scalability','polynomial-time-verification-runs','post-order-traversal','pre-order-traversal','prim-mst','procedural-state-pipelines','pushdown-automata-stack-transitions','quadtrees','quantum-complexity-bqp-bounds','quick-sort','rabin-karp-search','radix-sort','randomized-algorithm-probability-checks','randomized-algorithms','recursion','red-black-trees','regular-language-matches-expressions','scc-bridges','searching','segment-tree','selection-sort','shell-sort','singly-linked-lists','skip-lists','skip-lists-complex','sliding-window-technique','sorting','space-complexity-analysis','space-complexity-class-pspace','sparse-table','sparse-tables','splay-trees','stack-allocation','static-arrays','string-algorithms','suffix-arrays','suffix-trees','sys-observability','tarjan-scc','ternary-search','time-complexity-analysis','time-hierarchy-theorem-bounds','time-vs-space','topological-sort','treaps','tree-bfs','tree-dfs','tree-indexing','tree-traversal','trie','turing-tape-state-transitions','two-heaps-pattern','two-pointer-technique','two-three-trees','undirected-graphs','viterbi-algorithm','what-is-dsa','z-algorithm','zero-knowledge-proof-protocols-verification'
+  ];
+  const dsaSlugs = new Set(dsaFiles);
+
+  const netSlugs = new Set([
+    'client-server-host','packets-frames','bandwidth-latency','ports-sockets','mac-arp','lan-wan','vpn-cloud',
+    'p2p-client-server','osi-model','tcp-ip-model','two-three-tier','spine-leaf','routers-switches','hubs-modems',
+    'access-points','packet-tracer','gns3-eve','http-https','ssh-ssl-tls','ftp-smtp-dhcp','dns-resolution',
+    'dns-servers','ipv4-ipv6','public-private','nat-pat','subnet-masks','cidr-vlsm','supernetting','bgp-ospf',
+    'rip-eigrp-mpls','static-dynamic','vlans-vxlan','stp-mac','ipsec-ssl-vpn','site-to-remote','mpls-gre',
+    'wifi-bluetooth','nfc-mobile','ap-placement','channel-planning','wireless-security','hsrp-vrrp','glbp',
+    'qos-shaping','load-balancing-algos','failover','packet-filtering','stateful-proxy','next-gen-waf',
+    'ids-ips','zero-trust','dos-ddos','ping-traceroute','netstat-wireshark','aws-vpc','azure-vnet','cloud-routing',
+    'security-groups','cloud-vpn','python-networking','netconf-restconf','ansible-terraform','snmp-netflow',
+    'prometheus-grafana','datadog'
+  ]);
+
+  const androidSlugs = new Set([
+    'kotlin-basics', 'kotlin-oop', 'kotlin-functions', 'kotlin-collections', 'kotlin-null-safety',
+    'kotlin-coroutines-basics', 'kotlin-generics', 'kotlin-lambdas', 'kotlin-delegates', 'kotlin-type-system',
+    'android-activity-lifecycle', 'android-activity-launch-modes', 'android-viewmodel', 'android-state-restoration',
+    'android-tasks-backstack', 'android-implicit-intents', 'android-explicit-intents', 'android-intent-filters',
+    'android-content-provider', 'android-broadcast-receiver', 'compose-column-row', 'compose-lazy-column-row',
+    'compose-box', 'compose-scaffold', 'compose-constraint-layout', 'compose-text', 'compose-button',
+    'compose-icon', 'compose-image', 'compose-textfield', 'compose-card', 'compose-bottomsheet',
+    'compose-tabrow', 'compose-dialog', 'compose-animations', 'compose-drawer', 'compose-navhost',
+    'compose-remember-state', 'compose-viewmodel-state', 'compose-side-effects', 'xml-textview',
+    'xml-imageview', 'xml-fragments', 'xml-recyclerview', 'xml-constraint', 'android-jetpack-compose-core',
+    'android-app-shortcuts', 'android-navigation-core', 'arch-mvi', 'arch-mvvm', 'arch-mvp', 'arch-mvc',
+    'pattern-android-repository', 'pattern-android-builder', 'pattern-android-factory', 'pattern-android-observer',
+    'pattern-android-flow', 'pattern-android-rxkotlin', 'pattern-android-rxjava', 'pattern-android-livedata',
+    'di-dagger', 'di-hilt', 'di-koin', 'storage-shared-preferences', 'storage-datastore', 'storage-room',
+    'storage-filesystem', 'android-security-keystore', 'network-retrofit', 'network-okhttp', 'network-apollo',
+    'android-logger-timber', 'android-leakcanary', 'android-chucker', 'android-benchmark', 'async-coroutines',
+    'async-threads', 'async-rxjava', 'async-rxkotlin', 'async-workmanager', 'test-espresso', 'test-junit',
+    'lint-ktlint', 'lint-detekt', 'android-adb-debugging', 'service-firebase-auth', 'service-crashlytics',
+    'service-remote-config', 'service-cloud-messaging', 'service-firestore', 'service-firebase-core',
+    'service-admob', 'service-play-services', 'service-maps', 'dist-signed-apk', 'dist-firebase', 'dist-playstore'
+  ]);
+
+  const systemDesignSlugs = new Set([
+    'what-is-system-design', 'how-to-approach-system-design', 'performance-vs-scalability', 'latency-vs-throughput',
+    'availability-vs-consistency', 'cap-theorem-consistency', 'weak-consistency', 'eventual-consistency',
+    'strong-consistency', 'failover-replication-dns-updates', 'replication-master-slave-master-master',
+    'availability-in-numbers', 'background-jobs', 'event-driven-jobs', 'schedule-driven-jobs', 'returning-job-results',
+    'dns-root-authority-resolution', 'cdn-edge-caching-strategies', 'pull-cdns', 'push-cdns', 'sql-vs-nosql',
+    'key-value-store', 'document-store', 'wide-column-store', 'graph-databases', 'database-replication-lags',
+    'database-sharding-partitions', 'federation', 'denormalization', 'sql-tuning', 'microservices', 'service-discovery',
+    'reverse-proxy-caches', 'load-balancing-algorithms', 'layer-7-load-balancing', 'load-balancer-layer-4-routing',
+    'horizontal-scaling', 'cache-aside', 'write-through', 'write-behind', 'refresh-ahead', 'client-caching',
+    'cdn-caching', 'web-server-caching', 'database-caching', 'application-caching', 'backpressure-queues-sizing',
+    'task-queues', 'message-queues', 'http', 'tcp', 'udp', 'rpc', 'grpc', 'rest', 'graphql', 'idempotent-operations',
+    'improper-instantiation', 'monolithic-persistence', 'noisy-neighbor', 'synchronous-io', 'extraneous-fetching',
+    'busy-database', 'busy-frontend', 'chatty-io', 'retry-storm', 'no-caching', 'health-monitoring',
+    'availability-monitoring', 'performance-monitoring', 'security-monitoring', 'usage-monitoring', 'instrumentation',
+    'visualization-alerts', 'strangler-fig', 'sidecar', 'static-content-hosting-design', 'leader-election',
+    'cqrs-design', 'pipes-filters-design', 'ambassador', 'gateway-routing', 'gateway-offloading', 'gateway-aggregation',
+    'external-config-store', 'compute-resource-consolidation', 'backends-for-frontend', 'anti-corruption-layer',
+    'valet-key', 'static-content-hosting-data', 'sharding-data', 'materialized-view', 'index-table', 'event-sourcing',
+    'cqrs-data', 'cache-aside-data', 'sequential-convoy', 'scheduling-agent-supervisor', 'queue-based-load-leveling',
+    'publishersubscriber', 'priority-queue'
+  ]);
+
+  const aiDataScientistSlugs = new Set([
+    'introduction-to-statistics',
+    'probability-and-statistics',
+    'hypothesis-testing',
+    'experiment-design',
+    'minimum-detectable-effect',
+    'improving-test-sensitivity',
+    'improving-sensitivity-cuped',
+    'cuped-at-booking',
+    'doordash-cupac',
+    'ratio-metrics',
+    'microsoft-delta-method',
+    'algebra-differential-calculus',
+    'mathematics-for-machine-learning',
+    'fundamentals-of-econometrics',
+    'intro-to-econometrics',
+    'econometrics-course',
+    'time-series-basics',
+    'arima-model-for-time-series',
+    'time-series-models',
+    'forecasting-task-with-solution',
+    'linear-regression-econ',
+    'learn-python-kaggle',
+    'algorithmic-exercises',
+    'study-plans-leetcode',
+    'algorithms-specialization',
+    'sql-tutorial-course',
+    'exploratory-data-analysis-with-python-and-pandas',
+    'exploratory-data-analysis-for-machine-learning',
+    'exploratory-data-analysis-with-seaborn',
+    'open-machine-learning-course',
+    'machine-learning-specialization',
+    'pattern-recognition-ml',
+    'pattern-recognition-github',
+    'deep-learning-specialization',
+    'deep-learning-book',
+    'attention-is-all-you-need',
+    'illustrated-transformer',
+    'mlops-specialization',
+    'google-ai-courses',
+    'hugging-face-nlp',
+    'prompt-engineering-guide',
+    'rag-for-knowledge-intensive-nlp-tasks',
+    'vibe-coding-fundamentals',
+    'claude-code-docs',
+    'agentic-coding-handbook'
+  ]);
+
+  const aiDataScientistImageMap: Record<string, string> = {
+    'pattern-recognition-github': 'pattern-recognition-ml'
+  };
+  const fullstackSlugs = new Set([
+    'html-semantics',
+    'css-layouts',
+    'checkpoint-static',
+    'javascript-basics',
+    'npm-ecosystem',
+    'checkpoint-interactivity',
+    'git-version-control',
+    'github-collaboration',
+    'checkpoint-collaborative',
+    'checkpoint-external-packages',
+    'react-components',
+    'tailwind-css',
+    'checkpoint-frontend-apps',
+    'node-js-runtime',
+    'checkpoint-cli-apps',
+    'postgresql-databases',
+    'checkpoint-crud-apps',
+    'restful-api-design',
+    'jwt-authentication',
+    'redis-caching',
+    'checkpoint-complete-app',
+    'linux-cli-basics',
+    'basic-aws-services',
+    'checkpoint-deployment',
+    'mesh-like-structures',
+    'ansible-configuration',
+    'terraform-iac',
+    'checkpoint-automation',
+    'checkpoint-infrastructure',
+    'github-actions-cicd',
+    'monit-monitoring',
+    'checkpoint-cicd',
+    'checkpoint-monitoring'
+  ]);
+
+  const blockchainSlugs = new Set([
+    'what-is-blockchain', 'why-blockchain-matters', 'blockchain-applications',
+    'blockchain-structure', 'cryptography-hashing-blockchain', 'blockchain-decentralization',
+    'decentralization-vs-trust', 'blockchain-networks', 'proof-of-work', 'proof-of-stake',
+    'proof-of-history', 'byzantine-fault-tolerance', 'blockchain-operations',
+    'blockchain-interoperability', 'blockchain-storage', 'blockchain-forking',
+    'cryptocurrencies-intro', 'crypto-wallets', 'mining-incentives', 'blockchain-environmental-impact',
+    'ethereum-network', 'polygon-network', 'bnb-chain', 'gnosis-chain',
+    'avalanche-network', 'fantom-network', 'moonbeam-moonriver',
+    'utxo-blockchains', 'tvm-blockchains', 'l2-blockchains',
+    'solana-network', 'smart-contract-languages', 'smart-contract-ides',
+    'smart-contract-frameworks', 'smart-contract-testing', 'smart-contract-deployment',
+    'smart-contract-monitoring', 'erc-tokens', 'wallet-integration', 'crypto-faucets',
+    'decentralized-storage', 'smart-contract-security-tools', 'fuzzing-static-analysis',
+    'blockchain-threat-vectors', 'randomness-attacks', 'hybrid-smart-contracts',
+    'chainlink-oracles', 'oracle-networks', 'dapp-testing', 'dapp-architecture',
+    'dapp-frontend', 'web3-client-libraries', 'dapp-supporting-languages',
+    'state-channels', 'optimistic-rollups', 'zk-rollups', 'ethereum-2-0',
+    'on-chain-scaling', 'client-nodes', 'node-as-a-service', 'blockchain-applicability'
+  ]);
+  const cybersecuritySlugs = new Set([
+    'computer-hardware', 'connection-types', 'os-troubleshooting', 'popular-suites', 'operating-systems-overview', 'os-installation-config', 'gui-cli-navigation', 'os-permissions', 'file-crud-commands', 'virtualization-tech', 'hypervisor-vms', 'osi-model', 'subnetting-basics', 'ip-addresses', 'ip-terminology', 'network-topologies', 'network-protocols', 'common-ports', 'nas-san', 'networking-terminology', 'dhcp-dns-ntp-ipam', 'networking-commands', 'sniffers-scanners', 'defense-in-depth', 'zero-trust', 'cia-triad', 'auth-vs-auth', 'risk-compliance', 'cyber-kill-chain-attack', 'security-standards', 'incident-response', 'threat-hunting', 'vuln-management', 'security-teams', 'os-hardening', 'ids-ips', 'firewalls-edr', 'sandboxing-honeypots', 'network-hardening', 'crypto-basics', 'auth-methodologies', 'malware-web-attacks', 'social-engineering', 'network-attacks', 'exploit-frameworks', 'ir-tools', 'hacking-distros', 'lolbas-gtfobins', 'common-security-tools', 'ctfs-platforms', 'beginner-certs', 'advanced-certs', 'security-in-cloud', 'cloud-vs-on-prem', 'iac-serverless', 'cloud-deploying-flow', 'cloud-services', 'cloud-models', 'common-cloud-environments', 'common-cloud-storage', 'python-for-security', 'go-for-security', 'javascript-for-security', 'cpp-for-security', 'bash-for-security', 'powershell-for-security'
+  ]);
+  const productManagerSlugs = new Set([
+    'what-is-product-management', 'product-vs-project', 'pm-roles-responsibilities', 'pm-key-skills', 'pm-development', 'pm-introduction-phase', 'pm-growth', 'pm-maturity', 'pm-decline', 'pm-mind-mapping', 'pm-brainwriting', 'pm-scamper', 'pm-iterative-process', 'blue-ocean-strategy', 'pm-triz', 'problem-framing', 'user-personas-interviews', 'surveys-ethnographic', 'market-needs-trends', 'pm-competitive-analysis', 'positioning-usp', 'vision-mission', 'value-proposition', 'defining-pm-goals', 'five-forces', 'competitive-advantage', 'strategic-partners', 'prds-user-stories', 'pm-prioritization', 'grooming-story-mapping', 'creating-roadmap', 'outcome-roadmaps', 'communicating-roadmap', 'pm-design-principles', 'interaction-design', 'usability-ab-testing', 'scrum-kanban', 'sprint-planning-mvp', 'agile-ceremonies', 'launch-growth', 'release-strategies', 'key-product-metrics', 'cohort-analysis', 'feedback-loops', 'interpersonal-skills', 'business-alignment', 'stakeholder-mapping', 'stakeholder-engagement', 'assessing-risks', 'risk-mitigation', 'pm-software-tools', 'pm-analytics-tools', 'ai-ml-in-pm', 'scaling-products', 'portfolio-management', 'building-teams', 'influencing-without-authority'
+  ]);
+
+
+
+  let imageElement: React.ReactNode = null;
+
+  if (fullstackSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
         <img 
-          src={`/images/backend/${sLower}-dark.jpg`} 
+          src={`/images/full-stack/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/full-stack/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
           alt={slug} 
           className="w-full object-contain rounded-lg border border-zinc-800" 
         />
       </div>
     );
-  }
-
-  if (staticImages[sLower]) {
-    return (
+  } else if (blockchainSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/blockchain/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/blockchain/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (cybersecuritySlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/cybersecurity/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/cybersecurity/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (productManagerSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/product-manager/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/product-manager/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (aiDataScientistSlugs.has(sLower)) {
+    const imgSlug = aiDataScientistImageMap[sLower] || sLower;
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/ai-data-scientist/${imgSlug}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/ai-data-scientist/${imgSlug}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (systemDesignSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/system-design/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/system-design/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (androidSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none my-4">
+        <img 
+          src={`/images/android/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('-dark.png')) {
+              target.src = `/images/android/${sLower}.png`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (sLower.startsWith('game-')) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+        <img 
+          src={`/images/game-dev/${sLower}-dark.jpg`} 
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (netSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+        <img 
+          src={`/images/networking/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            const src = target.src;
+            if (src.includes('/images/networking/')) {
+              target.src = `/images/net/${sLower}-dark.png`;
+            } else if (src.includes('/images/net/')) {
+              target.src = `/images/dsa/${sLower}-dark.png`;
+            } else if (src.endsWith('.png')) {
+              target.src = src.replace(/\.png$/, '.jpg');
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (backendSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+        <img 
+          src={`/images/backend/${sLower}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('.png')) {
+              target.src = `/images/backend/${sLower}-dark.jpg`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (dsaSlugs.has(sLower)) {
+    imageElement = (
+      <div className="w-full rounded-lg overflow-hidden flex items-center justify-center select-none">
+        <img 
+          src={`/images/dsa/${imageSlug}-dark.png`} 
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.src.endsWith('.png')) {
+              target.src = `/images/dsa/${imageSlug}-dark.jpg`;
+            } else {
+              target.style.display = 'none';
+            }
+          }}
+          alt={slug} 
+          className="w-full object-contain rounded-lg border border-zinc-800" 
+        />
+      </div>
+    );
+  } else if (staticImages[sLower]) {
+    imageElement = (
       <div className="w-full h-[400px] md:h-[480px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-6 select-none relative">
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
              style={{ 
@@ -89,8 +476,10 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
 
   const customConfig = getCuratedRoadmapDiagram(sLower) || SYSTEM_DESIGN_DIAGRAMS[sLower] || ML_DIAGRAMS[sLower] || DE_DIAGRAMS[sLower];
 
+  let illustrationElement: React.ReactNode = null;
+
   if (customConfig) {
-    return (
+    illustrationElement = (
       <div className="w-full h-[400px] md:h-[480px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center p-6 select-none relative">
         {/* Chalkboard Grid Pattern Background */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
@@ -142,6 +531,15 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
             </marker>
           </defs>
         </svg>
+      </div>
+    );
+  }
+
+  if (imageElement || illustrationElement) {
+    return (
+      <div className="w-full flex flex-col gap-6 select-none my-6">
+        {imageElement}
+        {illustrationElement}
       </div>
     );
   }
@@ -339,140 +737,6 @@ export const RoadmapIllustration: React.FC<RoadmapIllustrationProps> = ({ slug }
       return null;
     }
 
-    // DSA foundations mapping
-    if (
-      s === 'what-is-dsa' || 
-      s === 'importance-dsa' ||
-      s === 'arrays' ||
-      s === 'linked-list' ||
-      s === 'stack' ||
-      s === 'queue' ||
-      s === 'binary-search' ||
-      s === 'bfs' ||
-      s === 'dfs' ||
-      s === 'heap' ||
-      s === 'trie' ||
-      s === 'static-arrays' ||
-      s === 'dynamic-vectors' ||
-      s === 'singly-linked-lists' ||
-      s === 'doubly-linked-lists' ||
-      s === 'circular-linked-lists' ||
-      s === 'skip-lists' ||
-      s === 'lifo-stacks' ||
-      s === 'fifo-queues' ||
-      s === 'double-ended-deques' ||
-      s === 'circular-buffers' ||
-      s === 'min-heaps' ||
-      s === 'max-heaps' ||
-      s === 'leftist-heaps' ||
-      s === 'binomial-heaps' ||
-      s === 'fibonacci-heaps' ||
-      s === 'bfs-traversal' ||
-      s === 'dfs-traversal' ||
-      s === 'dijkstra-algorithm' ||
-      s === 'dynamic-programming' ||
-      s === 'greedy' ||
-      s === 'backtracking' ||
-      s === 'searching' ||
-      s === 'sorting' ||
-      s === 'tree-traversal' ||
-      s === 'mst-union-find' ||
-      s === 'scc-bridges' ||
-      s === 'string-algorithms' ||
-      s === 'advanced-cp' ||
-      s === 'bellman-ford-floyd-warshall' ||
-      s === 'topological-sort' ||
-      s === 'fenwick-tree' ||
-      s === 'sparse-table' ||
-      s === 'avl-red-black-tree' ||
-      s === 'kmp-algorithm' ||
-      s === 'binary-search-trees' ||
-      s === 'avl-trees' ||
-      s === 'red-black-trees' ||
-      s === 'tries' ||
-      s === 'segment-trees' ||
-      s === 'fenwick-trees' ||
-      s === 'sparse-tables' ||
-      s === 'suffix-trees' ||
-      s === 'suffix-arrays' ||
-      s === 'b-trees' ||
-      s === 'quadtrees' ||
-      s === 'k-d-trees' ||
-      s === 'splay-trees' ||
-      s === 'treaps' ||
-      s === 'linear-search' ||
-      s === 'ternary-search' ||
-      s === 'bubble-sort' ||
-      s === 'selection-sort' ||
-      s === 'insertion-sort' ||
-      s === 'merge-sort' ||
-      s === 'quick-sort' ||
-      s === 'heap-sort' ||
-      s === 'counting-sort' ||
-      s === 'radix-sort' ||
-      s === 'bucket-sort' ||
-      s === 'shell-sort' ||
-      s === 'bellman-ford' ||
-      s === 'floyd-warshall' ||
-      s === 'kruskal-mst' ||
-      s === 'prim-mst' ||
-      s === 'tarjan-scc' ||
-      s === 'kosaraju-scc' ||
-      s === 'bridges-cuts' ||
-      s === 'a-search' ||
-      s === 'boyer-moore-search' ||
-      s === 'rabin-karp-search' ||
-      s === 'z-algorithm' ||
-      s === 'manacher-substrings' ||
-      s === 'euler-tour' ||
-      s === 'two-pointer-technique' ||
-      s === 'sliding-window-technique' ||
-      s === 'fast-slow-pointers' ||
-      s === 'cyclic-sort' ||
-      s === 'merge-intervals' ||
-      s === 'two-heaps-pattern' ||
-      s === 'in-order-traversal' ||
-      s === 'pre-order-traversal' ||
-      s === 'post-order-traversal' ||
-      s === 'tree-bfs' ||
-      s === 'tree-dfs' ||
-      s === 'binary-tree' ||
-      s === 'directed-graphs' ||
-      s === 'undirected-graphs' ||
-      s === 'graph-representations' ||
-      s === 'two-three-trees' ||
-      s === 'skip-lists-complex' ||
-      s === 'isam-indexing' ||
-      s === 'linear-indexing' ||
-      s === 'tree-indexing' ||
-      s === 'a-star-algorithm' ||
-      s === 'floyd-warshall-algorithm' ||
-      s === 'disjoint-set-union' ||
-      s === 'collision-resolution' ||
-      s === 'functions-basic-i-o' ||
-      s === 'stack-allocation' ||
-      s === 'heap-allocation' ||
-      s === 'time-vs-space' ||
-      s === 'calculate-complexity' ||
-      s === 'common-runtimes' ||
-      s === 'big-theta-notation' ||
-      s === 'big-omega-notation' ||
-      s === 'time-complexity-analysis' ||
-      s === 'space-complexity-analysis' ||
-      s === 'load-factor-scaling' ||
-      s === 'brute-force' ||
-      s === 'randomized-algorithms' ||
-      s === 'divide-and-conquer' ||
-      s === 'recursion' ||
-      s === 'kth-element' ||
-      s === 'island-traversal' ||
-      s === 'multi-threaded' ||
-      s === 'leetcode-platform' ||
-      s === 'edabit-platform' ||
-      s === 'segment-tree'
-    ) {
-      return null;
-    }
     if (s === 'procedural-state-pipelines') {
       return 'program-flow';
     }
