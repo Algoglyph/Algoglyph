@@ -28,6 +28,22 @@ interface ShapeNode extends Box {
   libraryItemId?: string;
   libraryHasText?: boolean;
   libraryIconHeight?: number;
+  libraryTemplate?: LibraryTemplateSpec;
+}
+
+interface LibraryTextReplacement {
+  from: string;
+  to: string;
+}
+
+interface LibraryTemplateSpec {
+  labels?: string[];
+  count?: number;
+  replace?: LibraryTextReplacement[];
+  remove?: string[];
+  append?: string[];
+  prepend?: string[];
+  order?: 'preserve' | 'reverse' | 'ascending' | 'descending';
 }
 
 interface TextNode extends Box {
@@ -116,6 +132,38 @@ const finiteNumber = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
+const boundedStringList = (value: unknown, limit = 40): string[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const strings = value
+    .slice(0, limit)
+    .flatMap((item) => typeof item === 'string' && item.trim() ? [item.trim().slice(0, 80)] : []);
+  return strings.length ? strings : undefined;
+};
+
+const libraryTemplateFromEntry = (value: unknown): LibraryTemplateSpec | undefined => {
+  if (!isRecord(value)) return undefined;
+  const labels = boundedStringList(value.labels);
+  const remove = boundedStringList(value.remove);
+  const append = boundedStringList(value.append);
+  const prepend = boundedStringList(value.prepend);
+  const replace = Array.isArray(value.replace)
+    ? value.replace.slice(0, 40).flatMap((candidate) => {
+        if (!isRecord(candidate)) return [];
+        const from = asString(candidate.from)?.trim().slice(0, 80);
+        const to = asString(candidate.to)?.trim().slice(0, 80);
+        return from && to ? [{ from, to }] : [];
+      })
+    : undefined;
+  const count = typeof value.count === 'number' && Number.isFinite(value.count)
+    ? Math.round(clamp(value.count, 1, 40))
+    : undefined;
+  const order = value.order === 'reverse' || value.order === 'ascending' || value.order === 'descending'
+    ? value.order
+    : value.order === 'preserve' ? 'preserve' : undefined;
+  if (!labels && !remove && !append && !prepend && !replace?.length && count === undefined && !order) return undefined;
+  return { labels, remove, append, prepend, replace, count, order };
+};
 const snap = (value: number): number => Math.round(value / GRID) * GRID;
 const center = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
 const right = (box: Box): number => box.x + box.width;
@@ -506,6 +554,7 @@ const shapeSkeleton = (
       libraryItemId: shape.libraryItemId,
       libraryHasText: shape.libraryHasText,
       libraryIconHeight: shape.libraryIconHeight,
+      libraryTemplate: shape.libraryTemplate,
     };
   }
   const style = groupStyle(shape, groupColors);
@@ -965,6 +1014,7 @@ export const parseCanvasResponse = (raw: unknown): CanvasResponse => {
         libraryItemId,
         libraryHasText: entry.libraryHasText === true,
         libraryIconHeight: clamp(finiteNumber(entry.libraryIconHeight, finiteNumber(entry.height, 110)), 30, 330),
+        libraryTemplate: libraryTemplateFromEntry(entry.libraryTemplate),
       });
     } else if (type === 'text') {
       const text = asString(entry.text)?.slice(0, 1200);

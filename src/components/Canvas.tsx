@@ -8,6 +8,7 @@ import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
 import { generateCanvasResponse, insertCanvasSkeletons, CanvasAiError } from '../lib/ai/diagram';
 import { serializeCanvasForNotes } from '../lib/ai/notes';
 import { beginCanvasPerfTrace, finishCanvasPerfTrace } from '../lib/ai/devTiming';
+import type { CanvasPlacementAnchor } from '../lib/ai/canvasPlacement';
 import '@excalidraw/excalidraw/index.css';
 
 /**
@@ -15,10 +16,34 @@ import '@excalidraw/excalidraw/index.css';
  * Prefers the element being edited, then the current selection (joined in
  * reading order), then the most-recently-edited text element.
  */
-function readCanvasPrompt(elements: readonly any[], appState: any): string | null {
+interface CanvasPrompt {
+  text: string;
+  anchor: CanvasPlacementAnchor;
+}
+
+function canvasPrompt(elements: readonly any[]): CanvasPrompt | null {
+  if (!elements.length) return null;
+  const minX = Math.min(...elements.map((element: any) => Number(element.x) || 0));
+  const minY = Math.min(...elements.map((element: any) => Number(element.y) || 0));
+  const maxX = Math.max(...elements.map((element: any) => (Number(element.x) || 0) + (Number(element.width) || 0)));
+  const maxY = Math.max(...elements.map((element: any) => (Number(element.y) || 0) + (Number(element.height) || 0)));
+  return {
+    text: elements.map((element: any) => element.text.trim()).join('\n').trim(),
+    anchor: {
+      minX,
+      minY,
+      maxX,
+      maxY,
+      elementIds: elements.flatMap((element: any) => typeof element.id === 'string' ? [element.id] : []),
+    },
+  };
+}
+
+function readCanvasPrompt(elements: readonly any[], appState: any): CanvasPrompt | null {
   const editing = appState.editingElement;
   if (editing && editing.type === 'text' && typeof editing.text === 'string' && editing.text.trim()) {
-    return editing.text.trim();
+    const liveEditingElement = elements.find((element: any) => element.id === editing.id && !element.isDeleted) || editing;
+    return canvasPrompt([liveEditingElement]);
   }
 
   const texts = elements.filter(
@@ -30,11 +55,11 @@ function readCanvasPrompt(elements: readonly any[], appState: any): string | nul
   const selected = texts.filter((el: any) => selectedIds[el.id]);
   if (selected.length) {
     selected.sort((a: any, b: any) => a.y - b.y || a.x - b.x);
-    return selected.map((el: any) => el.text.trim()).join('\n').trim();
+    return canvasPrompt(selected);
   }
 
   texts.sort((a: any, b: any) => (b.updated || 0) - (a.updated || 0));
-  return texts[0].text.trim();
+  return canvasPrompt([texts[0]]);
 }
 
 export const Canvas: React.FC = () => {
@@ -109,7 +134,7 @@ export const Canvas: React.FC = () => {
     setAiBusy(true);
     notify('Thinking…', 'info');
     try {
-      const { intent, skeletons } = await generateCanvasResponse(prompt, {
+      const { intent, skeletons } = await generateCanvasResponse(prompt.text, {
         connectorEndpoint: mcp.connectorEndpoint,
         connectorToken: mcp.connectorToken,
         agentId: mcp.activeAgentId || undefined,
@@ -120,7 +145,7 @@ export const Canvas: React.FC = () => {
         notify('The AI did not produce a canvas response. Try rewording the request.', 'info');
         return;
       }
-      const added = insertCanvasSkeletons(skeletons);
+      const added = insertCanvasSkeletons(skeletons, undefined, prompt.anchor);
       const verb = intent === 'answer' || intent === 'explain' ? 'Answered' : 'Drew';
       notify(`${verb} on the canvas · ${added} elements`, 'success');
     } catch (error) {
