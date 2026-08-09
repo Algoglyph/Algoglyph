@@ -1,4 +1,4 @@
-import { ALGORITHMS } from './algorithms';
+import { ALGORITHMS } from './algorithms.ts';
 
 export interface DSAStructure {
   id: string;

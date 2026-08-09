@@ -39,9 +39,26 @@ export interface McpToolSummary {
   name: string;
   title?: string;
   description?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
+export interface McpResourceSummary {
+  uri: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+}
+
+export interface McpPromptSummary {
+  name: string;
+  title?: string;
+  description?: string;
+  arguments?: Array<Record<string, unknown>>;
 }
 
 export interface McpServerTestResult {
+  serverId: string;
   transport: 'streamable-http' | 'sse';
   server: {
     name: string;
@@ -53,6 +70,9 @@ export interface McpServerTestResult {
     prompts: boolean;
   };
   tools: McpToolSummary[];
+  resources: McpResourceSummary[];
+  prompts: McpPromptSummary[];
+  truncated: boolean;
 }
 
 export interface McpConnectorSnapshot {
@@ -64,11 +84,17 @@ export interface McpPairingCredential {
   pairingToken: string;
   expiresAt: string;
   ttlSeconds: number;
+  scopes: McpSessionScope[];
 }
+
+export type McpSessionScope = 'catalog:read' | 'mcp:test' | 'mcp:invoke' | 'agent:run' | 'session:revoke';
 
 export interface McpConnectorSession {
   sessionToken: string;
   tokenType: 'Bearer';
+  expiresAt: string;
+  idleTimeoutSeconds: number;
+  scopes: McpSessionScope[];
 }
 
 export interface McpPairedConnectorSnapshot extends McpConnectorSnapshot {
@@ -79,8 +105,10 @@ export interface McpPairedConnectorSnapshot extends McpConnectorSnapshot {
 export interface McpAgentRunRequest {
   agentId: string;
   prompt: string;
-  // Optional MCP server to expose to the agent, reusing the test-server shape.
-  mcpServer?: { endpoint: string; accessToken?: string };
+  /** Coalesce process chunks when the caller only needs the completed result. */
+  outputMode?: 'stream' | 'buffered';
+  /** Connector-side ID returned only after a successful server test. */
+  mcpServerId?: string;
 }
 
 export type McpAgentRunEvent =

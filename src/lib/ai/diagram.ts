@@ -1,6 +1,19 @@
 import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import { runAgent } from '../mcp/connectorClient';
 import { serializeCanvasForNotes } from './notes';
+import { createBasicIllustrationPlan } from './basicIllustrations';
+import { parseCanvasResponse, type CanvasResponse } from './diagramLayout';
+import {
+  applyLibraryMatches,
+  createSingleLibraryPlan,
+  hydrateLibrarySkeletons,
+  loadLibraryCatalog,
+  relevantLibraryNames,
+  type LibraryCatalogEntry,
+} from './libraryAssets';
+
+export { inspectCanvasLayout, parseCanvasResponse } from './diagramLayout';
+export type { CanvasIntent, CanvasLayout, CanvasResponse } from './diagramLayout';
 
 /**
  * AI-native canvas responses (PenEcho-style, adapted to Excalidraw).
@@ -17,44 +30,42 @@ import { serializeCanvasForNotes } from './notes';
  * happens here.
  */
 
-export type CanvasIntent = 'answer' | 'draw' | 'explain' | 'none';
-type ShapeType = 'rectangle' | 'ellipse' | 'diamond';
+export const CANVAS_AI_SYSTEM_PROMPT = `You are AlgoGlyph's on-canvas diagram and illustration planner. Read the request and existing-canvas description. Return only the new content; never redraw existing content.
 
-const SHAPES: ReadonlySet<ShapeType> = new Set(['rectangle', 'ellipse', 'diamond']);
-const MAX_ELEMENTS = 120;
-const DEFAULT_SHAPE_W = 160;
-const DEFAULT_SHAPE_H = 60;
-
-export const CANVAS_AI_SYSTEM_PROMPT = `You are the on-canvas AI for AlgoGlyph, a computer-science visual workspace. The user writes a request as text on an Excalidraw canvas. Read the request AND the description of what is already on the canvas, then respond by ADDING the right content to the canvas. Do NOT repeat, trace, or redraw what is already there — only add the answer/continuation/new visual.
-
-Choose the response type from the request:
-- A question to solve or a concept to explain (e.g. "what is the time complexity of quicksort?", "solve 3x+2=11", "explain TCP handshake") → answer it with one or more concise "text" elements (key steps and/or the result — keep it tight).
-- A request to draw a single shape (e.g. "draw a circle", "draw a box") → emit that one shape.
-- A request to draw a data structure, algorithm, system architecture, flowchart, ER/graph, tree, etc. (e.g. "binary search tree", "linked list", "stack", "system design of Instagram") → emit the shapes plus connecting arrows that form it.
-
-Return STRICT JSON ONLY — no prose, no markdown fences, no text before or after:
+Return STRICT JSON ONLY, with no markdown or prose outside this object:
 {
-  "intent": "answer" | "draw" | "explain" | "none",
+  "intent": "answer" | "draw" | "illustration" | "explain" | "none",
+  "layout": "flow-left-to-right" | "flow-top-to-bottom" | "hierarchical-left-to-right" | "hierarchical-top-down" | "hub-and-spoke" | "layered-top-down" | "network" | "auto",
   "elements": [
-    { "type": "text", "x": <int>, "y": <int>, "text": "<content>", "fontSize": <int, optional> },
-    { "type": "rectangle" | "ellipse" | "diamond", "id": "<unique-slug, optional>", "x": <int>, "y": <int>, "width": <int>, "height": <int>, "label": "<short, optional>" },
-    { "type": "arrow" | "line", "from": "<shape id>", "to": "<shape id>", "label": "<short, optional>" }
+    { "type": "text", "text": "<concise content>", "x": <illustration only>, "y": <illustration only>, "fontSize": <optional> },
+    { "type": "rectangle" | "ellipse" | "diamond", "id": "<unique-slug>", "label": "<short label>", "group": "<optional group>", "role": "primary" | "secondary" | "supporting" | "external" | "storage", "x": <illustration only>, "y": <illustration only>, "width": <illustration only>, "height": <illustration only> },
+    { "type": "arrow" | "line", "from": "<shape id>", "to": "<shape id>", "label": "<optional label>" },
+    { "type": "library", "id": "<unique-slug>", "name": "<CS component or icon name>", "group": "<optional group>", "role": "primary" | "secondary" | "supporting" | "external" | "storage" },
+    { "type": "path", "id": "<unique-slug>", "points": [[x,y],...], "closed": <optional boolean>, "startArrowhead": <optional "arrow">, "endArrowhead": <optional "arrow"> },
+    { "type": "arc", "id": "<unique-slug>", "x": number, "y": number, "width": number, "height": number, "startAngle": degrees, "endAngle": degrees }
   ]
 }
 
-Rules:
-- x/y are pixels in a local space near 0. The app moves the whole result into empty space, so just lay it out cleanly with NO overlaps (shapes at least 40px apart; a box is ~160x60).
-- For a circle use "ellipse" with EQUAL width and height. Use "diamond" for a decision/condition.
-- Connect shapes with arrows via "from"/"to" referencing shape ids you defined in this response.
-- Put short names INSIDE shapes with "label". Use "text" elements for prose answers/explanations; keep them concise (a few lines, <= ~600 chars each).
-- Use at most 40 shapes and 60 arrows. If the request is empty or unreadable, return {"intent":"none","elements":[]}.
-Return only the JSON object.`;
+First classify the request. Use intent "draw" for diagrams made of semantic nodes and relationships. Use "illustration" for literal geometry, sketches, symbols, or objects (for example polygons, curves, axes, icons). Never represent literal geometry as labeled graph nodes.
 
-export const buildCanvasPrompt = (userRequest: string, canvasContext: string | null): string => {
+For diagrams: inventory all components and relationships, choose the matching layout, emit nodes first then connectors, group related nodes, use stable ids, diamonds for decisions, and brief labels. Prefer "library" for recognizable computer-science components or icons; AlgoGlyph resolves it against its library and falls back safely when unavailable. Do not provide coordinates or dimensions: AlgoGlyph places, aligns, routes, and collision-checks the batch.
+
+For illustrations: plan the whole composition in a local coordinate area before emitting it. Use actual paths/arcs and ordinary shapes, with explicit coordinates and dimensions. Keep geometry aligned, proportional, closed where needed, and free of unintended overlaps. Paths/arcs are unbound strokes, not node connectors. Verify the result visually represents what was requested.
+
+Use at most 40 shapes and 60 connectors. For an empty or unreadable request return {"intent":"none","layout":"auto","elements":[]}.`;
+
+export const buildCanvasPrompt = (
+  userRequest: string,
+  canvasContext: string | null,
+  libraryHints: readonly string[] = [],
+): string => {
   const context = canvasContext
     ? `\n\nAlready on the canvas (do not redraw this):\n${canvasContext.slice(0, 3000)}`
     : '';
-  return `${CANVAS_AI_SYSTEM_PROMPT}\n\nUser request:\n${userRequest.trim().slice(0, 4000)}${context}`;
+  const available = libraryHints.length
+    ? `\n\nRelevant exact library names (prefer these when applicable): ${libraryHints.join(', ')}`
+    : '';
+  return `${CANVAS_AI_SYSTEM_PROMPT}\n\nUser request:\n${userRequest.trim().slice(0, 4000)}${available}${context}`;
 };
 
 export class CanvasAiError extends Error {
@@ -76,107 +87,6 @@ export const extractJsonObject = (text: string): unknown => {
   return JSON.parse(source.slice(start, end + 1));
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const asString = (value: unknown): string | undefined =>
-  typeof value === 'string' && value.trim() ? value.trim() : undefined;
-
-const num = (value: unknown, fallback: number): number =>
-  typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-
-const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
-
-export interface CanvasResponse {
-  intent: CanvasIntent;
-  skeletons: Record<string, unknown>[];
-}
-
-/**
- * Validate a raw model response into Excalidraw skeleton elements: text answers,
- * labelled shapes, and id-bound arrows between them. Ids are preserved so arrow
- * bindings resolve inside the batch; the caller regenerates ids on insert.
- */
-export const parseCanvasResponse = (raw: unknown): CanvasResponse => {
-  if (!isRecord(raw) || !Array.isArray(raw.elements)) {
-    throw new Error('The model response was missing an elements array.');
-  }
-
-  const intentRaw = asString(raw.intent);
-  const intent: CanvasIntent =
-    intentRaw === 'answer' || intentRaw === 'draw' || intentRaw === 'explain' ? intentRaw : 'none';
-
-  const skeletons: Record<string, unknown>[] = [];
-  const geom = new Map<string, { cx: number; cy: number }>();
-  const arrows: { from: string; to: string; label?: string }[] = [];
-  let shapeSeq = 0;
-
-  for (const entry of raw.elements) {
-    if (skeletons.length + arrows.length >= MAX_ELEMENTS || !isRecord(entry)) continue;
-    const type = asString(entry.type);
-
-    if (type === 'text') {
-      const text = asString(entry.text);
-      if (!text) continue;
-      skeletons.push({
-        type: 'text',
-        x: num(entry.x, 0),
-        y: num(entry.y, 0),
-        text: text.slice(0, 1200),
-        fontSize: clamp(num(entry.fontSize, 20), 12, 48),
-      });
-    } else if (type && SHAPES.has(type as ShapeType)) {
-      const id = asString(entry.id) || `s${shapeSeq++}`;
-      if (geom.has(id)) continue;
-      const width = clamp(num(entry.width, DEFAULT_SHAPE_W), 20, 1200);
-      const height = clamp(num(entry.height, DEFAULT_SHAPE_H), 20, 1200);
-      const x = num(entry.x, 0);
-      const y = num(entry.y, 0);
-      geom.set(id, { cx: x + width / 2, cy: y + height / 2 });
-      const label = asString(entry.label);
-      skeletons.push({
-        type,
-        id,
-        x,
-        y,
-        width,
-        height,
-        ...(label ? { label: { text: label.slice(0, 80) } } : {}),
-      });
-    } else if (type === 'arrow' || type === 'line') {
-      const from = asString(entry.from);
-      const to = asString(entry.to);
-      if (from && to && from !== to) arrows.push({ from, to, label: asString(entry.label)?.slice(0, 40) });
-    }
-  }
-
-  // Resolve arrows now that all shape geometry is known.
-  arrows.forEach((edge, index) => {
-    const start = geom.get(edge.from);
-    const end = geom.get(edge.to);
-    if (!start || !end) return;
-    const width = end.cx - start.cx;
-    const height = end.cy - start.cy;
-    skeletons.push({
-      type: 'arrow',
-      id: `edge-${index}-${edge.from}-${edge.to}`,
-      x: start.cx,
-      y: start.cy,
-      width,
-      height,
-      points: [
-        [0, 0],
-        [width, height],
-      ],
-      start: { id: edge.from },
-      end: { id: edge.to },
-      ...(edge.label ? { label: { text: edge.label } } : {}),
-    });
-  });
-
-  return { intent, skeletons };
-};
-
 /**
  * Run one canvas generation end to end: read the current canvas as context,
  * prompt the connector's `claude` agent, and parse the streamed JSON into
@@ -184,9 +94,27 @@ export const parseCanvasResponse = (raw: unknown): CanvasResponse => {
  */
 export const generateCanvasResponse = async (
   userRequest: string,
-  options: { connectorEndpoint: string; connectorToken?: string; agentId?: string; signal?: AbortSignal },
+  options: {
+    connectorEndpoint: string;
+    connectorToken?: string;
+    agentId?: string;
+    signal?: AbortSignal;
+    canvasContext?: string | null;
+  },
 ): Promise<CanvasResponse> => {
-  const canvasContext = serializeCanvasForNotes();
+  const basicIllustration = createBasicIllustrationPlan(userRequest);
+  if (basicIllustration) return parseCanvasResponse(basicIllustration);
+
+  let catalog: LibraryCatalogEntry[] = [];
+  try {
+    catalog = await loadLibraryCatalog();
+    const directLibraryPlan = createSingleLibraryPlan(userRequest, catalog);
+    if (directLibraryPlan) return await hydrateLibrarySkeletons(parseCanvasResponse(directLibraryPlan));
+  } catch {
+    // The library is an enhancement. Agent planning and generated geometry remain available offline.
+  }
+
+  const canvasContext = options.canvasContext === undefined ? serializeCanvasForNotes() : options.canvasContext;
   let stdout = '';
   let stderr = '';
 
@@ -194,7 +122,11 @@ export const generateCanvasResponse = async (
     for await (const event of runAgent(
       options.connectorEndpoint,
       options.connectorToken,
-      { agentId: options.agentId || 'claude', prompt: buildCanvasPrompt(userRequest, canvasContext) },
+      {
+        agentId: options.agentId || 'claude',
+        prompt: buildCanvasPrompt(userRequest, canvasContext, relevantLibraryNames(userRequest, catalog)),
+        outputMode: 'buffered',
+      },
       options.signal,
     )) {
       if (event.type === 'output') {
@@ -214,7 +146,8 @@ export const generateCanvasResponse = async (
   }
 
   try {
-    return parseCanvasResponse(extractJsonObject(stdout));
+    const raw = applyLibraryMatches(extractJsonObject(stdout), userRequest, catalog);
+    return await hydrateLibrarySkeletons(parseCanvasResponse(raw));
   } catch (error) {
     throw new CanvasAiError(
       error instanceof Error ? `Could not read the response: ${error.message}` : 'Could not read the response.',
@@ -231,7 +164,8 @@ export const insertCanvasSkeletons = (skeletons: Record<string, unknown>[]): num
   if (!api) throw new CanvasAiError('The canvas is not ready yet.');
   if (!skeletons.length) return 0;
 
-  const existing = api.getSceneElements().filter((el: any) => !el.isDeleted);
+  const sceneElements = api.getSceneElements();
+  const existing = sceneElements.filter((el: any) => !el.isDeleted);
 
   let startX: number;
   let startY: number;
@@ -270,12 +204,12 @@ export const insertCanvasSkeletons = (skeletons: Record<string, unknown>[]): num
 
   const newElements = convertToExcalidrawElements(placed as any, { regenerateIds: true });
   api.updateScene({
-    elements: [...api.getSceneElements(), ...newElements],
+    elements: [...sceneElements, ...newElements],
     commitToHistory: true,
   });
 
   try {
-    api.scrollToContent(newElements, { fitToContent: true, animate: true, duration: 300 });
+    api.scrollToContent(newElements, { fitToContent: true, animate: false });
   } catch {
     // scrollToContent is best-effort.
   }

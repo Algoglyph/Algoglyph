@@ -6,6 +6,7 @@ import { useMcpStore } from '../store/mcpStore';
 import { StructuresPanel } from './StructuresPanel';
 import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
 import { generateCanvasResponse, insertCanvasSkeletons, CanvasAiError } from '../lib/ai/diagram';
+import { serializeCanvasForNotes } from '../lib/ai/notes';
 import '@excalidraw/excalidraw/index.css';
 
 /**
@@ -13,16 +14,15 @@ import '@excalidraw/excalidraw/index.css';
  * Prefers the element being edited, then the current selection (joined in
  * reading order), then the most-recently-edited text element.
  */
-function readCanvasPrompt(api: any): string | null {
-  const appState = api.getAppState();
+function readCanvasPrompt(elements: readonly any[], appState: any): string | null {
   const editing = appState.editingElement;
   if (editing && editing.type === 'text' && typeof editing.text === 'string' && editing.text.trim()) {
     return editing.text.trim();
   }
 
-  const texts = api
-    .getSceneElements()
-    .filter((el: any) => !el.isDeleted && el.type === 'text' && typeof el.text === 'string' && el.text.trim());
+  const texts = elements.filter(
+    (el: any) => !el.isDeleted && el.type === 'text' && typeof el.text === 'string' && el.text.trim(),
+  );
   if (!texts.length) return null;
 
   const selectedIds = appState.selectedElementIds || {};
@@ -58,7 +58,9 @@ export const Canvas: React.FC = () => {
     if (!api || aiAbortRef.current) return;
 
     const notify = useWorkspaceStore.getState().showNotification;
-    const prompt = readCanvasPrompt(api);
+    const appState = api.getAppState();
+    const sceneElements = api.getSceneElements();
+    const prompt = readCanvasPrompt(sceneElements, appState);
     if (!prompt) {
       notify('Type your request as text on the canvas, then Ask AI.', 'info');
       return;
@@ -66,7 +68,7 @@ export const Canvas: React.FC = () => {
 
     const mcp = useMcpStore.getState();
     if (!mcp.connectorToken) {
-      notify('Run `npm run mcp:connector` and open its Quick connect link, then try Ask AI.', 'error');
+      notify('Run `npm run mcp:connector`; AlgoGlyph will connect automatically, then try Ask AI.', 'error');
       mcp.openMcpPanel();
       return;
     }
@@ -81,6 +83,7 @@ export const Canvas: React.FC = () => {
         connectorToken: mcp.connectorToken,
         agentId: mcp.activeAgentId || undefined,
         signal: controller.signal,
+        canvasContext: serializeCanvasForNotes(sceneElements),
       });
       if (!skeletons.length) {
         notify('The AI did not produce a canvas response. Try rewording the request.', 'info');

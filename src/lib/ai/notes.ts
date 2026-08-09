@@ -87,11 +87,11 @@ export const generateNotesMarkdown = async (
  * reason about: labelled shapes, arrow connections (with labels), and any
  * standalone text annotations. Returns null when there is nothing to describe.
  */
-export const serializeCanvasForNotes = (): string | null => {
-  const api = (window as unknown as { excalidrawAPI?: any }).excalidrawAPI;
-  if (!api) return null;
+export const serializeCanvasForNotes = (sceneElements?: readonly any[]): string | null => {
+  const api = sceneElements ? null : (window as unknown as { excalidrawAPI?: any }).excalidrawAPI;
+  if (!sceneElements && !api) return null;
 
-  const elements = api.getSceneElements().filter((el: any) => !el.isDeleted);
+  const elements = (sceneElements ?? api.getSceneElements()).filter((el: any) => !el.isDeleted);
   if (!elements.length) return null;
 
   // Collapse Excalidraw's label line-wraps so descriptions read on one line.

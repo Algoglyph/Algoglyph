@@ -4,16 +4,10 @@ import {
   inspectMcpConnector,
   normalizeConnectorEndpoint,
   pairMcpConnector,
-  pairMcpConnectorWithCredential,
 } from './connectorClient';
+import type { McpPairedConnectorSnapshot } from './types';
 
-interface UrlConnectionParams {
-  endpoint?: string;
-  legacyToken?: string;
-  pairingToken?: string;
-}
-
-let pendingUrlConnection: UrlConnectionParams | null | undefined;
+let connectionUrlScrubbed = false;
 
 const readParams = (source: string): URLSearchParams => new URLSearchParams(source.replace(/^#/, '').replace(/^\?/, ''));
 
@@ -27,19 +21,16 @@ const valueFrom = (params: URLSearchParams, key: string): string | undefined => 
  * tracking can read it. The one-time pairing code is normally carried in the
  * hash fragment, but legacy query params are still scrubbed for compatibility.
  */
-export const scrubMcpConnectionUrl = (): UrlConnectionParams | null => {
-  if (typeof window === 'undefined') return null;
-  if (pendingUrlConnection !== undefined) return pendingUrlConnection;
+export const scrubMcpConnectionUrl = (): void => {
+  if (typeof window === 'undefined' || connectionUrlScrubbed) return;
+  connectionUrlScrubbed = true;
 
   const url = new URL(window.location.href);
   const search = url.searchParams;
   const hash = readParams(url.hash);
 
-  const pairingToken = valueFrom(hash, 'mcpPair') || valueFrom(search, 'mcpPair');
-  const legacyToken = valueFrom(search, 'mcpToken') || valueFrom(hash, 'mcpToken');
-  const endpoint = valueFrom(search, 'mcpEndpoint') || valueFrom(hash, 'mcpEndpoint');
-
-  const hadMcpParams = Boolean(pairingToken || legacyToken || endpoint);
+  const hadMcpParams = ['mcpPair', 'mcpToken', 'mcpEndpoint']
+    .some((key) => Boolean(valueFrom(search, key) || valueFrom(hash, key)));
   if (hadMcpParams) {
     search.delete('mcpPair');
     search.delete('mcpToken');
@@ -53,12 +44,9 @@ export const scrubMcpConnectionUrl = (): UrlConnectionParams | null => {
     url.hash = nextHash ? `#${nextHash}` : '';
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
   }
-
-  pendingUrlConnection = hadMcpParams ? { endpoint, legacyToken, pairingToken } : null;
-  return pendingUrlConnection;
 };
 
-const adoptPairedSnapshot = (endpoint: string, sessionToken: string, snapshot: Awaited<ReturnType<typeof pairMcpConnector>>) => {
+const adoptPairedSnapshot = (endpoint: string, sessionToken: string, snapshot: McpPairedConnectorSnapshot) => {
   const store = useMcpStore.getState();
   store.setConnectorEndpoint(endpoint);
   store.setConnectionState('ready', snapshot.health, snapshot.catalog);
@@ -66,31 +54,20 @@ const adoptPairedSnapshot = (endpoint: string, sessionToken: string, snapshot: A
 };
 
 /**
- * One-click and silent MCP connect, run once on app load.
- *
- * - Redeems a one-time `mcpPair` credential from the connector's quick link.
- * - Keeps legacy `mcpToken` links/manual sessions working.
- * - If no URL credential exists, quietly attempts local discovery + pairing so
- *   an already-running connector can reconnect without opening the dialog.
+ * Silent local MCP connect, run once on app load. URL-delivered credentials are
+ * deliberately ignored; starting the connector is the complete user flow.
  */
 export async function bootstrapMcpConnection(): Promise<void> {
   if (typeof window === 'undefined') return;
 
   const store = useMcpStore.getState();
-  const urlConnection = scrubMcpConnectionUrl();
-  const endpoint = urlConnection?.endpoint || store.connectorEndpoint;
+  scrubMcpConnectionUrl();
+  const endpoint = store.connectorEndpoint;
 
   try {
     const normalized = normalizeConnectorEndpoint(endpoint);
 
-    if (urlConnection?.pairingToken) {
-      store.setConnectionState('pairing');
-      const snapshot = await pairMcpConnectorWithCredential(normalized, urlConnection.pairingToken);
-      adoptPairedSnapshot(normalized, snapshot.sessionToken, snapshot);
-      return;
-    }
-
-    const token = urlConnection?.legacyToken || store.connectorToken || undefined;
+    const token = store.connectorToken || undefined;
     if (token) {
       store.setConnectionState('checking');
       try {

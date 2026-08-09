@@ -7,14 +7,17 @@
   "scripts": {
     "dev": "vite",
     "mcp:connector": "node scripts/algoglyph-mcp-connector.mjs",
+    "test:mcp": "node --test --test-concurrency=1 packages/mcp-connector/test/connector.integration.test.mjs",
+    "test:diagrams": "node scripts/validateDiagramLayout.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "deploy": "npm run build && npx wrangler pages deploy dist --project-name algoglyph",
     "electron": "electron .",
     "electron:build": "ELECTRON_BUILD=1 npm run build && electron-builder",
+    "library:catalog": "node scripts/generateLibraryCatalog.mjs",
     "seo:sitemap": "node scripts/generateSitemap.js",
-    "prebuild": "node scripts/generateSitemap.js"
+    "prebuild": "node scripts/generateLibraryCatalog.mjs && node scripts/generateSitemap.js"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",
@@ -26,7 +29,7 @@
     "@excalidraw/excalidraw": "^0.18.1",
     "@fontsource-variable/geist": "^5.2.9",
     "@fontsource-variable/geist-mono": "^5.2.8",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@remotion/tailwind": "^4.0.482",
     "@tiptap/extension-code-block-lowlight": "^3.26.1",
     "@tiptap/extension-table": "^3.26.1",
@@ -43,13 +46,14 @@
     "headroom-ai": "^0.22.4",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.21.0",
-    "postcss": "^8.5.15",
+    "postcss": "^8.5.26",
     "posthog-js": "^1.393.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-helmet-async": "^3.0.0",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7.18.2",
     "scheduler": "^0.27.0",
+    "undici": "^7.29.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -59,7 +63,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "electron": "^42.4.0",
+    "electron": "^42.8.1",
     "electron-builder": "^26.15.3",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",

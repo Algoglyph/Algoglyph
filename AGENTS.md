@@ -9,6 +9,8 @@ Scratchpad (legacy name: **dsadelta**) is a local-first notes + infinite-canvas 
 ```bash
 npm run dev            # Vite dev server on http://localhost:5173 (web app)
 npm run build          # tsc -b (typecheck) then vite build → dist/
+npm run test:mcp       # MCP connector integration/security baseline + remediation TODO contract
+npm run test:diagrams  # Deterministic diagram layout and overlap regressions
 npm run preview        # serve the built dist/ locally (verify a production build)
 npm run lint           # eslint . (flat config in eslint.config.js)
 npm run electron       # launch Electron against a RUNNING dev server (see below)
@@ -16,7 +18,7 @@ npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg
 ```
 
 - **Running the desktop app in dev requires two processes**: `main.cjs` loads `http://localhost:5173` when not packaged, so run `npm run dev` first, then `npm run electron` in a second shell. The packaged build instead loads `dist/index.html`. The dev URL in `main.cjs` is **hardcoded to 5173** even though `vite.config.ts` honors a `PORT` env var — so don't override `PORT`, or Electron will point at the wrong (empty) port.
-- **There is no test runner.** "Verification" here means `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build.
+- **Testing is focused rather than repository-wide.** `npm run test:mcp` uses Node's built-in test runner against a real temporary loopback connector process; `npm run test:diagrams` checks deterministic layout/overlap regressions. General verification still includes `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build.
 - `vite.config.ts` sets `base: './'` (relative asset paths) so the same build works under Electron's `file://`.
 - **`build/icon.png` is a committed *source* asset, not generated output** — it's the electron-builder app icon (`package.json` → `build.{win,mac}.icon`). The generated outputs are `dist/` (web bundle) and `release/` (packaged installers); only those are gitignored. Don't delete or gitignore `build/`.
 
@@ -40,7 +42,7 @@ Several modules talk through globals instead of props: `window.excalidrawAPI` (s
 - **`Editor.tsx`** (TipTap) treats the stored `notes` as a **markdown string** (`contentType: 'markdown'`) — both on init and on `setContent`. Don't switch it to HTML or remounts will render raw markdown source.
 
 ### Two distinct "DSA" systems — don't conflate them
-1. **Canvas structures** — `src/config/dsaStructures.ts` generates static Excalidraw element skeletons (rectangles/circles/arrows) dropped onto the drawing canvas; `src/lib/insertStructure.ts` places them without overlap.
+1. **Canvas structures** — `src/config/dsaStructures.ts` generates static Excalidraw element skeletons (rectangles/circles/arrows) dropped onto the drawing canvas; `src/lib/insertStructure.ts` places them without overlap. Imported libraries live in `public/libraries/*.json`; `scripts/generateLibraryCatalog.mjs` builds their compact metadata index. Canvas AI resolves requested CS components contextually through `src/lib/ai/libraryAssets.ts`, lays them out using invisible grouped anchors, and falls back to generated primitives when no asset is available.
 2. **Algorithm visualizer** — `src/config/algorithms.ts` is the catalog (metadata only); `src/lib/algorithmFrames.ts` turns sample inputs into ordered immutable *frames*; `src/components/visualizers/Visualizers.tsx` renders each frame type (array bars, graphs, grids, DP tables…). The UI chain is `VisualizerWorkspace.tsx` (picks algos from `AlgorithmSidebar.tsx`) → `VisualizerCanvas.tsx` (infinite pan/zoom plane) → `VisualizerNode.tsx` (one movable playback card per active algorithm). The visualizer is a **global** workspace (not per-tab), which is why `TabBar` is hidden in that mode. **Each `VisualizerNode` owns its playback timer in local component state** — keep rapid playback state out of the Zustand store to avoid re-rendering siblings.
    - **Frame generation dispatch (`getFrames` in `algorithmFrames.ts`):** a per-id entry in the `GENERATORS` map wins if present; otherwise it falls back to `generateDynamicFrames(id, category, …)`, a big `category`-keyed switch. Short sequences are padded to ≥20 frames by `expandFrames`. Graph-based frames reuse a fixed shared `TRAVERSAL_GRAPH`, and `snapshotGraph` keys edge highlights by exact `${from}-${to}` — referencing an edge that doesn't exist in the spec silently renders nothing, so check the spec's edge list when highlighting.
 

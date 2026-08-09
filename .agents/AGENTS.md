@@ -51,6 +51,7 @@ This document provides comprehensive context, architectural guidelines, and tech
    - Wraps Excalidraw.
    - Features pre-built Data Structures & Algorithms components (`src/config/dsaStructures.ts`).
    - `src/lib/insertStructure.ts` calculates non-overlapping coordinates when inserting new elements onto the board.
+   - Imported Excalidraw libraries live in `public/libraries/*.json`; `scripts/generateLibraryCatalog.mjs` produces their compact searchable catalog. Canvas AI uses `src/lib/ai/libraryAssets.ts` to resolve prompt-context matches, place the original artwork behind grouped connector anchors, and fall back to generated primitives when nothing matches.
 
 5. **Notes Editor (`Editor.tsx`, `MathExtensions.tsx`, `PdfEmbed.tsx`)**
    - Implements Tiptap v3.
@@ -126,6 +127,8 @@ Writing and maintaining hundreds of deep technical articles in the project is dr
 4. **Auditing & Verification Tools**:
    - `check_articles.py`, `check_code.py`, `check_backend_status.cjs`, `find_missing_blogs.cjs`: Audit scripts that verify that every roadmap concept maps to a valid non-empty blog slug, ensure syntax highlighting blocks compile without syntax errors, and flag missing articles.
    - `scripts/generateSitemap.js`: Crawls all roadmap zones, topics, and blog post slugs to generate `public/sitemap.xml` automatically for SEO search engine indexing.
+   - `npm run test:mcp`: Runs the MCP connector's Node integration/security baseline against an isolated temporary loopback connector. Pending security requirements remain visible as `test.todo` contracts until their remediation stage implements them.
+   - `npm run test:diagrams`: Runs deterministic diagram layout, routing, and overlap regressions.
 
 ---
 

@@ -12,8 +12,11 @@ import {
   type McpServerTestResult,
   type McpToolSummary,
 } from './types';
+import { useMcpStore } from '../../store/mcpStore';
 
 const REQUEST_TIMEOUT_MS = 8_000;
+const MAX_CONNECTOR_RESPONSE_BYTES = 1024 * 1024;
+const MAX_SSE_BUFFER_BYTES = 512 * 1024;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -56,6 +59,9 @@ export const normalizeConnectorEndpoint = (value: string): string => {
   if (!url.hostname || url.username || url.password) {
     throw new McpConnectorRequestError('The connector URL cannot include credentials.');
   }
+  if (!['127.0.0.1', 'localhost', '[::1]', '::1'].includes(url.hostname.toLowerCase())) {
+    throw new McpConnectorRequestError('The AlgoGlyph connector must run on this device (loopback only).');
+  }
 
   url.hash = '';
   url.search = '';
@@ -65,6 +71,25 @@ export const normalizeConnectorEndpoint = (value: string): string => {
 
 const connectorUrl = (endpoint: string, path: string): string =>
   new URL(path, `${normalizeConnectorEndpoint(endpoint)}/`).toString();
+
+const readBoundedText = async (response: Response, maximum = MAX_CONNECTOR_RESPONSE_BYTES): Promise<string> => {
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let output = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maximum) {
+      await reader.cancel();
+      throw new McpConnectorRequestError('The connector response exceeded its safety limit.', response.status);
+    }
+    output += decoder.decode(value, { stream: true });
+  }
+  return output + decoder.decode();
+};
 
 const requestJson = async (
   endpoint: string,
@@ -87,7 +112,7 @@ const requestJson = async (
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
-    const raw = await response.text();
+    const raw = await readBoundedText(response);
     let payload: unknown = {};
 
     if (raw) {
@@ -184,6 +209,7 @@ const parseTool = (value: unknown): McpToolSummary | null => {
     name,
     title: asTrimmedString(value.title),
     description: asTrimmedString(value.description),
+    inputSchema: isRecord(value.inputSchema) ? value.inputSchema : undefined,
   };
 };
 
@@ -194,23 +220,43 @@ const parsePairingCredential = (payload: unknown): McpPairingCredential => {
   const pairingToken = asTrimmedString(payload.pairingToken);
   const expiresAt = asTrimmedString(payload.expiresAt);
   const ttlSeconds = payload.ttlSeconds;
+  const scopes = payload.scopes;
 
-  if (!pairingToken || !expiresAt || typeof ttlSeconds !== 'number') {
+  if (!pairingToken || !expiresAt || typeof ttlSeconds !== 'number' || !Array.isArray(scopes)) {
     throw new McpConnectorRequestError('The connector returned incomplete pairing data.');
   }
 
-  return { pairingToken, expiresAt, ttlSeconds };
+  return { pairingToken, expiresAt, ttlSeconds, scopes: scopes.filter(isMcpSessionScope) };
 };
+
+const isMcpSessionScope = (value: unknown): value is McpConnectorSession['scopes'][number] =>
+  value === 'catalog:read' || value === 'mcp:test' || value === 'mcp:invoke'
+  || value === 'agent:run' || value === 'session:revoke';
 
 const parseSession = (payload: unknown): McpConnectorSession => {
   if (!isRecord(payload)) {
     throw new McpConnectorRequestError('The connector returned an invalid session.');
   }
   const sessionToken = asTrimmedString(payload.sessionToken);
-  if (!sessionToken || payload.tokenType !== 'Bearer') {
+  const expiresAt = asTrimmedString(payload.expiresAt);
+  const idleTimeoutSeconds = payload.idleTimeoutSeconds;
+  const scopes = payload.scopes;
+  if (
+    !sessionToken ||
+    payload.tokenType !== 'Bearer' ||
+    !expiresAt ||
+    typeof idleTimeoutSeconds !== 'number' ||
+    !Array.isArray(scopes)
+  ) {
     throw new McpConnectorRequestError('The connector returned incomplete session data.');
   }
-  return { sessionToken, tokenType: 'Bearer' };
+  return {
+    sessionToken,
+    tokenType: 'Bearer',
+    expiresAt,
+    idleTimeoutSeconds,
+    scopes: scopes.filter(isMcpSessionScope),
+  };
 };
 
 const parseMcpServerTest = (payload: unknown): McpServerTestResult => {
@@ -219,21 +265,23 @@ const parseMcpServerTest = (payload: unknown): McpServerTestResult => {
   }
 
   const transport = payload.transport;
+  const serverId = asTrimmedString(payload.serverId);
   const serverName = asTrimmedString(payload.server.name);
   const capabilities = payload.capabilities;
 
   if (
     (transport !== 'streamable-http' && transport !== 'sse') ||
-    !serverName ||
+    !serverName || !serverId ||
     typeof capabilities.tools !== 'boolean' ||
     typeof capabilities.resources !== 'boolean' ||
     typeof capabilities.prompts !== 'boolean' ||
-    !Array.isArray(payload.tools)
+    !Array.isArray(payload.tools) || !Array.isArray(payload.resources) || !Array.isArray(payload.prompts)
   ) {
     throw new McpConnectorRequestError('The connector returned incomplete MCP server data.');
   }
 
   return {
+    serverId,
     transport,
     server: {
       name: serverName,
@@ -248,13 +296,39 @@ const parseMcpServerTest = (payload: unknown): McpServerTestResult => {
       const parsed = parseTool(tool);
       return parsed ? [parsed] : [];
     }),
+    resources: payload.resources.flatMap((value) => {
+      if (!isRecord(value)) return [];
+      const uri = asTrimmedString(value.uri);
+      if (!uri) return [];
+      return [{
+        uri,
+        name: asTrimmedString(value.name),
+        title: asTrimmedString(value.title),
+        description: asTrimmedString(value.description),
+        mimeType: asTrimmedString(value.mimeType),
+      }];
+    }),
+    prompts: payload.prompts.flatMap((value) => {
+      if (!isRecord(value)) return [];
+      const name = asTrimmedString(value.name);
+      if (!name) return [];
+      return [{
+        name,
+        title: asTrimmedString(value.title),
+        description: asTrimmedString(value.description),
+        arguments: Array.isArray(value.arguments) ? value.arguments.filter(isRecord) : undefined,
+      }];
+    }),
+    truncated: payload.truncated === true,
   };
 };
 
 export const inspectMcpConnectorHealth = async (endpoint: string): Promise<McpConnectorHealth> =>
   parseHealth(await requestJson(endpoint, 'health'));
 
-export const createMcpPairingCredential = async (endpoint: string): Promise<McpPairingCredential> =>
+export const createMcpPairingCredential = async (
+  endpoint: string,
+): Promise<McpPairingCredential> =>
   parsePairingCredential(await requestJson(endpoint, 'v1/pairings', undefined, {}));
 
 export const redeemMcpPairingCredential = async (
@@ -274,7 +348,9 @@ export const pairMcpConnectorWithCredential = async (
   return { health, catalog, sessionToken: session.sessionToken };
 };
 
-export const pairMcpConnector = async (endpoint: string): Promise<McpPairedConnectorSnapshot> => {
+export const pairMcpConnector = async (
+  endpoint: string,
+): Promise<McpPairedConnectorSnapshot> => {
   const normalized = normalizeConnectorEndpoint(endpoint);
   const health = await inspectMcpConnectorHealth(normalized);
   const pairing = await createMcpPairingCredential(normalized);
@@ -287,7 +363,7 @@ export const revokeMcpConnectorSession = async (
   endpoint: string,
   connectorToken: string | undefined,
 ): Promise<void> => {
-  const token = connectorToken?.trim();
+  const token = useMcpStore.getState().connectorToken?.trim() || connectorToken?.trim();
   if (!token) return;
   await requestJson(endpoint, 'v1/session/revoke', token, {});
 };
@@ -312,13 +388,28 @@ export const testMcpServer = async (
   connectorToken: string | undefined,
   serverEndpoint: string,
   serverToken?: string,
+  allowPrivateNetwork = false,
 ): Promise<McpServerTestResult> =>
   parseMcpServerTest(
     await requestJson(connectorEndpoint, 'v1/mcp/test', connectorToken, {
       endpoint: serverEndpoint,
       accessToken: serverToken?.trim() || undefined,
+      allowPrivateNetwork,
     }),
   );
+
+export const invokeMcpTool = async (
+  connectorEndpoint: string,
+  connectorToken: string,
+  serverId: string,
+  toolName: string,
+  args: JsonRecord,
+): Promise<unknown> => requestJson(connectorEndpoint, 'v1/mcp/invoke', connectorToken, {
+  serverId,
+  toolName,
+  arguments: args,
+  confirmed: true,
+});
 
 const toAgentRunEvent = (eventName: string, data: JsonRecord): McpAgentRunEvent | null => {
   if (eventName === 'output') {
@@ -337,7 +428,7 @@ const toAgentRunEvent = (eventName: string, data: JsonRecord): McpAgentRunEvent 
   return null;
 };
 
-const parseSseRecord = (record: string): McpAgentRunEvent | null => {
+const parseSseRecord = (record: string): McpAgentRunEvent => {
   let eventName = 'message';
   const dataLines: string[] = [];
 
@@ -349,22 +440,24 @@ const parseSseRecord = (record: string): McpAgentRunEvent | null => {
     }
   }
 
-  if (!dataLines.length) return null;
+  if (!dataLines.length) throw new McpConnectorRequestError('The agent stream contained a malformed event.');
 
   let data: unknown;
   try {
     data = JSON.parse(dataLines.join('\n'));
   } catch {
-    return null;
+    throw new McpConnectorRequestError('The agent stream contained invalid JSON.');
   }
 
-  return isRecord(data) ? toAgentRunEvent(eventName, data) : null;
+  const event = isRecord(data) ? toAgentRunEvent(eventName, data) : null;
+  if (!event) throw new McpConnectorRequestError('The agent stream contained an unsupported event.');
+  return event;
 };
 
 const readErrorMessage = async (response: Response): Promise<string> => {
   const fallback = `Agent run failed (${response.status}).`;
   try {
-    const raw = await response.text();
+    const raw = await readBoundedText(response);
     if (!raw) return fallback;
     return errorMessageFromPayload(JSON.parse(raw) as unknown, fallback);
   } catch {
@@ -384,8 +477,10 @@ export async function* runAgent(
   request: McpAgentRunRequest,
   signal?: AbortSignal,
 ): AsyncGenerator<McpAgentRunEvent> {
+  const runState = useMcpStore.getState();
+  runState.startAgentRun(request.agentId);
   const headers = new Headers({ Accept: 'text/event-stream', 'Content-Type': 'application/json' });
-  const token = connectorToken?.trim();
+  const token = runState.connectorToken?.trim() || connectorToken?.trim();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   let response: Response;
@@ -393,11 +488,18 @@ export async function* runAgent(
     response = await fetch(connectorUrl(connectorEndpoint, 'v1/agents/run'), {
       method: 'POST',
       headers,
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        ...request,
+        mcpServerId: request.mcpServerId ?? runState.approvedMcpServerId ?? undefined,
+      }),
       signal,
     });
   } catch {
-    if (signal?.aborted) return;
+    if (signal?.aborted) {
+      useMcpStore.getState().failAgentRun('The agent run was cancelled.');
+      throw new McpConnectorRequestError('The agent run was cancelled.');
+    }
+    useMcpStore.getState().failAgentRun('Could not reach the local connector.');
     throw new McpConnectorRequestError('Could not reach the local connector.');
   }
 
@@ -408,18 +510,36 @@ export async function* runAgent(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let sawExit = false;
+  let failureMessage: string | undefined;
 
   try {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
+      if (new TextEncoder().encode(buffer).byteLength > MAX_SSE_BUFFER_BYTES) {
+        throw new McpConnectorRequestError('The agent stream buffer exceeded its safety limit.');
+      }
 
       let boundary = buffer.indexOf('\n\n');
       while (boundary !== -1) {
         const event = parseSseRecord(buffer.slice(0, boundary));
         buffer = buffer.slice(boundary + 2);
-        if (event) yield event;
+        if (sawExit) throw new McpConnectorRequestError('The agent stream continued after its terminal event.');
+        if (event.type === 'output') useMcpStore.getState().appendAgentOutput(event.chunk);
+        if (event.type === 'error') {
+          failureMessage = event.message;
+          useMcpStore.getState().failAgentRun(event.message);
+        }
+        if (event.type === 'exit') {
+          sawExit = true;
+          if (event.code !== 0) {
+            throw new McpConnectorRequestError(failureMessage || `The agent exited unsuccessfully (code ${event.code ?? 'unknown'}).`);
+          }
+          useMcpStore.getState().finishAgentRun(event.code);
+        }
+        yield event;
         boundary = buffer.indexOf('\n\n');
       }
     }
@@ -427,10 +547,26 @@ export async function* runAgent(
     const tail = (buffer + decoder.decode()).trim();
     if (tail) {
       const event = parseSseRecord(tail);
-      if (event) yield event;
+      if (sawExit) throw new McpConnectorRequestError('The agent stream continued after its terminal event.');
+      if (event.type === 'output') useMcpStore.getState().appendAgentOutput(event.chunk);
+      if (event.type === 'error') {
+        failureMessage = event.message;
+        useMcpStore.getState().failAgentRun(event.message);
+      }
+      if (event.type === 'exit') {
+        sawExit = true;
+        if (event.code !== 0) throw new McpConnectorRequestError(failureMessage || 'The agent exited unsuccessfully.');
+        useMcpStore.getState().finishAgentRun(event.code);
+      }
+      yield event;
     }
-  } catch {
-    if (signal?.aborted) return;
+    if (!sawExit) throw new McpConnectorRequestError(failureMessage || 'The agent stream ended without a terminal event.');
+    if (failureMessage) throw new McpConnectorRequestError(failureMessage);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The agent stream ended unexpectedly.';
+    useMcpStore.getState().failAgentRun(message);
+    if (error instanceof McpConnectorRequestError) throw error;
+    if (signal?.aborted) throw new McpConnectorRequestError('The agent run was cancelled.');
     throw new McpConnectorRequestError('The agent stream ended unexpectedly.');
   } finally {
     reader.cancel().catch(() => undefined);

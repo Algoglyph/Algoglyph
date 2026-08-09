@@ -22,7 +22,7 @@ For repository development, run from the project root:
 npm run mcp:connector
 ```
 
-Open the AlgoGlyph workspace and click the MCP/Local AI button. The UI polls `http://127.0.0.1:4319/health`, detects the connector, performs one-time pairing, and stores only the resulting connector session token in `sessionStorage` for the current browser tab/session.
+Run the connector while AlgoGlyph is open. The workspace polls localhost and pairs automatically as soon as the connector is available. There is no connection link to open and no token to copy. The resulting connector session token is stored in `sessionStorage` for the current browser tab/session.
 
 Normal users should not need to paste a URL, port, token, or session ID.
 
@@ -30,16 +30,18 @@ Normal users should not need to paste a URL, port, token, or session ID.
 
 Automatic pairing uses a separate one-time credential:
 
-1. Browser discovers the connector with `GET /health`.
-2. Browser asks for a short-lived pairing credential with `POST /v1/pairings`.
-3. Browser redeems it once with `POST /v1/session`.
-4. Connector invalidates the pairing credential immediately.
-5. Browser uses the returned session token for authenticated MCP operations.
+1. The trusted AlgoGlyph app discovers the loopback connector.
+2. The browser requests a short-lived pairing credential directly from the connector.
+3. The browser redeems the credential once with `POST /v1/session`.
+4. The connector invalidates the pairing credential immediately.
+5. The browser uses the returned scoped session token for authenticated MCP operations.
 6. Disconnect calls `POST /v1/session/revoke` and clears the browser-side token.
 
-The pairing credential is cryptographically random, expires after 90 seconds, is single-use, and is not used for normal operations. The connector also prints a quick-connect URL containing a one-time `mcpPair` value in the hash fragment. The app scrubs MCP URL parameters before analytics initialization and before pageview capture.
+The pairing credential is cryptographically random, expires after 90 seconds, is single-use, and is not used for normal operations. `POST /v1/pairings` is available only to trusted browser origins under the connector's CORS policy and is rate limited. Legacy MCP URL parameters are scrubbed and ignored.
 
-The older manual token remains as an Advanced fallback. If `ALGOGLYPH_CONNECTOR_TOKEN` is set, the connector accepts it for manual connection. Otherwise it creates a process-local fallback token and prints it to the terminal.
+Sessions are capability-scoped, expire after 8 hours or 30 minutes of inactivity, and are pruned automatically. The connector keeps at most 8 sessions and evicts the least recently used one when a newly approved session exceeds that limit. Pairing issuance and redemption are rate limited.
+
+An explicitly configured `ALGOGLYPH_CONNECTOR_TOKEN` remains available as an advanced fallback. Random process secrets are never printed.
 
 ## Endpoints
 
@@ -47,14 +49,15 @@ Public discovery and pairing endpoints, restricted by trusted browser origin whe
 
 - `GET /health`: reports connector availability. No secrets, workspace data, filesystem data, MCP tool results, or user data.
 - `GET /v1/health`: compatibility alias for health.
-- `POST /v1/pairings`: creates a short-lived one-time pairing credential.
+- `POST /v1/pairings`: creates a short-lived, one-time pairing credential for automatic connection.
 - `POST /v1/session`: redeems a pairing credential and returns a connector session token.
 
 Authenticated endpoints:
 
 - `GET /v1/catalog`: detects allowed local agent CLIs using fixed `--version` commands.
-- `POST /v1/mcp/test`: tests an HTTPS Streamable HTTP MCP endpoint and falls back to legacy SSE.
-- `POST /v1/agents/run`: runs one allowlisted local CLI prompt and streams stdout/stderr over SSE.
+- `POST /v1/mcp/test`: validates and inspects an HTTPS MCP endpoint (or an explicitly approved loopback endpoint), returning paginated tool/resource/prompt metadata and a session-bound server ID.
+- `POST /v1/mcp/invoke`: invokes a tool from an approved server after the app previews exact arguments and records explicit confirmation.
+- `POST /v1/agents/run`: runs one allowlisted local CLI prompt over SSE. The optional additive `outputMode: "buffered"` coalesces process chunks for callers, such as diagram generation, that only consume the completed result; streaming remains the default.
 - `POST /v1/session/revoke`: revokes the current connector session token.
 
 ## Browser security
@@ -67,18 +70,18 @@ Allowed CORS origins are explicit:
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
 - any extra origins in `ALGOGLYPH_ALLOWED_ORIGINS`
-- the origin of `ALGOGLYPH_APP_URL`
+- `app://algoglyph` for the packaged Electron workspace
 
 Authenticated endpoints do not use `Access-Control-Allow-Origin: *`. Private Network Access preflights are answered with `Access-Control-Allow-Private-Network: true` only for allowed origins.
 
-There is currently no site-wide CSP in `public/_headers`; therefore no `connect-src` rule blocks loopback connector requests. If a CSP is added later, it must include `http://127.0.0.1:4319` and any configured loopback connector port.
+The packaged Electron workspace uses the trusted `app://algoglyph` origin and a restrictive response CSP. Any web-host CSP must keep the configured loopback connector in `connect-src`.
 
 ## Future npm package
 
-A local package is prepared at `packages/mcp-connector`, but nothing is published yet. The public package should expose this bin:
+The package exposes this bin:
 
 ```bash
 npx @algoglyph/mcp-connector
 ```
 
-Before publishing, run `npm pack --dry-run` in `packages/mcp-connector` and confirm the tarball contains only `package.json`, `README.md`, and `bin/algoglyph-mcp-connector.mjs`. The package defaults `ALGOGLYPH_APP_URL` to `https://algoglyph.com`; the repository development shim keeps `npm run mcp:connector` pointed at local Vite.
+Before publishing, run `npm pack --dry-run` in `packages/mcp-connector` and confirm the tarball contains exactly `package.json`, `README.md`, `bin/algoglyph-mcp-connector.js`, and `bin/algoglyph-mcp-connector.mjs`. The package is intentionally marked `UNLICENSED`; publishing it does not grant reuse rights.

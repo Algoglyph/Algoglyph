@@ -120,12 +120,14 @@ interface McpStoreState {
   connectorToken: string | null;
   // Which CLI powers the AI features; resolved against the catalog when it loads.
   activeAgentId: string | null;
+  approvedMcpServerId: string | null;
   agentRun: McpAgentRunState | null;
   openMcpPanel: () => void;
   closeMcpPanel: () => void;
   setConnectorEndpoint: (endpoint: string) => void;
   setConnectorToken: (token: string | null) => void;
   setActiveAgentId: (agentId: string) => void;
+  setApprovedMcpServerId: (serverId: string | null) => void;
   setConnectionState: (
     state: McpConnectionState,
     health?: McpConnectorHealth | null,
@@ -148,6 +150,7 @@ export const useMcpStore = create<McpStoreState>((set) => ({
   connectionError: null,
   connectorToken: readConnectorToken(),
   activeAgentId: readActiveAgentId(),
+  approvedMcpServerId: null,
   agentRun: null,
   openMcpPanel: () => set({ mcpPanelOpen: true }),
   closeMcpPanel: () => set({ mcpPanelOpen: false }),
@@ -164,6 +167,7 @@ export const useMcpStore = create<McpStoreState>((set) => ({
     persistActiveAgentId(agentId);
     set({ activeAgentId: agentId });
   },
+  setApprovedMcpServerId: (approvedMcpServerId) => set({ approvedMcpServerId }),
   setConnectionState: (connectionState, connectorHealth = null, connectorCatalog = null, connectionError = null) =>
     set((state) => {
       const activeAgentId = resolveActiveAgent(connectorCatalog, state.activeAgentId);

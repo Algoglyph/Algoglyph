@@ -1,7 +1,5 @@
-// Development shim for the repository workflow. The publishable connector lives
-// in packages/mcp-connector and defaults to https://algoglyph.com; this shim
-// keeps `npm run mcp:connector` pointed at the local Vite app.
-process.env.ALGOGLYPH_APP_URL ||= 'http://localhost:5173';
+// Development shim for the repository workflow. Starting this command is the
+// complete connection flow; the browser discovers and pairs with it locally.
 process.env.ALGOGLYPH_DEV_ORIGINS ||= '1';
 
 await import('../packages/mcp-connector/bin/algoglyph-mcp-connector.mjs');

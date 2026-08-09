@@ -16,6 +16,7 @@ import {
 import {
   McpConnectorRequestError,
   inspectMcpConnector,
+  invokeMcpTool,
   normalizeConnectorEndpoint,
   pairMcpConnector,
   revokeMcpConnectorSession,
@@ -69,6 +70,7 @@ export const McpConnectDialog: React.FC = () => {
   const setConnectionState = useMcpStore((state) => state.setConnectionState);
   const setStoredConnectorToken = useMcpStore((state) => state.setConnectorToken);
   const setActiveAgentId = useMcpStore((state) => state.setActiveAgentId);
+  const setApprovedMcpServerId = useMcpStore((state) => state.setApprovedMcpServerId);
 
   const endpointInputRef = useRef<HTMLInputElement>(null);
   const [connectorToken, setConnectorToken] = useState(() => useMcpStore.getState().connectorToken || '');
@@ -77,11 +79,13 @@ export const McpConnectDialog: React.FC = () => {
   const [copiedCommand, setCopiedCommand] = useState(false);
   const [serverEndpoint, setServerEndpoint] = useState('');
   const [serverToken, setServerToken] = useState('');
+  const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
+  const [toolName, setToolName] = useState('');
+  const [toolArguments, setToolArguments] = useState('{}');
+  const [toolResult, setToolResult] = useState<string | null>(null);
   const [serverResult, setServerResult] = useState<McpServerTestResult | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState(false);
-
-
   const closeDialog = useCallback(() => {
     setServerToken('');
     setServerResult(null);
@@ -99,7 +103,8 @@ export const McpConnectDialog: React.FC = () => {
   }, [closeDialog, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || useMcpStore.getState().connectionState === 'ready') return;
+    const initialState = useMcpStore.getState();
+    if (!isOpen || initialState.connectionState === 'ready') return;
 
     let cancelled = false;
     let timer: number | undefined;
@@ -209,15 +214,42 @@ export const McpConnectDialog: React.FC = () => {
     try {
       const result = await testMcpServer(
         connectorEndpoint,
-        connectorToken || undefined,
+        useMcpStore.getState().connectorToken || undefined,
         serverEndpoint,
         serverToken || undefined,
+        allowPrivateNetwork,
       );
       setServerResult(result);
+      setApprovedMcpServerId(result.serverId);
+      setToolName(result.tools[0]?.name || '');
     } catch (error) {
       setServerError(errorMessage(error));
     } finally {
       setTestingServer(false);
+    }
+  };
+
+  const invokeTool = async () => {
+    if (!serverResult || !toolName) return;
+    let args: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(toolArguments) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
+      args = parsed as Record<string, unknown>;
+    } catch {
+      setServerError('Tool arguments must be a JSON object.');
+      return;
+    }
+    const preview = `${toolName}\n${JSON.stringify(args, null, 2)}`;
+    if (!window.confirm(`Invoke this MCP tool with exactly these arguments?\n\n${preview}`)) return;
+    try {
+      setServerError(null);
+      const token = useMcpStore.getState().connectorToken;
+      if (!token) throw new McpConnectorRequestError('The connector session is no longer available.');
+      const result = await invokeMcpTool(connectorEndpoint, token, serverResult.serverId, toolName, args);
+      setToolResult(JSON.stringify(result, null, 2));
+    } catch (error) {
+      setServerError(errorMessage(error));
     }
   };
 
@@ -496,6 +528,16 @@ export const McpConnectDialog: React.FC = () => {
                       />
                     </label>
 
+                    <label className="flex items-start gap-2 text-[11px] leading-4 text-body">
+                      <input
+                        type="checkbox"
+                        checked={allowPrivateNetwork}
+                        onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
+                        className="mt-0.5"
+                      />
+                      Allow a loopback MCP server on this device. Other private, reserved, link-local, and metadata addresses stay blocked.
+                    </label>
+
                     <div className="flex justify-end pt-0.5">
                       <button
                         type="submit"
@@ -523,6 +565,49 @@ export const McpConnectDialog: React.FC = () => {
               <p className="mt-1 font-mono text-[10px] text-mute">
                 {serverResult.transport} / {resultLabel(serverResult)}
               </p>
+              {(serverResult.resources.length > 0 || serverResult.prompts.length > 0 || serverResult.tools.length > 0) && (
+                <div className="mt-3 grid gap-2 border-t border-hairline pt-3 text-[11px] text-body">
+                  {serverResult.tools.map((tool) => (
+                    <div key={`tool:${tool.name}`}>
+                      <span className="font-mono text-ink">tool / {tool.name}</span>
+                      {tool.description && <span className="ml-2 text-mute">{tool.description}</span>}
+                    </div>
+                  ))}
+                  {serverResult.resources.map((resource) => (
+                    <div key={`resource:${resource.uri}`}>
+                      <span className="font-mono text-ink">resource / {resource.name || resource.uri}</span>
+                    </div>
+                  ))}
+                  {serverResult.prompts.map((prompt) => (
+                    <div key={`prompt:${prompt.name}`}>
+                      <span className="font-mono text-ink">prompt / {prompt.name}</span>
+                    </div>
+                  ))}
+                  {serverResult.truncated && <p className="text-mute">Results were capped at the connector safety limit.</p>}
+                </div>
+              )}
+              {serverResult.tools.length > 0 && (
+                <div className="mt-3 grid gap-2 border-t border-hairline pt-3">
+                  <select value={toolName} onChange={(event) => setToolName(event.target.value)} className={inputClassName}>
+                    {serverResult.tools.map((tool) => <option key={tool.name} value={tool.name}>{tool.name}</option>)}
+                  </select>
+                  <textarea
+                    value={toolArguments}
+                    onChange={(event) => setToolArguments(event.target.value)}
+                    className={`${inputClassName} h-24 py-2`}
+                    spellCheck={false}
+                    aria-label="Exact MCP tool arguments as JSON"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void invokeTool()}
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-hairline px-3 text-xs font-medium text-body"
+                  >
+                    Preview and invoke tool
+                  </button>
+                  {toolResult && <pre className="max-h-48 overflow-auto whitespace-pre-wrap text-[10px] text-body">{toolResult}</pre>}
+                </div>
+              )}
             </div>
           )}
         </div>
