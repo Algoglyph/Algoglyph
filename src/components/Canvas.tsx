@@ -7,6 +7,7 @@ import { StructuresPanel } from './StructuresPanel';
 import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
 import { generateCanvasResponse, insertCanvasSkeletons, CanvasAiError } from '../lib/ai/diagram';
 import { serializeCanvasForNotes } from '../lib/ai/notes';
+import { beginCanvasPerfTrace, finishCanvasPerfTrace } from '../lib/ai/devTiming';
 import '@excalidraw/excalidraw/index.css';
 
 /**
@@ -52,6 +53,36 @@ export const Canvas: React.FC = () => {
   // AI-native diagram generation: read the prompt off the canvas → generate.
   const [aiBusy, setAiBusy] = useState(false);
   const aiAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!excalidrawAPI || new URLSearchParams(window.location.search).get('algoglyphPerf') !== '1') return;
+    const perfWindow = window as unknown as {
+      __ALGOGLYPH_BENCHMARK_CANVAS__?: (prompt: string, agentId?: string) => Promise<unknown>;
+    };
+    perfWindow.__ALGOGLYPH_BENCHMARK_CANVAS__ = async (prompt, agentId = 'antigravity') => {
+      const mcp = useMcpStore.getState();
+      if (!mcp.connectorToken) throw new Error('The benchmark connector is not ready.');
+      excalidrawAPI.updateScene({ elements: [], commitToHistory: false });
+      const traceId = beginCanvasPerfTrace(prompt);
+      try {
+        const response = await generateCanvasResponse(prompt, {
+          connectorEndpoint: mcp.connectorEndpoint,
+          connectorToken: mcp.connectorToken,
+          agentId,
+          canvasContext: null,
+          timingTraceId: traceId,
+        });
+        insertCanvasSkeletons(response.skeletons, traceId);
+        return finishCanvasPerfTrace(traceId);
+      } catch (error) {
+        finishCanvasPerfTrace(traceId, error instanceof Error ? error.message : 'Benchmark failed.');
+        throw error;
+      }
+    };
+    return () => {
+      delete perfWindow.__ALGOGLYPH_BENCHMARK_CANVAS__;
+    };
+  }, [excalidrawAPI]);
 
   const runCanvasAi = useCallback(async () => {
     const api = (window as any).excalidrawAPI;

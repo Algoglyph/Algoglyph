@@ -2,6 +2,7 @@ import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import { runAgent } from '../mcp/connectorClient';
 import { serializeCanvasForNotes } from './notes';
 import { createBasicIllustrationPlan } from './basicIllustrations';
+import { recordCanvasPerfStage, recordCanvasPerfStages } from './devTiming';
 import { parseCanvasResponse, type CanvasResponse } from './diagramLayout';
 import {
   applyLibraryMatches,
@@ -100,6 +101,7 @@ export const generateCanvasResponse = async (
     agentId?: string;
     signal?: AbortSignal;
     canvasContext?: string | null;
+    timingTraceId?: string;
   },
 ): Promise<CanvasResponse> => {
   const basicIllustration = createBasicIllustrationPlan(userRequest);
@@ -107,7 +109,9 @@ export const generateCanvasResponse = async (
 
   let catalog: LibraryCatalogEntry[] = [];
   try {
+    const catalogStartedAt = performance.now();
     catalog = await loadLibraryCatalog();
+    recordCanvasPerfStage(options.timingTraceId, 'library_catalog_ms', performance.now() - catalogStartedAt);
     const directLibraryPlan = createSingleLibraryPlan(userRequest, catalog);
     if (directLibraryPlan) return await hydrateLibrarySkeletons(parseCanvasResponse(directLibraryPlan));
   } catch {
@@ -119,6 +123,7 @@ export const generateCanvasResponse = async (
   let stderr = '';
 
   try {
+    const agentStartedAt = performance.now();
     for await (const event of runAgent(
       options.connectorEndpoint,
       options.connectorToken,
@@ -126,6 +131,7 @@ export const generateCanvasResponse = async (
         agentId: options.agentId || 'claude',
         prompt: buildCanvasPrompt(userRequest, canvasContext, relevantLibraryNames(userRequest, catalog)),
         outputMode: 'buffered',
+        traceId: options.timingTraceId,
       },
       options.signal,
     )) {
@@ -134,8 +140,11 @@ export const generateCanvasResponse = async (
         else stderr += event.chunk;
       } else if (event.type === 'error') {
         throw new CanvasAiError(event.message);
+      } else if (event.type === 'timing') {
+        recordCanvasPerfStages(options.timingTraceId, event.stages);
       }
     }
+    recordCanvasPerfStage(options.timingTraceId, 'agent_round_trip_ms', performance.now() - agentStartedAt);
   } catch (error) {
     if (error instanceof CanvasAiError) throw error;
     throw new CanvasAiError(error instanceof Error ? error.message : 'Could not reach the local connector.');
@@ -146,8 +155,19 @@ export const generateCanvasResponse = async (
   }
 
   try {
-    const raw = applyLibraryMatches(extractJsonObject(stdout), userRequest, catalog);
-    return await hydrateLibrarySkeletons(parseCanvasResponse(raw));
+    const jsonStartedAt = performance.now();
+    const extracted = extractJsonObject(stdout);
+    recordCanvasPerfStage(options.timingTraceId, 'json_parse_ms', performance.now() - jsonStartedAt);
+    const matchingStartedAt = performance.now();
+    const raw = applyLibraryMatches(extracted, userRequest, catalog);
+    recordCanvasPerfStage(options.timingTraceId, 'library_matching_ms', performance.now() - matchingStartedAt);
+    const layoutStartedAt = performance.now();
+    const response = parseCanvasResponse(raw);
+    recordCanvasPerfStage(options.timingTraceId, 'layout_routing_ms', performance.now() - layoutStartedAt);
+    const hydrationStartedAt = performance.now();
+    const hydrated = await hydrateLibrarySkeletons(response);
+    recordCanvasPerfStage(options.timingTraceId, 'library_hydration_ms', performance.now() - hydrationStartedAt);
+    return hydrated;
   } catch (error) {
     throw new CanvasAiError(
       error instanceof Error ? `Could not read the response: ${error.message}` : 'Could not read the response.',
@@ -159,7 +179,10 @@ export const generateCanvasResponse = async (
  * Insert generated skeletons onto the Excalidraw canvas, stacked below existing
  * content, and scroll them into view. Returns the number of elements added.
  */
-export const insertCanvasSkeletons = (skeletons: Record<string, unknown>[]): number => {
+export const insertCanvasSkeletons = (
+  skeletons: Record<string, unknown>[],
+  timingTraceId?: string,
+): number => {
   const api = (window as unknown as { excalidrawAPI?: any }).excalidrawAPI;
   if (!api) throw new CanvasAiError('The canvas is not ready yet.');
   if (!skeletons.length) return 0;
@@ -202,11 +225,15 @@ export const insertCanvasSkeletons = (skeletons: Record<string, unknown>[]): num
     ...(typeof skel.y === 'number' ? { y: skel.y + dy } : {}),
   }));
 
+  const conversionStartedAt = performance.now();
   const newElements = convertToExcalidrawElements(placed as any, { regenerateIds: true });
+  recordCanvasPerfStage(timingTraceId, 'excalidraw_conversion_ms', performance.now() - conversionStartedAt);
+  const updateStartedAt = performance.now();
   api.updateScene({
     elements: [...sceneElements, ...newElements],
     commitToHistory: true,
   });
+  recordCanvasPerfStage(timingTraceId, 'update_scene_ms', performance.now() - updateStartedAt);
 
   try {
     api.scrollToContent(newElements, { fitToContent: true, animate: false });

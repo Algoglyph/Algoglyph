@@ -218,6 +218,7 @@ export const startConnectorHarness = async ({
     env: {
       ...process.env,
       ...environment,
+      NODE_ENV: environment.NODE_ENV || 'test',
       ALGOGLYPH_CONNECTOR_PORT: String(port),
       ALGOGLYPH_CONNECTOR_TOKEN: masterToken,
       ALGOGLYPH_ALLOWED_ORIGINS: '',
