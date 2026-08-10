@@ -1,0 +1,273 @@
+- generic [ref=f19e4]:
+  - banner [ref=f19e5]:
+    - generic [ref=f19e6]:
+      - img "Algoglyph" [ref=f19e7]
+      - generic [ref=f19e8]: Algoglyph
+    - navigation [ref=f19e9]:
+      - link "Features" [ref=f19e10] [cursor=pointer]:
+        - /url: "#features"
+      - link "Visualizers" [ref=f19e11] [cursor=pointer]:
+        - /url: "#visualizer"
+      - link "Roadmap" [ref=f19e12] [cursor=pointer]:
+        - /url: "#roadmap"
+    - button "Launch Workspace" [ref=f19e13] [cursor=pointer]
+  - generic [ref=f19e15]:
+    - heading "Learn computer science visually using AI agents with seamless note-making." [level=1] [ref=f19e16]: Learn computer science visuallyusing AI agents with seamless note-making.
+    - paragraph [ref=f19e17]: Notes, an infinite whiteboard, live visualizers, and a local AI agent connector, all in one place. Stop juggling six tabs and start seeing how computer science actually works, then check out the roadmap for 1000+ articles.
+    - generic [ref=f19e18]:
+      - button "Launch Free Workspace" [ref=f19e19] [cursor=pointer]
+      - button "Explore CS Roadmap" [ref=f19e20] [cursor=pointer]
+  - generic [ref=f19e22]:
+    - generic [ref=f19e23]: Notebook
+    - generic [ref=f19e24]: Infinite Canvas
+    - generic [ref=f19e25]: Agent Connector
+    - generic [ref=f19e26]: State Visualizer
+    - generic [ref=f19e27]: Spatial Memory
+    - generic [ref=f19e28]: CS Roadmap
+    - generic [ref=f19e29]: Notebook
+    - generic [ref=f19e30]: Infinite Canvas
+    - generic [ref=f19e31]: Agent Connector
+    - generic [ref=f19e32]: State Visualizer
+    - generic [ref=f19e33]: Spatial Memory
+    - generic [ref=f19e34]: CS Roadmap
+    - generic [ref=f19e35]: Notebook
+    - generic [ref=f19e36]: Infinite Canvas
+    - generic [ref=f19e37]: Agent Connector
+    - generic [ref=f19e38]: State Visualizer
+    - generic [ref=f19e39]: Spatial Memory
+    - generic [ref=f19e40]: CS Roadmap
+  - generic [ref=f19e41]:
+    - generic [ref=f19e42]:
+      - generic [ref=f19e43]: Workspace Fragmentation
+      - heading "Why CS study can feel scattered across tools" [level=2] [ref=f19e44]
+      - paragraph [ref=f19e45]: Developers split focus across six isolated programs. Explanations live on YouTube tabs, AI chat sits in a separate browser tab, textbook notes sit in Notion databases, and layouts are sketched on physical scratchpads. Algoglyph closes this loop.
+    - img "Six scattered study tools on the left, unified into one AlgoGlyph workspace loop on the right" [ref=f19e47]:
+      - generic [ref=f19e48]:
+        - generic [ref=f19e49]: YouTube
+        - generic [ref=f19e52]: Notion
+        - generic [ref=f19e55]: Discord
+        - generic [ref=f19e58]: PDFs
+        - generic [ref=f19e61]: Sketchpad
+        - generic [ref=f19e64]: ChatGPT
+        - generic [ref=f19e70]: six tabs, none talking
+      - generic [ref=f19e71]: unify
+      - generic [ref=f19e75]:
+        - generic [ref=f19e77]: AlgoGlyph
+        - generic [ref=f19e78]: Notes
+        - generic [ref=f19e81]: Canvas
+        - generic [ref=f19e84]: Agent
+        - generic [ref=f19e87]: Visualizer
+        - generic [ref=f19e94]: one synchronized loop
+    - generic [ref=f19e95]:
+      - generic [ref=f19e96]:
+        - heading "Context Switching Cost" [level=3] [ref=f19e97]
+        - paragraph [ref=f19e98]: Every jump between tabs resets focus. Static visuals are detached from your AI chat history.
+        - list [ref=f19e99]:
+          - listitem [ref=f19e100]:
+            - generic [ref=f19e101]: YouTube Walkthrough
+            - generic [ref=f19e102]: Static / Passive
+          - listitem [ref=f19e103]:
+            - generic [ref=f19e104]: Notion / Markdown Files
+            - generic [ref=f19e105]: No Execution
+          - listitem [ref=f19e106]:
+            - generic [ref=f19e107]: Standalone AI Chat
+            - generic [ref=f19e108]: No Canvas Access
+          - listitem [ref=f19e109]:
+            - generic [ref=f19e110]: Physical Sketchbook
+            - generic [ref=f19e111]: No connection
+      - generic [ref=f19e112]:
+        - heading "The Unified Feedback Loop" [level=3] [ref=f19e113]
+        - paragraph [ref=f19e114]: Notes, agent output, visual representation, and spatial layouts run as a synchronized system.
+        - list [ref=f19e115]:
+          - listitem [ref=f19e116]:
+            - generic [ref=f19e117]: Infinite Canvas
+            - generic [ref=f19e118]: Active Drawing Sandbox
+          - listitem [ref=f19e119]:
+            - generic [ref=f19e120]: Note Editor
+            - generic [ref=f19e121]: Syncs with Canvas
+          - listitem [ref=f19e122]:
+            - generic [ref=f19e123]: Local Agent Connector
+            - generic [ref=f19e124]: Runs Inside Canvas
+  - generic [ref=f19e125]:
+    - generic [ref=f19e126]:
+      - generic [ref=f19e127]: Why Algoglyph
+      - heading "One workspace for the whole loop" [level=2] [ref=f19e128]
+    - generic [ref=f19e129]:
+      - complementary [ref=f19e130]:
+        - generic [ref=f19e131]:
+          - button "Canvas" [ref=f19e132]
+          - button "Notes" [ref=f19e133]
+          - button "Agents" [ref=f19e134]
+          - button "Visualizer" [ref=f19e135]
+      - generic [ref=f19e136]:
+        - generic [ref=f19e137]:
+          - generic [ref=f19e138]:
+            - generic [ref=f19e139]: Free Canvas
+            - heading "Infinite canvas for notes and templates" [level=3] [ref=f19e140]
+            - paragraph [ref=f19e141]: Computer science is easier to reason about when you can see it. Algoglyph gives you an infinite whiteboard to sketch out concepts, system designs, and diagrams, or start from a template, then zoom out to see how it all connects.
+            - list [ref=f19e142]:
+              - listitem [ref=f19e143]: Pan, zoom, and build multi-structure diagrams
+              - listitem [ref=f19e147]: Excalidraw drawing engines integrated
+              - listitem [ref=f19e151]: Maintain coordinate states permanently
+          - 'img "Hand-drawn canvas: two linked nodes holding 17 and 42, with a note explaining that pointers link disjoint memory locations" [ref=f19e158]':
+            - generic [ref=f19e413]: canvas
+            - generic [ref=f19e415]: Node 0
+            - generic [ref=f19e416]: "17"
+            - generic [ref=f19e420]: Node 1
+            - generic [ref=f19e421]: "42"
+            - generic [ref=f19e422]:
+              - generic [ref=f19e424]: Spatial link
+              - generic [ref=f19e425]: pointers join disjoint
+              - generic [ref=f19e426]: memory locations
+        - generic [ref=f19e431]:
+          - generic [ref=f19e432]:
+            - generic [ref=f19e433]: Notebook Documentation
+            - heading "Notebooks built for computer science" [level=3] [ref=f19e434]
+            - paragraph [ref=f19e435]: Document your understanding with a Markdown editor. Write detailed notes, render mathematical notation with LaTeX equations, and link paragraphs directly to canvas layout coordinates.
+            - list [ref=f19e436]:
+              - listitem [ref=f19e437]: TipTap powered rich text workspace
+              - listitem [ref=f19e441]: LaTeX equation rendering
+              - listitem [ref=f19e445]: Hyperlink notebook sentences to canvas targets
+          - 'img "Hand-drawn notebook page: a heading, body text, a complexity callout showing O(N) time and O(H) space, and a code block linked to the canvas" [ref=f19e452]':
+            - generic [ref=f19e455]: Recursive pre-order traversal
+            - generic [ref=f19e459]: Time O(N)
+            - generic [ref=f19e460]: Space O(H)
+            - generic [ref=f19e462]: "void preOrder(Node* n) {"
+            - generic [ref=f19e463]: if (!n) return;
+            - generic [ref=f19e464]: visit(n);
+            - generic [ref=f19e465]: preOrder(n->left);
+            - generic [ref=f19e468]: links to canvas
+            - generic [ref=f19e470]: node
+        - generic [ref=f19e471]:
+          - generic [ref=f19e472]:
+            - generic [ref=f19e473]: Agentic Workspace
+            - heading "Your AI agent, wired into the canvas" [level=3] [ref=f19e474]
+            - paragraph [ref=f19e475]: Algoglyph pairs with a lightweight local connector on your machine over MCP. Once paired, Claude Code, Codex, or Antigravity can run right alongside your notes and canvas, no API keys or credentials ever leave your device.
+            - list [ref=f19e476]:
+              - listitem [ref=f19e477]: Detects installed AI CLIs automatically
+              - listitem [ref=f19e481]: Runs agent prompts without leaving the canvas
+              - listitem [ref=f19e485]: Test any MCP server before wiring it in
+            - generic [ref=f19e490]:
+              - generic [ref=f19e491]: Claude Code
+              - generic [ref=f19e492]: Codex
+              - generic [ref=f19e493]: Antigravity
+          - 'img "Hand-drawn diagram: Claude Code, Codex, and Antigravity paired through a local connector into the Algoglyph canvas" [ref=f19e497]':
+            - generic [ref=f19e498]: Claude Code
+            - generic [ref=f19e501]: Codex
+            - generic [ref=f19e504]: Antigravity
+            - generic [ref=f19e517]: Local connector
+            - generic [ref=f19e518]: 127.0.0.1:4319
+            - generic [ref=f19e520]: paired
+            - generic [ref=f19e524]: Algoglyph Canvas
+            - generic [ref=f19e525]: notes · canvas · visualizer
+            - generic [ref=f19e527]: paired locally, keys never leave your device
+        - generic [ref=f19e528]:
+          - generic [ref=f19e529]:
+            - generic [ref=f19e530]: Visualizer
+            - heading "Contiguous Array Layout" [level=3] [ref=f19e531]
+            - paragraph [ref=f19e532]: Elements are allocated in adjacent physical memory blocks. Offset computation enables O(1) random access reads. Insertion triggers O(N) memory shifts as elements are physically moved.
+            - generic [ref=f19e534]:
+              - generic [ref=f19e535]:
+                - button "Array" [ref=f19e536]
+                - button "Linked List" [ref=f19e537]
+                - button "Stack" [ref=f19e538]
+                - button "Tree" [ref=f19e539]
+                - button "Graph" [ref=f19e540]
+              - generic [ref=f19e541]: "Random Access: O(1) · Index Shift: O(N)"
+          - img "Hand-drawn contiguous array visualization" [ref=f19e545]:
+            - generic [ref=f19e546]:
+              - generic [ref=f19e547]:
+                - generic [ref=f19e549]: "17"
+                - generic [ref=f19e550]: "[0]"
+              - generic [ref=f19e551]:
+                - generic [ref=f19e553]: "42"
+                - generic [ref=f19e554]: "[1]"
+              - generic [ref=f19e555]:
+                - generic [ref=f19e557]: "8"
+                - generic [ref=f19e558]: "[2]"
+              - generic [ref=f19e559]:
+                - generic [ref=f19e561]: "63"
+                - generic [ref=f19e562]: "[3]"
+              - generic [ref=f19e563]:
+                - generic [ref=f19e565]: "29"
+                - generic [ref=f19e566]: "[4]"
+            - generic [ref=f19e567]: contiguous array
+  - generic [ref=f19e568]:
+    - generic [ref=f19e569]:
+      - generic [ref=f19e570]: Concept Lessons Portal
+      - heading "Build a real intuition for algorithms" [level=2] [ref=f19e571]
+      - paragraph [ref=f19e572]: Stop staring at dry blocks of code and endless print statements. Algoglyph lets you actually see how algorithms work under the hood by watching them play out in real-time.
+    - generic [ref=f19e573]:
+      - generic [ref=f19e574]:
+        - heading "Dynamic Programming" [level=3] [ref=f19e575]
+        - paragraph [ref=f19e576]: See exactly how algorithms break down complex problems. Watch memoization tables fill up in real-time as the computer finds the most efficient path.
+        - generic [ref=f19e577]: Future Roadmap
+      - generic [ref=f19e578]:
+        - heading "Pathfinding & Graphs" [level=3] [ref=f19e579]
+        - paragraph [ref=f19e580]: Step through pathfinding algorithms like Dijkstra line by line. Watch nodes light up and queues re-balance themselves as the shortest routes are discovered.
+        - generic [ref=f19e581]: Future Roadmap
+      - generic [ref=f19e582]:
+        - heading "Self-Balancing Trees" [level=3] [ref=f19e583]
+        - paragraph [ref=f19e584]: Finally understand how AVL and Red-Black trees actually rotate. Drag and drop nodes yourself and watch the tree automatically re-balance its branches.
+        - generic [ref=f19e585]: Future Roadmap
+    - button "Explore CS Roadmap" [ref=f19e587] [cursor=pointer]
+  - generic [ref=f19e588]:
+    - generic [ref=f19e589]:
+      - generic [ref=f19e590]: Contact Us
+      - heading "Get in touch" [level=2] [ref=f19e591]
+      - paragraph [ref=f19e592]: Have questions, feedback, or need support? We'd love to hear from you.
+    - generic [ref=f19e593]:
+      - generic [ref=f19e594]:
+        - generic [ref=f19e595]: Name
+        - textbox "Your name" [ref=f19e596]
+      - generic [ref=f19e597]:
+        - generic [ref=f19e598]: Email
+        - textbox "you@example.com" [ref=f19e599]
+      - generic [ref=f19e600]:
+        - generic [ref=f19e601]: Message
+        - textbox "How can we help?" [ref=f19e602]
+      - button "Send Message" [ref=f19e603] [cursor=pointer]
+  - generic [ref=f19e605]:
+    - heading "Don't just use pen and paper. Use a workspace to connect the dots." [level=2] [ref=f19e606]
+    - paragraph [ref=f19e607]: Launch Algoglyph to build mental models, run your AI agent, and take seamless notes. Experience the unified CS sandbox.
+    - generic [ref=f19e608]:
+      - button "Launch Algoglyph Workspace" [ref=f19e609] [cursor=pointer]
+      - button "Explore CS Roadmap" [ref=f19e610] [cursor=pointer]
+  - generic [ref=f19e611]:
+    - heading "Frequently asked questions" [level=2] [ref=f19e612]
+    - generic [ref=f19e613]:
+      - button "What is Algoglyph?" [ref=f19e615]
+      - button "How is Algoglyph different from Notion?" [ref=f19e620]
+      - button "Can I create visual computer‑science notes?" [ref=f19e625]
+      - button "Does Algoglyph include interactive algorithm visualizers?" [ref=f19e630]
+      - button "Does Algoglyph include a complete Computer Science roadmap?" [ref=f19e635]
+      - button "Can I connect notes across different topics?" [ref=f19e640]
+      - button "Can AI agents work inside Algoglyph?" [ref=f19e645]
+      - button "Is Algoglyph free?" [ref=f19e650]
+  - contentinfo [ref=f19e654]:
+    - generic [ref=f19e655]:
+      - generic [ref=f19e656]:
+        - generic [ref=f19e657]:
+          - img "Algoglyph" [ref=f19e658]
+          - generic [ref=f19e659]: Algoglyph
+        - navigation [ref=f19e660]:
+          - link "Features" [ref=f19e661] [cursor=pointer]:
+            - /url: "#features"
+          - link "Visualizers" [ref=f19e662] [cursor=pointer]:
+            - /url: "#visualizer"
+          - link "Roadmap" [ref=f19e663] [cursor=pointer]:
+            - /url: "#roadmap"
+          - link "FAQ" [ref=f19e664] [cursor=pointer]:
+            - /url: "#faq"
+          - link "Contact" [ref=f19e665] [cursor=pointer]:
+            - /url: "#contact"
+      - paragraph [ref=f19e666]: Everything you need to build intuition, unified in one visual workspace. No more juggling YouTube tutorials, PDF textbooks, and separate code editors while practicing for interviews.
+      - generic [ref=f19e667]:
+        - generic [ref=f19e668]: © 2026 Algoglyph. Workspace Sandbox client.
+        - generic [ref=f19e669]:
+          - link "Privacy" [ref=f19e670] [cursor=pointer]:
+            - /url: /privacy/
+          - link "Terms" [ref=f19e671] [cursor=pointer]:
+            - /url: /terms/
+          - link "Repository" [ref=f19e672] [cursor=pointer]:
+            - /url: "#"

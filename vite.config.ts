@@ -13,7 +13,15 @@ export default defineConfig({
   server: {
     port: Number(process.env.PORT) || 5173,
     watch: {
-      ignored: ['**/release/**', '**/dist/**']
+      // Local agent/assistant skill folders can contain circular symlinks.
+      // They are tooling-only and should never participate in Vite HMR.
+      ignored: [
+        '**/release/**',
+        '**/dist/**',
+        '**/.agents/**',
+        '**/.claude/**',
+        '**/.codex/**',
+      ]
     }
   },
   plugins: [react(), tailwindcss()],
