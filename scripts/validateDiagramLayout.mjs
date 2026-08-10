@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createBasicIllustrationPlan } from '../src/lib/ai/basicIllustrations.ts';
 import { inspectCanvasLayout, parseCanvasResponse } from '../src/lib/ai/diagramLayout.ts';
+import { placeSkeletonsBelowAnchor } from '../src/lib/ai/canvasPlacement.ts';
 import {
   applyLibraryMatches,
   createSingleLibraryPlan,
@@ -255,6 +256,20 @@ const directCloudPlan = createSingleLibraryPlan('draw a cloud', libraryCatalog);
 assert.ok(directCloudPlan);
 assert.equal(directCloudPlan.elements[0].type, 'library');
 assert.equal(directCloudPlan.elements[0].libraryId, 'system-design');
+assert.equal(
+  createSingleLibraryPlan('link router with cloud', libraryCatalog),
+  null,
+  'relationship requests must reach full model planning instead of collapsing to one matching asset',
+);
+assert.equal(
+  createSingleLibraryPlan('place a cloud next to a custom edge service', libraryCatalog),
+  null,
+  'spatial multi-object requests must reach full model planning even when only one object exists in the library',
+);
+assert.ok(
+  createSingleLibraryPlan('draw a cloud with label Production', libraryCatalog),
+  'single assets with attribute changes should retain the direct template path',
+);
 const directLinkedListPlan = createSingleLibraryPlan('draw a linked list', libraryCatalog);
 assert.equal(directLinkedListPlan?.elements[0].libraryId, 'dsa');
 
@@ -288,6 +303,132 @@ assert.ok(hydratedArchitecture.skeletons.some((element) => element.id === 'gatew
 assert.ok(hydratedArchitecture.skeletons.some((element) => element.id === 'database-asset-0'));
 assert.ok(hydratedArchitecture.skeletons.some((element) => element.id === 'worker'));
 console.log('PASS library-aware architecture: contextual assets, grouped anchors, routed connectors, and generated fallback');
+
+const hydrateDirectTemplate = async (request) => {
+  const plan = createSingleLibraryPlan(request, libraryCatalog);
+  assert.ok(plan, `${request}: expected a direct library template plan`);
+  assert.equal(plan.elements.length, 1, `${request}: base and modified assets must not both be emitted`);
+  return {
+    plan,
+    response: await hydrateLibrarySkeletons(parseCanvasResponse(plan), libraryLoader),
+  };
+};
+const visibleLabels = (response) => response.skeletons
+  .flatMap((element) => typeof element.label?.text === 'string'
+    ? [element.label.text]
+    : typeof element.text === 'string' ? [element.text] : []);
+
+const arrayTemplate = await hydrateDirectTemplate('draw an array with values 4, 8, 15, 16');
+assert.equal(arrayTemplate.plan.elements[0].libraryId, 'dsa');
+assert.deepEqual(
+  arrayTemplate.response.skeletons.filter((element) => element.type === 'rectangle' && element.opacity !== 0)
+    .map((element) => element.label?.text),
+  ['4', '8', '15', '16'],
+);
+assert.ok(visibleLabels(arrayTemplate.response).includes('Index:'), 'array decoration should survive template edits');
+
+const expandedArrayTemplate = await hydrateDirectTemplate('draw an array of size 11');
+assert.deepEqual(
+  expandedArrayTemplate.response.skeletons
+    .filter((element) => element.type === 'text' && /^\d+$/.test(element.text || ''))
+    .sort((left, right) => left.x - right.x)
+    .map((element) => element.text),
+  Array.from({ length: 11 }, (_, index) => String(index)),
+  'ordinal annotations should continue when a repeated library template is expanded',
+);
+
+const largeArrayTemplate = await hydrateDirectTemplate('draw an array of size 19');
+const largeArrayCells = largeArrayTemplate.response.skeletons
+  .filter((element) => element.type === 'rectangle' && element.opacity !== 0)
+  .sort((left, right) => left.x - right.x);
+assert.equal(largeArrayCells.length, 19);
+assert.equal(new Set(largeArrayCells.map((element) => element.height.toFixed(4))).size, 1, 'repeated containers must stay uniform');
+assert.ok(
+  largeArrayCells.every((element) => {
+    const text = element.label?.text || '';
+    const fontSize = element.label?.fontSize || 0;
+    return text.length * fontSize * 0.65 + 10 <= element.width + 0.01
+      && fontSize * 1.3 + 6 <= element.height + 0.01;
+  }),
+  'bound labels must fit their repeated containers without triggering renderer-driven resizing',
+);
+assert.ok(largeArrayCells[0].width > 45, 'expanded templates should preserve readable unit dimensions');
+
+const linkedListTemplate = await hydrateDirectTemplate('draw a linked list with 5 nodes labels A, B, C, D, E');
+const linkedValueNodes = linkedListTemplate.response.skeletons.filter((element) =>
+  element.type === 'rectangle' && /^[A-E]$/.test(element.label?.text || ''),
+);
+assert.equal(linkedValueNodes.length, 5);
+const nullLabel = linkedListTemplate.response.skeletons.find((element) => element.text === 'NULL');
+assert.ok(nullLabel.x > Math.max(...linkedValueNodes.map((element) => element.x)), 'trailing NULL should follow cloned nodes');
+
+const queueTemplate = await hydrateDirectTemplate('draw a queue with 6 elements');
+assert.equal(queueTemplate.plan.elements[0].name, 'Queue', 'element-count context should select the DSA queue');
+assert.deepEqual(
+  queueTemplate.response.skeletons.filter((element) => element.type === 'rectangle' && element.opacity !== 0)
+    .map((element) => element.label?.text),
+  ['A', 'B', 'C', 'D', 'E', 'F'],
+);
+
+const treeTemplate = await hydrateDirectTemplate('draw a binary tree with 7 nodes labels A, B, C, D, E, F, G');
+assert.equal(treeTemplate.response.skeletons.filter((element) => element.type === 'ellipse').length, 7);
+assert.equal(
+  treeTemplate.response.skeletons.filter((element) => element.type === 'arrow'
+    && element.startBinding?.elementId && element.endBinding?.elementId).length,
+  6,
+  'tree-like templates should infer and preserve their bound connector topology',
+);
+assert.deepEqual(visibleLabels(treeTemplate.response), ['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+
+const cloudTemplate = await hydrateDirectTemplate('draw a cloud 300x180 with label Production Cloud');
+assert.equal(cloudTemplate.response.skeletons[0].width, 300);
+assert.equal(cloudTemplate.response.skeletons[0].height, 180);
+assert.ok(visibleLabels(cloudTemplate.response).includes('Production Cloud'));
+
+const reorderedArrayPlan = createSingleLibraryPlan('draw an array', libraryCatalog);
+reorderedArrayPlan.elements[0].libraryTemplate = {
+  labels: ['1', '2', '3', '4'],
+  replace: [{ from: '3', to: '30' }],
+  remove: ['2'],
+  append: ['5'],
+  order: 'reverse',
+  count: 4,
+};
+const reorderedArray = await hydrateLibrarySkeletons(parseCanvasResponse(reorderedArrayPlan), libraryLoader);
+assert.deepEqual(
+  reorderedArray.skeletons.filter((element) => element.type === 'rectangle' && element.opacity !== 0)
+    .map((element) => element.label?.text),
+  ['5', '4', '30', '1'],
+  'generic replacement, removal, append, ordering, and count edits should compose',
+);
+console.log('PASS parameterized library templates: resize, relabel, reorder, add/remove, and topology preservation');
+
+const promptAnchor = { minX: 100, minY: 40, maxX: 300, maxY: 80, elementIds: ['prompt'] };
+const placementSkeletons = [
+  { type: 'rectangle', id: 'left', x: 0, y: 0, width: 100, height: 60 },
+  { type: 'rectangle', id: 'right', x: 220, y: 0, width: 100, height: 60 },
+];
+const placement = placeSkeletonsBelowAnchor(
+  placementSkeletons,
+  [
+    { type: 'text', id: 'prompt', x: 100, y: 40, width: 200, height: 40 },
+    { type: 'rectangle', id: 'unrelated', x: 900, y: 2000, width: 200, height: 100 },
+  ],
+  promptAnchor,
+);
+assert.equal(Math.min(...placement.map((element) => element.y)), 128, 'drawing should start directly below its prompt');
+assert.equal(
+  (Math.min(...placement.map((element) => element.x)) + Math.max(...placement.map((element) => element.x + element.width))) / 2,
+  200,
+  'drawing should be horizontally centred under its prompt',
+);
+const collisionPlacement = placeSkeletonsBelowAnchor(
+  placementSkeletons,
+  [{ type: 'rectangle', id: 'blocker', x: 40, y: 110, width: 320, height: 100 }],
+  promptAnchor,
+);
+assert.equal(Math.min(...collisionPlacement.map((element) => element.y)), 258, 'occupied prompt lanes should move only downward');
+console.log('PASS prompt-relative placement: direct-below anchor, centring, and downward collision fallback');
 
 const failedHydration = await hydrateLibrarySkeletons(
   parseCanvasResponse(directCloudPlan),

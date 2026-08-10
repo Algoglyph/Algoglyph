@@ -486,6 +486,9 @@ describe('security remediation contract', () => {
     assert.match(connectorSource, /resolveAgentExecutable/);
     assert.match(connectorSource, /--sandbox/);
     assert.match(connectorSource, /runArgs: \['--sandbox', '--disable-slash-commands', '-p'\]/);
+    assert.match(connectorSource, /ptyRuntime\.spawn\(executable, \['--sandbox'\]/);
+    assert.match(connectorSource, /session\.pty\.write\('\/clear\\r'\)/);
+    assert.doesNotMatch(connectorSource, /agy models/);
     assert.match(clientSource, /MAX_SSE_BUFFER_BYTES/);
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);

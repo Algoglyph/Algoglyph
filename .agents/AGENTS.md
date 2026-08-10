@@ -51,7 +51,7 @@ This document provides comprehensive context, architectural guidelines, and tech
    - Wraps Excalidraw.
    - Features pre-built Data Structures & Algorithms components (`src/config/dsaStructures.ts`).
    - `src/lib/insertStructure.ts` calculates non-overlapping coordinates when inserting new elements onto the board.
-   - Imported Excalidraw libraries live in `public/libraries/*.json`; `scripts/generateLibraryCatalog.mjs` produces their compact searchable catalog. Canvas AI uses `src/lib/ai/libraryAssets.ts` to resolve prompt-context matches, place the original artwork behind grouped connector anchors, and fall back to generated primitives when nothing matches.
+   - Imported Excalidraw libraries live in `public/libraries/*.json`; `scripts/generateLibraryCatalog.mjs` produces their compact searchable catalog. Canvas AI uses `src/lib/ai/libraryAssets.ts` to resolve prompt-context matches, clone and parameterize matching artwork for requested labels/counts/order/dimensions, place it behind grouped connector anchors, and fall back to generated primitives when nothing matches.
 
 5. **Notes Editor (`Editor.tsx`, `MathExtensions.tsx`, `PdfEmbed.tsx`)**
    - Implements Tiptap v3.

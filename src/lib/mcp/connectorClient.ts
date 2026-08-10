@@ -422,6 +422,13 @@ const toAgentRunEvent = (eventName: string, data: JsonRecord): McpAgentRunEvent 
   if (eventName === 'exit') {
     return { type: 'exit', code: typeof data.code === 'number' ? data.code : null };
   }
+  if (eventName === 'timing' && isRecord(data.stages)) {
+    const stages = Object.fromEntries(
+      Object.entries(data.stages).filter((entry): entry is [string, number] =>
+        typeof entry[1] === 'number' && Number.isFinite(entry[1])),
+    );
+    return { type: 'timing', traceId: asTrimmedString(data.traceId), stages };
+  }
   if (eventName === 'error') {
     return { type: 'error', message: asTrimmedString(data.message) || 'The agent run failed.' };
   }

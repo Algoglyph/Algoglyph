@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
-import { access, copyFile, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { isIP } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -23,6 +23,7 @@ const MAX_REDIRECTS = 3;
 const PAIRING_TTL_MS = 90_000;
 const MCP_REQUEST_TIMEOUT_MS = 10_000;
 const AGENT_RUN_TIMEOUT_MS = 120_000;
+const ANTIGRAVITY_SESSION_READY_TIMEOUT_MS = 90_000;
 const MAX_AGENT_OUTPUT_BYTES = 256 * 1024;
 const MAX_PROMPT_BYTES = 32 * 1024;
 const MAX_CONCURRENT_AGENT_RUNS = 1;
@@ -32,6 +33,7 @@ const MAX_SESSIONS = 8;
 const PAIRING_ISSUE_RATE_LIMIT = 5;
 const PAIRING_REDEEM_RATE_LIMIT = 20;
 const AUTH_RATE_WINDOW_MS = 60_000;
+const DEV_TIMING_ENABLED = process.env.ALGOGLYPH_DEV_TIMING === '1';
 const SESSION_SCOPES = Object.freeze(['catalog:read', 'mcp:test', 'mcp:invoke', 'agent:run', 'session:revoke']);
 const PRODUCTION_ORIGINS = ['https://algoglyph.com', 'https://www.algoglyph.com', 'app://algoglyph'];
 const DEVELOPMENT_ORIGINS = [
@@ -229,6 +231,51 @@ const authSweepTimer = setInterval(
 );
 authSweepTimer.unref();
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const monotonicMilliseconds = () => Number(process.hrtime.bigint()) / 1_000_000;
+const roundedMilliseconds = (value) => Math.round(value * 1000) / 1000;
+
+const logTimeOfDayMilliseconds = (line) => {
+  const match = line.match(/\b[IEWF]\d{4}\s+(\d{2}):(\d{2}):(\d{2})\.(\d{6})\b/);
+  if (!match) return undefined;
+  return Number(match[1]) * 3_600_000
+    + Number(match[2]) * 60_000
+    + Number(match[3]) * 1_000
+    + Number(match[4]) / 1_000;
+};
+
+const elapsedLogMilliseconds = (start, end) => {
+  if (start === undefined || end === undefined) return undefined;
+  const elapsed = end - start;
+  return elapsed >= 0 ? elapsed : elapsed + 24 * 60 * 60 * 1_000;
+};
+
+const parseAntigravityTimingLog = (source, approvedServer) => {
+  const lines = source.split(/\r?\n/);
+  const findTime = (pattern, fromEnd = false) => {
+    const candidates = fromEnd ? [...lines].reverse() : lines;
+    const line = candidates.find((candidate) => pattern.test(candidate));
+    return line ? logTimeOfDayMilliseconds(line) : undefined;
+  };
+  const startupLine = lines.find((line) => line.includes('CLI startup completed'));
+  const startupMatch = startupLine?.match(/took\s+([\d.]+)ms/);
+  const startupCompleted = startupLine ? logTimeOfDayMilliseconds(startupLine) : undefined;
+  const messageSent = findTime(/Print mode: .*sending message/);
+  const firstProviderResponse = findTime(/streamGenerateContent.*ResponseID:/);
+  const streamCompleted = findTime(/Stream completed .*clearing ResponsePending/, true);
+  const stages = {};
+  if (startupMatch) stages.cli_initialization_ms = Number(startupMatch[1]);
+  const cliPreModel = elapsedLogMilliseconds(startupCompleted, messageSent);
+  if (cliPreModel !== undefined) stages.cli_post_startup_to_model_request_ms = cliPreModel;
+  const firstOutput = elapsedLogMilliseconds(messageSent, firstProviderResponse);
+  if (firstOutput !== undefined) stages.time_to_first_model_output_ms = firstOutput;
+  const inference = elapsedLogMilliseconds(messageSent, streamCompleted);
+  if (inference !== undefined) stages.model_inference_ms = inference;
+  const generation = elapsedLogMilliseconds(firstProviderResponse, streamCompleted);
+  if (generation !== undefined) stages.model_output_after_first_response_ms = generation;
+  if (!approvedServer) stages.mcp_initialization_ms = 0;
+  return stages;
+};
 
 const responseError = (status, message) => ({
   error: { status, message },
@@ -499,7 +546,7 @@ const resolveAgentExecutable = async (agent) => {
   return undefined;
 };
 
-const createAgentEnvironment = (agent, executable, workingDirectory) => {
+const createAgentEnvironment = (agent, executable, homeDirectory) => {
   const environment = {};
   for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP', 'LANG', 'LC_ALL']) {
     if (process.env[name]) environment[name] = process.env[name];
@@ -507,10 +554,10 @@ const createAgentEnvironment = (agent, executable, workingDirectory) => {
   environment.PATH = [dirname(executable), process.env.SystemRoot && join(process.env.SystemRoot, 'System32')]
     .filter(Boolean)
     .join(delimiter);
-  environment.HOME = workingDirectory;
-  environment.USERPROFILE = workingDirectory;
-  environment.CODEX_HOME = join(workingDirectory, '.codex');
-  environment.CLAUDE_CONFIG_DIR = join(workingDirectory, '.claude');
+  environment.HOME = homeDirectory;
+  environment.USERPROFILE = homeDirectory;
+  environment.CODEX_HOME = join(homeDirectory, '.codex');
+  environment.CLAUDE_CONFIG_DIR = join(homeDirectory, '.claude');
   for (const name of agent.authEnv || []) {
     if (process.env[name]) environment[name] = process.env[name];
   }
@@ -528,7 +575,7 @@ const copyCredentialIfPresent = async (source, destination) => {
   }
 };
 
-const provisionAgentCredentials = async (agent, environment, workingDirectory) => {
+const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
   const userProfile = process.env.USERPROFILE || process.env.HOME;
   if (agent.id === 'codex') {
     const sourceHome = process.env.CODEX_HOME || (userProfile && join(userProfile, '.codex'));
@@ -542,7 +589,7 @@ const provisionAgentCredentials = async (agent, environment, workingDirectory) =
     for (const filename of ['oauth_creds.json', 'google_accounts.json']) {
       await copyCredentialIfPresent(
         userProfile && join(userProfile, '.gemini', filename),
-        join(workingDirectory, '.gemini', filename),
+        join(homeDirectory, '.gemini', filename),
       );
     }
   }
@@ -569,6 +616,11 @@ const terminateWithGrace = (child) => {
   void terminateProcessTree(child, false);
   const timer = setTimeout(() => void terminateProcessTree(child, true), 1_500);
   timer.unref();
+};
+
+const createIsolatedAgentDirectories = async (agent) => {
+  const workingDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-agent-'));
+  return { workingDirectory, runDirectory: workingDirectory, homeDirectory: workingDirectory };
 };
 
 const normalizeMcpEndpoint = (value) => {
@@ -946,6 +998,26 @@ const promptForAgent = (agent, prompt, approvedServer) => {
 };
 
 const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, environment) => {
+  if (agent.id === 'antigravity') {
+    const name = 'algoglyph_approved';
+    const headers = server?.accessToken ? { Authorization: `Bearer ${server.accessToken}` } : undefined;
+    if (server?.accessToken) environment.ALGOGLYPH_APPROVED_MCP_TOKEN = server.accessToken;
+    const settingsDirectory = join(environment.HOME, '.gemini', 'antigravity-cli');
+    const settingsPath = join(settingsDirectory, 'settings.json');
+    await mkdir(settingsDirectory, { recursive: true, mode: 0o700 });
+    let settings = {};
+    try {
+      const existing = JSON.parse(await readFile(settingsPath, 'utf8'));
+      if (isRecord(existing)) settings = existing;
+    } catch {
+      // A missing or corrupt cache must not prevent a clean isolated request.
+    }
+    settings.mcpServers = server
+      ? { [name]: { httpUrl: server.endpoint, ...(headers ? { headers } : {}) } }
+      : {};
+    await writeFile(settingsPath, JSON.stringify(settings), { mode: 0o600 });
+    return { extraArgs: [] };
+  }
   if (!server) return { extraArgs: [] };
   const name = 'algoglyph_approved';
   if (server.accessToken) environment.ALGOGLYPH_APPROVED_MCP_TOKEN = server.accessToken;
@@ -969,18 +1041,373 @@ const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, envir
   }), { mode: 0o600 });
 
   if (agent.id === 'claude') return { extraArgs: ['--mcp-config', configPath, '--strict-mcp-config'] };
-  if (agent.id === 'antigravity') {
-    await mkdir(join(workingDirectory, '.gemini'), { recursive: true });
-    await writeFile(join(workingDirectory, '.gemini', 'settings.json'), JSON.stringify({
-      mcpServers: { [name]: { httpUrl: server.endpoint, ...(headers ? { headers } : {}) } },
-    }), { mode: 0o600 });
-    return { extraArgs: [] };
-  }
   if (agent.id === 'fixture') return { extraArgs: [] };
   throw new ConnectorError(400, 'The selected agent does not support isolated MCP configuration.');
 };
 
+let antigravitySession;
+let antigravitySessionPromise;
+let antigravityPtyModulesPromise;
+let connectorShuttingDown = false;
+
+const loadAntigravityPtyModules = () => {
+  antigravityPtyModulesPromise ||= Promise.all([
+    import('node-pty'),
+    import('@xterm/headless'),
+  ]).then(([ptyModule, xtermModule]) => {
+    const ptyRuntime = ptyModule.default || ptyModule;
+    const xtermRuntime = xtermModule.default || xtermModule;
+    return {
+      ptyRuntime,
+      HeadlessTerminal: xtermRuntime.Terminal,
+    };
+  });
+  return antigravityPtyModulesPromise;
+};
+
+const antigravityScreenText = (session) => {
+  const buffer = session.terminal.buffer.active;
+  const lines = [];
+  for (let index = 0; index < buffer.length; index += 1) {
+    lines.push(buffer.getLine(index)?.translateToString(true) || '');
+  }
+  return lines.join('\n');
+};
+
+const readAntigravityTranscript = async (homeDirectory) => {
+  const brainDirectory = join(homeDirectory, '.gemini', 'antigravity-cli', 'brain');
+  let conversations;
+  try {
+    conversations = await readdir(brainDirectory, { withFileTypes: true });
+  } catch {
+    return { eventKeys: new Set(), outputs: [] };
+  }
+
+  const eventKeys = new Set();
+  const outputs = [];
+  await Promise.all(conversations.filter((entry) => entry.isDirectory()).map(async (entry) => {
+    const transcriptPath = join(
+      brainDirectory,
+      entry.name,
+      '.system_generated',
+      'logs',
+      'transcript.jsonl',
+    );
+    let source;
+    try {
+      source = await readFile(transcriptPath, 'utf8');
+    } catch {
+      return;
+    }
+    for (const line of source.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      try {
+        const event = JSON.parse(line);
+        const eventKey = `${entry.name}:${event.step_index}:${event.source || ''}:${event.type || ''}:${event.created_at || ''}`;
+        eventKeys.add(eventKey);
+        if (event.source !== 'MODEL' || event.type !== 'PLANNER_RESPONSE'
+          || event.status !== 'DONE' || typeof event.content !== 'string') continue;
+        outputs.push({
+          key: eventKey,
+          content: event.content,
+          createdAt: typeof event.created_at === 'string' ? event.created_at : '',
+        });
+      } catch {
+        // A partially written JSONL tail is expected while the model is active.
+      }
+    }
+  }));
+  return {
+    eventKeys,
+    outputs: outputs.sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
+  };
+};
+
+const waitForAntigravity = (session, predicate, timeoutMs) => new Promise((resolveDone, reject) => {
+  const startedAt = Date.now();
+  const poll = () => {
+    if (session.exited) {
+      reject(new Error('The persistent Antigravity session exited unexpectedly.'));
+      return;
+    }
+    Promise.resolve(predicate()).then((value) => {
+      if (value) {
+        resolveDone(value);
+        return;
+      }
+      if (session.exited) {
+        reject(new Error('The persistent Antigravity session exited unexpectedly.'));
+        return;
+      }
+      if (Date.now() - startedAt >= timeoutMs) {
+        reject(new Error('The persistent Antigravity session did not become ready in time.'));
+        return;
+      }
+      session.pollTimer = setTimeout(poll, 100);
+      session.pollTimer.unref();
+    }, reject);
+  };
+  poll();
+});
+
+const stopAntigravitySession = async (session = antigravitySession) => {
+  if (!session || session.stopping) return;
+  session.stopping = true;
+  session.exited = true;
+  if (session.pollTimer) clearTimeout(session.pollTimer);
+  if (process.platform === 'win32' && session.pty?.pid) {
+    await new Promise((resolveDone) => {
+      execFile('taskkill.exe', ['/PID', String(session.pty.pid), '/T', '/F'], { windowsHide: true }, () => resolveDone());
+    });
+  } else {
+    try { session.pty?.kill(); } catch { /* already gone */ }
+  }
+  session.terminal?.dispose();
+  await rm(session.rootDirectory, { recursive: true, force: true }).catch(() => undefined);
+  if (antigravitySession === session) {
+    antigravitySession = undefined;
+    antigravitySessionPromise = undefined;
+  }
+};
+
+const seedAntigravityPreferences = async (homeDirectory) => {
+  const userProfile = process.env.USERPROFILE || process.env.HOME;
+  if (!userProfile) return;
+  const sourcePath = join(userProfile, '.gemini', 'antigravity-cli', 'settings.json');
+  const destinationDirectory = join(homeDirectory, '.gemini', 'antigravity-cli');
+  try {
+    const source = JSON.parse(await readFile(sourcePath, 'utf8'));
+    if (!isRecord(source) || typeof source.model !== 'string') return;
+    await mkdir(destinationDirectory, { recursive: true, mode: 0o700 });
+    await writeFile(join(destinationDirectory, 'settings.json'), JSON.stringify({ model: source.model }), { mode: 0o600 });
+  } catch {
+    // Antigravity will use the account default model when no preference exists.
+  }
+};
+
+const startAntigravitySession = async (approvedServer) => {
+  if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
+  const agent = AGENTS.find((candidate) => candidate.id === 'antigravity');
+  if (!agent) throw new ConnectorError(503, 'Antigravity is unavailable.');
+  const executable = await resolveAgentExecutable(agent);
+  if (!executable) throw new ConnectorError(503, 'The Antigravity executable is unavailable.');
+  const { ptyRuntime, HeadlessTerminal } = await loadAntigravityPtyModules();
+
+  const rootDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-session-'));
+  const homeDirectory = join(rootDirectory, 'home');
+  const runDirectory = join(rootDirectory, 'workspace');
+  let environment;
+  try {
+    await Promise.all([
+      mkdir(homeDirectory, { recursive: true, mode: 0o700 }),
+      mkdir(runDirectory, { recursive: true, mode: 0o700 }),
+    ]);
+    environment = createAgentEnvironment(agent, executable, homeDirectory);
+    environment.TERM = 'xterm-256color';
+    await seedAntigravityPreferences(homeDirectory);
+    await provisionAgentCredentials(agent, environment, homeDirectory);
+    await prepareApprovedMcpForAgent(agent, approvedServer, runDirectory, environment);
+    if (connectorShuttingDown) {
+      throw new ConnectorError(503, 'The connector is shutting down.');
+    }
+  } catch (error) {
+    await rm(rootDirectory, { recursive: true, force: true }).catch(() => undefined);
+    throw error;
+  }
+
+  const terminal = new HeadlessTerminal({
+    cols: 160,
+    rows: 50,
+    scrollback: 2_000,
+    allowProposedApi: true,
+  });
+  let ptyProcess;
+  try {
+    // Keep built-in slash commands enabled for the connector-owned `/clear`
+    // between requests. User prompts are bracketed-pasted after control-byte
+    // stripping, so they cannot inject terminal commands or keystrokes.
+    ptyProcess = ptyRuntime.spawn(executable, ['--sandbox'], {
+      cwd: runDirectory,
+      env: environment,
+      cols: 160,
+      rows: 50,
+      name: 'xterm-256color',
+      useConpty: process.platform === 'win32',
+    });
+  } catch (error) {
+    terminal.dispose();
+    await rm(rootDirectory, { recursive: true, force: true });
+    throw error;
+  }
+
+  const session = {
+    key: approvedServer?.id || 'none',
+    rootDirectory,
+    homeDirectory,
+    runDirectory,
+    terminal,
+    pty: ptyProcess,
+    exited: false,
+    stopping: false,
+    rawOutput: '',
+    colorHandled: false,
+    termsHandled: false,
+    trustHandled: false,
+    used: false,
+  };
+  antigravitySession = session;
+
+  ptyProcess.onData((chunk) => {
+    terminal.write(chunk);
+    session.rawOutput = `${session.rawOutput}${chunk}`.slice(-256 * 1024);
+    if (!session.colorHandled && session.rawOutput.includes('Choose your color scheme')) {
+      session.colorHandled = true;
+      setTimeout(() => ptyProcess.write('\t\r'), 400).unref();
+    }
+    if (!session.termsHandled && session.rawOutput.includes('Terms of Service & Data Use')) {
+      session.termsHandled = true;
+      // Opt this isolated connector session out of interaction-data collection,
+      // then choose Done. This does not change the user's normal CLI settings.
+      setTimeout(() => ptyProcess.write('\r\t\t\r'), 500).unref();
+    }
+    if (!session.trustHandled && session.rawOutput.includes('Do you trust the contents of this project?')) {
+      session.trustHandled = true;
+      // The connector created this empty directory and is its sole owner.
+      setTimeout(() => ptyProcess.write('\r'), 400).unref();
+    }
+  });
+  ptyProcess.onExit(() => {
+    session.exited = true;
+    if (antigravitySession === session) {
+      antigravitySession = undefined;
+      antigravitySessionPromise = undefined;
+    }
+  });
+
+  await waitForAntigravity(session, () => {
+    const screen = antigravityScreenText(session);
+    return screen.includes('? for shortcuts');
+  }, ANTIGRAVITY_SESSION_READY_TIMEOUT_MS);
+  return session;
+};
+
+const getAntigravitySession = async (approvedServer) => {
+  if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
+  const key = approvedServer?.id || 'none';
+  if (antigravitySession && antigravitySession.key !== key) {
+    await stopAntigravitySession(antigravitySession);
+  }
+  if (antigravitySession && !antigravitySession.exited && antigravitySession.key === key) {
+    return antigravitySessionPromise || antigravitySession;
+  }
+  antigravitySessionPromise = startAntigravitySession(approvedServer).catch(async (error) => {
+    const failedSession = antigravitySession?.key === key ? antigravitySession : undefined;
+    if (failedSession) await stopAntigravitySession(failedSession);
+    throw error;
+  });
+  return antigravitySessionPromise;
+};
+
+const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
+  if (session.used) {
+    session.pty.write('/clear\r');
+    await new Promise((resolveDone) => {
+      const timer = setTimeout(resolveDone, 150);
+      timer.unref();
+    });
+  }
+  session.used = true;
+  const previousTranscript = await readAntigravityTranscript(session.homeDirectory);
+  const terminalSafePrompt = prompt
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
+  const submit = () => session.pty.write(`\x1b[200~${terminalSafePrompt}\x1b[201~\r`);
+  submit();
+  let lastSubmitAt = Date.now();
+  let submitAttempts = 1;
+
+  return waitForAntigravity(session, async () => {
+    if (isCancelled()) throw new Error('The agent run was cancelled.');
+    const transcript = await readAntigravityTranscript(session.homeDirectory);
+    const output = transcript.outputs.find((candidate) => !previousTranscript.eventKeys.has(candidate.key));
+    if (output) return output.content;
+    const accepted = [...transcript.eventKeys].some((key) => !previousTranscript.eventKeys.has(key));
+    if (!accepted && submitAttempts < 5 && Date.now() - lastSubmitAt >= 3_000) {
+      submitAttempts += 1;
+      lastSubmitAt = Date.now();
+      submit();
+    }
+    return undefined;
+  }, AGENT_RUN_TIMEOUT_MS);
+};
+
 let activeAgentRuns = 0;
+
+const streamPersistentAntigravityRun = async (request, response, prompt, approvedServer, secrets) => {
+  activeAgentRuns += 1;
+  let session;
+  try {
+    session = await getAntigravitySession(approvedServer);
+  } catch (error) {
+    activeAgentRuns = Math.max(0, activeAgentRuns - 1);
+    throw new ConnectorError(503, redactError(error, secrets));
+  }
+
+  applySecurityHeaders(response);
+  response.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  let cancelled = false;
+  let settled = false;
+  const send = (event, data) => {
+    if (response.writableEnded || response.destroyed) return;
+    response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  const onClientGone = () => {
+    if (settled || cancelled) return;
+    cancelled = true;
+    try { session.pty.write('\x03'); } catch { /* session already exited */ }
+  };
+  request.on('close', onClientGone);
+  response.on('close', onClientGone);
+
+  try {
+    const executionPrompt = promptForAgent(
+      AGENTS.find((candidate) => candidate.id === 'antigravity'),
+      prompt,
+      approvedServer,
+    );
+    const output = await runPersistentAntigravityPrompt(session, executionPrompt, () => cancelled);
+    if (cancelled) {
+      send('error', { message: 'The agent run was cancelled.' });
+      send('exit', { code: 1 });
+    } else if (Buffer.byteLength(output, 'utf8') > MAX_AGENT_OUTPUT_BYTES) {
+      send('error', { message: 'The agent run exceeded the output safety limit.' });
+      send('exit', { code: 1 });
+    } else {
+      send('output', { stream: 'stdout', chunk: output });
+      send('exit', { code: 0 });
+    }
+  } catch (error) {
+    const message = cancelled
+      ? 'The agent run was cancelled.'
+      : redactError(error, secrets);
+    if (!session.exited) {
+      try { session.pty.write('\x03'); } catch { /* session already exited */ }
+    }
+    send('error', { message });
+    send('exit', { code: 1 });
+    if (session.exited) await stopAntigravitySession(session);
+  } finally {
+    settled = true;
+    activeAgentRuns = Math.max(0, activeAgentRuns - 1);
+    response.end();
+  }
+};
 
 // Spawns an allowlisted agent for a single headless prompt and streams its output
 // back as Server-Sent Events. All validation that can reject the request happens
@@ -989,6 +1416,10 @@ let activeAgentRuns = 0;
 // events. The run is bounded by a wall-clock timeout, a max-output cap, and is
 // killed if the client disconnects.
 const streamAgentRun = async (request, response, body, authorization) => {
+  const requestStartedAt = monotonicMilliseconds();
+  const traceId = DEV_TIMING_ENABLED && typeof body.traceId === 'string'
+    ? body.traceId.trim().slice(0, 96)
+    : undefined;
   const agent = findAgent(body.agentId);
   if (!agent) {
     throw new ConnectorError(404, 'Unknown agent.');
@@ -1007,14 +1438,29 @@ const streamAgentRun = async (request, response, body, authorization) => {
     throw new ConnectorError(429, 'An agent run is already in progress. Try again once it finishes.');
   }
 
+  if (agent.id === 'antigravity' && process.env.NODE_ENV !== 'test') {
+    await streamPersistentAntigravityRun(request, response, prompt, approvedServer, secrets);
+    return;
+  }
+
+  const executableStartedAt = monotonicMilliseconds();
   const executable = await resolveAgentExecutable(agent);
+  const executableResolvedAt = monotonicMilliseconds();
   if (!executable) throw new ConnectorError(503, 'The selected agent executable is unavailable.');
-  const workingDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-agent-'));
-  const environment = createAgentEnvironment(agent, executable, workingDirectory);
+  const { workingDirectory, runDirectory, homeDirectory } = await createIsolatedAgentDirectories(agent);
+  const environment = createAgentEnvironment(agent, executable, homeDirectory);
+  const credentialsStartedAt = monotonicMilliseconds();
+  let credentialsFinishedAt = credentialsStartedAt;
+  let mcpConfigStartedAt = credentialsStartedAt;
+  let mcpConfigFinishedAt = credentialsStartedAt;
   let extraArgs;
   try {
-    await provisionAgentCredentials(agent, environment, workingDirectory);
+    // Provision only the credentials required by this isolated one-shot run.
+    await provisionAgentCredentials(agent, environment, homeDirectory);
+    credentialsFinishedAt = monotonicMilliseconds();
+    mcpConfigStartedAt = monotonicMilliseconds();
     ({ extraArgs } = await prepareApprovedMcpForAgent(agent, approvedServer, workingDirectory, environment));
+    mcpConfigFinishedAt = monotonicMilliseconds();
   } catch (error) {
     await rm(workingDirectory, { recursive: true, force: true });
     throw error;
@@ -1022,7 +1468,20 @@ const streamAgentRun = async (request, response, body, authorization) => {
   const baseArgs = agent.id === 'claude' && approvedServer
     ? agent.runArgs.filter((argument, index, args) => argument !== '--tools' && args[index - 1] !== '--tools')
     : agent.runArgs;
-  const fixedArgs = [...baseArgs, ...extraArgs];
+  let fixedArgs = [...baseArgs, ...extraArgs];
+  const agentTimingLog = DEV_TIMING_ENABLED && agent.id === 'antigravity'
+    ? join(workingDirectory, 'antigravity-timing.log')
+    : undefined;
+  if (agentTimingLog) {
+    const printIndex = fixedArgs.lastIndexOf('-p');
+    const insertionIndex = printIndex >= 0 ? printIndex : fixedArgs.length;
+    fixedArgs = [
+      ...fixedArgs.slice(0, insertionIndex),
+      '--log-file',
+      agentTimingLog,
+      ...fixedArgs.slice(insertionIndex),
+    ];
+  }
   const executionPrompt = promptForAgent(agent, prompt, approvedServer);
   const args = agent.promptVia === 'arg' ? [...fixedArgs, executionPrompt] : fixedArgs;
 
@@ -1030,9 +1489,10 @@ const streamAgentRun = async (request, response, body, authorization) => {
   console.error(`[${SERVICE_NAME}] agent run: ${agent.label} — ${agent.command} ${agent.runArgs.join(' ')}`);
 
   let child;
+  const spawnStartedAt = monotonicMilliseconds();
   try {
     child = spawn(executable, args, {
-      cwd: workingDirectory,
+      cwd: runDirectory,
       env: environment,
       shell: false,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -1043,6 +1503,7 @@ const streamAgentRun = async (request, response, body, authorization) => {
     await rm(workingDirectory, { recursive: true, force: true });
     throw new ConnectorError(500, redactError(error, secrets));
   }
+  const spawnReturnedAt = monotonicMilliseconds();
 
   activeAgentRuns += 1;
   activeChildren.add(child);
@@ -1060,6 +1521,8 @@ const streamAgentRun = async (request, response, body, authorization) => {
   let truncated = false;
   let cancelled = false;
   let outputBytes = 0;
+  let firstStdoutAt;
+  let firstStderrAt;
   const outputChunks = { stdout: [], stderr: [] };
 
   const send = (event, data) => {
@@ -1083,6 +1546,9 @@ const streamAgentRun = async (request, response, body, authorization) => {
 
   const relay = (streamName) => (chunk) => {
     if (settled || truncated) return;
+    const receivedAt = monotonicMilliseconds();
+    if (streamName === 'stdout' && firstStdoutAt === undefined) firstStdoutAt = receivedAt;
+    if (streamName === 'stderr' && firstStderrAt === undefined) firstStderrAt = receivedAt;
     const remaining = MAX_AGENT_OUTPUT_BYTES - outputBytes;
     const slice = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
     if (slice.length > 0) {
@@ -1110,8 +1576,9 @@ const streamAgentRun = async (request, response, body, authorization) => {
     response.end();
   });
 
-  child.on('close', (code) => {
+  child.on('close', async (code) => {
     if (settled) return;
+    const childClosedAt = monotonicMilliseconds();
     if (bufferedOutput) {
       for (const streamName of ['stdout', 'stderr']) {
         const chunk = outputChunks[streamName].join('');
@@ -1126,6 +1593,36 @@ const streamAgentRun = async (request, response, body, authorization) => {
       send('error', { message: 'The agent run was cancelled.' });
     } else if (code !== 0) {
       send('error', { message: `The agent exited unsuccessfully (code ${code ?? 'unknown'}).` });
+    }
+    if (DEV_TIMING_ENABLED) {
+      let internalStages = {};
+      if (agentTimingLog) {
+        try {
+          internalStages = parseAntigravityTimingLog(await readFile(agentTimingLog, 'utf8'), approvedServer);
+        } catch {
+          // A missing diagnostic log must never affect the agent result.
+        }
+      } else if (!approvedServer) {
+        internalStages.mcp_initialization_ms = 0;
+      }
+      send('timing', {
+        traceId,
+        stages: {
+          connector_request_to_spawn_ms: roundedMilliseconds(spawnStartedAt - requestStartedAt),
+          executable_resolution_ms: roundedMilliseconds(executableResolvedAt - executableStartedAt),
+          credential_provisioning_ms: roundedMilliseconds(credentialsFinishedAt - credentialsStartedAt),
+          mcp_config_write_ms: roundedMilliseconds(mcpConfigFinishedAt - mcpConfigStartedAt),
+          cli_spawn_ms: roundedMilliseconds(spawnReturnedAt - spawnStartedAt),
+          cli_spawn_to_first_stdout_ms: firstStdoutAt === undefined
+            ? roundedMilliseconds(childClosedAt - spawnReturnedAt)
+            : roundedMilliseconds(firstStdoutAt - spawnReturnedAt),
+          cli_process_total_ms: roundedMilliseconds(childClosedAt - spawnReturnedAt),
+          ...(firstStderrAt === undefined
+            ? {}
+            : { cli_spawn_to_first_stderr_ms: roundedMilliseconds(firstStderrAt - spawnReturnedAt) }),
+          ...Object.fromEntries(Object.entries(internalStages).map(([name, value]) => [name, roundedMilliseconds(value)])),
+        },
+      });
     }
     send('exit', { code });
     cleanup();
@@ -1266,11 +1763,18 @@ server.listen(port, '127.0.0.1', () => {
     console.error(`[${SERVICE_NAME}] Advanced token override loaded from ALGOGLYPH_CONNECTOR_TOKEN.`);
   }
   console.error(`[${SERVICE_NAME}] AlgoGlyph will pair automatically while this command is running.`);
+  // Keep the actual Antigravity language-server process resident. Subsequent
+  // drawings are queued through this session instead of spawning a cold CLI.
+  if (process.env.NODE_ENV !== 'test') {
+    void getAntigravitySession(undefined).catch(() => undefined);
+  }
 });
 
 const shutDown = async () => {
+  connectorShuttingDown = true;
   clearInterval(authSweepTimer);
   await Promise.allSettled([...activeChildren].map((child) => terminateProcessTree(child, true)));
+  await stopAntigravitySession();
   server.close(() => process.exit(0));
 };
 process.once('SIGINT', () => void shutDown());

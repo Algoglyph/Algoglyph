@@ -109,9 +109,12 @@ export interface McpAgentRunRequest {
   outputMode?: 'stream' | 'buffered';
   /** Connector-side ID returned only after a successful server test. */
   mcpServerId?: string;
+  /** Development-only correlation ID used by the opt-in performance trace. */
+  traceId?: string;
 }
 
 export type McpAgentRunEvent =
   | { type: 'output'; stream: 'stdout' | 'stderr'; chunk: string }
+  | { type: 'timing'; traceId?: string; stages: Record<string, number> }
   | { type: 'exit'; code: number | null }
   | { type: 'error'; message: string };
