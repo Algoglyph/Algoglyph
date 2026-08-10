@@ -22,6 +22,7 @@ export const MobileNav: React.FC = () => {
 
   return (
     <nav
+      data-tour="mobile-nav"
       className="md:hidden fixed bottom-0 inset-x-0 z-50 flex items-stretch h-14 bg-canvas/90 backdrop-blur-md border-t border-hairline select-none"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >

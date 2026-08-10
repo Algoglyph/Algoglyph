@@ -56,7 +56,7 @@ export const TabBar: React.FC = () => {
   };
 
   return (
-    <div className="flex items-stretch h-9 bg-canvas/70 backdrop-blur-md border-b border-hairline select-none flex-shrink-0">
+    <div data-tour="tabs" className="flex items-stretch h-9 bg-canvas/70 backdrop-blur-md border-b border-hairline select-none flex-shrink-0">
       {/* Left control cluster: collapse sidebar + search. Width tracks the
           sidebar so the tabs align above the canvas content (Obsidian-style). */}
       <div

@@ -367,7 +367,7 @@ export const Canvas: React.FC = () => {
   }
 
   return (
-    <div className="h-full w-full bg-canvas flex relative">
+    <div data-tour="canvas" className="h-full w-full bg-canvas flex relative">
       {/* Custom DSA Structures sidebar canvas-soft */}
       <StructuresPanel />
 
@@ -391,6 +391,7 @@ export const Canvas: React.FC = () => {
 
         {/* AI-native: type a request as text on the canvas, then generate a diagram. */}
         <button
+          data-tour="canvas-ai"
           type="button"
           onClick={() => (aiBusy ? aiAbortRef.current?.abort() : void runCanvasAi())}
           className="absolute bottom-4 right-4 z-20 inline-flex h-9 items-center gap-2 rounded-full border border-hairline bg-canvas px-3.5 text-xs font-medium text-ink shadow-[var(--shadow-modal)] transition-colors hover:border-ink hover:bg-canvas-soft"

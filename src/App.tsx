@@ -9,6 +9,7 @@ import { SearchPalette } from './components/SearchPalette';
 import { NotificationToast } from './components/NotificationToast';
 import { MobileNav } from './components/MobileNav';
 import { McpConnectDialog } from './components/McpConnectDialog';
+import { WorkspaceTour } from './components/WorkspaceTour';
 import { bootstrapMcpConnection } from './lib/mcp/bootstrap';
 import { useIsMobile } from './hooks/useIsMobile';
 import { SEO } from './components/SEO';
@@ -289,6 +290,7 @@ const AppContent: React.FC = () => {
             <div className="flex flex-col h-full w-full overflow-hidden">
               <Toolbar />
               <McpConnectDialog />
+              <WorkspaceTour />
               {!showVisualizer && <TabBar />}
               <Suspense
                 fallback={

@@ -1,6 +1,6 @@
 # Archived Algoglyph Landing-Page Context
 
-The Algoglyph landing page was intentionally cleared on August 10, 2026 so its next design can start from a blank slate. The former site header was restored afterward, but everything beneath it remains empty. This document preserves the former page's product story, exact hero copy, information architecture, interactions, and visual direction.
+The Algoglyph landing page was intentionally cleared on August 10, 2026 so its next design could start from a blank slate. The former site header was restored afterward. The first hero viewport has since been restored with live-coded ASCII sculptures, while the remaining long-form sections stay archived here. This document preserves the former page's product story, exact hero copy, information architecture, interactions, and visual direction.
 
 ## Product and brand
 
@@ -228,7 +228,7 @@ The last design used a dark, Composio-inspired developer-tool composition withou
 - Full-viewport black hero.
 - Mirrored diagonal ASCII streams concentrated at the left and right edges.
 - Wide, quiet center for the primary statement.
-- Geist and Geist Mono typography.
+- Inter typography for the landing interface, paired with Geist Mono for code-oriented accents.
 - White primary actions, hairline borders, and restrained blue, cyan, and emerald accents.
 - Square or minimally rounded controls instead of pill-heavy floating cards.
 - Dense product-instrument panels across the rest of the page.
@@ -249,4 +249,6 @@ The design intentionally prioritized strong product evidence, restrained motion,
 
 ## Current state
 
-`src/components/LandingPage.tsx` currently renders only the restored dark site header: the original favicon logo and Algoglyph wordmark, Features/Visualizers/Use Cases links, the Roadmap action, and the Launch Workspace action. No hero, showcase, feature section, form, footer, or background animation is rendered beneath it. This document remains the source of truth for the removed landing-page context.
+`src/components/LandingPage.tsx` currently renders the restored dark site header and a scrollable landing experience. The hero restores the archived eyebrow, headline, and supporting paragraph over `AsciiCodeSculpturesField`, a decorative Canvas 2D visualization. `LiquidGlassHeadline` keeps the meaningful heading semantic while drawing it in a self-hosted Great Vibes calligraphic face. A feathered ink front writes each visual line from left to right in sequence whenever the landing page mounts; mobile uses its own five-line sequence so wrapped text is written in reading order. Reduced-motion mode shows the completed heading immediately. The rest of the landing interface remains in Inter. Its workspace and roadmap actions are rendered as keyboard-accessible, custom-drawn book-and-quill and open-book icon controls instead of conventional text buttons. Desktop renders a z-buffered rotating torus at the left edge, a projected cube at the upper-right, and a parametric double helix at the lower-right. Each form is generated mathematically at runtime without visible figure labels, while the center remains intentionally quiet for copy. Mobile cycles the three forms through one compact stage beneath the actions. Reduced-motion mode shows a static desktop constellation and a static mobile torus.
+
+The canvas is capped near 30fps and a 1.5 device-pixel ratio, pauses when off-screen or when the page is hidden, and resizes through `ResizeObserver`. It does not update React state per frame. Beneath the hero, the archived FAQ topics, closing workspace call to action, and minimal legal/repository footer are restored in the current dark visual language. The former feature sections, showcase, and contact form remain archived; unused landing prototypes are intentionally retained.

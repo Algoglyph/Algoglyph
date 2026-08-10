@@ -16,8 +16,10 @@ import {
   Sun,
   Moon,
   PlugZap,
+  CircleHelp,
   MoreHorizontal
 } from 'lucide-react';
+import { startWorkspaceTour } from '../lib/workspaceTour';
 
 export const Toolbar: React.FC = () => {
   // Subscribe reactively ONLY to layout changes and save states
@@ -269,7 +271,7 @@ ${JSON.stringify(data, null, 2)}
 
       {/* Center: layout segmented control — white pill on a soft track.
           Hidden on mobile, where the bottom nav handles view switching. */}
-      <div className="hidden md:flex items-center gap-0.5 bg-canvas-soft border border-hairline rounded-lg p-0.5 text-[13px]">
+      <div data-tour="layout" className="hidden md:flex items-center gap-0.5 bg-canvas-soft border border-hairline rounded-lg p-0.5 text-[13px]">
         {([
           ['canvas-only', 'Canvas', <Maximize2 key="c" size={12} className="rotate-45" />, 'Canvas only'],
           ['split', 'Split', <Monitor key="s" size={12} />, 'Split view  ·  ⌘B'],
@@ -305,6 +307,7 @@ ${JSON.stringify(data, null, 2)}
 
         {/* MCP connector — kept adjacent to the global theme utility. */}
         <button
+          data-tour="mcp"
           onClick={openMcpPanel}
           className={`relative flex items-center gap-1.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-canvas-soft hover:text-ink ${
             mcpConnected
@@ -330,6 +333,16 @@ ${JSON.stringify(data, null, 2)}
           <span className="hidden lg:inline font-mono text-[11px]">MCP</span>
         </button>
 
+        <button
+          type="button"
+          onClick={startWorkspaceTour}
+          className="p-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center cursor-pointer"
+          title="Tour the workspace"
+          aria-label="Start workspace tour"
+        >
+          <CircleHelp size={14} />
+        </button>
+
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
@@ -340,7 +353,7 @@ ${JSON.stringify(data, null, 2)}
         </button>
 
         {/* Desktop action cluster — collapses into the overflow menu on mobile. */}
-        <div className="hidden md:flex items-center gap-2">
+        <div data-tour="portability" className="hidden md:flex items-center gap-2">
           <div className="h-3.5 w-px bg-hairline mx-1" />
 
           {/* Import MD */}
@@ -392,7 +405,7 @@ ${JSON.stringify(data, null, 2)}
         </div>
 
         {/* Mobile overflow menu — same actions as the desktop cluster. */}
-        <div className="md:hidden relative">
+        <div data-tour="workspace-actions" className="md:hidden relative">
           <button
             onClick={() => setMenuOpen((o) => !o)}
             className="p-1.5 rounded-md text-body hover:text-ink hover:bg-canvas-soft transition-colors flex items-center cursor-pointer"
