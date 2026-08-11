@@ -178,20 +178,6 @@
   background: rgba(131, 234, 255, 0.38);
 }
 
-.lp-install-orbit {
-  position: absolute;
-  top: -24rem;
-  right: -16rem;
-  width: min(72vw, 70rem);
-  aspect-ratio: 1;
-  border: 1px solid rgba(131, 234, 255, 0.13);
-  border-radius: 50%;
-  box-shadow:
-    inset 0 0 0 7rem rgba(23, 55, 238, 0.018),
-    inset 0 0 0 14rem rgba(23, 55, 238, 0.016);
-  pointer-events: none;
-}
-
 .lp-blueprint-field {
   background-color: inherit;
   background-image:
@@ -201,19 +187,30 @@
 }
 
 .lp-feature-sheet {
-  box-shadow: 0 -24px 58px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.28);
   transform: translateZ(0);
 }
 
 .lp-liquid-headline {
-  font-family: "Great Vibes", "Snell Roundhand", "Apple Chancery", cursive;
+  font-family: "Geist Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   isolation: isolate;
   text-wrap: balance;
 }
 
+.lp-oracle-orb {
+  transform-origin: 50% 50%;
+  will-change: transform;
+  filter: grayscale(1) brightness(1.45) contrast(1.18);
+  animation: lp-oracle-orb-turn 36s linear infinite;
+}
+
+.lp-oracle-figure {
+  filter: grayscale(1) brightness(1.18) contrast(1.14);
+}
+
 .lp-liquid-line {
-  --lp-liquid-delay: 80ms;
-  --lp-liquid-duration: 1750ms;
+  --lp-liquid-delay: 40ms;
+  --lp-liquid-duration: 800ms;
   position: relative;
   display: block;
   width: fit-content;
@@ -277,31 +274,19 @@
 }
 
 .lp-liquid-group--desktop .lp-liquid-line--2 {
-  --lp-liquid-delay: 1450ms;
-}
-
-.lp-liquid-group--desktop .lp-liquid-line--3 {
-  --lp-liquid-delay: 2820ms;
+  --lp-liquid-delay: 420ms;
 }
 
 .lp-liquid-group--mobile .lp-liquid-line {
-  --lp-liquid-duration: 1100ms;
+  --lp-liquid-duration: 750ms;
 }
 
 .lp-liquid-group--mobile .lp-liquid-line--2 {
-  --lp-liquid-delay: 850ms;
+  --lp-liquid-delay: 340ms;
 }
 
 .lp-liquid-group--mobile .lp-liquid-line--3 {
-  --lp-liquid-delay: 1620ms;
-}
-
-.lp-liquid-group--mobile .lp-liquid-line--4 {
-  --lp-liquid-delay: 2390ms;
-}
-
-.lp-liquid-group--mobile .lp-liquid-line--5 {
-  --lp-liquid-delay: 3160ms;
+  --lp-liquid-delay: 650ms;
 }
 
 @keyframes lp-calligraphy-write {
@@ -350,6 +335,12 @@
   }
 }
 
+@keyframes lp-oracle-orb-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp-feature-sheet {
     position: relative;
@@ -357,7 +348,8 @@
   }
 
   .lp-liquid-line,
-  .lp-liquid-sheen {
+  .lp-liquid-sheen,
+  .lp-oracle-orb {
     animation: none;
   }
 

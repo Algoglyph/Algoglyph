@@ -1,4 +1,5 @@
-import type { FC, MouseEvent, ReactNode } from 'react';
+import { useEffect } from 'react';
+import type { FC, MouseEvent } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { AsciiCodeSculpturesField } from './landing/AsciiCodeSculpturesField';
 import { LandingContinuation, LandingFooter } from './landing/LandingContinuation';
@@ -10,97 +11,28 @@ interface LandingPageProps {
   onViewBlog?: (slug?: string) => void;
 }
 
-interface IllustratedActionProps {
-  children: ReactNode;
-  label: string;
-  onClick: () => void;
-}
-
 const LANDING_SECTIONS = [
   { label: 'Features', id: 'features' },
   { label: 'Visualizers', id: 'visualizer' },
   { label: 'Use Cases', id: 'usecases' },
 ] as const;
 
-const WorkspaceBookIcon = () => (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 128 108"
-    className="h-[78px] w-[92px] overflow-visible sm:h-[88px] sm:w-[106px]"
-    fill="none"
-  >
-    <path
-      d="M8 72c18-5 37-3 56 10 18-13 37-15 56-10l-3 23c-20-4-37-1-53 10-16-11-33-14-53-10L8 72Z"
-      fill="currentColor"
-      opacity="0.1"
-    />
-    <path
-      d="M8 72c20-5 39-2 56 10 17-12 36-15 56-10M11 86c20-4 37-1 53 10 16-11 33-14 53-10M64 82v14"
-      stroke="currentColor"
-      strokeWidth="2.1"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M65 76c4-17 12-32 24-44 8-8 17-13 25-25 2 15-1 28-10 38-8 9-20 14-33 17 8-1 15-3 22-7-5 9-14 16-28 21Z"
-      fill="currentColor"
-    />
-    <path
-      d="M65 75C75 54 91 32 112 9"
-      stroke="#070a0b"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-    />
-    <path
-      d="m68 61 13-13m-8 5 1-12m8 2 14-10M65 70l-5 17 5-5 3 6 2-16"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-const RoadmapBookIcon = () => (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 128 108"
-    className="h-[78px] w-[92px] overflow-visible sm:h-[88px] sm:w-[106px]"
-    fill="none"
-    stroke="currentColor"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path
-      d="M13 26c20-5 37 1 51 15 14-14 31-20 51-15v57c-19-3-36 1-51 14-15-13-32-17-51-14V26Z"
-      strokeWidth="2.4"
-    />
-    <path d="M64 41v56M13 32 7 35v55c21-3 40 0 57 7 17-7 36-10 57-7V35l-6-3" strokeWidth="1.7" opacity="0.66" />
-    <path d="M23 44c12-2 22 1 31 8M23 57c12-2 22 1 31 8M23 70c12-2 22 1 31 8" strokeWidth="2" />
-    <path d="M105 44c-12-2-22 1-31 8M105 57c-12-2-22 1-31 8M105 70c-12-2-22 1-31 8" strokeWidth="2" />
-  </svg>
-);
-
-const IllustratedAction: FC<IllustratedActionProps> = ({ children, label, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label={label}
-    title={label}
-    className="group relative flex h-[104px] min-w-0 flex-1 cursor-pointer items-center justify-center rounded-[1.65rem] bg-white/[0.025] p-1.5 text-white/68 ring-1 ring-inset ring-white/[0.07] transition-[transform,color,background-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:-translate-y-1 hover:bg-white/[0.045] hover:text-[var(--lp-hero-cyan)] focus-visible:outline-none focus-visible:ring-[var(--lp-hero-cyan)] active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none sm:h-[122px] sm:w-[148px] sm:flex-none"
-  >
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-1.5 rounded-[calc(1.65rem-0.375rem)] bg-[radial-gradient(circle_at_50%_35%,rgba(131,234,255,0.08),rgba(255,255,255,0.018)_48%,rgba(0,0,0,0.1)_100%)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.09)]"
-    />
-    <span className="relative transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:-translate-y-0.5 group-hover:scale-[1.035] motion-reduce:transform-none">
-      {children}
-    </span>
-    <span className="sr-only">{label}</span>
-  </button>
-);
-
 export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) => {
+  useEffect(() => {
+    const scrollToHashTarget = () => {
+      const targetId = window.location.hash.slice(1);
+      if (!targetId) return;
+
+      window.requestAnimationFrame(() => {
+        document.getElementById(targetId)?.scrollIntoView({ block: 'start' });
+      });
+    };
+
+    scrollToHashTarget();
+    window.addEventListener('hashchange', scrollToHashTarget);
+    return () => window.removeEventListener('hashchange', scrollToHashTarget);
+  }, []);
+
   const handleSectionLink = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -161,48 +93,49 @@ export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) =
       </header>
 
       <main>
-        <section className="relative min-h-[100dvh] overflow-hidden bg-[var(--lp-hero-bg)] pt-16">
-          <div className="absolute inset-0">
+        <section className="relative min-h-[clamp(540px,72dvh,680px)] overflow-hidden bg-[var(--lp-hero-bg)] pt-16">
+          <div className="absolute inset-0 opacity-60 sm:opacity-75">
             <AsciiCodeSculpturesField />
           </div>
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,7,8,0.98)_0%,rgba(5,7,8,0.98)_62%,rgba(5,7,8,0)_68%)] sm:hidden"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(5,7,8,0.98)_0%,rgba(5,7,8,0.9)_60%,rgba(5,7,8,0.12)_100%)] sm:hidden"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_48%_56%_at_50%_49%,rgba(5,7,8,1)_0%,rgba(5,7,8,0.92)_52%,rgba(5,7,8,0)_100%)] sm:block"
+            className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(ellipse_42%_68%_at_50%_50%,rgba(5,7,8,0.99)_0%,rgba(5,7,8,0.9)_58%,rgba(5,7,8,0.04)_100%)] sm:block"
           />
 
-          <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[1040px] flex-col items-center justify-start px-5 pb-[17rem] pt-14 text-center sm:justify-center sm:px-12 sm:py-20">
-            <div className="flex items-center gap-3 font-mono text-[9px] font-medium uppercase tracking-[0.3em] text-[var(--lp-hero-muted)] sm:text-[10px]">
-              <span aria-hidden="true" className="h-px w-7 bg-white/20 sm:w-10" />
-              <span>Visual Computer Science Workspace</span>
-              <span aria-hidden="true" className="h-px w-7 bg-white/20 sm:w-10" />
-            </div>
-
+          <div className="relative z-10 mx-auto flex min-h-[calc(clamp(540px,72dvh,680px)_-_4rem)] w-full max-w-[1040px] flex-col items-center justify-center px-5 py-12 text-center sm:px-12 sm:py-16">
             <LiquidGlassHeadline />
 
-            <p className="mt-6 max-w-[660px] text-balance text-[14px] leading-[1.55] tracking-[-0.012em] text-[var(--lp-hero-muted)] sm:mt-7 sm:text-[17px] sm:leading-[1.5]">
-              Notes, an infinite whiteboard, a code runner, and live visualizers, all in one place.
-              Stop juggling six tabs and start seeing how computer science actually works, then
-              check out the roadmap for 1000+ articles.
+            <p className="mt-5 max-w-[570px] text-balance text-[14px] leading-[1.55] tracking-[-0.012em] text-[var(--lp-hero-muted)] sm:mt-6 sm:text-[16px]">
+              Give any MCP client access to notes, canvas, code, and visualizers, all locally.
             </p>
 
             <div
-              className="mt-7 flex w-full max-w-[350px] items-center justify-center gap-3 sm:mt-9 sm:max-w-none sm:gap-8"
+              className="mt-7 flex w-full max-w-[390px] flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center"
               aria-label="Hero actions"
             >
-              <IllustratedAction label="Launch Workspace" onClick={onLaunch}>
-                <WorkspaceBookIcon />
-              </IllustratedAction>
-              <IllustratedAction label="Explore CS Roadmap" onClick={onViewRoadmap}>
-                <RoadmapBookIcon />
-              </IllustratedAction>
+              <button
+                type="button"
+                onClick={onLaunch}
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-white px-6 text-[14px] font-semibold text-[#050708] transition-[transform,background-color] duration-300 hover:-translate-y-0.5 hover:bg-[var(--lp-hero-cyan)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050708] active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
+              >
+                Launch Workspace
+                <ArrowRight aria-hidden="true" size={14} strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={onViewRoadmap}
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/18 bg-white/[0.025] px-6 text-[14px] font-semibold text-white/82 transition-[transform,border-color,color] duration-300 hover:-translate-y-0.5 hover:border-white/42 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
+              >
+                Explore Roadmap
+              </button>
             </div>
           </div>
         </section>
-        <LandingContinuation onLaunch={onLaunch} />
+        <LandingContinuation onLaunch={onLaunch} onViewRoadmap={onViewRoadmap} />
       </main>
       <LandingFooter />
     </div>

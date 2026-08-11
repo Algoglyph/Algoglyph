@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-type SculptureKind = 'torus' | 'cube' | 'helix';
+type SculptureKind = 'torus' | 'tree';
 
 interface AsciiBuffer {
   columns: number;
@@ -21,8 +21,8 @@ const ASCII_GLYPHS = `${ASCII_RAMP}/\\|`;
 const FRAME_INTERVAL = 1_000 / 30;
 const MOBILE_SLOT_DURATION = 5_000;
 const MOBILE_CROSSFADE_DURATION = 1_000;
-const MOBILE_REEL_DURATION = MOBILE_SLOT_DURATION * 3;
-const SCULPTURES: SculptureKind[] = ['torus', 'cube', 'helix'];
+const SCULPTURES: SculptureKind[] = ['torus', 'tree'];
+const MOBILE_REEL_DURATION = MOBILE_SLOT_DURATION * SCULPTURES.length;
 
 const TORUS_THETA = Array.from({ length: Math.ceil(TAU / 0.12) }, (_, index) => {
   const angle = index * 0.12;
@@ -33,22 +33,6 @@ const TORUS_PHI = Array.from({ length: Math.ceil(TAU / 0.05) }, (_, index) => {
   const angle = index * 0.05;
   return { sin: Math.sin(angle), cos: Math.cos(angle) };
 });
-
-const CUBE_VERTICES = [
-  [-1, -1, -1],
-  [1, -1, -1],
-  [1, 1, -1],
-  [-1, 1, -1],
-  [-1, -1, 1],
-  [1, -1, 1],
-  [1, 1, 1],
-  [-1, 1, 1],
-] as const;
-const CUBE_EDGES = [
-  [0, 1], [1, 2], [2, 3], [3, 0],
-  [4, 5], [5, 6], [6, 7], [7, 4],
-  [0, 4], [1, 5], [2, 6], [3, 7],
-] as const;
 
 const createBuffer = (columns: number, rows: number): AsciiBuffer => {
   const cells = columns * rows;
@@ -95,33 +79,6 @@ const plot = (
 const readColor = (canvas: HTMLCanvasElement, name: string, fallback: string) =>
   getComputedStyle(canvas).getPropertyValue(name).trim() || fallback;
 
-const rotatePoint = (
-  x: number,
-  y: number,
-  z: number,
-  angleX: number,
-  angleY: number,
-  angleZ: number,
-) => {
-  const sinX = Math.sin(angleX);
-  const cosX = Math.cos(angleX);
-  const sinY = Math.sin(angleY);
-  const cosY = Math.cos(angleY);
-  const sinZ = Math.sin(angleZ);
-  const cosZ = Math.cos(angleZ);
-
-  const yX = y * cosX - z * sinX;
-  const zX = y * sinX + z * cosX;
-  const xY = x * cosY + zX * sinY;
-  const zY = -x * sinY + zX * cosY;
-
-  return {
-    x: xY * cosZ - yX * sinZ,
-    y: xY * sinZ + yX * cosZ,
-    z: zY,
-  };
-};
-
 const renderTorus = (buffer: AsciiBuffer, angleA: number, angleB: number) => {
   resetBuffer(buffer);
   const sinA = Math.sin(angleA);
@@ -158,108 +115,87 @@ const renderTorus = (buffer: AsciiBuffer, angleA: number, angleB: number) => {
   }
 };
 
-const renderCube = (
-  buffer: AsciiBuffer,
-  angleX: number,
-  angleY: number,
-  angleZ: number,
-) => {
-  resetBuffer(buffer);
-  const cameraDistance = 4.4;
-  const scaleX = buffer.columns * 0.98;
-  const scaleY = buffer.rows * 0.86;
-
-  for (const [startIndex, endIndex] of CUBE_EDGES) {
-    const start = CUBE_VERTICES[startIndex];
-    const end = CUBE_VERTICES[endIndex];
-    const rotatedStart = rotatePoint(start[0], start[1], start[2], angleX, angleY, angleZ);
-    const rotatedEnd = rotatePoint(end[0], end[1], end[2], angleX, angleY, angleZ);
-    const startDepth = 1 / (cameraDistance + rotatedStart.z);
-    const endDepth = 1 / (cameraDistance + rotatedEnd.z);
-    const startX = buffer.columns * 0.5 + scaleX * startDepth * rotatedStart.x;
-    const startY = buffer.rows * 0.5 - scaleY * startDepth * rotatedStart.y;
-    const endX = buffer.columns * 0.5 + scaleX * endDepth * rotatedEnd.x;
-    const endY = buffer.rows * 0.5 - scaleY * endDepth * rotatedEnd.y;
-    const deltaX = endX - startX;
-    const deltaY = endY - startY;
-    const slope = Math.abs(deltaX) / Math.max(0.001, Math.abs(deltaY));
-    const glyph = slope > 2.2
-      ? ASCII_GLYPHS.indexOf('-') + 1
-      : slope < 0.45
-        ? ASCII_GLYPHS.indexOf('|') + 1
-        : deltaX * deltaY > 0
-          ? ASCII_GLYPHS.indexOf('\\') + 1
-          : ASCII_GLYPHS.indexOf('/') + 1;
-    const steps = Math.max(2, Math.ceil(Math.max(Math.abs(deltaX), Math.abs(deltaY)) * 2));
-
-    for (let step = 0; step <= steps; step += 1) {
-      const progress = step / steps;
-      const inverseDepth = startDepth + (endDepth - startDepth) * progress;
-      const luminance = Math.max(0.42, Math.min(1, 0.42 + (inverseDepth - 0.18) * 4.2));
-      plot(
-        buffer,
-        startX + deltaX * progress,
-        startY + deltaY * progress,
-        inverseDepth,
-        luminance,
-        glyph,
-      );
-    }
-  }
+const stableNoise = (x: number, y: number, seed: number) => {
+  const raw = Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43_758.5453;
+  return raw - Math.floor(raw);
 };
 
-const renderHelix = (buffer: AsciiBuffer, phaseOffset: number, orbitBias: number) => {
+const ellipse = (
+  x: number,
+  y: number,
+  centerX: number,
+  centerY: number,
+  radiusX: number,
+  radiusY: number,
+) => {
+  const normalizedX = (x - centerX) / radiusX;
+  const normalizedY = (y - centerY) / radiusY;
+  return normalizedX * normalizedX + normalizedY * normalizedY;
+};
+
+const treeGlyph = (noise: number, luminance: number) => {
+  if (luminance > 0.82 && noise > 0.38) return ASCII_RAMP.indexOf('$') + 1;
+  if (noise > 0.78) return ASCII_RAMP.indexOf('#') + 1;
+  if (noise > 0.56) return ASCII_RAMP.indexOf('*') + 1;
+  if (noise > 0.38) return ASCII_RAMP.indexOf('!') + 1;
+  if (noise > 0.2) return ASCII_RAMP.indexOf(':') + 1;
+  return ASCII_RAMP.indexOf('.') + 1;
+};
+
+const renderTree = (buffer: AsciiBuffer, seconds: number, pointerBias: number) => {
   resetBuffer(buffer);
-  const samples = 190;
-  const turns = 3.25;
-  const cameraDistance = 4;
-  const scaleX = buffer.columns * 1.72;
-  const scaleY = buffer.rows * 0.74;
+  const sway = Math.sin(seconds * 0.72) * 0.035 + pointerBias * 0.06;
+  const pulse = 0.5 + Math.sin(seconds * 1.3) * 0.5;
 
-  const projectHelixPoint = (phase: number, vertical: number, strandOffset: number, rung = false) => {
-    const angle = phase + strandOffset + phaseOffset;
-    const rawX = Math.cos(angle) * 0.72;
-    const rawZ = Math.sin(angle) * 0.72;
-    const rotated = rotatePoint(rawX, vertical, rawZ, -0.08, orbitBias, 0.04);
-    const z = cameraDistance + rotated.z;
-    const inverseDepth = 1 / z;
-    const depthLight = Math.max(0, Math.min(1, (inverseDepth - 0.2) / 0.12));
+  for (let row = 0; row < buffer.rows; row += 1) {
+    const y = ((row + 0.5) / buffer.rows - 0.5) * 2.22;
 
-    plot(
-      buffer,
-      buffer.columns * 0.5 + scaleX * inverseDepth * rotated.x,
-      buffer.rows * 0.5 - scaleY * inverseDepth * rotated.y,
-      inverseDepth,
-      rung ? 0.28 + depthLight * 0.32 : 0.42 + depthLight * 0.58,
-    );
-  };
+    for (let column = 0; column < buffer.columns; column += 1) {
+      const x = ((column + 0.5) / buffer.columns - 0.5) * 2.16 - sway * (0.55 - y);
+      const upperCrown = Math.min(
+        ellipse(x, y, -0.02, -0.62, 0.62, 0.34),
+        ellipse(x, y, -0.42, -0.45, 0.42, 0.3),
+        ellipse(x, y, 0.42, -0.44, 0.44, 0.31),
+        ellipse(x, y, -0.18, -0.79, 0.31, 0.22),
+        ellipse(x, y, 0.22, -0.78, 0.34, 0.23),
+      );
+      const lowerCrown = Math.min(
+        ellipse(x, y, -0.28, -0.25, 0.5, 0.22),
+        ellipse(x, y, 0.3, -0.23, 0.52, 0.23),
+        ellipse(x, y, 0, -0.11, 0.34, 0.2),
+      );
+      const roots = Math.min(
+        ellipse(x, y, -0.26, 0.72, 0.42, 0.22),
+        ellipse(x, y, 0.28, 0.72, 0.44, 0.22),
+        ellipse(x, y, 0, 0.84, 0.72, 0.2),
+      );
+      const trunkWidth = 0.07 + Math.max(0, y + 0.08) * 0.1;
+      const trunk = Math.abs(x - sway * 0.26) < trunkWidth && y > -0.24 && y < 0.88;
+      const leftBranch = y > -0.42 && y < -0.12 && Math.abs(y + 0.33 + (x + 0.12) * 0.7) < 0.035 && x < 0.02;
+      const rightBranch = y > -0.42 && y < -0.1 && Math.abs(y + 0.31 - (x - 0.1) * 0.66) < 0.035 && x > -0.02;
+      const canopyMask = Math.min(upperCrown, lowerCrown);
+      const inCanopy = canopyMask < 1;
+      const inRoots = roots < 1 && y > 0.48;
+      const noise = stableNoise(column, row, Math.floor(seconds * 7));
+      const edge = inCanopy ? Math.max(0, 1 - canopyMask) : inRoots ? Math.max(0, 1 - roots) : 1;
+      const density = trunk || leftBranch || rightBranch ? 0.96 : Math.min(0.92, 0.34 + edge * 0.92);
 
-  for (let index = 0; index < samples; index += 1) {
-    const progress = index / (samples - 1);
-    const phase = progress * turns * TAU;
-    const vertical = -1.8 + progress * 3.6;
-    projectHelixPoint(phase, vertical, 0);
-    projectHelixPoint(phase, vertical, Math.PI);
+      if (!(inCanopy || inRoots || trunk || leftBranch || rightBranch) || noise > density) continue;
 
-    if (index % 16 === 0) {
-      for (let rungStep = 1; rungStep < 8; rungStep += 1) {
-        const blend = rungStep / 8;
-        const firstAngle = phase + phaseOffset;
-        const secondAngle = firstAngle + Math.PI;
-        const x = Math.cos(firstAngle) * (1 - blend) + Math.cos(secondAngle) * blend;
-        const z = Math.sin(firstAngle) * (1 - blend) + Math.sin(secondAngle) * blend;
-        const rotated = rotatePoint(x * 0.72, vertical, z * 0.72, -0.08, orbitBias, 0.04);
-        const cameraZ = cameraDistance + rotated.z;
-        const inverseDepth = 1 / cameraZ;
-        plot(
-          buffer,
-          buffer.columns * 0.5 + scaleX * inverseDepth * rotated.x,
-          buffer.rows * 0.5 - scaleY * inverseDepth * rotated.y,
-          inverseDepth,
-          0.34,
-          ASCII_RAMP.indexOf('-') + 1,
-        );
-      }
+      const centerGlow = Math.max(0, 1 - Math.abs(x) * 1.25) * Math.max(0, 1 - Math.abs(y + 0.08) * 0.72);
+      const organicLight = 0.32 + edge * 0.32 + centerGlow * 0.28 + pulse * 0.08 + noise * 0.12;
+      const luminance = trunk || leftBranch || rightBranch
+        ? Math.min(1, 0.48 + centerGlow * 0.36 + noise * 0.18)
+        : Math.min(1, organicLight);
+
+      plot(
+        buffer,
+        column,
+        row,
+        1 + luminance * 0.1 + noise * 0.01,
+        luminance,
+        treeGlyph(noise, luminance),
+      );
     }
   }
 };
@@ -281,8 +217,7 @@ export function AsciiCodeSculpturesField() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
     const torusBuffer = createBuffer(48, 26);
-    const cubeBuffer = createBuffer(42, 28);
-    const helixBuffer = createBuffer(24, 24);
+    const treeBuffer = createBuffer(54, 44);
     let width = 0;
     let height = 0;
     let isMobile = false;
@@ -346,50 +281,38 @@ export function AsciiCodeSculpturesField() {
           0.78 + seconds * 0.54 + pointerY * 0.14,
           -0.28 + seconds * 0.31 + pointerX * 0.18,
         );
-      } else if (kind === 'cube') {
-        renderCube(
-          cubeBuffer,
-          0.56 + seconds * 0.34 + pointerY * 0.12,
-          0.68 + seconds * 0.43 + pointerX * 0.18,
-          -0.12 + seconds * 0.16,
-        );
       } else {
-        renderHelix(helixBuffer, seconds * 0.88, 0.16 + pointerX * 0.16);
+        renderTree(treeBuffer, seconds, pointerX);
       }
     };
 
     const drawDesktop = (elapsed: number) => {
-      const outerBand = width * 0.225;
-      const torusCellWidth = Math.min(6.3, Math.max(3.2, (outerBand - 18) / torusBuffer.columns));
-      const cubeCellWidth = Math.min(5.2, Math.max(3, (outerBand - 22) / cubeBuffer.columns));
-      const helixCellWidth = Math.min(6, Math.max(3.3, (outerBand - 36) / helixBuffer.columns));
+      const outerBand = width * 0.29;
+      const torusCellWidth = Math.min(7.8, Math.max(3.8, (outerBand - 10) / torusBuffer.columns));
+      const treeCellWidth = Math.min(7.5, Math.max(3.4, (outerBand - 6) / treeBuffer.columns));
 
       renderSculpture('torus', elapsed);
-      renderSculpture('cube', elapsed);
-      renderSculpture('helix', elapsed);
+      renderSculpture('tree', elapsed);
 
-      drawBuffer(torusBuffer, outerBand * 0.5, height * 0.49, torusCellWidth, torusCellWidth * 1.56);
-      drawBuffer(cubeBuffer, width - outerBand * 0.5, height * 0.38, cubeCellWidth, cubeCellWidth * 1.58);
-      drawBuffer(helixBuffer, width - outerBand * 0.47, height * 0.74, helixCellWidth, helixCellWidth * 1.54);
+      drawBuffer(torusBuffer, outerBand * 0.46, height * 0.5, torusCellWidth, torusCellWidth * 1.56);
+      drawBuffer(treeBuffer, width - outerBand * 0.45, height * 0.55, treeCellWidth, treeCellWidth * 1.24);
     };
 
     const drawMobileSculpture = (kind: SculptureKind, elapsed: number, opacity: number) => {
       renderSculpture(kind, elapsed);
-      const centerY = height * 0.835;
+      const centerY = height * 0.82;
 
       if (kind === 'torus') {
-        drawBuffer(torusBuffer, width * 0.5, centerY, 6.2, 9.55, opacity);
-      } else if (kind === 'cube') {
-        drawBuffer(cubeBuffer, width * 0.5, centerY, 6.1, 8.7, opacity);
+        drawBuffer(torusBuffer, width * 0.5, centerY, 7.5, 11.4, opacity);
       } else {
-        drawBuffer(helixBuffer, width * 0.5, centerY, 7.2, 9.5, opacity);
+        drawBuffer(treeBuffer, width * 0.5, centerY, 7.5, 9.3, opacity);
       }
     };
 
     const drawMobile = (elapsed: number) => {
       if (reducedMotion) {
         renderTorus(torusBuffer, 1.04, 0.28);
-        drawBuffer(torusBuffer, width * 0.5, height * 0.835, 6.2, 9.55);
+        drawBuffer(torusBuffer, width * 0.5, height * 0.82, 7.5, 11.4);
         return;
       }
 
