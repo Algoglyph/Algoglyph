@@ -4,8 +4,9 @@ const DESKTOP_HEADLINE_LINES = [
 ] as const;
 
 const MOBILE_HEADLINE_LINES = [
-  'Connect your AI',
-  'agent to a visual',
+  'Connect your',
+  'AI agent to a',
+  'visual',
   'workspace.',
 ] as const;
 
@@ -29,7 +30,7 @@ const WrittenLines = ({ className, lines }: WrittenLinesProps) => (
 
 export function LiquidGlassHeadline() {
   return (
-    <h1 className="lp-liquid-headline w-full max-w-[860px] text-[clamp(2.45rem,4.7vw,4.25rem)] font-medium leading-[0.98] tracking-[-0.055em] text-[var(--lp-hero-ink)]">
+    <h1 className="lp-liquid-headline w-full max-w-[940px] text-[clamp(1.8rem,8vw,2.4rem)] font-normal leading-[1.06] tracking-[-0.025em] text-[var(--lp-hero-ink)] sm:text-[clamp(2.25rem,4vw,4.25rem)] sm:leading-[1.02]">
       <span className="sr-only">
         Connect your AI agent to a visual workspace.
       </span>

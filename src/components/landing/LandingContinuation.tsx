@@ -249,7 +249,7 @@ function WhiteExplanation() {
   return (
     <section id="usecases" className="relative z-30 scroll-mt-16 bg-[#f2f2ef] px-5 py-20 text-[#111214] sm:px-12 sm:py-28">
       <div className="mx-auto max-w-[1500px]">
-        <h2 className="max-w-[920px] text-balance text-[clamp(2.7rem,5.5vw,5.5rem)] font-medium leading-[0.95] tracking-[-0.04em]">
+        <h2 className="w-full text-[clamp(2.7rem,5vw,5.5rem)] font-medium leading-[0.95] tracking-[-0.04em]">
           One product. Every learning loop.
         </h2>
         <p className="mt-5 text-[17px] font-medium tracking-[-0.02em] text-[#111214]/62 sm:text-[20px]">
