@@ -266,6 +266,351 @@ function RosslerAttractorVisual() {
   );
 }
 
+const createAizawaOrbit = (length: number): LorenzPoint[] => {
+  const points: LorenzPoint[] = [];
+  const a = 0.95;
+  const b = 0.7;
+  const c = 0.6;
+  const d = 3.5;
+  const e = 0.25;
+  const f = 0.1;
+  const timeStep = 0.005;
+  let x = 0.1;
+  let y = 0;
+  let z = 0;
+
+  for (let index = 0; index < length + 2600; index += 1) {
+    const deltaX = (z - b) * x - d * y;
+    const deltaY = d * x + (z - b) * y;
+    const deltaZ = c + a * z - (z ** 3) / 3
+      - (x ** 2 + y ** 2) * (1 + e * z)
+      + f * z * x ** 3;
+
+    x += deltaX * timeStep;
+    y += deltaY * timeStep;
+    z += deltaZ * timeStep;
+
+    if (index >= 2600) points.push([x, y, z]);
+  }
+
+  return points;
+};
+
+function AizawaAttractorVisual() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const context = canvas.getContext('2d');
+    if (!context) return undefined;
+
+    const orbit = createAizawaOrbit(9000);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let frameId = 0;
+    let width = 0;
+    let height = 0;
+    let pixelRatio = 1;
+
+    const resize = () => {
+      const bounds = canvas.getBoundingClientRect();
+      width = bounds.width;
+      height = bounds.height;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(height * pixelRatio));
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    };
+
+    const draw = (elapsed = 0) => {
+      context.clearRect(0, 0, width, height);
+
+      const angle = reduceMotion ? -0.32 : elapsed * 0.00004 - 0.32;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+      const scale = Math.min(width / 3.55, height / 2.9);
+      const centerX = width * 0.5;
+      const centerY = height * 0.52;
+      const currentIndex = reduceMotion ? orbit.length : Math.floor(elapsed * 0.34) % orbit.length;
+
+      for (let index = 0; index < orbit.length; index += 2) {
+        const [x, y, z] = orbit[index];
+        const rotatedX = x * cosine - y * sine;
+        const depth = x * sine + y * cosine;
+        const screenX = centerX + rotatedX * scale;
+        const screenY = centerY + (depth * 0.7 - (z - 0.62) * 0.36) * scale;
+        const trailDistance = (currentIndex - index + orbit.length) % orbit.length;
+        const trailGlow = reduceMotion ? 0 : Math.max(0, 1 - trailDistance / 1050);
+        const depthLight = Math.max(0, Math.min(1, (depth + 1.55) / 3.1));
+        const alpha = 0.12 + depthLight * 0.3 + trailGlow * 0.52;
+        const size = trailGlow > 0.58 || index % 22 === 0 ? 1.75 : 1.05;
+
+        context.fillStyle = `rgba(17, 18, 20, ${Math.min(alpha, 0.94)})`;
+        context.fillRect(screenX, screenY, size, size);
+      }
+
+      if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      if (reduceMotion) draw();
+    });
+
+    resizeObserver.observe(canvas);
+    resize();
+    draw();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  return (
+    <div className="relative h-full min-h-[46dvh] overflow-hidden bg-transparent lg:min-h-[62dvh]">
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label="Animated particle simulation of an Aizawa attractor"
+        className="absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
+
+type AcoNode = Readonly<{ x: number; y: number }>;
+type AcoEdge = Readonly<{ from: number; to: number }>;
+
+const ACO_NODES: readonly AcoNode[] = [
+  { x: 0.08, y: 0.52 },
+  { x: 0.24, y: 0.2 },
+  { x: 0.27, y: 0.5 },
+  { x: 0.24, y: 0.8 },
+  { x: 0.48, y: 0.27 },
+  { x: 0.5, y: 0.57 },
+  { x: 0.48, y: 0.84 },
+  { x: 0.72, y: 0.32 },
+  { x: 0.9, y: 0.55 },
+] as const;
+
+const ACO_EDGES: readonly AcoEdge[] = [
+  { from: 0, to: 1 }, { from: 0, to: 2 }, { from: 0, to: 3 },
+  { from: 1, to: 2 }, { from: 1, to: 4 },
+  { from: 2, to: 3 }, { from: 2, to: 4 }, { from: 2, to: 5 },
+  { from: 3, to: 5 }, { from: 3, to: 6 },
+  { from: 4, to: 5 }, { from: 4, to: 7 },
+  { from: 5, to: 6 }, { from: 5, to: 7 }, { from: 5, to: 8 },
+  { from: 6, to: 8 }, { from: 7, to: 8 },
+] as const;
+
+const createSeededRandom = () => {
+  let seed = 0x6d2b79f5;
+  return () => {
+    seed += 0x6d2b79f5;
+    let value = seed;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+function AntColonyVisual() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const context = canvas.getContext('2d');
+    if (!context) return undefined;
+
+    const random = createSeededRandom();
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const pheromones = ACO_EDGES.map(() => 0.55);
+    let antPaths: number[][] = [];
+    let bestPath: number[] = [];
+    let bestDistance = Number.POSITIVE_INFINITY;
+    let lastIteration = -1;
+    let frameId = 0;
+    let width = 0;
+    let height = 0;
+    let pixelRatio = 1;
+
+    const edgeLength = (edgeIndex: number) => {
+      const edge = ACO_EDGES[edgeIndex];
+      const start = ACO_NODES[edge.from];
+      const end = ACO_NODES[edge.to];
+      return Math.hypot(end.x - start.x, end.y - start.y);
+    };
+
+    const choosePath = () => {
+      const path: number[] = [];
+      let currentNode = 0;
+
+      while (currentNode !== ACO_NODES.length - 1 && path.length < 10) {
+        const candidates = ACO_EDGES
+          .map((edge, edgeIndex) => ({ edge, edgeIndex }))
+          .filter(({ edge }) => edge.from === currentNode);
+        const weights = candidates.map(({ edgeIndex }) => (
+          pheromones[edgeIndex] ** 1.35 * (1 / edgeLength(edgeIndex)) ** 2.2
+        ));
+        const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+        let threshold = random() * totalWeight;
+        let selected = candidates[candidates.length - 1];
+
+        for (let index = 0; index < candidates.length; index += 1) {
+          threshold -= weights[index];
+          if (threshold <= 0) {
+            selected = candidates[index];
+            break;
+          }
+        }
+
+        path.push(selected.edgeIndex);
+        currentNode = selected.edge.to;
+      }
+
+      return path;
+    };
+
+    const runIteration = () => {
+      antPaths = Array.from({ length: 28 }, choosePath);
+      pheromones.forEach((value, index) => {
+        pheromones[index] = Math.max(0.08, value * 0.76);
+      });
+
+      antPaths.forEach((path) => {
+        const distance = path.reduce((sum, edgeIndex) => sum + edgeLength(edgeIndex), 0);
+        const deposit = 0.34 / distance;
+        path.forEach((edgeIndex) => {
+          pheromones[edgeIndex] = Math.min(3.4, pheromones[edgeIndex] + deposit);
+        });
+
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestPath = [...path];
+        }
+      });
+    };
+
+    const resize = () => {
+      const bounds = canvas.getBoundingClientRect();
+      width = bounds.width;
+      height = bounds.height;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(height * pixelRatio));
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    };
+
+    const pointForNode = (nodeIndex: number) => {
+      const node = ACO_NODES[nodeIndex];
+      const paddingX = Math.max(28, width * 0.08);
+      const paddingY = Math.max(28, height * 0.13);
+      return {
+        x: paddingX + node.x * (width - paddingX * 2),
+        y: paddingY + node.y * (height - paddingY * 2),
+      };
+    };
+
+    const draw = (elapsed = 0) => {
+      const iteration = reduceMotion ? 22 : Math.floor(elapsed / 760);
+      if (iteration !== lastIteration) {
+        runIteration();
+        lastIteration = iteration;
+      }
+
+      context.clearRect(0, 0, width, height);
+
+      ACO_EDGES.forEach((edge, edgeIndex) => {
+        const start = pointForNode(edge.from);
+        const end = pointForNode(edge.to);
+        const strength = Math.min(1, pheromones[edgeIndex] / 2.8);
+        const isBest = bestPath.includes(edgeIndex);
+
+        context.beginPath();
+        context.moveTo(start.x, start.y);
+        context.lineTo(end.x, end.y);
+        context.strokeStyle = isBest
+          ? `rgba(255, 255, 255, ${0.3 + strength * 0.58})`
+          : `rgba(255, 255, 255, ${0.07 + strength * 0.26})`;
+        context.lineWidth = isBest ? 1.2 + strength * 3.8 : 0.7 + strength * 2.1;
+        context.stroke();
+
+        const particleCount = Math.max(1, Math.round(strength * 7));
+        for (let particle = 0; particle < particleCount; particle += 1) {
+          const offset = particle / particleCount;
+          const progress = reduceMotion ? offset : (elapsed * 0.00009 + offset + edgeIndex * 0.071) % 1;
+          const x = start.x + (end.x - start.x) * progress;
+          const y = start.y + (end.y - start.y) * progress;
+          context.fillStyle = `rgba(255, 255, 255, ${0.14 + strength * 0.48})`;
+          context.fillRect(x, y, isBest ? 1.8 : 1.2, isBest ? 1.8 : 1.2);
+        }
+      });
+
+      if (!reduceMotion) {
+        antPaths.slice(0, 18).forEach((path, antIndex) => {
+          const segmentProgress = (elapsed * 0.00032 + antIndex / 18) * path.length;
+          const edgeIndex = path[Math.floor(segmentProgress) % path.length];
+          const progress = segmentProgress % 1;
+          const edge = ACO_EDGES[edgeIndex];
+          const start = pointForNode(edge.from);
+          const end = pointForNode(edge.to);
+          const x = start.x + (end.x - start.x) * progress;
+          const y = start.y + (end.y - start.y) * progress;
+
+          context.beginPath();
+          context.arc(x, y, antIndex % 5 === 0 ? 2.2 : 1.45, 0, Math.PI * 2);
+          context.fillStyle = antIndex % 5 === 0 ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.62)';
+          context.fill();
+        });
+      }
+
+      ACO_NODES.forEach((_, nodeIndex) => {
+        const point = pointForNode(nodeIndex);
+        const isTerminal = nodeIndex === 0 || nodeIndex === ACO_NODES.length - 1;
+        context.beginPath();
+        context.arc(point.x, point.y, isTerminal ? 7 : 4.5, 0, Math.PI * 2);
+        context.fillStyle = isTerminal ? '#f5f7ff' : '#1737ee';
+        context.fill();
+        context.lineWidth = 1.2;
+        context.strokeStyle = isTerminal ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.72)';
+        context.stroke();
+      });
+
+      if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      if (reduceMotion) draw();
+    });
+
+    resizeObserver.observe(canvas);
+    resize();
+    for (let index = 0; index < 22; index += 1) runIteration();
+    draw();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  return (
+    <div className="relative h-full min-h-[340px] overflow-hidden bg-[#10205f] lg:min-h-full">
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label="Animated ant colony optimization simulation with ants reinforcing the shortest pheromone trail"
+        className="absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
+
 function InstallConnector() {
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const resetTimer = useRef<number | null>(null);
@@ -396,7 +741,7 @@ function StickyProductStory() {
       <div className="relative">
         <StorySheet index={0} className="bg-[#050708] text-white">
           <div className="lp-blueprint-field mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(280px,0.6fr)_minmax(0,1.4fr)]">
-            <div className="flex flex-col justify-end border-b border-white/18 px-5 py-10 sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
+            <div className="flex flex-col items-center justify-center border-b border-white/18 px-5 py-10 text-center sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
               <h3 className="max-w-[8ch] text-[clamp(2.8rem,5.5vw,5.6rem)] font-semibold leading-[0.9] tracking-[-0.04em]">
                 Think in space.
               </h3>
@@ -412,7 +757,7 @@ function StickyProductStory() {
 
         <StorySheet index={1} className="bg-[#0c0e10] text-white">
           <div className="lp-blueprint-field mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(280px,0.6fr)_minmax(0,1.4fr)]">
-            <div className="flex flex-col justify-end border-b border-white/18 px-5 py-10 sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
+            <div className="flex flex-col items-center justify-center border-b border-white/18 px-5 py-10 text-center sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
               <h3 className="max-w-[9ch] text-[clamp(2.8rem,5.5vw,5.6rem)] font-semibold leading-[0.9] tracking-[-0.04em]">
                 Keep proof beside the idea.
               </h3>
@@ -473,13 +818,9 @@ function StickyProductStory() {
             </div>
             <div
               id="visualizer"
-              className="flex min-h-[340px] scroll-mt-16 items-center justify-center overflow-hidden bg-[#1737ee]/38 px-4 py-6 sm:py-8 lg:min-h-full lg:px-10"
+              className="relative min-h-[340px] scroll-mt-16 overflow-hidden bg-[#10205f] lg:min-h-full"
             >
-              <img
-                src="/images/dsa/dijkstra-dark.jpg"
-                alt="Dijkstra shortest-path lesson showing weighted edges, visited nodes, and distance updates"
-                className="h-full max-h-[calc(78dvh-7rem)] w-full object-cover lg:object-contain"
-              />
+              <AntColonyVisual />
             </div>
           </div>
         </StorySheet>
@@ -499,26 +840,21 @@ function WhiteExplanation() {
           Read. Map. Run. Retain.
         </p>
 
-        <div className="mt-12 grid overflow-hidden border-y border-black/14 sm:mt-16 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
-          <div className="relative min-h-[46dvh] overflow-hidden bg-[#171918] lg:min-h-[62dvh]">
-            <img
-              src="/illustrations/algorithms.png"
-              alt="Chalkboard showing binary search, merge sort, and a recursive sorting flowchart"
-              loading="lazy"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
+        <div className="mt-12 grid overflow-hidden sm:mt-16 lg:grid-cols-[minmax(0,1.25fr)_minmax(300px,0.75fr)]">
+          <div className="relative min-h-[46dvh] overflow-hidden bg-transparent lg:min-h-[62dvh]">
+            <AizawaAttractorVisual />
           </div>
-          <div className="flex flex-col justify-end border-t border-black/14 px-0 py-8 lg:border-l lg:border-t-0 lg:px-10 lg:py-12">
-            <div className="border-t border-black/14 text-[15px] font-medium leading-[1.5] sm:text-[16px]">
-              <p className="py-5">Roadmap: start with the concept.</p>
-              <p className="border-t border-black/14 py-5">Canvas: map the relationship.</p>
-              <p className="border-t border-black/14 py-5">Runner: test the model.</p>
+          <div className="flex items-center justify-center px-3 py-12 text-center lg:px-10 lg:py-16">
+            <div className="flex max-w-[29ch] flex-col gap-7 text-[17px] font-medium leading-[1.45] tracking-[-0.02em] sm:text-[19px]">
+              <p><span className="font-semibold">Roadmap</span> sets the direction.</p>
+              <p><span className="font-semibold">Canvas</span> maps the idea.</p>
+              <p><span className="font-semibold">MCP</span> brings agents into the workspace.</p>
             </div>
           </div>
         </div>
 
         <div className="mt-20 grid gap-10 sm:mt-24 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)] lg:gap-20">
-          <h3 className="max-w-[10ch] text-[clamp(2.2rem,4vw,4.2rem)] font-medium leading-[0.98] tracking-[-0.04em]">
+          <h3 className="max-w-[10ch] self-center justify-self-center text-center text-[clamp(2.2rem,4vw,4.2rem)] font-medium leading-[0.98] tracking-[-0.04em]">
             Different work. Same mental model.
           </h3>
           <div className="border-t border-black/18">
