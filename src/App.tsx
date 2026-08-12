@@ -10,7 +10,7 @@ import { NotificationToast } from './components/NotificationToast';
 import { MobileNav } from './components/MobileNav';
 import { McpConnectDialog } from './components/McpConnectDialog';
 import { WorkspaceTour } from './components/WorkspaceTour';
-import { bootstrapMcpConnection } from './lib/mcp/bootstrap';
+import { startMcpConnectionBootstrap } from './lib/mcp/bootstrap';
 import { useIsMobile } from './hooks/useIsMobile';
 import { SEO } from './components/SEO';
 
@@ -104,9 +104,9 @@ const AppContent: React.FC = () => {
   // Initialize workspace from IndexedDB on load and map navigation APIs globally
   useEffect(() => {
     initializeWorkspace();
-    // One-click MCP connect from the connector's printed link (or a remembered
-    // session token) — no dialog or token pasting needed.
-    void bootstrapMcpConnection();
+    // Starting the connector command is the entire connection flow. A bounded
+    // retry window also covers users who launch it just after opening the app.
+    const stopMcpBootstrap = startMcpConnectionBootstrap();
     (window as any).useWorkspaceStore = useWorkspaceStore;
     (window as any).goToLanding = () => navigate('/');
     (window as any).navigateTo = (next: string, customPath?: string) => {
@@ -117,6 +117,7 @@ const AppContent: React.FC = () => {
         navigate(path);
       }
     };
+    return stopMcpBootstrap;
   }, [initializeWorkspace, navigate]);
 
   // Reflect the active theme onto <html> so the .dark token overrides apply.

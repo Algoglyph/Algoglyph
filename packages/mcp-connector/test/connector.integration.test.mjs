@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { after, before, describe, test } from 'node:test';
-import { startConnectorHarness, startMcpServerFixture } from './helpers/connectorHarness.mjs';
+import {
+  startConnectorHarness,
+  startMcpServerFixture,
+  startRedirectServerFixture,
+} from './helpers/connectorHarness.mjs';
 
 const ALLOWED_ORIGIN = 'https://algoglyph.com';
+const SECOND_ALLOWED_ORIGIN = 'https://www.algoglyph.com';
 const BLOCKED_ORIGIN = 'https://attacker.example';
 const ALL_SESSION_SCOPES = ['catalog:read', 'mcp:test', 'mcp:invoke', 'agent:run', 'session:revoke'];
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -13,7 +18,53 @@ const CHUNKED_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/chunkedAgent.mjs
 const INSPECT_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/inspectAgent.mjs', import.meta.url));
 const FAILING_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/failingAgent.mjs', import.meta.url));
 const OVERSIZED_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/oversizedAgent.mjs', import.meta.url));
+const SLOW_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/slowAgent.mjs', import.meta.url));
+const HANGING_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/hangingAgent.mjs', import.meta.url));
+const WARM_ANTIGRAVITY_FIXTURE = fileURLToPath(new URL('./fixtures/warmAntigravityAgent.mjs', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+
+const waitForPathRemoval = async (path, timeoutMs = 5_000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      await access(path);
+    } catch {
+      return true;
+    }
+    await wait(50);
+  }
+  return false;
+};
+
+const processIsAlive = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const waitForProcessExit = async (pid, timeoutMs = 5_000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!processIsAlive(pid)) return true;
+    await wait(50);
+  }
+  return !processIsAlive(pid);
+};
+
+const readFirstSseEvent = async (reader) => {
+  const decoder = new TextDecoder();
+  let raw = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) throw new Error('The fixture stream ended before emitting an event.');
+    raw += decoder.decode(value, { stream: true });
+    const boundary = raw.indexOf('\n\n');
+    if (boundary !== -1) return parseSseEvents(raw.slice(0, boundary + 2))[0];
+  }
+};
 
 const parseSseEvents = (raw) => raw.split('\n\n').filter(Boolean).map((record) => {
   const event = record.split('\n').find((line) => line.startsWith('event:'))?.slice(6).trim();
@@ -33,6 +84,26 @@ const runRawFixtureAgent = async (fixtureConnector, token, body) => {
     body: JSON.stringify({ agentId: 'fixture', prompt: 'security fixture', outputMode: 'buffered', ...body }),
   });
   return { status: response.status, events: response.ok ? parseSseEvents(await response.text()) : [], response };
+};
+
+const runWarmAntigravity = async (fixtureConnector, token, marker) => {
+  const response = await fetch(`${fixtureConnector.endpoint}/v1/agents/run`, {
+    method: 'POST',
+    headers: {
+      Accept: 'text/event-stream',
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Origin: fixtureConnector.allowedOrigin,
+    },
+    body: JSON.stringify({ agentId: 'antigravity', prompt: marker, outputMode: 'buffered' }),
+  });
+  const events = response.ok ? parseSseEvents(await response.text()) : [];
+  const output = events.find((event) => event.event === 'output');
+  return {
+    status: response.status,
+    events,
+    output: output ? JSON.parse(output.data.chunk) : undefined,
+  };
 };
 
 const requestWithHost = (endpoint, host) => new Promise((resolveRequest, reject) => {
@@ -96,8 +167,8 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.1.0',
-      protocolVersion: 1,
+      version: '0.2.0',
+      protocolVersion: 2,
       requiresToken: true,
     });
     assert.equal(JSON.stringify(response.body).includes(connector.masterToken), false);
@@ -405,6 +476,494 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
   });
 });
 
+describe('connector adversarial regression coverage', { concurrency: false }, () => {
+  test('automatic pairing requires a trusted origin and binds pairing and session grants to it', async () => {
+    const originlessPairing = await connector.request('v1/pairings', {
+      method: 'POST',
+      origin: null,
+      body: {},
+    });
+    assert.equal(originlessPairing.status, 403);
+
+    const originlessMasterPairing = await connector.request('v1/pairings', {
+      method: 'POST',
+      origin: null,
+      token: connector.masterToken,
+      body: {},
+    });
+    assert.equal(originlessMasterPairing.status, 403);
+
+    const pairing = await connector.request('v1/pairings', { method: 'POST', body: {} });
+    assert.equal(pairing.status, 200);
+
+    const wrongOriginRedemption = await connector.request('v1/session', {
+      method: 'POST',
+      origin: SECOND_ALLOWED_ORIGIN,
+      body: { pairingToken: pairing.body.pairingToken },
+    });
+    assert.equal(wrongOriginRedemption.status, 403);
+    assert.match(wrongOriginRedemption.body.error.message, /different browser origin/i);
+
+    const originlessRedemption = await connector.request('v1/session', {
+      method: 'POST',
+      origin: null,
+      body: { pairingToken: pairing.body.pairingToken },
+    });
+    assert.equal(originlessRedemption.status, 403);
+
+    const session = await connector.request('v1/session', {
+      method: 'POST',
+      body: { pairingToken: pairing.body.pairingToken },
+    });
+    assert.equal(session.status, 200);
+
+    const wrongOriginUse = await connector.request('v1/mcp/test', {
+      method: 'POST',
+      origin: SECOND_ALLOWED_ORIGIN,
+      token: session.body.sessionToken,
+      body: {},
+    });
+    assert.equal(wrongOriginUse.status, 403);
+
+    const originlessUse = await connector.request('v1/mcp/test', {
+      method: 'POST',
+      origin: null,
+      token: session.body.sessionToken,
+      body: {},
+    });
+    assert.equal(originlessUse.status, 403);
+  });
+
+  test('JSON endpoints enforce media type, bounded structure, safe keys, and strict fields', async () => {
+    const inputConnector = await startConnectorHarness({
+      environment: { NODE_ENV: 'test', ALGOGLYPH_TEST_AGENT_FIXTURE: INSPECT_AGENT_FIXTURE },
+    });
+    try {
+      const unsupportedMediaType = await inputConnector.request('v1/session', {
+        method: 'POST',
+        rawBody: '{}',
+        headers: { 'Content-Type': 'text/plain' },
+      });
+      assert.equal(unsupportedMediaType.status, 415);
+
+      const malformed = await inputConnector.request('v1/session', {
+        method: 'POST',
+        rawBody: '{"pairingToken":',
+      });
+      assert.equal(malformed.status, 400);
+
+      let nested = '"value"';
+      for (let index = 0; index < 15; index += 1) nested = `{"level":${nested}}`;
+      const tooDeep = await inputConnector.request('v1/session', {
+        method: 'POST',
+        rawBody: nested,
+      });
+      assert.equal(tooDeep.status, 400);
+      assert.match(tooDeep.body.error.message, /nested too deeply/i);
+
+      const prototypePollution = await inputConnector.request('v1/session', {
+        method: 'POST',
+        rawBody: '{"pairingToken":"x","__proto__":{"polluted":true}}',
+      });
+      assert.equal(prototypePollution.status, 400);
+      assert.match(prototypePollution.body.error.message, /unsafe JSON object keys/i);
+      assert.equal(Object.prototype.polluted, undefined);
+
+      const { session } = await inputConnector.pair();
+      for (const [field, value] of [
+        ['command', 'calc.exe'],
+        ['path', 'C:\\Windows\\System32\\cmd.exe'],
+        ['args', ['--dangerously-skip-permissions']],
+        ['env', { OPENAI_API_KEY: 'must-not-be-reflected' }],
+      ]) {
+        const rejected = await inputConnector.request('v1/agents/run', {
+          method: 'POST',
+          token: session.sessionToken,
+          body: { agentId: 'fixture', prompt: 'safe prompt', [field]: value },
+        });
+        assert.equal(rejected.status, 400, `expected ${field} to be rejected`);
+        assert.match(rejected.body.error.message, new RegExp(`unsupported request field: ${field}`, 'i'));
+        assert.doesNotMatch(JSON.stringify(rejected.body), /must-not-be-reflected|calc\.exe|cmd\.exe/i);
+      }
+
+      const invalidOutputMode = await inputConnector.request('v1/agents/run', {
+        method: 'POST',
+        token: session.sessionToken,
+        body: { agentId: 'fixture', prompt: 'safe prompt', outputMode: 'unsafe' },
+      });
+      assert.equal(invalidOutputMode.status, 400);
+
+      const invalidMcpBoolean = await inputConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: session.sessionToken,
+        body: { endpoint: mcpServer.endpoint, allowPrivateNetwork: 'yes' },
+      });
+      assert.equal(invalidMcpBoolean.status, 400);
+    } finally {
+      await inputConnector.stop();
+    }
+  });
+
+  test('known routes reject unsupported methods and all routes reject query strings', async () => {
+    const unsupportedMethod = await connector.request('v1/agents/run', { method: 'PUT' });
+    assert.equal(unsupportedMethod.status, 405);
+    assert.match(unsupportedMethod.body.error.message, /method not allowed/i);
+
+    const query = await connector.request('health?debug=true');
+    assert.equal(query.status, 400);
+    assert.match(query.body.error.message, /query strings and fragments/i);
+
+    const encodedRoute = await connector.request('v1/%61gents/run');
+    assert.equal(encodedRoute.status, 404);
+  });
+
+  test('startup rejects a weak configured master token', async () => {
+    await assert.rejects(
+      startConnectorHarness({ masterToken: 'too-short' }),
+      /at least 32 bytes long and unpredictable/i,
+    );
+  });
+
+  test('MCP destination validation blocks malformed, credentialed, insecure, private, and redirected targets', async () => {
+    const ssrfConnector = await startConnectorHarness();
+    const redirect = await startRedirectServerFixture('http://169.254.169.254/latest/meta-data');
+    try {
+      const fixturePort = new URL(mcpServer.endpoint).port;
+      const cases = [
+        { endpoint: 'file:///etc/passwd', status: 400 },
+        { endpoint: 'http://example.com/mcp', status: 400 },
+        { endpoint: 'https://user:password@example.com/mcp', status: 400 },
+        { endpoint: 'https://example.com/mcp#credential', status: 400 },
+        { endpoint: 'https://127.0.0.1:1/mcp', status: 403 },
+        { endpoint: 'https://169.254.169.254/latest/meta-data', status: 403 },
+        { endpoint: 'https://[::1]/mcp', status: 403 },
+        { endpoint: `http://2130706433:${fixturePort}/mcp`, status: 403 },
+      ];
+      for (const scenario of cases) {
+        const response = await ssrfConnector.request('v1/mcp/test', {
+          method: 'POST',
+          token: ssrfConnector.masterToken,
+          body: { endpoint: scenario.endpoint, accessToken: 'ssrf-secret' },
+        });
+        assert.equal(response.status, scenario.status, scenario.endpoint);
+        assert.doesNotMatch(JSON.stringify(response.body), /ssrf-secret/);
+      }
+
+      const redirected = await ssrfConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: ssrfConnector.masterToken,
+        body: { endpoint: redirect.endpoint, allowPrivateNetwork: true, accessToken: 'redirect-secret' },
+      });
+      assert.notEqual(redirected.status, 200);
+      assert.doesNotMatch(JSON.stringify(redirected.body), /redirect-secret/);
+    } finally {
+      await redirect.stop();
+      await ssrfConnector.stop();
+    }
+  });
+
+  test('approved MCP grants are owner-scoped, capped, and removed with their owning session', async () => {
+    const lifecycleConnector = await startConnectorHarness();
+    try {
+      const { session: firstSession } = await lifecycleConnector.pair();
+      const firstApproval = await lifecycleConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: firstSession.sessionToken,
+        body: { endpoint: mcpServer.endpoint, accessToken: mcpServer.accessToken, allowPrivateNetwork: true },
+      });
+      assert.equal(firstApproval.status, 200);
+
+      const { session: secondSession } = await lifecycleConnector.pair();
+      const crossSession = await lifecycleConnector.request('v1/mcp/invoke', {
+        method: 'POST',
+        token: secondSession.sessionToken,
+        body: {
+          serverId: firstApproval.body.serverId,
+          toolName: 'echo_for_test',
+          arguments: { value: 'cross-session' },
+          confirmed: true,
+        },
+      });
+      assert.equal(crossSession.status, 404);
+
+      const revoke = await lifecycleConnector.request('v1/session/revoke', {
+        method: 'POST',
+        token: firstSession.sessionToken,
+        body: {},
+      });
+      assert.equal(revoke.status, 200);
+
+      const revokedOwner = await lifecycleConnector.request('v1/mcp/invoke', {
+        method: 'POST',
+        token: firstSession.sessionToken,
+        body: {
+          serverId: firstApproval.body.serverId,
+          toolName: 'echo_for_test',
+          arguments: { value: 'revoked' },
+          confirmed: true,
+        },
+      });
+      assert.equal(revokedOwner.status, 401);
+
+      const approvals = [];
+      for (let index = 0; index < 5; index += 1) {
+        const approval = await lifecycleConnector.request('v1/mcp/test', {
+          method: 'POST',
+          token: lifecycleConnector.masterToken,
+          body: { endpoint: mcpServer.endpoint, accessToken: mcpServer.accessToken, allowPrivateNetwork: true },
+        });
+        assert.equal(approval.status, 200);
+        approvals.push(approval.body.serverId);
+      }
+
+      const evictedApproval = await lifecycleConnector.request('v1/mcp/invoke', {
+        method: 'POST',
+        token: lifecycleConnector.masterToken,
+        body: {
+          serverId: approvals[0],
+          toolName: 'echo_for_test',
+          arguments: { value: 'evicted' },
+          confirmed: true,
+        },
+      });
+      assert.equal(evictedApproval.status, 404);
+
+      const newestApproval = await lifecycleConnector.request('v1/mcp/invoke', {
+        method: 'POST',
+        token: lifecycleConnector.masterToken,
+        body: {
+          serverId: approvals.at(-1),
+          toolName: 'echo_for_test',
+          arguments: { value: 'newest' },
+          confirmed: true,
+        },
+      });
+      assert.equal(newestApproval.status, 200);
+
+      const connectorSource = await readFile(
+        `${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`,
+        'utf8',
+      );
+      assert.match(connectorSource, /deleteSession[\s\S]*stopOwnerResources/);
+      assert.match(connectorSource, /removeApprovedServersForOwner/);
+      assert.match(connectorSource, /pruneSessions[\s\S]{0,500}deleteSession\(token\)/);
+      assert.match(connectorSource, /sessions\.size >= maxSessions[\s\S]{0,500}deleteSession\(oldest\[0\]\)/);
+    } finally {
+      await lifecycleConnector.stop();
+    }
+  });
+
+  test('agent admission is atomic and rejects a concurrent second run', async () => {
+    const slowConnector = await startConnectorHarness({
+      environment: { NODE_ENV: 'test', ALGOGLYPH_TEST_AGENT_FIXTURE: SLOW_AGENT_FIXTURE },
+    });
+    try {
+      const { session } = await slowConnector.pair();
+      const headers = {
+        Accept: 'text/event-stream',
+        Authorization: `Bearer ${session.sessionToken}`,
+        'Content-Type': 'application/json',
+        Origin: slowConnector.allowedOrigin,
+      };
+      const first = await fetch(`${slowConnector.endpoint}/v1/agents/run`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ agentId: 'fixture', prompt: 'first', outputMode: 'stream' }),
+      });
+      assert.equal(first.status, 200);
+
+      const second = await fetch(`${slowConnector.endpoint}/v1/agents/run`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ agentId: 'fixture', prompt: 'second', outputMode: 'stream' }),
+      });
+      assert.equal(second.status, 429);
+      assert.match((await second.json()).error.message, /already in progress/i);
+      assert.match(await first.text(), /slow-fixture-complete/);
+    } finally {
+      await slowConnector.stop();
+    }
+  });
+
+  test('agent environment, MCP relay, cancellation, and temporary-directory cleanup remain isolated', async () => {
+    const isolated = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_TEST_AGENT_FIXTURE: INSPECT_AGENT_FIXTURE,
+        ALGOGLYPH_TEST_PARENT_SECRET: 'arbitrary-parent-secret',
+        AWS_SECRET_ACCESS_KEY: 'aws-parent-secret',
+        OPENAI_API_KEY: 'openai-parent-secret',
+      },
+    });
+    try {
+      const { session } = await isolated.pair();
+      const approved = await isolated.request('v1/mcp/test', {
+        method: 'POST',
+        token: session.sessionToken,
+        body: { endpoint: mcpServer.endpoint, accessToken: mcpServer.accessToken, allowPrivateNetwork: true },
+      });
+      assert.equal(approved.status, 200);
+
+      const withoutApproval = await runRawFixtureAgent(isolated, session.sessionToken, {});
+      assert.equal(withoutApproval.status, 200);
+      const plainInspection = JSON.parse(withoutApproval.events.find((event) => event.event === 'output').data.chunk);
+      assert.deepEqual(plainInspection.leaks, {
+        arbitraryParentSecret: false,
+        awsSecret: false,
+        connectorToken: false,
+        openAiKey: false,
+      });
+      assert.equal(plainInspection.isolation.approvedMcpConfig, false);
+      assert.equal(plainInspection.isolation.approvedMcpTokenPresent, false);
+      assert.equal(plainInspection.isolation.userProfileIsCwd, true);
+      assert.equal(plainInspection.isolation.tempIsCwd, true);
+      assert.equal(await waitForPathRemoval(plainInspection.cwd), true);
+
+      const withApproval = await runRawFixtureAgent(isolated, session.sessionToken, {
+        mcpServerId: approved.body.serverId,
+      });
+      assert.equal(withApproval.status, 200);
+      const relayInspection = JSON.parse(withApproval.events.find((event) => event.event === 'output').data.chunk);
+      assert.equal(relayInspection.isolation.approvedMcpConfig, true);
+      assert.equal(relayInspection.isolation.approvedMcpTokenPresent, true);
+      assert.equal(relayInspection.isolation.approvedMcpUsesInternalRelay, true);
+      assert.equal(relayInspection.isolation.approvedMcpTokenMatchesEnvironment, true);
+      assert.equal(relayInspection.isolation.upstreamFixtureTokenPresent, false);
+      assert.equal(await waitForPathRemoval(relayInspection.cwd), true);
+
+      const clientSource = await readFile(`${REPO_ROOT}/src/lib/mcp/connectorClient.ts`, 'utf8');
+      assert.match(clientSource, /body:\s*JSON\.stringify\(request\)/);
+      assert.doesNotMatch(clientSource, /approvedMcpServerId/);
+    } finally {
+      await isolated.stop();
+    }
+
+    const cancellable = await startConnectorHarness({
+      environment: { NODE_ENV: 'test', ALGOGLYPH_TEST_AGENT_FIXTURE: HANGING_AGENT_FIXTURE },
+    });
+    try {
+      const { session } = await cancellable.pair();
+      const response = await fetch(`${cancellable.endpoint}/v1/agents/run`, {
+        method: 'POST',
+        headers: {
+          Accept: 'text/event-stream',
+          Authorization: `Bearer ${session.sessionToken}`,
+          'Content-Type': 'application/json',
+          Origin: cancellable.allowedOrigin,
+        },
+        body: JSON.stringify({ agentId: 'fixture', prompt: 'cancel me', outputMode: 'stream' }),
+      });
+      assert.equal(response.status, 200);
+      const reader = response.body.getReader();
+      const firstEvent = await readFirstSseEvent(reader);
+      assert.equal(firstEvent.event, 'output');
+      const inspection = JSON.parse(firstEvent.data.chunk);
+      await reader.cancel();
+      assert.equal(await waitForPathRemoval(inspection.cwd), true);
+    } finally {
+      await cancellable.stop();
+    }
+  });
+
+  test('warm Antigravity reuses only one owner, returns only post-reset output, and awaits tree cleanup', async () => {
+    const warmConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: WARM_ANTIGRAVITY_FIXTURE,
+      },
+    });
+    const descendantPids = new Set();
+    try {
+      const { session: firstSession } = await warmConnector.pair();
+      const first = await runWarmAntigravity(
+        warmConnector,
+        firstSession.sessionToken,
+        'WARM_REQUEST_ONE',
+      );
+      assert.equal(first.status, 200);
+      assert.equal(first.output.marker, 'WARM_REQUEST_ONE');
+      descendantPids.add(first.output.descendantPid);
+
+      const second = await runWarmAntigravity(
+        warmConnector,
+        firstSession.sessionToken,
+        'WARM_REQUEST_TWO',
+      );
+      assert.equal(second.status, 200);
+      assert.equal(second.output.marker, 'WARM_REQUEST_TWO');
+      assert.equal(second.output.homeDirectory, first.output.homeDirectory);
+
+      const { session: nextSession } = await warmConnector.pair();
+      const nextOwner = await runWarmAntigravity(
+        warmConnector,
+        nextSession.sessionToken,
+        'WARM_REQUEST_NEXT_OWNER',
+      );
+      assert.equal(nextOwner.status, 200);
+      assert.equal(nextOwner.output.marker, 'WARM_REQUEST_NEXT_OWNER');
+      assert.notEqual(nextOwner.output.homeDirectory, first.output.homeDirectory);
+      descendantPids.add(nextOwner.output.descendantPid);
+      assert.equal(await waitForPathRemoval(first.output.homeDirectory), true);
+      assert.equal(await waitForProcessExit(first.output.descendantPid), true);
+
+      const revoked = await warmConnector.request('v1/session/revoke', {
+        method: 'POST',
+        token: nextSession.sessionToken,
+        body: {},
+      });
+      assert.equal(revoked.status, 200);
+      assert.equal(await waitForPathRemoval(nextOwner.output.homeDirectory), true);
+      assert.equal(await waitForProcessExit(nextOwner.output.descendantPid), true);
+    } finally {
+      await warmConnector.stop();
+      for (const pid of descendantPids) {
+        if (processIsAlive(pid)) {
+          try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+        }
+      }
+    }
+  });
+
+  test('production Codex adapter disables local, open-world, hook, and subagent tools', async () => {
+    const connectorSource = await readFile(
+      `${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`,
+      'utf8',
+    );
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.shell_tool=false'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.unified_exec=false'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.apps=false'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.multi_agent=false'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.hooks=false'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'web_search="disabled"'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?'--ignore-rules'/);
+    assert.match(connectorSource, /default_permissions = "algoglyph_connector"/);
+    assert.match(connectorSource, /filesystem = \{ ":root" = "deny" \}/);
+    assert.match(connectorSource, /\[shell_environment_policy\][\s\S]*?inherit = "none"/);
+    assert.match(connectorSource, /if \(copiedFileCredential\) delete environment\.OPENAI_API_KEY/);
+  });
+
+  test('Claude adapter exposes no built-ins and auto-approves only exact per-run MCP tools', async () => {
+    const connectorSource = await readFile(
+      `${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`,
+      'utf8',
+    );
+    assert.match(
+      connectorSource,
+      /id: 'claude'[\s\S]*?runArgs: \['-p', '--tools', '', '--permission-mode', 'dontAsk', '--no-session-persistence'\]/,
+    );
+    assert.match(connectorSource, /if \(agent\.id === 'claude'\)[\s\S]*?`mcp__\$\{name\}__\$\{tool\.name\}`/);
+    assert.match(
+      connectorSource,
+      /extraArgs: \['--mcp-config', configPath, '--strict-mcp-config', '--allowedTools', \.\.\.allowedTools\]/,
+    );
+    assert.doesNotMatch(connectorSource, /mcp__\$\{name\}__\*/);
+    assert.doesNotMatch(
+      connectorSource,
+      /const allowedTools = server\.summary\.tools\s*\.map\([^;]+\)\s*\.join\(/,
+    );
+  });
+});
+
 describe('security remediation contract', () => {
   test('Stage 3: Host, browser endpoint, SSRF, redirect, credential, and response policies are enforced', async () => {
     const token = connector.masterToken;
@@ -486,7 +1045,7 @@ describe('security remediation contract', () => {
     assert.match(connectorSource, /resolveAgentExecutable/);
     assert.match(connectorSource, /--sandbox/);
     assert.match(connectorSource, /runArgs: \['--sandbox', '--disable-slash-commands', '-p'\]/);
-    assert.match(connectorSource, /ptyRuntime\.spawn\(executable, \['--sandbox'\]/);
+    assert.match(connectorSource, /ptyRuntime\.spawn\(executable, testAntigravityFixture \? \[testAntigravityFixture\] : \['--sandbox'\]/);
     assert.match(connectorSource, /session\.pty\.write\('\/clear\\r'\)/);
     assert.doesNotMatch(connectorSource, /agy models/);
     assert.match(clientSource, /MAX_SSE_BUFFER_BYTES/);
@@ -543,6 +1102,7 @@ describe('security remediation contract', () => {
     const docs = await readFile(`${REPO_ROOT}/docs/mcp-connector.md`, 'utf8');
     const packageReadme = await readFile(`${REPO_ROOT}/packages/mcp-connector/README.md`, 'utf8');
     const packageJson = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/package.json`, 'utf8'));
+    const shrinkwrap = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/npm-shrinkwrap.json`, 'utf8'));
     assert.match(mainSource, /app:\/\/algoglyph/);
     assert.match(mainSource, /Content-Security-Policy/);
     assert.match(mainSource, /contextIsolation: true/);
@@ -550,8 +1110,10 @@ describe('security remediation contract', () => {
     assert.doesNotMatch(docs, /quick-connect link/i);
     assert.doesNotMatch(packageReadme, /credentials.*link is opened/i);
     assert.equal(packageJson.license, 'UNLICENSED');
+    assert.equal(shrinkwrap.version, packageJson.version);
+    assert.deepEqual(shrinkwrap.packages[''].dependencies, packageJson.dependencies);
     assert.deepEqual(packageJson.files.sort(), [
-      'README.md', 'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs',
+      'README.md', 'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs', 'npm-shrinkwrap.json',
     ].sort());
   });
 });

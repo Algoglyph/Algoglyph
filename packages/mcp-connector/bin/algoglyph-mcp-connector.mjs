@@ -1,18 +1,22 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
-import { access, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { isIP } from 'node:net';
 import { tmpdir } from 'node:os';
-import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
+import { delimiter, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { Agent as UndiciAgent } from 'undici';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
-const CONNECTOR_VERSION = '0.1.0';
+const CONNECTOR_VERSION = '0.2.0';
+const CONNECTOR_PROTOCOL_VERSION = 2;
 const DEFAULT_PORT = 4319;
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_JSON_RESPONSE_BYTES = 1024 * 1024;
@@ -27,11 +31,27 @@ const ANTIGRAVITY_SESSION_READY_TIMEOUT_MS = 90_000;
 const MAX_AGENT_OUTPUT_BYTES = 256 * 1024;
 const MAX_PROMPT_BYTES = 32 * 1024;
 const MAX_CONCURRENT_AGENT_RUNS = 1;
+const MAX_CONCURRENT_MCP_OPERATIONS = 2;
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const SESSION_IDLE_TTL_MS = 30 * 60 * 1000;
 const MAX_SESSIONS = 8;
+const APPROVED_MCP_TTL_MS = 30 * 60 * 1000;
+const MAX_APPROVED_MCP_SERVERS_PER_OWNER = 4;
+const MAX_MCP_APPROVAL_BYTES = 512 * 1024;
+const MAX_JSON_DEPTH = 12;
+const MAX_JSON_KEYS = 512;
+const MAX_JSON_ARRAY_ITEMS = 256;
+const MAX_JSON_STRING_BYTES = 32 * 1024;
+const MAX_URL_BYTES = 2_048;
+const MAX_TRANSCRIPT_FILES = 2;
+const MAX_TRANSCRIPT_FILE_BYTES = 512 * 1024;
+const MCP_TOOL_NAME_PATTERN = /^[A-Za-z0-9_.:/-]{1,200}$/;
 const PAIRING_ISSUE_RATE_LIMIT = 5;
 const PAIRING_REDEEM_RATE_LIMIT = 20;
+const CATALOG_RATE_LIMIT = 30;
+const MCP_TEST_RATE_LIMIT = 10;
+const MCP_INVOKE_RATE_LIMIT = 30;
+const AGENT_RUN_RATE_LIMIT = 10;
 const AUTH_RATE_WINDOW_MS = 60_000;
 const DEV_TIMING_ENABLED = process.env.ALGOGLYPH_DEV_TIMING === '1';
 const SESSION_SCOPES = Object.freeze(['catalog:read', 'mcp:test', 'mcp:invoke', 'agent:run', 'session:revoke']);
@@ -52,7 +72,28 @@ const AGENTS = [
     id: 'codex',
     label: 'Codex CLI',
     command: 'codex',
-    runArgs: ['exec', '--ephemeral', '--sandbox', 'read-only', '--skip-git-repo-check', '--'],
+    runArgs: [
+      'exec',
+      '--ephemeral',
+      '--ignore-rules',
+      '--strict-config',
+      '--skip-git-repo-check',
+      // Codex needs its credential material in the process environment/home to
+      // authenticate, but the model must never receive a command-capable tool
+      // that could read those secrets. Keep only the explicitly configured MCP
+      // relay available; disable every local/open-world execution surface.
+      '-c', 'approval_policy="never"',
+      '-c', 'web_search="disabled"',
+      '-c', 'features.shell_tool=false',
+      '-c', 'features.shell_snapshot=false',
+      '-c', 'features.unified_exec=false',
+      '-c', 'features.apps=false',
+      '-c', 'features.remote_plugin=false',
+      '-c', 'features.multi_agent=false',
+      '-c', 'features.hooks=false',
+      '-c', 'features.skill_mcp_dependency_install=false',
+      '--',
+    ],
     promptVia: 'stdin',
     authEnv: ['OPENAI_API_KEY'],
   },
@@ -74,7 +115,9 @@ const AGENTS = [
     id: 'claude',
     label: 'Claude Code',
     command: 'claude',
-    runArgs: ['-p', '--tools', '', '--no-session-persistence'],
+    // `--tools ''` removes built-ins but leaves configured MCP tools available.
+    // `dontAsk` then denies anything outside the exact per-run allowlist below.
+    runArgs: ['-p', '--tools', '', '--permission-mode', 'dontAsk', '--no-session-persistence'],
     promptVia: 'stdin',
     authEnv: ['ANTHROPIC_API_KEY'],
   },
@@ -82,6 +125,9 @@ const AGENTS = [
 
 const testAgentFixture = process.env.NODE_ENV === 'test'
   ? process.env.ALGOGLYPH_TEST_AGENT_FIXTURE?.trim()
+  : undefined;
+const testAntigravityFixture = process.env.NODE_ENV === 'test'
+  ? process.env.ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE?.trim()
   : undefined;
 if (testAgentFixture) {
   AGENTS.push({
@@ -149,13 +195,22 @@ const parseAllowedOrigins = () => {
 const port = parsePort(process.env.ALGOGLYPH_CONNECTOR_PORT);
 const allowedOrigins = parseAllowedOrigins();
 const configuredToken = process.env.ALGOGLYPH_CONNECTOR_TOKEN?.trim();
+if (configuredToken && Buffer.byteLength(configuredToken, 'utf8') < 32) {
+  throw new Error('ALGOGLYPH_CONNECTOR_TOKEN must be at least 32 bytes long and unpredictable.');
+}
 const connectorToken = configuredToken || randomBytes(24).toString('base64url');
 
 const pairingCredentials = new Map();
 const sessions = new Map();
 const approvedMcpServers = new Map();
+const mcpRelays = new Map();
 const pairingIssueAttempts = new Map();
 const pairingRedeemAttempts = new Map();
+const catalogAttempts = new Map();
+const mcpTestAttempts = new Map();
+const mcpInvokeAttempts = new Map();
+const agentRunAttempts = new Map();
+const trackedTempRoots = new Set();
 
 const createSecret = () => randomBytes(32).toString('base64url');
 
@@ -175,10 +230,10 @@ const requestedScopes = (body = {}) => {
   return [...scopes];
 };
 
-const createPairingCredential = (scopes = SESSION_SCOPES) => {
+const createPairingCredential = (scopes = SESSION_SCOPES, origin) => {
   const token = createSecret();
   const expiresAt = Date.now() + PAIRING_TTL_MS;
-  pairingCredentials.set(token, { expiresAt, scopes: [...scopes], used: false });
+  pairingCredentials.set(token, { expiresAt, scopes: [...scopes], used: false, origin });
   return { token, expiresAt, scopes: [...scopes] };
 };
 
@@ -189,10 +244,49 @@ const prunePairings = () => {
   }
 };
 
+const deleteApprovedServer = (id) => {
+  const server = approvedMcpServers.get(id);
+  if (!server) return false;
+  approvedMcpServers.delete(id);
+  for (const [relayId, relay] of mcpRelays) {
+    if (relay.server.id === id) mcpRelays.delete(relayId);
+  }
+  if (antigravitySession?.approvedServerId === id) void stopAntigravitySession(antigravitySession);
+  return true;
+};
+
+const removeApprovedServersForOwner = (owner) => {
+  for (const [id, server] of approvedMcpServers) {
+    if (server.owner === owner) deleteApprovedServer(id);
+  }
+  for (const [id, relay] of mcpRelays) {
+    if (relay.owner === owner) mcpRelays.delete(id);
+  }
+};
+
+const stopOwnerResources = async (owner) => {
+  removeApprovedServersForOwner(owner);
+  const warmSession = antigravitySession?.owner === owner ? antigravitySession : undefined;
+  const ownedChildren = [...activeChildren].filter((entry) => entry.owner === owner);
+  await Promise.allSettled([
+    ...(warmSession ? [stopAntigravitySession(warmSession)] : []),
+    ...ownedChildren.map((entry) => terminateProcessTree(entry.child, true)),
+  ]);
+};
+
+const deleteSession = (token) => {
+  if (!sessions.delete(token)) return false;
+  void stopOwnerResources(token);
+  return true;
+};
+
 const pruneSessions = () => {
   const now = Date.now();
   for (const [token, session] of sessions) {
-    if (session.expiresAt <= now || session.lastUsedAt + sessionIdleTtlMs <= now) sessions.delete(token);
+    if (session.expiresAt <= now || session.lastUsedAt + sessionIdleTtlMs <= now) deleteSession(token);
+  }
+  for (const [id, server] of approvedMcpServers) {
+    if (server.expiresAt <= now) deleteApprovedServer(id);
   }
 };
 
@@ -205,24 +299,28 @@ const pruneRateLimits = (attempts) => {
   }
 };
 
-const consumeRateLimit = (attempts, key, maximum) => {
+const consumeRateLimit = (attempts, key, maximum, label = 'requests') => {
   pruneRateLimits(attempts);
   const timestamps = attempts.get(key) || [];
   if (timestamps.length >= maximum) {
     const retryAfterMs = Math.max(1, timestamps[0] + authRateWindowMs - Date.now());
-    throw new ConnectorError(429, 'Too many pairing requests. Try again later.', Math.ceil(retryAfterMs / 1000));
+    throw new ConnectorError(429, `Too many ${label}. Try again later.`, Math.ceil(retryAfterMs / 1000));
   }
   timestamps.push(Date.now());
   attempts.set(key, timestamps);
 };
 
-const requestRateKey = (request) => request.socket.remoteAddress || 'unknown';
+const requestRateKey = (request) => `${request.socket.remoteAddress || 'unknown'}:${requestOrigin(request) || 'native'}`;
 
 const pruneAuthState = () => {
   prunePairings();
   pruneSessions();
   pruneRateLimits(pairingIssueAttempts);
   pruneRateLimits(pairingRedeemAttempts);
+  pruneRateLimits(catalogAttempts);
+  pruneRateLimits(mcpTestAttempts);
+  pruneRateLimits(mcpInvokeAttempts);
+  pruneRateLimits(agentRunAttempts);
 };
 
 const authSweepTimer = setInterval(
@@ -231,6 +329,37 @@ const authSweepTimer = setInterval(
 );
 authSweepTimer.unref();
 const isRecord = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const assertAllowedKeys = (body, allowed) => {
+  for (const key of Object.keys(body)) {
+    if (!allowed.includes(key)) throw new ConnectorError(400, `Unsupported request field: ${key}.`);
+  }
+};
+
+const validateJsonValue = (value, depth = 0, state = { keys: 0 }) => {
+  if (depth > MAX_JSON_DEPTH) throw new ConnectorError(400, 'JSON input is nested too deeply.');
+  if (typeof value === 'string' && Buffer.byteLength(value, 'utf8') > MAX_JSON_STRING_BYTES) {
+    throw new ConnectorError(400, 'A JSON string exceeded the safety limit.');
+  }
+  if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) {
+    if (typeof value === 'number' && !Number.isFinite(value)) throw new ConnectorError(400, 'JSON numbers must be finite.');
+    return;
+  }
+  if (Array.isArray(value)) {
+    if (value.length > MAX_JSON_ARRAY_ITEMS) throw new ConnectorError(400, 'A JSON array exceeded the safety limit.');
+    for (const item of value) validateJsonValue(item, depth + 1, state);
+    return;
+  }
+  if (!isRecord(value)) throw new ConnectorError(400, 'Request data must be valid JSON.');
+  for (const [key, item] of Object.entries(value)) {
+    state.keys += 1;
+    if (state.keys > MAX_JSON_KEYS) throw new ConnectorError(400, 'JSON input has too many fields.');
+    if (['__proto__', 'prototype', 'constructor'].includes(key)) {
+      throw new ConnectorError(400, 'Unsafe JSON object keys are not allowed.');
+    }
+    validateJsonValue(item, depth + 1, state);
+  }
+};
 
 const monotonicMilliseconds = () => Number(process.hrtime.bigint()) / 1_000_000;
 const roundedMilliseconds = (value) => Math.round(value * 1000) / 1000;
@@ -290,6 +419,10 @@ const applySecurityHeaders = (response) => {
 
 const writeJson = (response, status, body) => {
   if (response.writableEnded) return;
+  if (response.headersSent) {
+    response.destroy();
+    return;
+  }
   applySecurityHeaders(response);
   let payload = JSON.stringify(body);
   if (Buffer.byteLength(payload, 'utf8') > MAX_JSON_RESPONSE_BYTES) {
@@ -306,6 +439,14 @@ const writeJson = (response, status, body) => {
 const requestOrigin = (request) => {
   const origin = request.headers.origin;
   return typeof origin === 'string' ? origin : undefined;
+};
+
+const requireTrustedBrowserOrigin = (request) => {
+  const origin = requestOrigin(request);
+  if (!origin || !allowedOrigins.has(origin)) {
+    throw new ConnectorError(403, 'Automatic pairing requires a trusted AlgoGlyph browser origin.');
+  }
+  return origin;
 };
 
 const applyCors = (request, response) => {
@@ -356,12 +497,14 @@ const bearerToken = (request) => {
   return authorization?.startsWith('Bearer ') ? authorization.slice(7) : undefined;
 };
 
-const isMasterToken = (token) => {
-  if (!token) return false;
-  const supplied = Buffer.from(token);
-  const expected = Buffer.from(connectorToken);
+const constantTimeEquals = (left, right) => {
+  if (!left || !right) return false;
+  const supplied = Buffer.from(left);
+  const expected = Buffer.from(right);
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
 };
+
+const isMasterToken = (token) => constantTimeEquals(token, connectorToken);
 
 const requireAuthorization = (request, requiredScope) => {
   const token = bearerToken(request);
@@ -375,12 +518,15 @@ const requireAuthorization = (request, requiredScope) => {
   if (requiredScope && !session.scopes.has(requiredScope)) {
     throw new ConnectorError(403, 'This connector session does not allow that operation.');
   }
+  if (!session.origin || requestOrigin(request) !== session.origin) {
+    throw new ConnectorError(403, 'This connector session belongs to a different browser origin.');
+  }
 
   session.lastUsedAt = Date.now();
   return { kind: 'session', session, token };
 };
 
-const redeemPairingCredential = (body) => {
+const redeemPairingCredential = (body, origin) => {
   const token = optionalToken(body.pairingToken, 'Pairing credential');
   const pairing = token ? pairingCredentials.get(token) : null;
 
@@ -391,6 +537,9 @@ const redeemPairingCredential = (body) => {
     pairingCredentials.delete(token);
     throw new ConnectorError(410, 'The pairing credential has expired.');
   }
+  if (!pairing.origin || pairing.origin !== origin) {
+    throw new ConnectorError(403, 'The pairing credential belongs to a different browser origin.');
+  }
 
   pairing.used = true;
   pairingCredentials.delete(token);
@@ -399,7 +548,7 @@ const redeemPairingCredential = (body) => {
   pruneSessions();
   if (sessions.size >= maxSessions) {
     const oldest = [...sessions.entries()].sort((left, right) => left[1].lastUsedAt - right[1].lastUsedAt)[0];
-    if (oldest) sessions.delete(oldest[0]);
+    if (oldest) deleteSession(oldest[0]);
   }
 
   const now = Date.now();
@@ -408,30 +557,50 @@ const redeemPairingCredential = (body) => {
     createdAt: now,
     expiresAt: now + sessionTtlMs,
     lastUsedAt: now,
+    origin,
     scopes: new Set(pairing.scopes),
   };
   sessions.set(sessionToken, session);
   return { session, sessionToken };
 };
 
-const revokeSession = (request) => {
+const revokeSession = async (request) => {
   const token = bearerToken(request);
   if (!token) return false;
-  for (const [id, server] of approvedMcpServers) {
-    if (server.owner === token) approvedMcpServers.delete(id);
-  }
-  return sessions.delete(token);
+  const deleted = sessions.delete(token);
+  if (deleted) await stopOwnerResources(token);
+  return deleted;
 };
 
-const readJsonBody = (request) =>
+const ensureJsonContentType = (request) => {
+  const contentType = headerValue(request, 'content-type') || '';
+  if (!/^application\/json(?:\s*;|$)/i.test(contentType)) {
+    throw new ConnectorError(415, 'JSON requests must use Content-Type: application/json.');
+  }
+};
+
+const readJsonBody = (request, { objectOnly = true } = {}) =>
   new Promise((resolve, reject) => {
+    try {
+      ensureJsonContentType(request);
+    } catch (error) {
+      reject(error);
+      request.resume();
+      return;
+    }
     const chunks = [];
     let total = 0;
     let settled = false;
+    const timer = setTimeout(() => {
+      fail(new ConnectorError(408, 'Request body timed out.'));
+      request.resume();
+    }, 10_000);
+    timer.unref();
 
     const fail = (error) => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       reject(error);
     };
 
@@ -449,6 +618,7 @@ const readJsonBody = (request) =>
     request.on('end', () => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       const raw = Buffer.concat(chunks).toString('utf8').trim();
       if (!raw) {
         resolve({});
@@ -456,10 +626,13 @@ const readJsonBody = (request) =>
       }
       try {
         const parsed = JSON.parse(raw);
-        if (!isRecord(parsed)) throw new Error('Expected a JSON object.');
+        if (objectOnly && !isRecord(parsed)) throw new Error('Expected a JSON object.');
+        validateJsonValue(parsed);
         resolve(parsed);
-      } catch {
-        reject(new ConnectorError(400, 'Request body must be a JSON object.'));
+      } catch (error) {
+        reject(error instanceof ConnectorError
+          ? error
+          : new ConnectorError(400, 'Request body must be a JSON object.'));
       }
     });
   });
@@ -488,7 +661,7 @@ const runVersionCheck = (command) =>
     }
 
     const timer = setTimeout(() => {
-      child.kill('SIGTERM');
+      void terminateProcessTree(child, true).finally(() => finish({ available: false }));
     }, 3_000);
     const capture = (chunk) => {
       if (output.length < 512) output += chunk.toString('utf8');
@@ -507,15 +680,24 @@ const runVersionCheck = (command) =>
     });
   });
 
-const detectAgents = async () =>
-  Promise.all(
+let agentCatalogPromise;
+let agentCatalogExpiresAt = 0;
+const detectAgents = async () => {
+  if (agentCatalogPromise && agentCatalogExpiresAt > Date.now()) return agentCatalogPromise;
+  agentCatalogExpiresAt = Date.now() + 30_000;
+  agentCatalogPromise = Promise.all(
     AGENTS.map(async (agent) => {
       const executable = await resolveAgentExecutable(agent);
       const result = executable ? await runVersionCheck(executable) : { available: false };
-      // Only public fields leave the connector — `runArgs`/`promptVia` stay local.
       return { id: agent.id, label: agent.label, command: agent.command, ...result };
     }),
-  );
+  ).catch((error) => {
+    agentCatalogPromise = undefined;
+    agentCatalogExpiresAt = 0;
+    throw error;
+  });
+  return agentCatalogPromise;
+};
 
 const resolvedExecutables = new Map();
 
@@ -523,7 +705,10 @@ const resolveAgentExecutable = async (agent) => {
   if (resolvedExecutables.has(agent.id)) return resolvedExecutables.get(agent.id);
   const configured = process.env[`ALGOGLYPH_${agent.id.toUpperCase()}_PATH`]?.trim();
   const candidates = [];
-  if (configured) candidates.push(configured);
+  if (configured) {
+    if (!isAbsolute(configured)) throw new Error(`ALGOGLYPH_${agent.id.toUpperCase()}_PATH must be absolute.`);
+    candidates.push(configured);
+  }
   else if (isAbsolute(agent.command)) candidates.push(agent.command);
   else {
     const extensions = process.platform === 'win32'
@@ -536,7 +721,13 @@ const resolveAgentExecutable = async (agent) => {
   for (const candidate of candidates) {
     try {
       const absolute = await realpath(resolve(candidate));
-      await access(absolute);
+      const metadata = await stat(absolute);
+      if (!metadata.isFile()) continue;
+      const normalized = process.platform === 'win32' ? absolute.toLowerCase() : absolute;
+      const resolvedCwd = resolve(process.cwd());
+      const projectRoot = `${process.platform === 'win32' ? resolvedCwd.toLowerCase() : resolvedCwd}${sep}`;
+      const dependencyBin = `${sep}node_modules${sep}.bin${sep}`;
+      if (!configured && (normalized.startsWith(projectRoot) || normalized.includes(dependencyBin))) continue;
       resolvedExecutables.set(agent.id, absolute);
       return absolute;
     } catch {
@@ -548,7 +739,7 @@ const resolveAgentExecutable = async (agent) => {
 
 const createAgentEnvironment = (agent, executable, homeDirectory) => {
   const environment = {};
-  for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP', 'LANG', 'LC_ALL']) {
+  for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'LANG', 'LC_ALL']) {
     if (process.env[name]) environment[name] = process.env[name];
   }
   environment.PATH = [dirname(executable), process.env.SystemRoot && join(process.env.SystemRoot, 'System32')]
@@ -556,6 +747,10 @@ const createAgentEnvironment = (agent, executable, homeDirectory) => {
     .join(delimiter);
   environment.HOME = homeDirectory;
   environment.USERPROFILE = homeDirectory;
+  // Runtime scratch files must live inside the request-owned root as well;
+  // inheriting the user's shared TEMP/TMP would weaken cross-request cleanup.
+  environment.TEMP = homeDirectory;
+  environment.TMP = homeDirectory;
   environment.CODEX_HOME = join(homeDirectory, '.codex');
   environment.CLAUDE_CONFIG_DIR = join(homeDirectory, '.claude');
   for (const name of agent.authEnv || []) {
@@ -564,14 +759,26 @@ const createAgentEnvironment = (agent, executable, homeDirectory) => {
   return environment;
 };
 
-const copyCredentialIfPresent = async (source, destination) => {
-  if (!source) return;
+const isContainedPath = (candidate, root) => {
+  const normalizedCandidate = process.platform === 'win32' ? candidate.toLowerCase() : candidate;
+  const normalizedRoot = process.platform === 'win32' ? root.toLowerCase() : root;
+  return normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}${sep}`);
+};
+
+const copyCredentialIfPresent = async (source, destination, expectedRoot) => {
+  if (!source || !expectedRoot) return false;
   try {
-    await access(source);
+    const sourceMetadata = await lstat(source);
+    if (!sourceMetadata.isFile() || sourceMetadata.isSymbolicLink()) return false;
+    const [resolvedSource, resolvedRoot] = await Promise.all([realpath(source), realpath(expectedRoot)]);
+    if (!isContainedPath(resolvedSource, resolvedRoot)) return false;
     await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
     await copyFile(source, destination);
+    await chmod(destination, 0o600);
+    return true;
   } catch {
     // Environment-based or OS-keychain authentication may be used instead.
+    return false;
   }
 };
 
@@ -579,17 +786,29 @@ const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
   const userProfile = process.env.USERPROFILE || process.env.HOME;
   if (agent.id === 'codex') {
     const sourceHome = process.env.CODEX_HOME || (userProfile && join(userProfile, '.codex'));
-    await copyCredentialIfPresent(sourceHome && join(sourceHome, 'auth.json'), join(environment.CODEX_HOME, 'auth.json'));
+    const copiedFileCredential = await copyCredentialIfPresent(
+      sourceHome && join(sourceHome, 'auth.json'),
+      join(environment.CODEX_HOME, 'auth.json'),
+      sourceHome,
+    );
+    // Prefer the isolated 0600 credential copy. If it is available, do not also
+    // expose an API key to the Codex host process. Environment auth remains a
+    // fallback, but the model-tool environment is independently deny-all below.
+    if (copiedFileCredential) delete environment.OPENAI_API_KEY;
   } else if (agent.id === 'claude') {
+    const sourceHome = userProfile && join(userProfile, '.claude');
     await copyCredentialIfPresent(
-      userProfile && join(userProfile, '.claude', '.credentials.json'),
+      sourceHome && join(sourceHome, '.credentials.json'),
       join(environment.CLAUDE_CONFIG_DIR, '.credentials.json'),
+      sourceHome,
     );
   } else if (agent.id === 'antigravity') {
+    const sourceHome = userProfile && join(userProfile, '.gemini');
     for (const filename of ['oauth_creds.json', 'google_accounts.json']) {
       await copyCredentialIfPresent(
-        userProfile && join(userProfile, '.gemini', filename),
+        sourceHome && join(sourceHome, filename),
         join(homeDirectory, '.gemini', filename),
+        sourceHome,
       );
     }
   }
@@ -620,11 +839,12 @@ const terminateWithGrace = (child) => {
 
 const createIsolatedAgentDirectories = async (agent) => {
   const workingDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-agent-'));
+  trackedTempRoots.add(workingDirectory);
   return { workingDirectory, runDirectory: workingDirectory, homeDirectory: workingDirectory };
 };
 
 const normalizeMcpEndpoint = (value) => {
-  if (typeof value !== 'string' || !value.trim()) {
+  if (typeof value !== 'string' || !value.trim() || Buffer.byteLength(value, 'utf8') > MAX_URL_BYTES) {
     throw new ConnectorError(400, 'An MCP server URL is required.');
   }
 
@@ -635,7 +855,8 @@ const normalizeMcpEndpoint = (value) => {
     throw new ConnectorError(400, 'Enter a valid MCP server URL.');
   }
 
-  const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(url.hostname.toLowerCase());
+  const normalizedHostname = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(normalizedHostname);
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback)) {
     throw new ConnectorError(400, 'MCP servers must use HTTPS, except for an explicitly approved loopback server.');
   }
@@ -657,7 +878,7 @@ const optionalToken = (value, label) => {
 const parseIpv4 = (address) => address.split('.').map(Number);
 
 const isUnsafeIpAddress = (address) => {
-  const normalized = address.toLowerCase().split('%')[0];
+  const normalized = address.toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
   if (isIP(normalized) === 4) {
     const [a, b] = parseIpv4(normalized);
     return a === 0 || a === 10 || a === 127 || a >= 224
@@ -666,25 +887,38 @@ const isUnsafeIpAddress = (address) => {
       || (a === 172 && b >= 16 && b <= 31)
       || (a === 192 && b === 0)
       || (a === 192 && b === 168)
-      || (a === 198 && (b === 18 || b === 19));
+      || (a === 192 && b === 0)
+      || (a === 192 && b === 2)
+      || (a === 198 && (b === 18 || b === 19 || b === 51))
+      || (a === 203 && b === 0);
   }
   if (isIP(normalized) === 6) {
     if (normalized === '::' || normalized === '::1') return true;
     if (normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe8')
       || normalized.startsWith('fe9') || normalized.startsWith('fea') || normalized.startsWith('feb')
-      || normalized.startsWith('ff')) return true;
-    if (normalized.startsWith('::ffff:')) return isUnsafeIpAddress(normalized.slice(7));
+      || normalized.startsWith('ff') || normalized.startsWith('2001:db8')
+      || normalized.startsWith('2001:') || normalized.startsWith('64:ff9b:')
+      || normalized.startsWith('100:')) return true;
+    const mapped = normalized.match(/^::(?:ffff:)?(?:(\d+\.\d+\.\d+\.\d+)|([0-9a-f]{1,4}):([0-9a-f]{1,4}))$/);
+    if (mapped?.[1]) return isUnsafeIpAddress(mapped[1]);
+    if (mapped?.[2] && mapped?.[3]) {
+      const high = Number.parseInt(mapped[2], 16);
+      const low = Number.parseInt(mapped[3], 16);
+      return isUnsafeIpAddress(`${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`);
+    }
   }
-  return false;
+  return isIP(normalized) === 0;
 };
 
 const isLoopbackAddress = (address) => {
-  const normalized = address.toLowerCase().split('%')[0];
-  return normalized === '::1' || normalized.startsWith('127.');
+  const normalized = address.toLowerCase().replace(/^\[|\]$/g, '').split('%')[0];
+  if (normalized === '::1' || normalized.startsWith('127.')) return true;
+  const mapped = normalized.match(/^::(?:ffff:)?(\d+\.\d+\.\d+\.\d+)$/);
+  return Boolean(mapped && mapped[1].startsWith('127.'));
 };
 
 const validateMcpDestination = async (url, allowPrivateNetwork) => {
-  const hostname = url.hostname.toLowerCase();
+  const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   let addresses;
   try {
     addresses = isIP(hostname)
@@ -731,7 +965,9 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
   const firstUrl = new URL(input instanceof Request ? input.url : String(input), endpoint);
   let currentUrl = firstUrl;
   let method = init.method || (input instanceof Request ? input.method : 'GET');
-  let body = init.body;
+  let body = init.body ?? (input instanceof Request && !['GET', 'HEAD'].includes(method.toUpperCase())
+    ? await input.clone().arrayBuffer()
+    : undefined);
   const originalOrigin = endpoint.origin;
 
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
@@ -756,6 +992,8 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
     const headers = new Headers(input instanceof Request ? input.headers : undefined);
     for (const [name, value] of new Headers(init.headers)) headers.set(name, value);
     headers.delete('authorization');
+    headers.delete('cookie');
+    headers.delete('proxy-authorization');
     if (accessToken && currentUrl.origin === originalOrigin) {
       headers.set('Authorization', `Bearer ${accessToken}`);
     }
@@ -784,6 +1022,8 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
     if (response.status === 303 || ((response.status === 301 || response.status === 302) && method === 'POST')) {
       method = 'GET';
       body = undefined;
+      headers.delete('content-length');
+      headers.delete('content-type');
     }
   }
   throw new ConnectorError(502, 'The MCP request could not be completed.');
@@ -871,13 +1111,20 @@ const summaryFromClient = async (transportName, endpoint, accessToken, allowPriv
 
 const redactError = (error, secrets) => {
   const raw = error instanceof Error ? error.message : 'Could not connect to the MCP server.';
-  return secrets
+  const sensitivePaths = [process.env.USERPROFILE, process.env.HOME, tmpdir(), ...trackedTempRoots];
+  return [...secrets, ...sensitivePaths]
     .filter(Boolean)
     .reduce((message, secret) => message.replaceAll(secret, '[redacted]'), raw)
+    .replace(/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [redacted]')
+    .replace(/[\r\n\t]+/g, ' ')
     .slice(0, 500);
 };
 
 const inspectMcpServer = async (body) => {
+  assertAllowedKeys(body, ['endpoint', 'accessToken', 'allowPrivateNetwork']);
+  if (body.allowPrivateNetwork !== undefined && typeof body.allowPrivateNetwork !== 'boolean') {
+    throw new ConnectorError(400, 'allowPrivateNetwork must be a boolean.');
+  }
   const endpoint = normalizeMcpEndpoint(body.endpoint);
   const accessToken = optionalToken(body.accessToken, 'MCP server token');
   const allowPrivateNetwork = body.allowPrivateNetwork === true;
@@ -905,41 +1152,75 @@ const inspectMcpServer = async (body) => {
 
 const authorizationOwner = (authorization) => authorization.kind === 'session' ? authorization.token : 'master';
 
+let activeMcpOperations = 0;
+const runBoundedMcpOperation = async (operation) => {
+  if (activeMcpOperations >= MAX_CONCURRENT_MCP_OPERATIONS) {
+    throw new ConnectorError(429, 'Too many MCP operations are already in progress.');
+  }
+  activeMcpOperations += 1;
+  try {
+    return await operation();
+  } finally {
+    activeMcpOperations = Math.max(0, activeMcpOperations - 1);
+  }
+};
+
 const approveMcpServer = async (body, authorization) => {
-  const summary = await inspectMcpServer(body);
+  const summary = await runBoundedMcpOperation(() => inspectMcpServer(body));
+  if (summary.tools.some((tool) => !MCP_TOOL_NAME_PATTERN.test(tool?.name || ''))) {
+    throw new ConnectorError(502, 'The MCP server exposed an invalid tool name.');
+  }
+  const serializedSummary = JSON.stringify(summary);
+  validateJsonValue(JSON.parse(serializedSummary));
+  if (Buffer.byteLength(serializedSummary, 'utf8') > MAX_MCP_APPROVAL_BYTES) {
+    throw new ConnectorError(502, 'The MCP server catalog exceeded the approval safety limit.');
+  }
   const id = `mcp_${createSecret()}`;
   const endpoint = normalizeMcpEndpoint(body.endpoint);
+  const owner = authorizationOwner(authorization);
+  const owned = [...approvedMcpServers.values()]
+    .filter((server) => server.owner === owner)
+    .sort((left, right) => left.lastUsedAt - right.lastUsedAt);
+  while (owned.length >= MAX_APPROVED_MCP_SERVERS_PER_OWNER) {
+    const oldest = owned.shift();
+    if (oldest) deleteApprovedServer(oldest.id);
+  }
+  const now = Date.now();
   approvedMcpServers.set(id, {
     id,
-    owner: authorizationOwner(authorization),
+    owner,
     endpoint: endpoint.toString(),
     accessToken: optionalToken(body.accessToken, 'MCP server token'),
     allowPrivateNetwork: body.allowPrivateNetwork === true,
     summary,
-    createdAt: Date.now(),
+    createdAt: now,
+    lastUsedAt: now,
+    expiresAt: now + APPROVED_MCP_TTL_MS,
   });
   return { ...summary, serverId: id };
 };
 
 const requireApprovedMcpServer = (serverId, authorization) => {
-  if (typeof serverId !== 'string' || !serverId) throw new ConnectorError(400, 'An approved MCP server is required.');
+  if (typeof serverId !== 'string' || !/^mcp_[A-Za-z0-9_-]{40,64}$/.test(serverId)) {
+    throw new ConnectorError(400, 'An approved MCP server is required.');
+  }
   const server = approvedMcpServers.get(serverId);
-  if (!server || server.owner !== authorizationOwner(authorization)) {
+  if (!server || server.expiresAt <= Date.now() || server.owner !== authorizationOwner(authorization)) {
+    if (server?.expiresAt <= Date.now()) deleteApprovedServer(serverId);
     throw new ConnectorError(404, 'That approved MCP server is unavailable for this session.');
   }
+  server.lastUsedAt = Date.now();
   return server;
 };
 
-const invokeApprovedMcpTool = async (body, authorization) => {
-  if (body.confirmed !== true) throw new ConnectorError(400, 'Tool invocation requires explicit user confirmation.');
-  const server = requireApprovedMcpServer(body.serverId, authorization);
-  const toolName = typeof body.toolName === 'string' ? body.toolName.trim() : '';
-  if (!toolName || !server.summary.tools.some((tool) => tool.name === toolName)) {
-    throw new ConnectorError(400, 'Choose a tool exposed by the approved MCP server.');
-  }
-  const args = body.arguments === undefined ? {} : body.arguments;
+const callApprovedMcpTool = async (server, toolName, args) => runBoundedMcpOperation(async () => {
+  validateJsonValue(args);
   if (!isRecord(args) || Buffer.byteLength(JSON.stringify(args), 'utf8') > MAX_BODY_BYTES) {
     throw new ConnectorError(400, 'Tool arguments must be a bounded JSON object.');
+  }
+  if (!MCP_TOOL_NAME_PATTERN.test(toolName)
+    || !server.summary.tools.some((tool) => tool.name === toolName)) {
+    throw new ConnectorError(400, 'Choose a tool exposed by the approved MCP server.');
   }
   const endpoint = new URL(server.endpoint);
   const run = (transportName, makeTransport) => connectMcpClient(
@@ -950,14 +1231,88 @@ const invokeApprovedMcpTool = async (body, authorization) => {
     makeTransport,
     (client) => client.callTool({ name: toolName, arguments: args }),
   );
+  let result;
   try {
-    return await run('streamable-http', (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }));
+    result = await run('streamable-http', (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }));
   } catch (streamableError) {
     try {
-      return await run('sse', (safeFetch) => new SSEClientTransport(endpoint, { fetch: safeFetch }));
+      result = await run('sse', (safeFetch) => new SSEClientTransport(endpoint, { fetch: safeFetch }));
     } catch (sseError) {
       throw new ConnectorError(502, `MCP tool invocation failed: ${redactError(sseError, [server.accessToken])}`);
     }
+  }
+  const serializedResult = JSON.stringify(result);
+  if (!serializedResult) throw new ConnectorError(502, 'The MCP tool returned an invalid result.');
+  validateJsonValue(JSON.parse(serializedResult));
+  if (Buffer.byteLength(serializedResult, 'utf8') > MAX_JSON_RESPONSE_BYTES) {
+    throw new ConnectorError(502, 'The MCP tool result exceeded the safety limit.');
+  }
+  return result;
+});
+
+const invokeApprovedMcpTool = async (body, authorization) => {
+  assertAllowedKeys(body, ['serverId', 'toolName', 'arguments', 'confirmed']);
+  if (body.confirmed !== true) throw new ConnectorError(400, 'Tool invocation requires explicit user confirmation.');
+  const server = requireApprovedMcpServer(body.serverId, authorization);
+  const toolName = typeof body.toolName === 'string' ? body.toolName.trim() : '';
+  const args = body.arguments === undefined ? {} : body.arguments;
+  return callApprovedMcpTool(server, toolName, args);
+};
+
+const createMcpRelay = (server) => {
+  const id = `relay_${createSecret()}`;
+  const token = createSecret();
+  mcpRelays.set(id, {
+    id,
+    token,
+    owner: server.owner,
+    server,
+    expiresAt: server.expiresAt,
+  });
+  return {
+    id,
+    token,
+    endpoint: `http://127.0.0.1:${port}/internal/mcp/${id}`,
+  };
+};
+
+const destroyMcpRelay = (relayId) => {
+  if (relayId) mcpRelays.delete(relayId);
+};
+
+const handleMcpRelayRequest = async (request, response, url) => {
+  if (request.method !== 'POST') throw new ConnectorError(405, 'Method not allowed.');
+  const match = url.pathname.match(/^\/internal\/mcp\/(relay_[A-Za-z0-9_-]{40,64})$/);
+  if (!match) throw new ConnectorError(404, 'Route not found.');
+  const relay = mcpRelays.get(match[1]);
+  if (!relay || relay.expiresAt <= Date.now() || !constantTimeEquals(bearerToken(request), relay.token)) {
+    if (relay?.expiresAt <= Date.now()) mcpRelays.delete(match[1]);
+    throw new ConnectorError(401, 'A valid relay credential is required.');
+  }
+  const approved = approvedMcpServers.get(relay.server.id);
+  if (approved !== relay.server || approved.expiresAt <= Date.now()) {
+    mcpRelays.delete(match[1]);
+    throw new ConnectorError(410, 'The approved MCP relay has expired.');
+  }
+  const body = await readJsonBody(request, { objectOnly: false });
+  const protocolServer = new McpServer(
+    { name: 'algoglyph-approved-mcp-relay', version: CONNECTOR_VERSION },
+    { capabilities: { tools: {} } },
+  );
+  protocolServer.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: relay.server.summary.tools }));
+  protocolServer.setRequestHandler(CallToolRequestSchema, async (toolRequest) => callApprovedMcpTool(
+    relay.server,
+    toolRequest.params.name,
+    toolRequest.params.arguments || {},
+  ));
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  try {
+    applySecurityHeaders(response);
+    await protocolServer.connect(transport);
+    await transport.handleRequest(request, response, body);
+  } finally {
+    await transport.close().catch(() => undefined);
+    await protocolServer.close().catch(() => undefined);
   }
 };
 
@@ -976,10 +1331,7 @@ const validatePrompt = (value) => {
   return value;
 };
 
-const agentRunSecrets = (prompt, body) => {
-  const secrets = [prompt];
-  return secrets;
-};
+const agentRunSecrets = (prompt) => [prompt];
 
 const promptForAgent = (agent, prompt, approvedServer) => {
   if (agent.id !== 'antigravity') return prompt;
@@ -998,10 +1350,12 @@ const promptForAgent = (agent, prompt, approvedServer) => {
 };
 
 const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, environment) => {
+  const relay = server ? createMcpRelay(server) : undefined;
+  const relayHeaders = relay ? { Authorization: `Bearer ${relay.token}` } : undefined;
+  if (relay) environment.ALGOGLYPH_APPROVED_MCP_TOKEN = relay.token;
+  try {
   if (agent.id === 'antigravity') {
     const name = 'algoglyph_approved';
-    const headers = server?.accessToken ? { Authorization: `Bearer ${server.accessToken}` } : undefined;
-    if (server?.accessToken) environment.ALGOGLYPH_APPROVED_MCP_TOKEN = server.accessToken;
     const settingsDirectory = join(environment.HOME, '.gemini', 'antigravity-cli');
     const settingsPath = join(settingsDirectory, 'settings.json');
     await mkdir(settingsDirectory, { recursive: true, mode: 0o700 });
@@ -1012,37 +1366,80 @@ const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, envir
     } catch {
       // A missing or corrupt cache must not prevent a clean isolated request.
     }
-    settings.mcpServers = server
-      ? { [name]: { httpUrl: server.endpoint, ...(headers ? { headers } : {}) } }
+    settings.mcpServers = relay
+      ? { [name]: { httpUrl: relay.endpoint, headers: relayHeaders } }
       : {};
     await writeFile(settingsPath, JSON.stringify(settings), { mode: 0o600 });
-    return { extraArgs: [] };
+    return { extraArgs: [], relayId: relay?.id };
   }
-  if (!server) return { extraArgs: [] };
   const name = 'algoglyph_approved';
-  if (server.accessToken) environment.ALGOGLYPH_APPROVED_MCP_TOKEN = server.accessToken;
 
   if (agent.id === 'codex') {
-    await mkdir(environment.CODEX_HOME, { recursive: true });
+    await mkdir(environment.CODEX_HOME, { recursive: true, mode: 0o700 });
+    const safeChildEnvironment = Object.entries({
+      PATH: environment.PATH,
+      SystemRoot: environment.SystemRoot,
+      WINDIR: environment.WINDIR,
+      COMSPEC: environment.COMSPEC,
+      PATHEXT: environment.PATHEXT,
+      TEMP: environment.TEMP,
+      TMP: environment.TMP,
+    }).filter(([, value]) => typeof value === 'string' && value.length > 0);
     const config = [
-      `[mcp_servers.${name}]`,
-      `url = ${JSON.stringify(server.endpoint)}`,
-      ...(server.accessToken ? ['bearer_token_env_var = "ALGOGLYPH_APPROVED_MCP_TOKEN"'] : []),
+      'default_permissions = "algoglyph_connector"',
+      'approval_policy = "never"',
+      'web_search = "disabled"',
+      'history.persistence = "none"',
+      '',
+      '[permissions.algoglyph_connector]',
+      'description = "AlgoGlyph output-only agent with no local filesystem access"',
+      'filesystem = { ":root" = "deny" }',
+      '',
+      '[shell_environment_policy]',
+      'inherit = "none"',
+      'ignore_default_excludes = false',
+      '',
+      '[shell_environment_policy.set]',
+      ...safeChildEnvironment.map(([key, value]) => `${key} = ${JSON.stringify(value)}`),
+      ...(relay ? [
+        '',
+        `[mcp_servers.${name}]`,
+        `url = ${JSON.stringify(relay.endpoint)}`,
+        'bearer_token_env_var = "ALGOGLYPH_APPROVED_MCP_TOKEN"',
+      ] : []),
       '',
     ].join('\n');
     await writeFile(join(environment.CODEX_HOME, 'config.toml'), config, { mode: 0o600 });
-    return { extraArgs: [] };
+    return { extraArgs: [], relayId: relay?.id };
   }
 
-  const headers = server.accessToken ? { Authorization: `Bearer ${server.accessToken}` } : undefined;
+  if (!relay) return { extraArgs: [], relayId: undefined };
+
   const configPath = join(workingDirectory, 'approved-mcp.json');
   await writeFile(configPath, JSON.stringify({
-    mcpServers: { [name]: { type: 'http', url: server.endpoint, ...(headers ? { headers } : {}) } },
+    mcpServers: { [name]: { type: 'http', url: relay.endpoint, headers: relayHeaders } },
   }), { mode: 0o600 });
 
-  if (agent.id === 'claude') return { extraArgs: ['--mcp-config', configPath, '--strict-mcp-config'] };
-  if (agent.id === 'fixture') return { extraArgs: [] };
+  if (agent.id === 'claude') {
+    const allowedTools = server.summary.tools
+      .map((tool) => `mcp__${name}__${tool.name}`);
+    const serializedAllowedTools = allowedTools.join(',');
+    if (!allowedTools.length || Buffer.byteLength(serializedAllowedTools, 'utf8') > 8_192) {
+      throw new ConnectorError(400, 'The approved MCP tool allowlist is too large for this agent.');
+    }
+    return {
+      // `--allowedTools` is variadic, so preserve each exact qualified name as
+      // one argument instead of relying on comma parsing.
+      extraArgs: ['--mcp-config', configPath, '--strict-mcp-config', '--allowedTools', ...allowedTools],
+      relayId: relay.id,
+    };
+  }
+  if (agent.id === 'fixture') return { extraArgs: [], relayId: relay.id };
   throw new ConnectorError(400, 'The selected agent does not support isolated MCP configuration.');
+  } catch (error) {
+    destroyMcpRelay(relay?.id);
+    throw error;
+  }
 };
 
 let antigravitySession;
@@ -1085,14 +1482,33 @@ const readAntigravityTranscript = async (homeDirectory) => {
 
   const eventKeys = new Set();
   const outputs = [];
-  await Promise.all(conversations.filter((entry) => entry.isDirectory()).map(async (entry) => {
-    const transcriptPath = join(
-      brainDirectory,
-      entry.name,
-      '.system_generated',
-      'logs',
-      'transcript.jsonl',
-    );
+  // `readdir()` ordering is unspecified. Rank the actual transcript files by
+  // modification time so reset-created conversations are selected
+  // deterministically and an older directory cannot enter the bounded window
+  // merely because enumeration order changed.
+  const rankedConversations = (await Promise.all(conversations
+    .filter((entry) => entry.isDirectory())
+    .map(async (entry) => {
+      const transcriptPath = join(
+        brainDirectory,
+        entry.name,
+        '.system_generated',
+        'logs',
+        'transcript.jsonl',
+      );
+      try {
+        const metadata = await stat(transcriptPath);
+        if (!metadata.isFile() || metadata.size > MAX_TRANSCRIPT_FILE_BYTES) return undefined;
+        return { id: entry.name, transcriptPath, modifiedAt: metadata.mtimeMs };
+      } catch {
+        return undefined;
+      }
+    })))
+    .filter(Boolean)
+    .sort((left, right) => right.modifiedAt - left.modifiedAt || left.id.localeCompare(right.id))
+    .slice(0, MAX_TRANSCRIPT_FILES);
+
+  await Promise.all(rankedConversations.map(async ({ id: conversationId, transcriptPath }) => {
     let source;
     try {
       source = await readFile(transcriptPath, 'utf8');
@@ -1103,14 +1519,19 @@ const readAntigravityTranscript = async (homeDirectory) => {
       if (!line.trim()) continue;
       try {
         const event = JSON.parse(line);
-        const eventKey = `${entry.name}:${event.step_index}:${event.source || ''}:${event.type || ''}:${event.created_at || ''}`;
+        const eventKey = `${conversationId}:${event.step_index}:${event.source || ''}:${event.type || ''}:${event.created_at || ''}`;
         eventKeys.add(eventKey);
         if (event.source !== 'MODEL' || event.type !== 'PLANNER_RESPONSE'
           || event.status !== 'DONE' || typeof event.content !== 'string') continue;
+        const createdAt = typeof event.created_at === 'string' ? event.created_at : '';
+        const createdAtMs = Date.parse(createdAt);
+        if (!Number.isFinite(createdAtMs)) continue;
         outputs.push({
           key: eventKey,
+          conversationId,
           content: event.content,
-          createdAt: typeof event.created_at === 'string' ? event.created_at : '',
+          createdAt,
+          createdAtMs,
         });
       } catch {
         // A partially written JSONL tail is expected while the model is active.
@@ -1119,7 +1540,9 @@ const readAntigravityTranscript = async (homeDirectory) => {
   }));
   return {
     eventKeys,
-    outputs: outputs.sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
+    outputs: outputs.sort((left, right) => (
+      left.createdAtMs - right.createdAtMs || left.key.localeCompare(right.key)
+    )),
   };
 };
 
@@ -1143,31 +1566,65 @@ const waitForAntigravity = (session, predicate, timeoutMs) => new Promise((resol
         reject(new Error('The persistent Antigravity session did not become ready in time.'));
         return;
       }
-      session.pollTimer = setTimeout(poll, 100);
+      session.pollTimer = setTimeout(poll, 250);
       session.pollTimer.unref();
     }, reject);
   };
   poll();
 });
 
-const stopAntigravitySession = async (session = antigravitySession) => {
-  if (!session || session.stopping) return;
-  session.stopping = true;
-  session.exited = true;
-  if (session.pollTimer) clearTimeout(session.pollTimer);
-  if (process.platform === 'win32' && session.pty?.pid) {
-    await new Promise((resolveDone) => {
-      execFile('taskkill.exe', ['/PID', String(session.pty.pid), '/T', '/F'], { windowsHide: true }, () => resolveDone());
-    });
-  } else {
-    try { session.pty?.kill(); } catch { /* already gone */ }
-  }
-  session.terminal?.dispose();
-  await rm(session.rootDirectory, { recursive: true, force: true }).catch(() => undefined);
-  if (antigravitySession === session) {
-    antigravitySession = undefined;
-    antigravitySessionPromise = undefined;
-  }
+const stopAntigravitySession = (session = antigravitySession) => {
+  if (!session) return Promise.resolve();
+  if (session.stopPromise) return session.stopPromise;
+
+  // Store and return one shared shutdown promise. Session revocation, approval
+  // expiry, owner changes, and process shutdown can all race; every caller must
+  // wait for the same tree termination and credential-directory cleanup.
+  session.stopPromise = (async () => {
+    session.stopping = true;
+    if (session.pollTimer) clearTimeout(session.pollTimer);
+    try {
+      if (process.platform === 'win32' && session.pty?.pid) {
+        await new Promise((resolveDone) => {
+          execFile('taskkill.exe', ['/PID', String(session.pty.pid), '/T', '/F'], { windowsHide: true }, () => resolveDone());
+        });
+      } else if (session.pty?.pid) {
+        try {
+          process.kill(-session.pty.pid, 'SIGTERM');
+        } catch {
+          try { session.pty.kill(); } catch { /* already gone */ }
+        }
+        await Promise.race([
+          session.exitPromise,
+          new Promise((resolveDone) => setTimeout(resolveDone, 1_500)),
+        ]);
+        if (!session.exited) {
+          try {
+            process.kill(-session.pty.pid, 'SIGKILL');
+          } catch {
+            try { session.pty.kill(); } catch { /* already gone */ }
+          }
+          await Promise.race([
+            session.exitPromise,
+            new Promise((resolveDone) => setTimeout(resolveDone, 500)),
+          ]);
+        }
+      }
+    } finally {
+      session.exited = true;
+      session.resolveExit?.();
+      session.terminal?.dispose();
+      destroyMcpRelay(session.relayId);
+      await rm(session.rootDirectory, { recursive: true, force: true }).catch(() => undefined);
+      trackedTempRoots.delete(session.rootDirectory);
+      if (antigravitySession === session) {
+        antigravitySession = undefined;
+        antigravitySessionPromise = undefined;
+      }
+    }
+  })();
+
+  return session.stopPromise;
 };
 
 const seedAntigravityPreferences = async (homeDirectory) => {
@@ -1185,18 +1642,20 @@ const seedAntigravityPreferences = async (homeDirectory) => {
   }
 };
 
-const startAntigravitySession = async (approvedServer) => {
+const startAntigravitySession = async (approvedServer, owner) => {
   if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
   const agent = AGENTS.find((candidate) => candidate.id === 'antigravity');
   if (!agent) throw new ConnectorError(503, 'Antigravity is unavailable.');
-  const executable = await resolveAgentExecutable(agent);
+  const executable = testAntigravityFixture ? process.execPath : await resolveAgentExecutable(agent);
   if (!executable) throw new ConnectorError(503, 'The Antigravity executable is unavailable.');
   const { ptyRuntime, HeadlessTerminal } = await loadAntigravityPtyModules();
 
   const rootDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-session-'));
+  trackedTempRoots.add(rootDirectory);
   const homeDirectory = join(rootDirectory, 'home');
   const runDirectory = join(rootDirectory, 'workspace');
   let environment;
+  let relayId;
   try {
     await Promise.all([
       mkdir(homeDirectory, { recursive: true, mode: 0o700 }),
@@ -1204,14 +1663,20 @@ const startAntigravitySession = async (approvedServer) => {
     ]);
     environment = createAgentEnvironment(agent, executable, homeDirectory);
     environment.TERM = 'xterm-256color';
-    await seedAntigravityPreferences(homeDirectory);
-    await provisionAgentCredentials(agent, environment, homeDirectory);
-    await prepareApprovedMcpForAgent(agent, approvedServer, runDirectory, environment);
+    if (testAntigravityFixture) {
+      for (const name of agent.authEnv || []) delete environment[name];
+    } else {
+      await seedAntigravityPreferences(homeDirectory);
+      await provisionAgentCredentials(agent, environment, homeDirectory);
+    }
+    ({ relayId } = await prepareApprovedMcpForAgent(agent, approvedServer, runDirectory, environment));
     if (connectorShuttingDown) {
       throw new ConnectorError(503, 'The connector is shutting down.');
     }
   } catch (error) {
+    destroyMcpRelay(relayId);
     await rm(rootDirectory, { recursive: true, force: true }).catch(() => undefined);
+    trackedTempRoots.delete(rootDirectory);
     throw error;
   }
 
@@ -1226,7 +1691,7 @@ const startAntigravitySession = async (approvedServer) => {
     // Keep built-in slash commands enabled for the connector-owned `/clear`
     // between requests. User prompts are bracketed-pasted after control-byte
     // stripping, so they cannot inject terminal commands or keystrokes.
-    ptyProcess = ptyRuntime.spawn(executable, ['--sandbox'], {
+    ptyProcess = ptyRuntime.spawn(executable, testAntigravityFixture ? [testAntigravityFixture] : ['--sandbox'], {
       cwd: runDirectory,
       env: environment,
       cols: 160,
@@ -1236,12 +1701,21 @@ const startAntigravitySession = async (approvedServer) => {
     });
   } catch (error) {
     terminal.dispose();
+    destroyMcpRelay(relayId);
     await rm(rootDirectory, { recursive: true, force: true });
+    trackedTempRoots.delete(rootDirectory);
     throw error;
   }
 
+  let resolveExit;
+  const exitPromise = new Promise((resolveDone) => {
+    resolveExit = resolveDone;
+  });
   const session = {
-    key: approvedServer?.id || 'none',
+    key: `${owner || 'prewarm'}:${approvedServer?.id || 'none'}`,
+    owner,
+    approvedServerId: approvedServer?.id,
+    relayId,
     rootDirectory,
     homeDirectory,
     runDirectory,
@@ -1249,6 +1723,9 @@ const startAntigravitySession = async (approvedServer) => {
     pty: ptyProcess,
     exited: false,
     stopping: false,
+    stopPromise: undefined,
+    exitPromise,
+    resolveExit,
     rawOutput: '',
     colorHandled: false,
     termsHandled: false,
@@ -1278,6 +1755,7 @@ const startAntigravitySession = async (approvedServer) => {
   });
   ptyProcess.onExit(() => {
     session.exited = true;
+    session.resolveExit?.();
     if (antigravitySession === session) {
       antigravitySession = undefined;
       antigravitySessionPromise = undefined;
@@ -1291,16 +1769,25 @@ const startAntigravitySession = async (approvedServer) => {
   return session;
 };
 
-const getAntigravitySession = async (approvedServer) => {
+const getAntigravitySession = async (approvedServer, owner) => {
   if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
-  const key = approvedServer?.id || 'none';
+  if (antigravitySessionPromise && !antigravitySession) {
+    await antigravitySessionPromise.catch(() => undefined);
+    if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
+  }
+  const key = `${owner || 'prewarm'}:${approvedServer?.id || 'none'}`;
+  if (owner && !approvedServer && antigravitySession && !antigravitySession.used
+    && antigravitySession.key === 'prewarm:none') {
+    antigravitySession.owner = owner;
+    antigravitySession.key = key;
+  }
   if (antigravitySession && antigravitySession.key !== key) {
     await stopAntigravitySession(antigravitySession);
   }
   if (antigravitySession && !antigravitySession.exited && antigravitySession.key === key) {
     return antigravitySessionPromise || antigravitySession;
   }
-  antigravitySessionPromise = startAntigravitySession(approvedServer).catch(async (error) => {
+  antigravitySessionPromise = startAntigravitySession(approvedServer, owner).catch(async (error) => {
     const failedSession = antigravitySession?.key === key ? antigravitySession : undefined;
     if (failedSession) await stopAntigravitySession(failedSession);
     throw error;
@@ -1310,56 +1797,61 @@ const getAntigravitySession = async (approvedServer) => {
 
 const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
   if (session.used) {
+    session.rawOutput = '';
+    session.terminal.reset();
     session.pty.write('/clear\r');
-    await new Promise((resolveDone) => {
-      const timer = setTimeout(resolveDone, 150);
-      timer.unref();
-    });
+    await waitForAntigravity(session, () => (
+      session.rawOutput.length > 0 && antigravityScreenText(session).includes('? for shortcuts')
+    ), 5_000);
   }
   session.used = true;
   const previousTranscript = await readAntigravityTranscript(session.homeDirectory);
   const terminalSafePrompt = prompt
     .replace(/\r\n?/g, '\n')
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
-  const submit = () => session.pty.write(`\x1b[200~${terminalSafePrompt}\x1b[201~\r`);
-  submit();
-  let lastSubmitAt = Date.now();
-  let submitAttempts = 1;
+  // Antigravity timestamps transcript events. Combine that monotonic request
+  // boundary with the prior event-key snapshot so an output from an older
+  // conversation can never satisfy this request, even if conversation folders
+  // rotate while polling. Floor to the current second because some CLI builds
+  // serialize event timestamps without milliseconds.
+  const submittedAtMs = Math.floor(Date.now() / 1_000) * 1_000;
+  session.pty.write(`\x1b[200~${terminalSafePrompt}\x1b[201~\r`);
 
   return waitForAntigravity(session, async () => {
     if (isCancelled()) throw new Error('The agent run was cancelled.');
     const transcript = await readAntigravityTranscript(session.homeDirectory);
-    const output = transcript.outputs.find((candidate) => !previousTranscript.eventKeys.has(candidate.key));
+    const output = transcript.outputs.find((candidate) => (
+      candidate.createdAtMs >= submittedAtMs && !previousTranscript.eventKeys.has(candidate.key)
+    ));
     if (output) return output.content;
-    const accepted = [...transcript.eventKeys].some((key) => !previousTranscript.eventKeys.has(key));
-    if (!accepted && submitAttempts < 5 && Date.now() - lastSubmitAt >= 3_000) {
-      submitAttempts += 1;
-      lastSubmitAt = Date.now();
-      submit();
-    }
     return undefined;
   }, AGENT_RUN_TIMEOUT_MS);
 };
 
 let activeAgentRuns = 0;
 
-const streamPersistentAntigravityRun = async (request, response, prompt, approvedServer, secrets) => {
-  activeAgentRuns += 1;
+const streamPersistentAntigravityRun = async (request, response, prompt, approvedServer, secrets, authorization, releaseSlot) => {
   let session;
   try {
-    session = await getAntigravitySession(approvedServer);
+    session = await getAntigravitySession(approvedServer, authorizationOwner(authorization));
   } catch (error) {
-    activeAgentRuns = Math.max(0, activeAgentRuns - 1);
+    releaseSlot();
     throw new ConnectorError(503, redactError(error, secrets));
   }
 
-  applySecurityHeaders(response);
-  response.writeHead(200, {
-    'Content-Type': 'text/event-stream; charset=utf-8',
-    'Cache-Control': 'no-store',
-    Connection: 'keep-alive',
-    'X-Accel-Buffering': 'no',
-  });
+  try {
+    applySecurityHeaders(response);
+    response.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-store',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+  } catch (error) {
+    await stopAntigravitySession(session);
+    releaseSlot();
+    throw error;
+  }
 
   let cancelled = false;
   let settled = false;
@@ -1401,10 +1893,10 @@ const streamPersistentAntigravityRun = async (request, response, prompt, approve
     }
     send('error', { message });
     send('exit', { code: 1 });
-    if (session.exited) await stopAntigravitySession(session);
+    if (cancelled || !session.exited) await stopAntigravitySession(session);
   } finally {
     settled = true;
-    activeAgentRuns = Math.max(0, activeAgentRuns - 1);
+    releaseSlot();
     response.end();
   }
 };
@@ -1416,6 +1908,13 @@ const streamPersistentAntigravityRun = async (request, response, prompt, approve
 // events. The run is bounded by a wall-clock timeout, a max-output cap, and is
 // killed if the client disconnects.
 const streamAgentRun = async (request, response, body, authorization) => {
+  assertAllowedKeys(body, ['agentId', 'prompt', 'outputMode', 'mcpServerId', 'traceId']);
+  if (body.outputMode !== undefined && !['stream', 'buffered'].includes(body.outputMode)) {
+    throw new ConnectorError(400, 'outputMode must be stream or buffered.');
+  }
+  if (body.traceId !== undefined && (typeof body.traceId !== 'string' || body.traceId.length > 96)) {
+    throw new ConnectorError(400, 'traceId is invalid.');
+  }
   const requestStartedAt = monotonicMilliseconds();
   const traceId = DEV_TIMING_ENABLED && typeof body.traceId === 'string'
     ? body.traceId.trim().slice(0, 96)
@@ -1425,50 +1924,78 @@ const streamAgentRun = async (request, response, body, authorization) => {
     throw new ConnectorError(404, 'Unknown agent.');
   }
   const prompt = validatePrompt(body.prompt);
-  const secrets = agentRunSecrets(prompt, body);
+  const secrets = agentRunSecrets(prompt);
   const bufferedOutput = body.outputMode === 'buffered';
   const approvedServer = body.mcpServerId
     ? requireApprovedMcpServer(body.mcpServerId, authorization)
     : undefined;
-  if (body.mcpServer !== undefined) {
-    throw new ConnectorError(400, 'Raw MCP credentials are not accepted for agent runs; test and approve the server first.');
-  }
-
   if (activeAgentRuns >= MAX_CONCURRENT_AGENT_RUNS) {
     throw new ConnectorError(429, 'An agent run is already in progress. Try again once it finishes.');
   }
+  activeAgentRuns += 1;
+  let slotReleased = false;
+  const releaseSlot = () => {
+    if (slotReleased) return;
+    slotReleased = true;
+    activeAgentRuns = Math.max(0, activeAgentRuns - 1);
+  };
 
-  if (agent.id === 'antigravity' && process.env.NODE_ENV !== 'test') {
-    await streamPersistentAntigravityRun(request, response, prompt, approvedServer, secrets);
+  if (agent.id === 'antigravity' && (process.env.NODE_ENV !== 'test' || testAntigravityFixture)) {
+    await streamPersistentAntigravityRun(
+      request,
+      response,
+      prompt,
+      approvedServer,
+      secrets,
+      authorization,
+      releaseSlot,
+    );
     return;
   }
 
   const executableStartedAt = monotonicMilliseconds();
-  const executable = await resolveAgentExecutable(agent);
+  let executable;
+  try {
+    executable = await resolveAgentExecutable(agent);
+  } catch (error) {
+    releaseSlot();
+    throw error;
+  }
   const executableResolvedAt = monotonicMilliseconds();
-  if (!executable) throw new ConnectorError(503, 'The selected agent executable is unavailable.');
-  const { workingDirectory, runDirectory, homeDirectory } = await createIsolatedAgentDirectories(agent);
+  if (!executable) {
+    releaseSlot();
+    throw new ConnectorError(503, 'The selected agent executable is unavailable.');
+  }
+  let directories;
+  try {
+    directories = await createIsolatedAgentDirectories(agent);
+  } catch (error) {
+    releaseSlot();
+    throw error;
+  }
+  const { workingDirectory, runDirectory, homeDirectory } = directories;
   const environment = createAgentEnvironment(agent, executable, homeDirectory);
   const credentialsStartedAt = monotonicMilliseconds();
   let credentialsFinishedAt = credentialsStartedAt;
   let mcpConfigStartedAt = credentialsStartedAt;
   let mcpConfigFinishedAt = credentialsStartedAt;
   let extraArgs;
+  let relayId;
   try {
     // Provision only the credentials required by this isolated one-shot run.
     await provisionAgentCredentials(agent, environment, homeDirectory);
     credentialsFinishedAt = monotonicMilliseconds();
     mcpConfigStartedAt = monotonicMilliseconds();
-    ({ extraArgs } = await prepareApprovedMcpForAgent(agent, approvedServer, workingDirectory, environment));
+    ({ extraArgs, relayId } = await prepareApprovedMcpForAgent(agent, approvedServer, workingDirectory, environment));
     mcpConfigFinishedAt = monotonicMilliseconds();
   } catch (error) {
     await rm(workingDirectory, { recursive: true, force: true });
+    trackedTempRoots.delete(workingDirectory);
+    destroyMcpRelay(relayId);
+    releaseSlot();
     throw error;
   }
-  const baseArgs = agent.id === 'claude' && approvedServer
-    ? agent.runArgs.filter((argument, index, args) => argument !== '--tools' && args[index - 1] !== '--tools')
-    : agent.runArgs;
-  let fixedArgs = [...baseArgs, ...extraArgs];
+  let fixedArgs = [...agent.runArgs, ...extraArgs];
   const agentTimingLog = DEV_TIMING_ENABLED && agent.id === 'antigravity'
     ? join(workingDirectory, 'antigravity-timing.log')
     : undefined;
@@ -1501,20 +2028,33 @@ const streamAgentRun = async (request, response, body, authorization) => {
     });
   } catch (error) {
     await rm(workingDirectory, { recursive: true, force: true });
+    trackedTempRoots.delete(workingDirectory);
+    destroyMcpRelay(relayId);
+    releaseSlot();
     throw new ConnectorError(500, redactError(error, secrets));
   }
   const spawnReturnedAt = monotonicMilliseconds();
 
-  activeAgentRuns += 1;
-  activeChildren.add(child);
+  const activeChild = { child, owner: authorizationOwner(authorization), workingDirectory, relayId };
+  activeChildren.add(activeChild);
 
-  applySecurityHeaders(response);
-  response.writeHead(200, {
-    'Content-Type': 'text/event-stream; charset=utf-8',
-    'Cache-Control': 'no-store',
-    Connection: 'keep-alive',
-    'X-Accel-Buffering': 'no',
-  });
+  try {
+    applySecurityHeaders(response);
+    response.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-store',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+  } catch (error) {
+    activeChildren.delete(activeChild);
+    terminateWithGrace(child);
+    destroyMcpRelay(relayId);
+    await rm(workingDirectory, { recursive: true, force: true });
+    trackedTempRoots.delete(workingDirectory);
+    releaseSlot();
+    throw error;
+  }
 
   let settled = false;
   let timedOut = false;
@@ -1539,9 +2079,11 @@ const streamAgentRun = async (request, response, body, authorization) => {
     if (settled) return;
     settled = true;
     clearTimeout(timer);
-    activeAgentRuns = Math.max(0, activeAgentRuns - 1);
-    activeChildren.delete(child);
-    void rm(workingDirectory, { recursive: true, force: true });
+    releaseSlot();
+    activeChildren.delete(activeChild);
+    destroyMcpRelay(relayId);
+    void rm(workingDirectory, { recursive: true, force: true })
+      .finally(() => trackedTempRoots.delete(workingDirectory));
   };
 
   const relay = (streamName) => (chunk) => {
@@ -1650,31 +2192,40 @@ const streamAgentRun = async (request, response, body, authorization) => {
 
 const handleRequest = async (request, response) => {
   ensureLoopbackHost(request);
+  const url = new URL(request.url || '/', 'http://127.0.0.1');
+  if (url.search || url.hash) throw new ConnectorError(400, 'Query strings and fragments are not accepted.');
+
+  if (url.pathname.startsWith('/internal/mcp/')) {
+    await handleMcpRelayRequest(request, response, url);
+    return;
+  }
+
   ensureAllowedOrigin(request, response);
   if (request.method === 'OPTIONS') {
+    applySecurityHeaders(response);
     response.writeHead(204);
     response.end();
     return;
   }
-
-  const url = new URL(request.url || '/', 'http://127.0.0.1');
 
   if (request.method === 'GET' && (url.pathname === '/health' || url.pathname === '/v1/health')) {
     writeJson(response, 200, {
       service: SERVICE_NAME,
       status: 'ready',
       version: CONNECTOR_VERSION,
-      protocolVersion: 1,
+      protocolVersion: CONNECTOR_PROTOCOL_VERSION,
       requiresToken: true,
     });
     return;
   }
 
   if (request.method === 'POST' && url.pathname === '/v1/pairings') {
-    consumeRateLimit(pairingIssueAttempts, requestRateKey(request), pairingIssueRateLimit);
+    const origin = requireTrustedBrowserOrigin(request);
+    consumeRateLimit(pairingIssueAttempts, requestRateKey(request), pairingIssueRateLimit, 'pairing requests');
     const body = await readJsonBody(request);
+    assertAllowedKeys(body, ['scopes']);
     prunePairings();
-    const pairing = createPairingCredential(requestedScopes(body));
+    const pairing = createPairingCredential(requestedScopes(body), origin);
     writeJson(response, 200, {
       pairingToken: pairing.token,
       expiresAt: new Date(pairing.expiresAt).toISOString(),
@@ -1685,9 +2236,11 @@ const handleRequest = async (request, response) => {
   }
 
   if (request.method === 'POST' && url.pathname === '/v1/session') {
-    consumeRateLimit(pairingRedeemAttempts, requestRateKey(request), pairingRedeemRateLimit);
+    const origin = requireTrustedBrowserOrigin(request);
+    consumeRateLimit(pairingRedeemAttempts, requestRateKey(request), pairingRedeemRateLimit, 'pairing requests');
     const body = await readJsonBody(request);
-    const { session, sessionToken } = redeemPairingCredential(body);
+    assertAllowedKeys(body, ['pairingToken']);
+    const { session, sessionToken } = redeemPairingCredential(body, origin);
     writeJson(response, 200, {
       sessionToken,
       tokenType: 'Bearer',
@@ -1700,13 +2253,16 @@ const handleRequest = async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/v1/session/revoke') {
     requireAuthorization(request, 'session:revoke');
-    revokeSession(request);
+    const body = await readJsonBody(request);
+    assertAllowedKeys(body, []);
+    await revokeSession(request);
     writeJson(response, 200, { revoked: true });
     return;
   }
 
   if (request.method === 'GET' && url.pathname === '/v1/catalog') {
-    requireAuthorization(request, 'catalog:read');
+    const authorization = requireAuthorization(request, 'catalog:read');
+    consumeRateLimit(catalogAttempts, authorizationOwner(authorization), CATALOG_RATE_LIMIT, 'catalog requests');
     writeJson(response, 200, {
       agents: await detectAgents(),
       capabilities: {
@@ -1719,6 +2275,7 @@ const handleRequest = async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/v1/mcp/test') {
     const authorization = requireAuthorization(request, 'mcp:test');
+    consumeRateLimit(mcpTestAttempts, authorizationOwner(authorization), MCP_TEST_RATE_LIMIT, 'MCP test requests');
     const body = await readJsonBody(request);
     writeJson(response, 200, await approveMcpServer(body, authorization));
     return;
@@ -1726,6 +2283,7 @@ const handleRequest = async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/v1/mcp/invoke') {
     const authorization = requireAuthorization(request, 'mcp:invoke');
+    consumeRateLimit(mcpInvokeAttempts, authorizationOwner(authorization), MCP_INVOKE_RATE_LIMIT, 'MCP invocation requests');
     const body = await readJsonBody(request);
     writeJson(response, 200, await invokeApprovedMcpTool(body, authorization));
     return;
@@ -1733,11 +2291,17 @@ const handleRequest = async (request, response) => {
 
   if (request.method === 'POST' && url.pathname === '/v1/agents/run') {
     const authorization = requireAuthorization(request, 'agent:run');
+    consumeRateLimit(agentRunAttempts, authorizationOwner(authorization), AGENT_RUN_RATE_LIMIT, 'agent requests');
     const body = await readJsonBody(request);
     await streamAgentRun(request, response, body, authorization);
     return;
   }
 
+  const knownPaths = new Set([
+    '/health', '/v1/health', '/v1/pairings', '/v1/session', '/v1/session/revoke',
+    '/v1/catalog', '/v1/mcp/test', '/v1/mcp/invoke', '/v1/agents/run',
+  ]);
+  if (knownPaths.has(url.pathname)) throw new ConnectorError(405, 'Method not allowed.');
   throw new ConnectorError(404, 'Route not found.');
 };
 
@@ -1751,6 +2315,12 @@ const server = createServer((request, response) => {
     writeJson(response, status, responseError(status, message));
   });
 });
+
+server.headersTimeout = 10_000;
+server.requestTimeout = 15_000;
+server.keepAliveTimeout = 5_000;
+server.maxHeadersCount = 64;
+server.maxRequestsPerSocket = 100;
 
 server.on('error', (error) => {
   console.error(`[${SERVICE_NAME}] ${error.message}`);
@@ -1766,15 +2336,23 @@ server.listen(port, '127.0.0.1', () => {
   // Keep the actual Antigravity language-server process resident. Subsequent
   // drawings are queued through this session instead of spawning a cold CLI.
   if (process.env.NODE_ENV !== 'test') {
-    void getAntigravitySession(undefined).catch(() => undefined);
+    void getAntigravitySession(undefined, undefined).catch(() => undefined);
   }
 });
 
 const shutDown = async () => {
   connectorShuttingDown = true;
   clearInterval(authSweepTimer);
-  await Promise.allSettled([...activeChildren].map((child) => terminateProcessTree(child, true)));
+  await Promise.allSettled([...activeChildren].map((entry) => terminateProcessTree(entry.child, true)));
   await stopAntigravitySession();
+  await Promise.allSettled([...trackedTempRoots].map(async (root) => {
+    await rm(root, { recursive: true, force: true });
+    trackedTempRoots.delete(root);
+  }));
+  mcpRelays.clear();
+  approvedMcpServers.clear();
+  sessions.clear();
+  pairingCredentials.clear();
   server.close(() => process.exit(0));
 };
 process.once('SIGINT', () => void shutDown());

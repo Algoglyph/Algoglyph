@@ -5,6 +5,7 @@ import {
   type McpConnectionState,
   type McpConnectorCatalog,
   type McpConnectorHealth,
+  type McpConnectorSession,
 } from '../lib/mcp/types';
 
 interface McpConnectorStorage {
@@ -118,16 +119,17 @@ interface McpStoreState {
   // Held in memory only (never persisted) so canvas AI features can reuse the
   // live connection after the user connects through the dialog.
   connectorToken: string | null;
+  // Session metadata is memory-only and is replaced atomically with its token,
+  // preventing expiry/scope information from surviving a credential change.
+  connectorSession: McpConnectorSession | null;
   // Which CLI powers the AI features; resolved against the catalog when it loads.
   activeAgentId: string | null;
-  approvedMcpServerId: string | null;
   agentRun: McpAgentRunState | null;
   openMcpPanel: () => void;
   closeMcpPanel: () => void;
   setConnectorEndpoint: (endpoint: string) => void;
-  setConnectorToken: (token: string | null) => void;
+  setConnectorToken: (token: string | null, session?: McpConnectorSession | null) => void;
   setActiveAgentId: (agentId: string) => void;
-  setApprovedMcpServerId: (serverId: string | null) => void;
   setConnectionState: (
     state: McpConnectionState,
     health?: McpConnectorHealth | null,
@@ -149,8 +151,8 @@ export const useMcpStore = create<McpStoreState>((set) => ({
   connectorCatalog: null,
   connectionError: null,
   connectorToken: readConnectorToken(),
+  connectorSession: null,
   activeAgentId: readActiveAgentId(),
-  approvedMcpServerId: null,
   agentRun: null,
   openMcpPanel: () => set({ mcpPanelOpen: true }),
   closeMcpPanel: () => set({ mcpPanelOpen: false }),
@@ -159,15 +161,21 @@ export const useMcpStore = create<McpStoreState>((set) => ({
     persistConnectorEndpoint(nextEndpoint);
     set({ connectorEndpoint: nextEndpoint });
   },
-  setConnectorToken: (connectorToken) => {
+  setConnectorToken: (token, session) => {
+    const connectorToken = token?.trim() || null;
     persistConnectorToken(connectorToken);
-    set({ connectorToken });
+    set((state) => {
+      const matchingSession = session?.sessionToken === connectorToken ? session : null;
+      const connectorSession = connectorToken === null
+        ? null
+        : matchingSession ?? (state.connectorToken === connectorToken ? state.connectorSession : null);
+      return { connectorToken, connectorSession };
+    });
   },
   setActiveAgentId: (agentId) => {
     persistActiveAgentId(agentId);
     set({ activeAgentId: agentId });
   },
-  setApprovedMcpServerId: (approvedMcpServerId) => set({ approvedMcpServerId }),
   setConnectionState: (connectionState, connectorHealth = null, connectorCatalog = null, connectionError = null) =>
     set((state) => {
       const activeAgentId = resolveActiveAgent(connectorCatalog, state.activeAgentId);

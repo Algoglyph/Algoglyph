@@ -8,6 +8,9 @@ import {
 import type { McpPairedConnectorSnapshot } from './types';
 
 let connectionUrlScrubbed = false;
+const BACKGROUND_RETRY_DELAYS_MS = [1_500, 3_000, 5_000, 8_000, 12_000, 20_000] as const;
+type BootstrapOutcome = 'ready' | 'retry' | 'terminal';
+let bootstrapInFlight: Promise<BootstrapOutcome> | null = null;
 
 const readParams = (source: string): URLSearchParams => new URLSearchParams(source.replace(/^#/, '').replace(/^\?/, ''));
 
@@ -17,9 +20,9 @@ const valueFrom = (params: URLSearchParams, key: string): string | undefined => 
 };
 
 /**
- * Removes MCP pairing data from the visible URL before analytics or pageview
- * tracking can read it. The one-time pairing code is normally carried in the
- * hash fragment, but legacy query params are still scrubbed for compatibility.
+ * Removes legacy MCP credentials from the visible URL before analytics or
+ * pageview tracking can read them. Current connectors pair automatically and
+ * never require a connection link.
  */
 export const scrubMcpConnectionUrl = (): void => {
   if (typeof window === 'undefined' || connectionUrlScrubbed) return;
@@ -46,41 +49,46 @@ export const scrubMcpConnectionUrl = (): void => {
   }
 };
 
-const adoptPairedSnapshot = (endpoint: string, sessionToken: string, snapshot: McpPairedConnectorSnapshot) => {
+const adoptPairedSnapshot = (endpoint: string, snapshot: McpPairedConnectorSnapshot) => {
   const store = useMcpStore.getState();
   store.setConnectorEndpoint(endpoint);
+  store.setConnectorToken(snapshot.session.sessionToken, snapshot.session);
   store.setConnectionState('ready', snapshot.health, snapshot.catalog);
-  store.setConnectorToken(sessionToken);
 };
 
-/**
- * Silent local MCP connect, run once on app load. URL-delivered credentials are
- * deliberately ignored; starting the connector is the complete user flow.
- */
-export async function bootstrapMcpConnection(): Promise<void> {
-  if (typeof window === 'undefined') return;
+const isRetryableConnectionError = (error: unknown): boolean =>
+  error instanceof McpConnectorRequestError
+  && (error.message === 'Could not reach the local connector.' || error.message === 'The connector did not respond in time.');
 
-  const store = useMcpStore.getState();
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : 'Could not connect to the local connector.';
+
+const attemptMcpConnection = async (): Promise<BootstrapOutcome> => {
+  if (typeof window === 'undefined') return 'terminal';
+
+  const initial = useMcpStore.getState();
+  if (initial.connectionState === 'ready' && initial.connectorToken) return 'ready';
+
   scrubMcpConnectionUrl();
-  const endpoint = store.connectorEndpoint;
 
   try {
-    const normalized = normalizeConnectorEndpoint(endpoint);
+    const normalized = normalizeConnectorEndpoint(initial.connectorEndpoint);
+    const token = initial.connectorToken || undefined;
 
-    const token = store.connectorToken || undefined;
     if (token) {
-      store.setConnectionState('checking');
+      initial.setConnectionState('checking');
       try {
         const snapshot = await inspectMcpConnector(normalized, token);
+        const store = useMcpStore.getState();
         store.setConnectorEndpoint(normalized);
         if (snapshot.catalog) {
-          store.setConnectionState('ready', snapshot.health, snapshot.catalog);
           store.setConnectorToken(token);
-          return;
+          store.setConnectionState('ready', snapshot.health, snapshot.catalog);
+          return 'ready';
         }
       } catch (error) {
         if (error instanceof McpConnectorRequestError && error.status === 401) {
-          store.setConnectorToken(null);
+          useMcpStore.getState().setConnectorToken(null);
         } else {
           throw error;
         }
@@ -88,9 +96,55 @@ export async function bootstrapMcpConnection(): Promise<void> {
     }
 
     const paired = await pairMcpConnector(normalized);
-    adoptPairedSnapshot(normalized, paired.sessionToken, paired);
-  } catch {
-    // A missing/asleep connector must never disrupt page load.
-    store.setConnectionState('idle');
+    adoptPairedSnapshot(normalized, paired);
+    return 'ready';
+  } catch (error) {
+    const store = useMcpStore.getState();
+    if (store.connectionState === 'ready' && store.connectorToken) return 'ready';
+    if (isRetryableConnectionError(error)) {
+      store.setConnectionState('idle');
+      return 'retry';
+    }
+    store.setConnectionState('error', null, null, errorMessage(error));
+    return 'terminal';
   }
+};
+
+/**
+ * Performs one deduplicated automatic connection attempt.
+ */
+export function bootstrapMcpConnection(): Promise<BootstrapOutcome> {
+  if (!bootstrapInFlight) {
+    bootstrapInFlight = attemptMcpConnection().finally(() => {
+      bootstrapInFlight = null;
+    });
+  }
+  return bootstrapInFlight;
+}
+
+/**
+ * Starts the no-link connection flow on app load. A small, bounded retry window
+ * lets a user launch `npm run mcp:connector` after opening AlgoGlyph without
+ * leaving a perpetual background poller behind.
+ */
+export function startMcpConnectionBootstrap(): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+
+  let cancelled = false;
+  let retryIndex = 0;
+  let timer: number | undefined;
+
+  const run = async () => {
+    const outcome = await bootstrapMcpConnection();
+    if (cancelled || outcome !== 'retry' || retryIndex >= BACKGROUND_RETRY_DELAYS_MS.length) return;
+    const delay = BACKGROUND_RETRY_DELAYS_MS[retryIndex];
+    retryIndex += 1;
+    timer = window.setTimeout(() => void run(), delay);
+  };
+
+  void run();
+  return () => {
+    cancelled = true;
+    if (timer !== undefined) window.clearTimeout(timer);
+  };
 }

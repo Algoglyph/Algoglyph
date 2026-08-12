@@ -1,5 +1,6 @@
 export const DEFAULT_MCP_CONNECTOR_ENDPOINT = 'http://127.0.0.1:4319';
 export const MCP_CONNECTOR_STORAGE_KEY = 'algoglyph-mcp-connector-v1';
+export const MCP_CONNECTOR_PROTOCOL_VERSION = 2 as const;
 
 export type McpConnectionState =
   | 'idle'
@@ -15,7 +16,7 @@ export interface McpConnectorHealth {
   service: 'algoglyph-local-connector';
   status?: 'ready';
   version: string;
-  protocolVersion: number;
+  protocolVersion: typeof MCP_CONNECTOR_PROTOCOL_VERSION;
   requiresToken: boolean;
 }
 
@@ -98,7 +99,7 @@ export interface McpConnectorSession {
 }
 
 export interface McpPairedConnectorSnapshot extends McpConnectorSnapshot {
-  sessionToken: string;
+  session: McpConnectorSession;
   catalog: McpConnectorCatalog;
 }
 

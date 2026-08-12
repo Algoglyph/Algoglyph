@@ -1,5 +1,6 @@
 import {
   DEFAULT_MCP_CONNECTOR_ENDPOINT,
+  MCP_CONNECTOR_PROTOCOL_VERSION,
   type McpAgentRunEvent,
   type McpAgentRunRequest,
   type McpAgentStatus,
@@ -15,6 +16,7 @@ import {
 import { useMcpStore } from '../../store/mcpStore';
 
 const REQUEST_TIMEOUT_MS = 8_000;
+const MCP_OPERATION_TIMEOUT_MS = 22_000;
 const MAX_CONNECTOR_RESPONSE_BYTES = 1024 * 1024;
 const MAX_SSE_BUFFER_BYTES = 512 * 1024;
 
@@ -59,14 +61,14 @@ export const normalizeConnectorEndpoint = (value: string): string => {
   if (!url.hostname || url.username || url.password) {
     throw new McpConnectorRequestError('The connector URL cannot include credentials.');
   }
-  if (!['127.0.0.1', 'localhost', '[::1]', '::1'].includes(url.hostname.toLowerCase())) {
+  if (!['127.0.0.1', 'localhost'].includes(url.hostname.toLowerCase())) {
     throw new McpConnectorRequestError('The AlgoGlyph connector must run on this device (loopback only).');
   }
+  if (url.pathname !== '/' || url.search || url.hash) {
+    throw new McpConnectorRequestError('The connector URL must point to the local connector root.');
+  }
 
-  url.hash = '';
-  url.search = '';
-  url.pathname = url.pathname.replace(/\/+$/, '');
-  return url.toString().replace(/\/$/, '');
+  return url.origin;
 };
 
 const connectorUrl = (endpoint: string, path: string): string =>
@@ -96,9 +98,10 @@ const requestJson = async (
   path: string,
   accessToken?: string,
   body?: JsonRecord,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<unknown> => {
   const controller = new AbortController();
-  const timeout = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
   const headers = new Headers({ Accept: 'application/json' });
   const token = accessToken?.trim();
 
@@ -124,6 +127,7 @@ const requestJson = async (
     }
 
     if (!response.ok) {
+      if (response.status === 401 && token) clearStoredConnectorSession();
       throw new McpConnectorRequestError(
         errorMessageFromPayload(payload, `Connector request failed (${response.status}).`),
         response.status,
@@ -142,6 +146,12 @@ const requestJson = async (
   }
 };
 
+const clearStoredConnectorSession = (): void => {
+  const store = useMcpStore.getState();
+  store.setConnectorToken(null);
+  store.setConnectionState('needs-token', store.connectorHealth, null, 'The connector session is no longer valid.');
+};
+
 const parseHealth = (payload: unknown): McpConnectorHealth => {
   if (!isRecord(payload) || payload.service !== 'algoglyph-local-connector') {
     throw new McpConnectorRequestError('That URL is not an Algoglyph connector.');
@@ -151,6 +161,11 @@ const parseHealth = (payload: unknown): McpConnectorHealth => {
 
   if (!version || typeof protocolVersion !== 'number' || typeof payload.requiresToken !== 'boolean') {
     throw new McpConnectorRequestError('The connector returned incomplete health data.');
+  }
+  if (protocolVersion !== MCP_CONNECTOR_PROTOCOL_VERSION) {
+    throw new McpConnectorRequestError(
+      `Incompatible connector protocol: AlgoGlyph requires v${MCP_CONNECTOR_PROTOCOL_VERSION}, but the connector reports v${protocolVersion}.`,
+    );
   }
 
   return {
@@ -345,7 +360,7 @@ export const pairMcpConnectorWithCredential = async (
   const health = await inspectMcpConnectorHealth(normalized);
   const session = await redeemMcpPairingCredential(normalized, pairingToken);
   const catalog = parseCatalog(await requestJson(normalized, 'v1/catalog', session.sessionToken));
-  return { health, catalog, sessionToken: session.sessionToken };
+  return { health, catalog, session };
 };
 
 export const pairMcpConnector = async (
@@ -356,14 +371,16 @@ export const pairMcpConnector = async (
   const pairing = await createMcpPairingCredential(normalized);
   const session = await redeemMcpPairingCredential(normalized, pairing.pairingToken);
   const catalog = parseCatalog(await requestJson(normalized, 'v1/catalog', session.sessionToken));
-  return { health, catalog, sessionToken: session.sessionToken };
+  return { health, catalog, session };
 };
 
 export const revokeMcpConnectorSession = async (
   endpoint: string,
   connectorToken: string | undefined,
 ): Promise<void> => {
-  const token = useMcpStore.getState().connectorToken?.trim() || connectorToken?.trim();
+  const token = connectorToken === undefined
+    ? useMcpStore.getState().connectorToken?.trim()
+    : connectorToken.trim();
   if (!token) return;
   await requestJson(endpoint, 'v1/session/revoke', token, {});
 };
@@ -395,7 +412,7 @@ export const testMcpServer = async (
       endpoint: serverEndpoint,
       accessToken: serverToken?.trim() || undefined,
       allowPrivateNetwork,
-    }),
+    }, MCP_OPERATION_TIMEOUT_MS),
   );
 
 export const invokeMcpTool = async (
@@ -409,7 +426,7 @@ export const invokeMcpTool = async (
   toolName,
   arguments: args,
   confirmed: true,
-});
+}, MCP_OPERATION_TIMEOUT_MS);
 
 const toAgentRunEvent = (eventName: string, data: JsonRecord): McpAgentRunEvent | null => {
   if (eventName === 'output') {
@@ -487,7 +504,7 @@ export async function* runAgent(
   const runState = useMcpStore.getState();
   runState.startAgentRun(request.agentId);
   const headers = new Headers({ Accept: 'text/event-stream', 'Content-Type': 'application/json' });
-  const token = runState.connectorToken?.trim() || connectorToken?.trim();
+  const token = connectorToken === undefined ? runState.connectorToken?.trim() : connectorToken.trim();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   let response: Response;
@@ -495,10 +512,7 @@ export async function* runAgent(
     response = await fetch(connectorUrl(connectorEndpoint, 'v1/agents/run'), {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        ...request,
-        mcpServerId: request.mcpServerId ?? runState.approvedMcpServerId ?? undefined,
-      }),
+      body: JSON.stringify(request),
       signal,
     });
   } catch {
@@ -511,7 +525,10 @@ export async function* runAgent(
   }
 
   if (!response.ok || !response.body) {
-    throw new McpConnectorRequestError(await readErrorMessage(response), response.status);
+    const message = await readErrorMessage(response);
+    if (response.status === 401 && token) clearStoredConnectorSession();
+    useMcpStore.getState().failAgentRun(message);
+    throw new McpConnectorRequestError(message, response.status);
   }
 
   const reader = response.body.getReader();

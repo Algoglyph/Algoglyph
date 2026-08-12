@@ -139,6 +139,19 @@ export const startMcpServerFixture = async ({ accessToken = 'fixture-mcp-access-
   };
 };
 
+export const startRedirectServerFixture = async (location) => {
+  const port = await reserveLoopbackPort();
+  const server = createHttpServer((_request, response) => {
+    response.writeHead(302, { Location: location });
+    response.end();
+  });
+  await listenOnLoopback(server, port);
+  return {
+    endpoint: `http://127.0.0.1:${port}/mcp`,
+    stop: () => closeServer(server),
+  };
+};
+
 const waitForReady = (child) =>
   new Promise((resolveReady, reject) => {
     let stderr = '';

@@ -70,7 +70,6 @@ export const McpConnectDialog: React.FC = () => {
   const setConnectionState = useMcpStore((state) => state.setConnectionState);
   const setStoredConnectorToken = useMcpStore((state) => state.setConnectorToken);
   const setActiveAgentId = useMcpStore((state) => state.setActiveAgentId);
-  const setApprovedMcpServerId = useMcpStore((state) => state.setApprovedMcpServerId);
 
   const endpointInputRef = useRef<HTMLInputElement>(null);
   const [connectorToken, setConnectorToken] = useState(() => useMcpStore.getState().connectorToken || '');
@@ -86,6 +85,14 @@ export const McpConnectDialog: React.FC = () => {
   const [serverResult, setServerResult] = useState<McpServerTestResult | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState(false);
+  const clearSessionOwnedUi = useCallback(() => {
+    setServerToken('');
+    setServerResult(null);
+    setServerError(null);
+    setToolName('');
+    setToolArguments('{}');
+    setToolResult(null);
+  }, []);
   const closeDialog = useCallback(() => {
     setServerToken('');
     setServerResult(null);
@@ -101,6 +108,12 @@ export const McpConnectDialog: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [closeDialog, isOpen]);
+
+  useEffect(() => useMcpStore.subscribe((state, previousState) => {
+    if (state.connectorToken === previousState.connectorToken) return;
+    setConnectorToken(state.connectorToken || '');
+    clearSessionOwnedUi();
+  }), [clearSessionOwnedUi]);
 
   useEffect(() => {
     const initialState = useMcpStore.getState();
@@ -126,8 +139,8 @@ export const McpConnectDialog: React.FC = () => {
         const snapshot = await pairMcpConnector(endpoint);
         if (cancelled) return;
         setConnectorEndpoint(endpoint);
-        setStoredConnectorToken(snapshot.sessionToken);
-        setConnectorToken(snapshot.sessionToken);
+        setStoredConnectorToken(snapshot.session.sessionToken, snapshot.session);
+        setConnectorToken(snapshot.session.sessionToken);
         setConnectionState('ready', snapshot.health, snapshot.catalog);
         setEditingConnection(false);
       } catch (error) {
@@ -172,6 +185,9 @@ export const McpConnectDialog: React.FC = () => {
     } catch (error) {
       const message = errorMessage(error);
       if (error instanceof McpConnectorRequestError && error.status === 401) {
+        setStoredConnectorToken(null);
+        setConnectorToken('');
+        clearSessionOwnedUi();
         setConnectionState('needs-token', connectorHealth, null, message);
       } else {
         setConnectionState('error', null, null, message);
@@ -188,6 +204,7 @@ export const McpConnectDialog: React.FC = () => {
     } finally {
       setStoredConnectorToken(null);
       setConnectorToken('');
+      clearSessionOwnedUi();
       setConnectionState('idle');
       setEditingConnection(false);
     }
@@ -220,9 +237,13 @@ export const McpConnectDialog: React.FC = () => {
         allowPrivateNetwork,
       );
       setServerResult(result);
-      setApprovedMcpServerId(result.serverId);
       setToolName(result.tools[0]?.name || '');
     } catch (error) {
+      if (error instanceof McpConnectorRequestError && error.status === 401) {
+        setStoredConnectorToken(null);
+        setConnectorToken('');
+        clearSessionOwnedUi();
+      }
       setServerError(errorMessage(error));
     } finally {
       setTestingServer(false);
@@ -249,6 +270,11 @@ export const McpConnectDialog: React.FC = () => {
       const result = await invokeMcpTool(connectorEndpoint, token, serverResult.serverId, toolName, args);
       setToolResult(JSON.stringify(result, null, 2));
     } catch (error) {
+      if (error instanceof McpConnectorRequestError && error.status === 401) {
+        setStoredConnectorToken(null);
+        setConnectorToken('');
+        clearSessionOwnedUi();
+      }
       setServerError(errorMessage(error));
     }
   };
