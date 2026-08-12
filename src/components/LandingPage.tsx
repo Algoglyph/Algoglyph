@@ -13,7 +13,6 @@ interface LandingPageProps {
 
 const LANDING_SECTIONS = [
   { label: 'Features', id: 'features' },
-  { label: 'Visualizers', id: 'visualizer' },
   { label: 'Use Cases', id: 'usecases' },
 ] as const;
 

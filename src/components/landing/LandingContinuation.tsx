@@ -808,7 +808,7 @@ function StickyProductStory() {
 
         <StorySheet index={3} className="bg-[#061035] text-white">
           <div className="lp-blueprint-field mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(280px,0.6fr)_minmax(0,1.4fr)]">
-            <div className="flex flex-col justify-end border-b border-white/12 px-5 py-10 sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
+            <div className="flex flex-col items-center justify-center border-b border-white/12 px-5 py-10 text-center sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
               <h3 className="max-w-[8ch] text-[clamp(2.8rem,5.5vw,5.6rem)] font-semibold leading-[0.9] tracking-[-0.04em]">
                 Watch state change.
               </h3>
@@ -996,7 +996,7 @@ export function LandingFooter() {
   return (
     <footer className="relative z-30 border-t border-white/[0.07] bg-[#050708] px-6 py-10 sm:px-12 sm:py-12">
       <div className="mx-auto flex max-w-[1500px] flex-col gap-6 font-mono text-[11px] tracking-[0.02em] text-white/48 sm:flex-row sm:items-center sm:justify-between">
-        <span>© {new Date().getFullYear()} Algoglyph. Built for visual computer science.</span>
+        <span>© {new Date().getFullYear()} Algoglyph. A computer science workspace.</span>
         <nav aria-label="Legal and repository" className="flex flex-wrap items-center gap-5 sm:gap-7">
           <a href="/privacy" className="underline-offset-4 transition-colors hover:text-white hover:underline">
             Privacy
