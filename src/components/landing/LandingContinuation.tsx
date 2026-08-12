@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, ChevronDown, Copy } from 'lucide-react';
-import { MockWorkspace } from './MockWorkspace';
 
 interface LandingContinuationProps {
   onLaunch: () => void;
@@ -52,6 +51,220 @@ const WORKFLOWS = [
     body: 'Map architecture decisions beside the code that proves them.',
   },
 ] as const;
+
+type LorenzPoint = readonly [number, number, number];
+
+const createLorenzOrbit = (length: number): LorenzPoint[] => {
+  const points: LorenzPoint[] = [];
+  const sigma = 10;
+  const rho = 28;
+  const beta = 8 / 3;
+  const timeStep = 0.005;
+  let x = 0.1;
+  let y = 0;
+  let z = 0;
+
+  for (let index = 0; index < length + 1200; index += 1) {
+    x += sigma * (y - x) * timeStep;
+    y += (x * (rho - z) - y) * timeStep;
+    z += (x * y - beta * z) * timeStep;
+
+    if (index >= 1200) points.push([x, y, z]);
+  }
+
+  return points;
+};
+
+function LorenzAttractorVisual() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const context = canvas.getContext('2d');
+    if (!context) return undefined;
+
+    const orbit = createLorenzOrbit(6200);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let frameId = 0;
+    let width = 0;
+    let height = 0;
+    let pixelRatio = 1;
+
+    const resize = () => {
+      const bounds = canvas.getBoundingClientRect();
+      width = bounds.width;
+      height = bounds.height;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(height * pixelRatio));
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    };
+
+    const draw = (elapsed = 0) => {
+      context.clearRect(0, 0, width, height);
+
+      const angle = reduceMotion ? -0.22 : elapsed * 0.000045 - 0.22;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+      const scale = Math.min(width / 54, height / 50);
+      const horizontalScale = scale * 0.82;
+      const centerX = width * 0.5;
+      const centerY = height * 0.5;
+      const currentIndex = reduceMotion ? orbit.length : Math.floor(elapsed * 0.32) % orbit.length;
+
+      for (let index = 0; index < orbit.length; index += 2) {
+        const [x, y, z] = orbit[index];
+        const rotatedX = x * cosine - y * sine;
+        const depth = x * sine + y * cosine;
+        const screenX = centerX + rotatedX * horizontalScale;
+        const screenY = centerY - (z - 25 + depth * 0.085) * scale;
+        const trailDistance = (currentIndex - index + orbit.length) % orbit.length;
+        const trailGlow = reduceMotion ? 0 : Math.max(0, 1 - trailDistance / 760);
+        const alpha = 0.24 + trailGlow * 0.72;
+        const size = trailGlow > 0.55 || index % 18 === 0 ? 1.8 : 1.05;
+
+        context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        context.fillRect(screenX, screenY, size, size);
+      }
+
+      if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      if (reduceMotion) draw();
+    });
+
+    resizeObserver.observe(canvas);
+    resize();
+    draw();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  return (
+    <div
+      className="relative h-full min-h-[320px] overflow-hidden bg-[#050708] lg:min-h-full"
+    >
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label="Animated particle simulation of a Lorenz attractor"
+        className="absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
+
+const createRosslerOrbit = (length: number): LorenzPoint[] => {
+  const points: LorenzPoint[] = [];
+  const a = 0.2;
+  const b = 0.2;
+  const c = 5.7;
+  const timeStep = 0.012;
+  let x = 0.1;
+  let y = 0;
+  let z = 0;
+
+  for (let index = 0; index < length + 2400; index += 1) {
+    x += (-y - z) * timeStep;
+    y += (x + a * y) * timeStep;
+    z += (b + z * (x - c)) * timeStep;
+
+    if (index >= 2400) points.push([x, y, z]);
+  }
+
+  return points;
+};
+
+function RosslerAttractorVisual() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const context = canvas.getContext('2d');
+    if (!context) return undefined;
+
+    const orbit = createRosslerOrbit(7600);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let frameId = 0;
+    let width = 0;
+    let height = 0;
+    let pixelRatio = 1;
+
+    const resize = () => {
+      const bounds = canvas.getBoundingClientRect();
+      width = bounds.width;
+      height = bounds.height;
+      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(width * pixelRatio));
+      canvas.height = Math.max(1, Math.round(height * pixelRatio));
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    };
+
+    const draw = (elapsed = 0) => {
+      context.clearRect(0, 0, width, height);
+
+      const angle = reduceMotion ? 0.38 : elapsed * 0.000055 + 0.38;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+      const scale = Math.min(width / 31, height / 31);
+      const horizontalScale = scale * 0.88;
+      const centerX = width * 0.5;
+      const centerY = height * 0.53;
+      const currentIndex = reduceMotion ? orbit.length : Math.floor(elapsed * 0.38) % orbit.length;
+
+      for (let index = 0; index < orbit.length; index += 2) {
+        const [x, y, z] = orbit[index];
+        const rotatedX = x * cosine - y * sine;
+        const rotatedY = x * sine + y * cosine;
+        const screenX = centerX + rotatedX * horizontalScale;
+        const screenY = centerY + (rotatedY * 0.72 - z * 0.82 + 2.5) * scale;
+        const trailDistance = (currentIndex - index + orbit.length) % orbit.length;
+        const trailGlow = reduceMotion ? 0 : Math.max(0, 1 - trailDistance / 880);
+        const alpha = 0.2 + trailGlow * 0.76;
+        const size = trailGlow > 0.52 || index % 20 === 0 ? 1.8 : 1.05;
+
+        context.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        context.fillRect(screenX, screenY, size, size);
+      }
+
+      if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+      if (reduceMotion) draw();
+    });
+
+    resizeObserver.observe(canvas);
+    resize();
+    draw();
+
+    return () => {
+      resizeObserver.disconnect();
+      window.cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  return (
+    <div className="relative h-full min-h-[320px] overflow-hidden bg-[#0c0e10] lg:min-h-full">
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label="Animated particle simulation of a Rössler system"
+        className="absolute inset-0 h-full w-full"
+      />
+    </div>
+  );
+}
 
 function InstallConnector() {
   const [copyState, setCopyState] = useState<CopyState>('idle');
@@ -136,6 +349,41 @@ function StorySheet({
   );
 }
 
+const ORBITING_AGENTS = [
+  { name: 'Claude Code', logo: '/brands/claude-code.png', position: 'claude' },
+  { name: 'Codex', logo: '/brands/codex.png', position: 'codex' },
+  { name: 'Antigravity', logo: '/brands/antigravity.png', position: 'antigravity' },
+] as const;
+
+const AGENT_ROWS = [
+  { name: 'Claude Code', role: 'MCP client', logo: '/brands/claude-code.png' },
+  { name: 'Codex', role: 'MCP client', logo: '/brands/codex.png' },
+  { name: 'Antigravity', role: 'MCP client', logo: '/brands/antigravity.png' },
+  { name: 'Algoglyph', role: 'local workspace', logo: null },
+] as const;
+
+function AgentCluster() {
+  return (
+    <div
+      className="pointer-events-none absolute left-1/2 top-8 h-[220px] w-[220px] -translate-x-1/2 sm:top-10 sm:h-[280px] sm:w-[280px] lg:top-12 lg:h-[330px] lg:w-[330px]"
+      aria-label="Claude Code, Codex, and Antigravity rotating together"
+    >
+      {ORBITING_AGENTS.map((agent) => (
+        <div
+          key={agent.name}
+          className={`lp-agent-cluster-node lp-agent-cluster-node--${agent.position} absolute`}
+        >
+          <img
+            src={agent.logo}
+            alt=""
+            className="lp-agent-cluster-logo h-14 w-14 object-contain sm:h-[68px] sm:w-[68px] lg:h-[76px] lg:w-[76px]"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function StickyProductStory() {
   return (
     <section id="features" className="relative scroll-mt-16 bg-[#050708]">
@@ -146,41 +394,31 @@ function StickyProductStory() {
       </div>
 
       <div className="relative">
-        <StorySheet index={0} className="bg-[#1737ee] text-white">
+        <StorySheet index={0} className="bg-[#050708] text-white">
           <div className="lp-blueprint-field mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(280px,0.6fr)_minmax(0,1.4fr)]">
             <div className="flex flex-col justify-end border-b border-white/18 px-5 py-10 sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
               <h3 className="max-w-[8ch] text-[clamp(2.8rem,5.5vw,5.6rem)] font-semibold leading-[0.9] tracking-[-0.04em]">
                 Think in space.
               </h3>
-              <p className="mt-6 max-w-[34ch] text-[15px] leading-[1.55] text-blue-50/80 sm:text-[17px]">
+              <p className="mt-6 max-w-[34ch] text-[15px] leading-[1.55] text-white/62 sm:text-[17px]">
                 Draw structures beside the notes that explain them.
               </p>
             </div>
-            <div className="relative min-h-[320px] overflow-hidden bg-[#111318] lg:min-h-full">
-              <img
-                src="/og-image.png"
-                alt="Algoglyph canvas showing graphs, flowcharts, and an array visualizer on a chalkboard surface"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,16,61,0.2),transparent_46%)]" />
+            <div className="relative min-h-[320px] overflow-hidden bg-[#050708] lg:min-h-full">
+              <LorenzAttractorVisual />
             </div>
           </div>
         </StorySheet>
 
-        <StorySheet index={1} className="bg-[#090a0d] text-white">
-          <div className="mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(290px,0.64fr)_minmax(0,1.36fr)]">
-            <div className="flex flex-col justify-end border-b border-white/10 px-5 py-10 sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
-              <h3 className="max-w-[9ch] text-[clamp(2.7rem,5.2vw,5.3rem)] font-semibold leading-[0.92] tracking-[-0.04em]">
+        <StorySheet index={1} className="bg-[#0c0e10] text-white">
+          <div className="lp-blueprint-field mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(280px,0.6fr)_minmax(0,1.4fr)]">
+            <div className="flex flex-col justify-end border-b border-white/18 px-5 py-10 sm:px-12 sm:py-14 lg:border-b-0 lg:border-r lg:px-14 lg:py-16">
+              <h3 className="max-w-[9ch] text-[clamp(2.8rem,5.5vw,5.6rem)] font-semibold leading-[0.9] tracking-[-0.04em]">
                 Keep proof beside the idea.
               </h3>
-              <p className="mt-6 max-w-[34ch] text-[15px] leading-[1.55] text-white/62 sm:text-[17px]">
-                Notes, code, output, and visual state stay together.
-              </p>
             </div>
-            <div className="flex min-h-[340px] items-center justify-center overflow-hidden bg-[#0d1121] px-4 py-6 sm:px-8 sm:py-8 lg:min-h-full lg:px-10">
-              <div className="w-[760px] shrink-0 sm:w-full">
-                <MockWorkspace />
-              </div>
+            <div className="relative min-h-[320px] overflow-hidden bg-[#0c0e10] lg:min-h-full">
+              <RosslerAttractorVisual />
             </div>
           </div>
         </StorySheet>
@@ -189,25 +427,30 @@ function StickyProductStory() {
           <div className="mx-auto grid min-h-[560px] w-full max-w-[1680px] lg:min-h-[78dvh] lg:grid-cols-[minmax(0,1.14fr)_minmax(300px,0.86fr)]">
             <div className="order-2 flex items-center px-5 py-10 sm:px-12 sm:py-14 lg:order-1 lg:px-16">
               <div className="w-full border-y border-[#0a1027]/18">
-                {[
-                  ['Claude Code', 'MCP client'],
-                  ['Codex', 'MCP client'],
-                  ['Antigravity', 'MCP client'],
-                  ['Algoglyph', 'local workspace'],
-                ].map(([name, role], index) => (
+                {AGENT_ROWS.map(({ name, role, logo }, index) => (
                   <div
                     key={name}
-                    className={`grid gap-2 py-5 sm:grid-cols-[1fr_auto] sm:items-center sm:py-6 ${
+                    className={`grid gap-2 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:py-6 ${
                       index > 0 ? 'border-t border-[#0a1027]/18' : ''
                     } ${name === 'Algoglyph' ? 'text-[#1737ee]' : ''}`}
                   >
-                    <span className="text-[clamp(1.45rem,2.8vw,2.6rem)] font-semibold tracking-[-0.035em]">{name}</span>
+                    <span className="flex min-w-0 items-center gap-4 text-[clamp(1.45rem,2.8vw,2.6rem)] font-semibold tracking-[-0.035em]">
+                      <span>{name}</span>
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt=""
+                          className="h-9 w-9 shrink-0 object-contain sm:h-11 sm:w-11"
+                        />
+                      ) : null}
+                    </span>
                     <span className="font-mono text-[11px] text-[#0a1027]/64">{role}</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="order-1 flex flex-col justify-end border-b border-[#0a1027]/18 px-5 py-10 sm:px-12 sm:py-14 lg:order-2 lg:border-b-0 lg:border-l lg:px-14 lg:py-16">
+            <div className="relative order-1 flex flex-col justify-end overflow-hidden border-b border-[#0a1027]/18 px-5 py-10 pt-[220px] sm:px-12 sm:py-14 sm:pt-[270px] lg:order-2 lg:border-b-0 lg:border-l lg:px-14 lg:py-16 lg:pt-[300px]">
+              <AgentCluster />
               <h3 className="max-w-[8ch] text-[clamp(2.7rem,5.2vw,5.3rem)] font-semibold leading-[0.92] tracking-[-0.04em]">
                 Agents enter your workspace.
               </h3>

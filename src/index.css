@@ -199,6 +199,52 @@
   transform: translateZ(0);
 }
 
+.lp-agent-cluster-node {
+  transform-origin: 50% 50%;
+  transform: translate(-50%, -50%);
+  animation: lp-agent-cluster-drift 7.5s ease-in-out infinite alternate;
+}
+
+.lp-agent-cluster-node--claude {
+  left: 50%;
+  top: 12%;
+  animation-duration: 6.8s;
+  animation-delay: -1.2s;
+}
+
+.lp-agent-cluster-node--codex {
+  left: 82%;
+  top: 76%;
+  animation-duration: 8.4s;
+  animation-direction: alternate-reverse;
+  animation-delay: -4.8s;
+}
+
+.lp-agent-cluster-node--antigravity {
+  left: 18%;
+  top: 76%;
+  animation-duration: 7.6s;
+  animation-delay: -3s;
+}
+
+.lp-agent-cluster-logo {
+  filter: drop-shadow(0 8px 18px rgba(10, 16, 39, 0.12));
+}
+
+@keyframes lp-agent-cluster-drift {
+  0% {
+    transform: translate(-50%, -50%) rotate(-9deg) scale(0.96);
+  }
+
+  48% {
+    transform: translate(-44%, -44%) rotate(8deg) scale(1.03);
+  }
+
+  100% {
+    transform: translate(-50%, -36%) rotate(-5deg) scale(0.98);
+  }
+}
+
 .lp-liquid-headline {
   font-family: "Landing Virgil", "Geist Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   isolation: isolate;
@@ -375,7 +421,8 @@
 
   .lp-liquid-line,
   .lp-liquid-sheen,
-  .lp-oracle-orb {
+  .lp-oracle-orb,
+  .lp-agent-cluster-node {
     animation: none;
   }
 
