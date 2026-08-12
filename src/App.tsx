@@ -1,18 +1,11 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter, HashRouter, Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import posthog from 'posthog-js';
 import { useWorkspaceStore } from './store/workspaceStore';
-import { Toolbar } from './components/Toolbar';
-import { TabBar } from './components/TabBar';
-import { CommandPalette } from './components/CommandPalette';
-import { SearchPalette } from './components/SearchPalette';
-import { NotificationToast } from './components/NotificationToast';
-import { MobileNav } from './components/MobileNav';
-import { McpConnectDialog } from './components/McpConnectDialog';
-import { WorkspaceTour } from './components/WorkspaceTour';
 import { startMcpConnectionBootstrap } from './lib/mcp/bootstrap';
 import { useIsMobile } from './hooks/useIsMobile';
 import { SEO } from './components/SEO';
+import { LANDING_FAQ, SITE_IDENTITY } from './config/siteIdentity';
 
 // Heavy, route-/pane-level components are code-split so the first paint (the
 // landing page) doesn't ship Excalidraw, CodeMirror, TipTap, KaTeX and Mermaid.
@@ -26,21 +19,30 @@ const VisualizerWorkspace = lazy(() => import('./components/VisualizerWorkspace'
 const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const PrivacyPage = lazy(() => import('./components/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 const TermsPage = lazy(() => import('./components/TermsPage').then((m) => ({ default: m.TermsPage })));
+const AboutPage = lazy(() => import('./components/AboutPage').then((m) => ({ default: m.AboutPage })));
+const BlogRedirect = lazy(() => import('./components/BlogRedirect').then((m) => ({ default: m.BlogRedirect })));
+const Toolbar = lazy(() => import('./components/Toolbar').then((m) => ({ default: m.Toolbar })));
+const TabBar = lazy(() => import('./components/TabBar').then((m) => ({ default: m.TabBar })));
+const CommandPalette = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
+const SearchPalette = lazy(() => import('./components/SearchPalette').then((m) => ({ default: m.SearchPalette })));
+const NotificationToast = lazy(() => import('./components/NotificationToast').then((m) => ({ default: m.NotificationToast })));
+const MobileNav = lazy(() => import('./components/MobileNav').then((m) => ({ default: m.MobileNav })));
+const McpConnectDialog = lazy(() => import('./components/McpConnectDialog').then((m) => ({ default: m.McpConnectDialog })));
+const WorkspaceTour = lazy(() => import('./components/WorkspaceTour').then((m) => ({ default: m.WorkspaceTour })));
 
 
-type View = 'landing' | 'roadmap' | 'workspace' | 'privacy' | 'terms' | 'blog' | 'not-found';
+type View = 'landing' | 'roadmap' | 'workspace' | 'about' | 'privacy' | 'terms' | 'blog' | 'not-found';
 
 const VIEW_TO_PATH: Record<View, string> = {
   landing: '/',
   roadmap: '/roadmap',
   workspace: '/workspace',
+  about: '/about',
   privacy: '/privacy',
   terms: '/terms',
   blog: '/blog',
   'not-found': '/404',
 };
-
-import { ROADMAP_ZONES } from './config/roadmapData';
 
 const FullScreenLoader: React.FC = () => (
   <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
@@ -50,23 +52,6 @@ const FullScreenLoader: React.FC = () => (
     </div>
   </div>
 );
-
-const BlogRedirect: React.FC = () => {
-  const { slug } = useParams();
-  if (!slug) return <Navigate to="/roadmap" replace />;
-  for (const zone of ROADMAP_ZONES) {
-    for (const topic of zone.topics) {
-      for (const concept of topic.concepts) {
-        for (const subtopic of concept.subtopics) {
-          if (subtopic.blogSlug === slug) {
-            return <Navigate to={`/roadmap/${zone.id}/${topic.id}/${concept.id}/${subtopic.blogSlug}`} replace />;
-          }
-        }
-      }
-    }
-  }
-  return <Navigate to="/roadmap" replace />;
-};
 
 const AppContent: React.FC = () => {
   const layoutMode = useWorkspaceStore((state) => state.layoutMode);
@@ -167,6 +152,8 @@ const AppContent: React.FC = () => {
           navigate('/roadmap');
         } else if (cleanPath === '/workspace') {
           navigate('/workspace');
+        } else if (cleanPath === '/about') {
+          navigate('/about');
         } else if (cleanPath === '/blog') {
           navigate('/roadmap');
         } else if (cleanPath.startsWith('/blog/')) {
@@ -272,27 +259,62 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen w-screen text-ink overflow-hidden select-none bg-canvas">
-      <SEO />
       <Routes>
         <Route
           path="/"
           element={
-            <Suspense fallback={<FullScreenLoader />}>
-              <LandingPage
-                onLaunch={() => navigate('/workspace')}
-                onViewRoadmap={() => navigate('/roadmap')}
+            <>
+              <SEO
+                schemas={[
+                  {
+                    '@context': 'https://schema.org',
+                    '@type': 'FAQPage',
+                    '@id': `${SITE_IDENTITY.url}/#faq`,
+                    mainEntity: LANDING_FAQ.map((item) => ({
+                      '@type': 'Question',
+                      name: item.question,
+                      acceptedAnswer: { '@type': 'Answer', text: item.answer },
+                    })),
+                  },
+                ]}
               />
-            </Suspense>
+              <Suspense fallback={<FullScreenLoader />}>
+                <LandingPage
+                  onLaunch={() => navigate('/workspace')}
+                  onViewRoadmap={() => navigate('/roadmap')}
+                />
+              </Suspense>
+            </>
           }
         />
         <Route
           path="/workspace"
           element={
             <div className="flex flex-col h-full w-full overflow-hidden">
-              <Toolbar />
-              <McpConnectDialog />
-              <WorkspaceTour />
-              {!showVisualizer && <TabBar />}
+              <SEO
+                title="Visual DSA Notes, Coding Sandbox & Algorithm Visualizer | AlgoGlyph"
+                description="Create visual computer science notes, editable diagrams, code experiments, and step-by-step algorithm visualizations in one local-first workspace."
+                breadcrumbs={[{ name: 'Home', path: '/' }, { name: 'Workspace', path: '/workspace' }]}
+                schemas={[
+                  {
+                    '@context': 'https://schema.org',
+                    '@type': 'SoftwareApplication',
+                    '@id': `${SITE_IDENTITY.url}/workspace#application`,
+                    name: 'AlgoGlyph Workspace',
+                    applicationCategory: 'EducationalApplication',
+                    operatingSystem: 'Web, Windows, macOS',
+                    url: `${SITE_IDENTITY.url}/workspace`,
+                    description: 'A local-first visual computer science workspace for notes, diagrams, code, algorithm visualizers, and MCP-connected agents.',
+                    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                    publisher: { '@id': `${SITE_IDENTITY.url}/#organization` },
+                  },
+                ]}
+              />
+              <Suspense fallback={<FullScreenLoader />}>
+                <Toolbar />
+                <McpConnectDialog />
+                <WorkspaceTour />
+                {!showVisualizer && <TabBar />}
               <Suspense
                 fallback={
                   <div className="flex flex-1 w-full items-center justify-center">
@@ -339,7 +361,8 @@ const AppContent: React.FC = () => {
               <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
               <SearchPalette isOpen={searchPaletteOpen} onClose={() => setSearchPaletteOpen(false)} />
               <NotificationToast />
-              {isMobile && <MobileNav />}
+                {isMobile && <MobileNav />}
+              </Suspense>
             </div>
           }
         />
@@ -355,35 +378,75 @@ const AppContent: React.FC = () => {
           }
         />
         <Route
+          path="/about"
+          element={
+            <>
+              <SEO
+                title="About AlgoGlyph | Visual Computer Science Workspace"
+                description="Learn what AlgoGlyph is, who it is for, and how its local-first canvas, notes, code, visualizers, roadmap, and MCP agents support visual computer science learning."
+                breadcrumbs={[{ name: 'Home', path: '/' }, { name: 'About AlgoGlyph', path: '/about' }]}
+                schemas={[
+                  {
+                    '@context': 'https://schema.org',
+                    '@type': 'AboutPage',
+                    '@id': `${SITE_IDENTITY.url}/about#about`,
+                    url: `${SITE_IDENTITY.url}/about`,
+                    name: 'About AlgoGlyph',
+                    mainEntity: { '@id': `${SITE_IDENTITY.url}/#organization` },
+                  },
+                ]}
+              />
+              <Suspense fallback={<FullScreenLoader />}>
+                <AboutPage />
+              </Suspense>
+            </>
+          }
+        />
+        <Route
           path="/blog"
           element={<Navigate to="/roadmap" replace />}
         />
         <Route
           path="/blog/:slug"
-          element={<BlogRedirect />}
+          element={<Suspense fallback={<FullScreenLoader />}><BlogRedirect /></Suspense>}
         />
         <Route
           path="/privacy"
           element={
-            <Suspense fallback={<FullScreenLoader />}>
-              <PrivacyPage />
-            </Suspense>
+            <>
+              <SEO
+                title="Privacy Policy | AlgoGlyph"
+                description="Read how AlgoGlyph handles local-first workspace data, analytics, external code execution, and agent-provider data flows."
+                breadcrumbs={[{ name: 'Home', path: '/' }, { name: 'Privacy Policy', path: '/privacy' }]}
+              />
+              <Suspense fallback={<FullScreenLoader />}><PrivacyPage /></Suspense>
+            </>
           }
         />
         <Route
           path="/terms"
           element={
-            <Suspense fallback={<FullScreenLoader />}>
-              <TermsPage />
-            </Suspense>
+            <>
+              <SEO
+                title="Terms of Service | AlgoGlyph"
+                description="Read the terms governing use of the AlgoGlyph visual computer science workspace, roadmap, applications, and learning tools."
+                breadcrumbs={[{ name: 'Home', path: '/' }, { name: 'Terms of Service', path: '/terms' }]}
+              />
+              <Suspense fallback={<FullScreenLoader />}><TermsPage /></Suspense>
+            </>
           }
         />
         <Route
           path="*"
           element={
-            <Suspense fallback={<FullScreenLoader />}>
-              <NotFoundPage />
-            </Suspense>
+            <>
+              <SEO
+                title="Page Not Found | AlgoGlyph"
+                description="The requested AlgoGlyph page could not be found."
+                index={false}
+              />
+              <Suspense fallback={<FullScreenLoader />}><NotFoundPage /></Suspense>
+            </>
           }
         />
       </Routes>

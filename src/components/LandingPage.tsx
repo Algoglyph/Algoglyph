@@ -43,7 +43,7 @@ export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) =
       className="landing-page-shell h-full min-h-screen w-full overflow-y-auto bg-[var(--lp-hero-bg)] text-white font-sans antialiased"
     >
       <header className="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-white/[0.04] bg-black/60 px-6 backdrop-blur-md sm:px-12">
-        <div className="flex items-center gap-3">
+        <a href="/" aria-label="AlgoGlyph home" className="flex items-center gap-3 text-white no-underline">
           <img
             src="/favicon.png"
             alt=""
@@ -53,9 +53,9 @@ export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) =
             className="h-6 w-6 shrink-0 object-contain"
           />
           <span className="font-display text-lg font-bold tracking-[-0.03em] text-white">
-            Algoglyph
+            AlgoGlyph
           </span>
-        </div>
+        </a>
 
         <nav
           aria-label="Landing page"
@@ -71,24 +71,25 @@ export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) =
               {label}
             </a>
           ))}
-          <button
-            type="button"
-            onClick={onViewRoadmap}
+          <a
+            href="/roadmap"
+            onClick={(event) => { event.preventDefault(); onViewRoadmap(); }}
             className="cursor-pointer rounded border border-white/5 bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider text-white/80 transition-colors hover:text-white"
           >
             Roadmap
-          </button>
+          </a>
+          <a href="/about" className="whitespace-nowrap transition-colors hover:text-white">About</a>
         </nav>
 
-        <button
-          type="button"
-          onClick={onLaunch}
+        <a
+          href="/workspace"
+          onClick={(event) => { event.preventDefault(); onLaunch(); }}
           className="flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14.5px] font-semibold text-black transition-colors hover:bg-neutral-200"
         >
           <span className="hidden sm:inline">Launch Workspace</span>
           <span className="sm:hidden">Launch</span>
           <ArrowRight aria-hidden="true" size={13} strokeWidth={2.25} />
-        </button>
+        </a>
       </header>
 
       <main>
@@ -116,21 +117,21 @@ export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) =
               className="mt-7 flex w-full max-w-[390px] flex-col items-stretch justify-center gap-3 sm:mt-8 sm:flex-row sm:items-center"
               aria-label="Hero actions"
             >
-              <button
-                type="button"
-                onClick={onLaunch}
+              <a
+                href="/workspace"
+                onClick={(event) => { event.preventDefault(); onLaunch(); }}
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full bg-white px-6 text-[14px] font-semibold text-[#050708] transition-[transform,background-color] duration-300 hover:-translate-y-0.5 hover:bg-[var(--lp-hero-cyan)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050708] active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
               >
                 Launch Workspace
                 <ArrowRight aria-hidden="true" size={14} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={onViewRoadmap}
+              </a>
+              <a
+                href="/roadmap"
+                onClick={(event) => { event.preventDefault(); onViewRoadmap(); }}
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/18 bg-white/[0.025] px-6 text-[14px] font-semibold text-white/82 transition-[transform,border-color,color] duration-300 hover:-translate-y-0.5 hover:border-white/42 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
               >
                 Explore Roadmap
-              </button>
+              </a>
             </div>
           </div>
         </section>

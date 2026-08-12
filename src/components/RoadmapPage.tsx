@@ -15,7 +15,8 @@ import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
 import { ML_BLOG_DATA } from '../config/mlBlogData';
 import { deBlogData } from '../config/deBlogData';
-import { getArticleRouteBySlug, getRelatedArticleRoutes } from '../lib/seoRoutes';
+import { getArticleRouteBySlug, getBreadcrumbs, getRelatedArticleRoutes } from '../lib/seoRoutes';
+import { SEO } from './SEO';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
@@ -89,8 +90,8 @@ const articleMarkdownToHtml = (markdown: string): string => {
   
   // Strip leading hero image tags to prevent double rendering with RoadmapIllustration banner
   let content = markdown
-    .replace(/^(#\s+[^\n]+\r?\n\r?\n)(?:!\[[^\]]*\]\(\/images\/[^\)]+\)\r?\n\r?\n)+/i, '$1')
-    .replace(/^(?:!\[[^\]]*\]\(\/images\/[^\)]+\)\r?\n\r?\n)+/i, '');
+    .replace(/^(#\s+[^\n]+\r?\n\r?\n)(?:!\[[^\]]*\]\(\/images\/[^)]+\)\r?\n\r?\n)+/i, '$1')
+    .replace(/^(?:!\[[^\]]*\]\(\/images\/[^)]+\)\r?\n\r?\n)+/i, '');
 
   // Protect code blocks (```lang...```) and syntax highlight them using highlight.js
   content = content.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
@@ -117,11 +118,11 @@ const articleMarkdownToHtml = (markdown: string): string => {
         const cleanLang = lang.toLowerCase() === 'cpp' ? 'cpp' : lang.toLowerCase();
         highlightedCode = hljs.highlight(code.trim(), { language: cleanLang }).value;
         languageClass = ` class="language-${cleanLang} hljs"`;
-      } catch (e) {
+      } catch {
         try {
           highlightedCode = hljs.highlightAuto(code.trim()).value;
           languageClass = ' class="hljs"';
-        } catch (err) {
+        } catch {
           // ignore
         }
       }
@@ -129,7 +130,7 @@ const articleMarkdownToHtml = (markdown: string): string => {
       try {
         highlightedCode = hljs.highlightAuto(code.trim()).value;
         languageClass = ' class="hljs"';
-      } catch (err) {
+      } catch {
         // ignore
       }
     }
@@ -144,19 +145,19 @@ const articleMarkdownToHtml = (markdown: string): string => {
     try {
       const rendered = katex.renderToString(math.trim(), { displayMode: true, throwOnError: false });
       mathBlocks.push(rendered);
-    } catch (e) {
+    } catch {
       mathBlocks.push(`<div class="math-error">${escapeHtml(math)}</div>`);
     }
     return token;
   });
 
   // Protect and render LaTeX inline math ($...$) using KaTeX (single line only)
-  content = content.replace(/\$([^\$\n]+?)\$/g, (_, math) => {
+  content = content.replace(/\$([^$\n]+?)\$/g, (_, math) => {
     const token = `@@INLINE_MATH_${inlineMathBlocks.length}@@`;
     try {
       const rendered = katex.renderToString(math.trim(), { displayMode: false, throwOnError: false });
       inlineMathBlocks.push(rendered);
-    } catch (e) {
+    } catch {
       inlineMathBlocks.push(`<span class="math-error">${escapeHtml(math)}</span>`);
     }
     return token;
@@ -268,7 +269,9 @@ const articleMarkdownToHtml = (markdown: string): string => {
     } else if (line.startsWith('# ')) {
       closeList();
       closeBlockquote();
-      htmlLines.push(`<h1>${renderInlineMarkdown(line.slice(2))}</h1>`);
+      // The reader header is the page's sole H1. Markdown documents often
+      // repeat their title, so demote that heading to preserve hierarchy.
+      htmlLines.push(`<h2>${renderInlineMarkdown(line.slice(2))}</h2>`);
     } else if (line.startsWith('## ')) {
       closeList();
       closeBlockquote();
@@ -420,6 +423,22 @@ Furthermore, mastering the structural mechanics of ${subtopicName} enhances your
   };
 };
 
+const toIsoMonth = (value: string) => {
+  const match = value.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (!match) return undefined;
+  const month = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december']
+    .indexOf(match[1].toLowerCase());
+  return month < 0 ? undefined : `${match[2]}-${String(month + 1).padStart(2, '0')}-01`;
+};
+
+const isFinishedArticle = (post: BlogPost) => {
+  if (post.markdown) return true;
+  const introduction = post.content?.introduction || '';
+  return !introduction.includes('This comprehensive guide covers the core technical structures')
+    && !introduction.includes('is a fundamental concept in the study of')
+    && !introduction.includes('See the markdown content for the full article.');
+};
+
 export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -447,7 +466,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
   // Reset scroll to 0 instantly on path level changes to fix the bottom-scroll bug!
   useEffect(() => {
     if (containerRef.current) {
-      containerRef.current.scrollTo({ top: 0, behavior: 'instant' as any });
+      containerRef.current.scrollTo({ top: 0, behavior: 'auto' });
     }
   }, [location.pathname]);
 
@@ -494,7 +513,13 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         p.slug === clean.slice(0, -1) ||
         p.slug.replace(/-/g, '') === clean.replace(/-/g, '')
     );
-    if (found) return found;
+    if (found) {
+      if (isFinishedArticle(found)) return found;
+      if (deBlogData[clean] || ML_BLOG_DATA[clean]) {
+        return getFallbackBlogPost(clean, found.title, found.category);
+      }
+      return found;
+    }
 
     // Fallback if not found: find matching subtopic in curriculum data
     for (const zone of ROADMAP_ZONES) {
@@ -513,6 +538,31 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     const formattedTitle = clean.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     return getFallbackBlogPost(clean, formattedTitle, 'Computer Science');
   }, [selectedBlogSlug]);
+
+  const seoBreadcrumbs = getBreadcrumbs(location.pathname);
+  const hasStandaloneArticle = selectedBlogSlug
+    ? BLOG_POSTS.some((post) => post.slug === selectedBlogSlug && isFinishedArticle(post))
+      || Boolean(deBlogData[selectedBlogSlug])
+      || Boolean(ML_BLOG_DATA[selectedBlogSlug])
+    : true;
+  const seoTitle = selectedBlogSlug && activePost
+    ? `${activePost.title} | AlgoGlyph Computer Science Roadmap`
+    : activeSubContainer
+      ? `${activeSubContainer.name} | AlgoGlyph Computer Science Roadmap`
+      : activeCoreTopic
+        ? `${activeCoreTopic.name} | AlgoGlyph Computer Science Roadmap`
+        : activeModule
+          ? `${activeModule.name} | AlgoGlyph Computer Science Roadmap`
+          : 'Computer Science Roadmap | AlgoGlyph';
+  const seoDescription = selectedBlogSlug && activePost
+    ? activePost.tagline
+    : activeSubContainer
+      ? `Study ${activeSubContainer.name} through connected explanations, examples, and related computer science concepts in the AlgoGlyph visual roadmap.`
+      : activeCoreTopic
+        ? activeCoreTopic.description
+        : activeModule
+          ? activeModule.description
+          : 'Explore a visual computer science roadmap covering data structures, algorithms, fundamentals, system design, machine learning, backend engineering, and related disciplines.';
 
   const getModuleStatusStats = (zoneId: string) => {
     const zone = ROADMAP_ZONES.find((z) => z.id === zoneId);
@@ -667,9 +717,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
             <span className={`text-[10px] font-sans font-semibold tracking-[0.08em] text-[var(--rm-text)]`}>
               {label || activeModule?.name.toUpperCase()}
             </span>
-            <h2 className={`text-xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
+            <h1 className={`text-xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
               {title}
-            </h2>
+            </h1>
             <p className={`text-[13px] font-sans text-[var(--rm-text-muted)]`}>
               {subtitle}
             </p>
@@ -839,16 +889,48 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                     </ol>
                   </section>
                 )}
+                {(activePost.prerequisites.length > 0 || relatedArticleRoutes.length > 0) && (
+                  <section className="grid grid-cols-1 gap-6 border-t border-[var(--rm-border)] pt-8 font-sans">
+                    {activePost.prerequisites.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <h2 className="text-xl font-semibold tracking-tight text-[var(--rm-text)]">What should you learn first?</h2>
+                        <div className="flex flex-wrap gap-2">
+                          {activePost.prerequisites.map((slug) => {
+                            const route = getArticleRouteBySlug(slug);
+                            return route ? (
+                              <Link key={slug} to={route.path} className="rounded-full border border-[var(--rm-border)] px-3 py-1.5 text-[13px] text-[var(--rm-text-muted)] no-underline hover:border-[var(--rm-border-strong)] hover:text-[var(--rm-text)]">
+                                {route.post?.title || route.subtopic.name}
+                              </Link>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {relatedArticleRoutes.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <h2 className="text-xl font-semibold tracking-tight text-[var(--rm-text)]">What should you study next?</h2>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {relatedArticleRoutes.map((route) => (
+                            <Link key={route.path} to={route.path} className="rounded-lg border border-[var(--rm-border)] p-3 no-underline transition hover:border-[var(--rm-border-strong)] hover:bg-[var(--rm-card-hover)]">
+                              <span className="block text-[13px] font-semibold text-[var(--rm-text)]">{route.post?.title || route.subtopic.name}</span>
+                              <span className="mt-1 block text-[11px] text-[var(--rm-text-faint)]">{route.zone.name} / {route.concept.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                )}
               </>
             ) : (
               <div className={`flex flex-col gap-10 text-[17px] leading-[1.8] font-sans ${'text-[var(--rm-text-body)]'}`}>
                 <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Overview</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>What is {activePost.title}?</h2>
                   <p>{activePost.content.introduction}</p>
                 </section>
 
                 <section className="flex flex-col gap-4">
-                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Practical Importance</h2>
+                  <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Why does {activePost.title} matter?</h2>
                   <p>{activePost.content.whyImportant}</p>
                 </section>
 
@@ -865,7 +947,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
                 {activePost.content.algorithmDescription && activePost.content.algorithmDescription.length > 0 && (
                   <section className="flex flex-col gap-4">
-                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Structural Mechanics</h2>
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>How does {activePost.title} work?</h2>
                     <ol className="list-decimal pl-6 flex flex-col gap-2">
                       {activePost.content.algorithmDescription.map((step, idx) => (
                         <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{step}</li>
@@ -876,7 +958,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
                 {activePost.content.complexity && activePost.content.complexity.length > 0 && (
                   <section className="flex flex-col gap-4">
-                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Asymptotic Bounds</h2>
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>What are its time and space bounds?</h2>
                     <div className="overflow-x-auto my-4">
                       <table className="w-full text-left text-[15px] font-serif border-collapse">
                         <thead>
@@ -943,7 +1025,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
                 {activePost.content.commonMistakes && activePost.content.commonMistakes.length > 0 && (
                   <section className="flex flex-col gap-4">
-                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>Common Pitfalls</h2>
+                    <h2 className={`text-2xl font-semibold font-sans tracking-tight mt-4 ${'text-[var(--rm-text)]'}`}>What are the common mistakes?</h2>
                     <ul className="list-disc pl-6 flex flex-col gap-2">
                       {activePost.content.commonMistakes.map((mistake, idx) => (
                         <li key={idx} className={`pl-1 marker:text-[var(--rm-text-faint)]`}>{mistake}</li>
@@ -1219,9 +1301,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <span className="text-zinc-600">/</span>
                 <span className="text-[12px] font-medium tracking-wide text-[var(--rm-text-faint)]">KNOWLEDGE GRAPH</span>
               </div>
-              <h2 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
+              <h1 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
                 {activeModule.name}
-              </h2>
+              </h1>
               <p className={`text-[13.5px] leading-relaxed font-sans text-[var(--rm-text-muted)]`}>
                 {activeModule.description}
               </p>
@@ -1261,9 +1343,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
                 <span className="text-zinc-600">/</span>
                 <span className="text-[12px] font-medium tracking-wide text-[var(--rm-text-faint)]">CORE TOPICS</span>
               </div>
-              <h2 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
+              <h1 className={`text-2xl font-bold tracking-tight font-sans text-[var(--rm-text)]`}>
                 {activeModule.name}
-              </h2>
+              </h1>
               <p className={`text-[13.5px] leading-relaxed font-sans text-[var(--rm-text-muted)]`}>
                 {activeModule.description}
               </p>
@@ -1395,6 +1477,27 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
 
   return (
     <div className={`rm-root relative w-full h-screen select-none font-sans antialiased overflow-hidden transition-colors duration-200 ${'bg-[var(--rm-bg)] text-[var(--rm-text-body)]'}`}>
+      <SEO
+        title={seoTitle}
+        description={seoDescription}
+        type={selectedBlogSlug ? 'article' : 'website'}
+        index={hasStandaloneArticle}
+        breadcrumbs={seoBreadcrumbs}
+        datePublished={selectedBlogSlug && activePost ? toIsoMonth(activePost.lastUpdated) : undefined}
+        dateModified={selectedBlogSlug && activePost ? toIsoMonth(activePost.lastUpdated) : undefined}
+        schemas={!activeModuleId ? [{
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          '@id': 'https://algoglyph.com/roadmap#curriculum',
+          name: 'AlgoGlyph Computer Science Roadmap',
+          itemListElement: ROADMAP_ZONES.map((zone, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: zone.name,
+            url: `https://algoglyph.com/roadmap/${zone.id}`,
+          })),
+        }] : []}
+      />
       {/* Header */}
       <header className={`fixed top-0 left-0 right-0 h-20 border-b z-40 flex items-center justify-between px-6 sm:px-12 pointer-events-auto transition-colors duration-200 ${'border-[var(--rm-border)] bg-[var(--rm-bg)]'}`}>
         <button
@@ -1437,6 +1540,18 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         ref={containerRef}
         className="relative z-10 w-full h-screen overflow-y-auto roadmap-scroll flex flex-col px-6 sm:px-12 md:px-20 pt-20"
       >
+        <nav aria-label="Breadcrumb" className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-2 pt-5 font-mono text-[10px] text-[var(--rm-text-faint)]">
+          {seoBreadcrumbs.map((item, index) => (
+            <React.Fragment key={item.path}>
+              {index > 0 && <span aria-hidden="true">/</span>}
+              {index === seoBreadcrumbs.length - 1 ? (
+                <span aria-current="page" className="text-[var(--rm-text-muted)]">{item.name}</span>
+              ) : (
+                <Link to={item.path} className="text-[var(--rm-text-faint)] no-underline hover:text-[var(--rm-text)]">{item.name}</Link>
+              )}
+            </React.Fragment>
+          ))}
+        </nav>
         {/* light-mode scrollbar style is handled globally via isDark class on root */}
         <AnimatePresence mode="wait">
           {renderContent()}
@@ -1480,7 +1595,3 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     </div>
   );
 };
-
-
-
-

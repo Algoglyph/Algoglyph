@@ -38,6 +38,7 @@ export default defineConfig({
         // /index.html, which Pages canonicalizes and bounces to `/`.
         workspace: resolve(__dirname, 'workspace.html'),
         roadmap: resolve(__dirname, 'roadmap.html'),
+        about: resolve(__dirname, 'about/index.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),
         terms: resolve(__dirname, 'terms/index.html'),
         blog: resolve(__dirname, 'blog.html'),

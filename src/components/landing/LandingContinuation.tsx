@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, ChevronDown, Copy } from 'lucide-react';
+import { LANDING_FAQ, SITE_IDENTITY } from '../../config/siteIdentity';
 
 interface LandingContinuationProps {
   onLaunch: () => void;
@@ -9,33 +10,6 @@ interface LandingContinuationProps {
 type CopyState = 'idle' | 'copied' | 'error';
 
 const CONNECTOR_COMMAND = 'npx @algoglyph/mcp-connector';
-
-const FAQ_ITEMS = [
-  {
-    question: 'What is Algoglyph?',
-    answer: 'A local-first workspace for notes, canvas, code, visualizers, MCP agents, and a complete computer science roadmap.',
-  },
-  {
-    question: 'How is it different from Notion?',
-    answer: 'Algoglyph is built for visual reasoning and executable ideas, not general-purpose documents.',
-  },
-  {
-    question: 'Can I create connected visual notes?',
-    answer: 'Yes. Keep notes beside diagrams and connect related topics across workspace tabs.',
-  },
-  {
-    question: 'Can I run and visualize code?',
-    answer: 'Yes. Run code and step through arrays, graphs, grids, tables, trees, and other algorithm families.',
-  },
-  {
-    question: 'Does it include a complete CS roadmap?',
-    answer: 'Yes. Explore more than 1,000 articles across algorithms, systems, AI, security, and related disciplines.',
-  },
-  {
-    question: 'Is Algoglyph free?',
-    answer: 'Yes. The core workspace and computer science roadmap are free for personal learning.',
-  },
-] as const;
 
 const WORKFLOWS = [
   {
@@ -662,7 +636,7 @@ function InstallConnector() {
 
           <div className="px-4 py-7 sm:px-7 sm:py-9">
             <p className="font-mono text-[12px] italic text-white/48 sm:text-[14px]">
-              # Connect Algoglyph to any MCP client
+              # Connect AlgoGlyph to any MCP client
             </p>
             <code className="mt-5 block overflow-x-auto whitespace-nowrap font-mono text-[clamp(1rem,2.35vw,1.75rem)] font-medium tracking-[-0.025em] text-white">
               <span className="mr-3 text-[var(--lp-hero-cyan)]">$</span>
@@ -704,7 +678,7 @@ const AGENT_ROWS = [
   { name: 'Claude Code', role: 'MCP client', logo: '/brands/claude-code.png' },
   { name: 'Codex', role: 'MCP client', logo: '/brands/codex.png' },
   { name: 'Antigravity', role: 'MCP client', logo: '/brands/antigravity.png' },
-  { name: 'Algoglyph', role: 'local workspace', logo: null },
+  { name: 'AlgoGlyph', role: 'local workspace', logo: null },
 ] as const;
 
 function AgentCluster() {
@@ -777,7 +751,7 @@ function StickyProductStory() {
                     key={name}
                     className={`grid gap-2 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:py-6 ${
                       index > 0 ? 'border-t border-[#0a1027]/18' : ''
-                    } ${name === 'Algoglyph' ? 'text-[#1737ee]' : ''}`}
+                    } ${name === 'AlgoGlyph' ? 'text-[#1737ee]' : ''}`}
                   >
                     <span className="flex min-w-0 items-center gap-4 text-[clamp(1.45rem,2.8vw,2.6rem)] font-semibold tracking-[-0.035em]">
                       <span>{name}</span>
@@ -885,7 +859,7 @@ function FAQ() {
         </h2>
 
         <div className="mt-10 border-t border-black/18 sm:mt-12">
-          {FAQ_ITEMS.map((item, index) => {
+          {LANDING_FAQ.map((item, index) => {
             const isOpen = openFaq === index;
             const answerId = `landing-faq-answer-${index}`;
 
@@ -938,20 +912,20 @@ function PortalEnding({ onLaunch, onViewRoadmap }: LandingContinuationProps) {
           Make thought visible.
         </h2>
         <div className="mt-7 flex w-full max-w-[390px] flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            type="button"
-            onClick={onLaunch}
+          <a
+            href="/workspace"
+            onClick={(event) => { event.preventDefault(); onLaunch(); }}
             className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-white px-6 text-[14px] font-semibold text-[#050708] transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
           >
             Launch Workspace
-          </button>
-          <button
-            type="button"
-            onClick={onViewRoadmap}
+          </a>
+          <a
+            href="/roadmap"
+            onClick={(event) => { event.preventDefault(); onViewRoadmap(); }}
             className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/18 px-6 text-[14px] font-semibold text-white/80 transition-[transform,border-color,color] hover:-translate-y-0.5 hover:border-white/42 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-[0.98] motion-reduce:transform-none motion-reduce:transition-none"
           >
             Explore Roadmap
-          </button>
+          </a>
         </div>
       </div>
 
@@ -966,6 +940,8 @@ function PortalEnding({ onLaunch, onViewRoadmap }: LandingContinuationProps) {
           src="/illustrations/algoglyph-oracle.png"
           alt="Engraved algorithm cartographer shaping a sphere of graphs, arrays, and state transitions"
           loading="lazy"
+          width={972}
+          height={1619}
           className="lp-oracle-figure absolute inset-0 h-full w-full object-contain object-bottom"
         />
         <img
@@ -973,6 +949,8 @@ function PortalEnding({ onLaunch, onViewRoadmap }: LandingContinuationProps) {
           alt=""
           aria-hidden="true"
           loading="lazy"
+          width={1254}
+          height={1254}
           className="lp-oracle-orb absolute left-[43%] top-[20%] w-[60%] max-w-none"
         />
       </div>
@@ -996,7 +974,7 @@ export function LandingFooter() {
   return (
     <footer className="relative z-30 border-t border-white/[0.07] bg-[#050708] px-6 py-10 sm:px-12 sm:py-12">
       <div className="mx-auto flex max-w-[1500px] flex-col gap-6 font-mono text-[11px] tracking-[0.02em] text-white/48 sm:flex-row sm:items-center sm:justify-between">
-        <span>© {new Date().getFullYear()} Algoglyph. A computer science workspace.</span>
+        <span>© {new Date().getFullYear()} AlgoGlyph. A visual computer science workspace.</span>
         <nav aria-label="Legal and repository" className="flex flex-wrap items-center gap-5 sm:gap-7">
           <a href="/privacy" className="underline-offset-4 transition-colors hover:text-white hover:underline">
             Privacy
@@ -1004,8 +982,11 @@ export function LandingFooter() {
           <a href="/terms" className="underline-offset-4 transition-colors hover:text-white hover:underline">
             Terms
           </a>
+          <a href="/about" className="underline-offset-4 transition-colors hover:text-white hover:underline">
+            About
+          </a>
           <a
-            href="https://github.com/Algoglyph/AlgoGlyph"
+            href={SITE_IDENTITY.githubUrl}
             target="_blank"
             rel="noreferrer"
             className="underline-offset-4 transition-colors hover:text-white hover:underline"

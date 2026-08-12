@@ -2,10 +2,11 @@ import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
 import { ROADMAP_ZONES } from '../config/roadmapData';
 import type { Concept, RoadmapZone, Subtopic, Topic } from '../config/roadmapData';
+import { SITE_IDENTITY } from '../config/siteIdentity';
 
-export const SITE_URL = 'https://algoglyph.com';
-export const SITE_NAME = 'AlgoGlyph';
-export const DEFAULT_OG_IMAGE = '/og-image.png';
+export const SITE_URL = SITE_IDENTITY.url;
+export const SITE_NAME = SITE_IDENTITY.name;
+export const DEFAULT_OG_IMAGE = SITE_IDENTITY.defaultImagePath;
 export const DEFAULT_LAST_MODIFIED = '2026-07-03';
 
 export interface RoadmapArticleRoute {
@@ -44,7 +45,10 @@ export const canonicalPath = (path: string) => {
 export const absoluteUrl = (path: string) => `${SITE_URL}${canonicalPath(path) === '/' ? '/' : canonicalPath(path)}`;
 
 export const getAllArticleRoutes = (): RoadmapArticleRoute[] => {
-  const postsBySlug = new Map(BLOG_POSTS.map((post) => [post.slug, post]));
+  const postsBySlug = new Map<string, BlogPost>();
+  BLOG_POSTS.forEach((post) => {
+    if (!postsBySlug.has(post.slug)) postsBySlug.set(post.slug, post);
+  });
   return ROADMAP_ZONES.flatMap((zone) =>
     zone.topics.flatMap((topic) =>
       topic.concepts.flatMap((concept) =>
@@ -111,6 +115,8 @@ export const getBreadcrumbs = (path: string): BreadcrumbItem[] => {
     return [...breadcrumbs, { name: 'Workspace', path: '/workspace' }];
   }
 
+  if (cleanPath === '/about') return [...breadcrumbs, { name: 'About AlgoGlyph', path: '/about' }];
+
   if (cleanPath === '/privacy') return [...breadcrumbs, { name: 'Privacy Policy', path: '/privacy' }];
   if (cleanPath === '/terms') return [...breadcrumbs, { name: 'Terms of Service', path: '/terms' }];
 
@@ -161,8 +167,8 @@ export const buildOrganizationSchema = () => ({
   '@id': `${SITE_URL}/#organization`,
   name: SITE_NAME,
   url: SITE_URL,
-  logo: `${SITE_URL}/favicon.png`,
-  sameAs: [SITE_URL],
+  logo: `${SITE_URL}${SITE_IDENTITY.logoPath}`,
+  sameAs: [SITE_IDENTITY.githubUrl],
 });
 
 export const buildWebsiteSchema = () => ({
@@ -172,10 +178,5 @@ export const buildWebsiteSchema = () => ({
   name: SITE_NAME,
   url: SITE_URL,
   publisher: { '@id': `${SITE_URL}/#organization` },
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: `${SITE_URL}/roadmap?search={search_term_string}`,
-    'query-input': 'required name=search_term_string',
-  },
 });
 

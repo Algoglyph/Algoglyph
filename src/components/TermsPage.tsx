@@ -22,7 +22,7 @@ export const TermsPage: React.FC = () => {
           <div className="w-6 h-6 shrink-0">
             <img src="/favicon.png" alt="AlgoGlyph brand logo" width={24} height={24} className="w-full h-full object-contain" />
           </div>
-          <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">Algoglyph</span>
+          <span className="font-display font-bold text-lg tracking-[-0.03em] text-white">AlgoGlyph</span>
         </a>
       </header>
 
@@ -33,7 +33,7 @@ export const TermsPage: React.FC = () => {
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">1. Acceptance of Terms</h2>
             <p>
-              By accessing and using Algoglyph ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by these terms, please do not use the Service.
+              By accessing and using AlgoGlyph ("the Service"), you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by these terms, please do not use the Service.
             </p>
           </section>
 

@@ -33,6 +33,9 @@ npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg
 ### Layout (`src/App.tsx`)
 `layoutMode` ∈ `split | canvas-only | notes-only | code | visualizer`. Split mode resizes the Canvas/Notes panes via `splitWidth` (a draggable divider); `code` and `visualizer` are full-area panes. Global shortcuts are registered here (Ctrl/Cmd: B=cycle layout, S=save, T=new tab, K=DSA command palette, F=search this tab, Shift+F=search all tabs). **Bare single-key tool shortcuts** (no modifier) are registered separately in `Canvas.tsx` and only fire when the canvas is focused: T=text, D=freedraw, E=eraser, A=arrow, L=line, R=rectangle. On mobile (`useIsMobile`) it collapses to one pane + `MobileNav`. The **landing page** (`LandingPage.tsx`) only shows in the browser, never in Electron (`isLandingActive = !isElectron`).
 
+### Public discovery surfaces
+Public routes include the landing page, `/about`, `/workspace`, the `/roadmap` hierarchy, privacy, terms, and the 404 page. Canonical brand facts live in `src/config/siteIdentity.ts`; reusable route metadata/schema lives in `src/components/SEO.tsx`. `scripts/generateSitemap.js` submits only canonical finished resources, while `scripts/generateStaticSeoPages.mjs` emits route-specific crawlable HTML after the Vite build (unfinished syllabus entries remain reachable but `noindex`). Run `npm run test:seo` after changing routing, public content, metadata, sitemap logic, or static generation.
+
 ### Cross-component coordination via `window` globals
 Several modules talk through globals instead of props: `window.excalidrawAPI` (set by `Canvas.tsx`, used by structure insertion + search), `window.notesEditor` (TipTap instance, used by search), `window.useWorkspaceStore`, and `window.goToLanding`. The `SearchPalette` drives both of these to jump to and highlight matches across tabs.
 

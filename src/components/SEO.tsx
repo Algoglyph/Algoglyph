@@ -1,217 +1,160 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
-import { ROADMAP_ZONES } from '../config/roadmapData';
-import {
-  DEFAULT_LAST_MODIFIED,
-  DEFAULT_OG_IMAGE,
-  SITE_NAME,
-  SITE_URL,
-  absoluteUrl,
-  buildBreadcrumbSchema,
-  buildOrganizationSchema,
-  buildWebsiteSchema,
-  canonicalPath,
-  findPostBySlug,
-  getArticleRouteByPath,
-} from '../lib/seoRoutes';
+import { SITE_IDENTITY } from '../config/siteIdentity';
+
+export interface SeoBreadcrumb {
+  name: string;
+  path: string;
+}
 
 interface SEOProps {
   title?: string;
   description?: string;
   type?: 'website' | 'article';
   image?: string;
+  imageAlt?: string;
+  index?: boolean;
+  breadcrumbs?: SeoBreadcrumb[];
+  schemas?: Record<string, unknown>[];
+  datePublished?: string;
+  dateModified?: string;
 }
 
+const cleanPath = (path: string) => {
+  const withoutQuery = path.split(/[?#]/)[0] || '/';
+  return withoutQuery === '/' ? '/' : withoutQuery.replace(/\/+$/, '');
+};
+
+const absoluteUrl = (path: string) => {
+  const normalized = cleanPath(path);
+  return `${SITE_IDENTITY.url}${normalized === '/' ? '/' : normalized}`;
+};
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': `${SITE_IDENTITY.url}/#organization`,
+  name: SITE_IDENTITY.name,
+  url: `${SITE_IDENTITY.url}/`,
+  logo: {
+    '@type': 'ImageObject',
+    '@id': `${SITE_IDENTITY.url}/#logo`,
+    url: `${SITE_IDENTITY.url}${SITE_IDENTITY.logoPath}`,
+  },
+  sameAs: [SITE_IDENTITY.githubUrl],
+};
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${SITE_IDENTITY.url}/#website`,
+  name: SITE_IDENTITY.name,
+  url: `${SITE_IDENTITY.url}/`,
+  description: SITE_IDENTITY.description,
+  inLanguage: SITE_IDENTITY.language,
+  publisher: { '@id': `${SITE_IDENTITY.url}/#organization` },
+};
+
 export const SEO: React.FC<SEOProps> = ({
-  title: overrideTitle,
-  description: overrideDescription,
-  type: overrideType,
-  image = DEFAULT_OG_IMAGE,
+  title = 'AlgoGlyph | Visual Computer Science Workspace',
+  description = SITE_IDENTITY.description,
+  type = 'website',
+  image = SITE_IDENTITY.defaultImagePath,
+  imageAlt = 'AlgoGlyph visual computer science workspace',
+  index = true,
+  breadcrumbs = [{ name: 'Home', path: '/' }],
+  schemas = [],
+  datePublished,
+  dateModified,
 }) => {
   const location = useLocation();
-  const pathname = canonicalPath(location.pathname);
-
-  const roadmapSegments = pathname.split('/').filter(Boolean);
-  const isRoadmap = roadmapSegments[0] === 'roadmap';
-  const activeSlug = isRoadmap && roadmapSegments.length === 5 ? roadmapSegments[4] : null;
-
+  const pathname = cleanPath(location.pathname);
   const canonicalUrl = absoluteUrl(pathname);
+  const imageUrl = image.startsWith('http') ? image : `${SITE_IDENTITY.url}${image}`;
 
-  let title = 'AlgoGlyph | Visual Computer Science Workspace';
-  let description = 'AlgoGlyph combines a visual computer science roadmap, interactive algorithm visualizers, coding sandboxes, notes, and canvas-based study tools.';
-  let type: 'website' | 'article' = 'website';
-  const jsonLd: unknown[] = [
-    buildOrganizationSchema(),
-    buildWebsiteSchema(),
-    buildBreadcrumbSchema(pathname),
-  ];
+  const pageSchema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': type === 'article' ? 'TechArticle' : 'WebPage',
+    '@id': `${canonicalUrl}#${type === 'article' ? 'article' : 'webpage'}`,
+    url: canonicalUrl,
+    name: title,
+    description,
+    inLanguage: SITE_IDENTITY.language,
+    isPartOf: { '@id': `${SITE_IDENTITY.url}/#website` },
+    about: type === 'article' ? undefined : { '@id': `${SITE_IDENTITY.url}/#organization` },
+    primaryImageOfPage: {
+      '@type': 'ImageObject',
+      url: imageUrl,
+      width: SITE_IDENTITY.defaultImageWidth,
+      height: SITE_IDENTITY.defaultImageHeight,
+      caption: imageAlt,
+    },
+  };
 
-  if (pathname === '/workspace') {
-    title = 'Visual DSA Notes, Coding Sandbox & Algorithm Visualizer | AlgoGlyph';
-    description = 'Create interactive DSA notes on an infinite canvas, run code in a sandbox, and use step-by-step algorithm visualizers while studying computer science.';
-    jsonLd.push({
-      '@context': 'https://schema.org',
-      '@type': 'SoftwareApplication',
-      name: 'AlgoGlyph Workspace',
-      applicationCategory: 'EducationalApplication',
-      operatingSystem: 'Web, Windows, macOS',
-      url: canonicalUrl,
-      image: `${SITE_URL}/og-image.png`,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
-      publisher: { '@id': `${SITE_URL}/#organization` },
-      description,
-    });
-  } else if (isRoadmap) {
-    let dynamicTitle = '';
-    const moduleId = roadmapSegments[1];
-    const topicId = roadmapSegments[2];
-    const conceptId = roadmapSegments[3];
-
-    const moduleObj = ROADMAP_ZONES.find((m) => m.id === moduleId);
-    if (moduleObj) {
-      dynamicTitle = moduleObj.name;
-      if (topicId) {
-        const topicObj = moduleObj.topics.find((t) => t.id === topicId);
-        if (topicObj) {
-          dynamicTitle = topicObj.name;
-          if (conceptId) {
-            const conceptObj = topicObj.concepts.find((c) => c.id === conceptId);
-            if (conceptObj) {
-              dynamicTitle = conceptObj.name;
-            }
-          }
-        }
-      }
-    }
-
-    if (activeSlug) {
-      const route = getArticleRouteByPath(pathname);
-      const post = route?.post || findPostBySlug(activeSlug);
-      if (post) {
-        title = `${post.title} | AlgoGlyph Computer Science Roadmap`;
-        description = post.tagline || (post as any).excerpt || (post as any).description || post.content?.introduction?.substring(0, 150) || '';
-        type = 'article';
-
-        jsonLd.push({
-          '@context': 'https://schema.org',
-          '@type': 'TechArticle',
-          '@id': `${canonicalUrl}#article`,
-          headline: post.title,
-          description,
-          url: canonicalUrl,
-          mainEntityOfPage: canonicalUrl,
-          image: `${SITE_URL}/og-image.png`,
-          dateModified: post.lastUpdated || DEFAULT_LAST_MODIFIED,
-          datePublished: post.lastUpdated || DEFAULT_LAST_MODIFIED,
-          articleSection: post.category,
-          keywords: [post.category, post.title, ...(post.prerequisites || []), ...(post.related || [])].filter(Boolean),
-          about: route
-            ? [
-                { '@type': 'Thing', name: route.zone.name },
-                { '@type': 'Thing', name: route.topic.name },
-                { '@type': 'Thing', name: route.concept.name },
-              ]
-            : [{ '@type': 'Thing', name: post.category }],
-          author: {
-            '@type': 'Organization',
-            name: SITE_NAME,
-            url: SITE_URL,
-          },
-          publisher: { '@id': `${SITE_URL}/#organization` },
-          isAccessibleForFree: true,
-        });
-
-        if (post.content?.interviewQuestions?.length) {
-          jsonLd.push({
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: post.content?.interviewQuestions.slice(0, 8).map((question) => ({
-              '@type': 'Question',
-              name: question,
-              acceptedAnswer: {
-                '@type': 'Answer',
-                text: `Study the ${post.title} guide on AlgoGlyph for the concept explanation, implementation constraints, complexity trade-offs, and common pitfalls that answer this interview question.`,
-              },
-            })),
-          });
-        }
-      } else {
-        const formattedTitle = activeSlug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        title = `${formattedTitle} | AlgoGlyph Computer Science Roadmap`;
-        description = `Master the theoretical foundations, implementation constraints, examples, and complexity analysis of ${formattedTitle}.`;
-        type = 'article';
-      }
-    } else if (dynamicTitle) {
-      title = `${dynamicTitle} | AlgoGlyph Computer Science Roadmap`;
-      description = `Study ${dynamicTitle} through a structured visual computer science curriculum with topic maps, subtopics, and connected theory articles.`;
-    } else {
-      title = 'Computer Science Roadmap | AlgoGlyph';
-      description = 'Navigate a visual computer science roadmap covering data structures, algorithms, system design, machine learning, backend engineering, and theory.';
-      jsonLd.push({
-        '@context': 'https://schema.org',
-        '@type': 'ItemList',
-        name: 'AlgoGlyph Computer Science Roadmap',
-        url: canonicalUrl,
-        itemListElement: ROADMAP_ZONES.map((zone, index) => ({
-          '@type': 'ListItem',
-          position: index + 1,
-          name: zone.name,
-          url: absoluteUrl(`/roadmap/${zone.id}`),
-        })),
-      });
-    }
-  } else if (pathname === '/privacy') {
-    title = 'Privacy Policy | AlgoGlyph';
-    description = 'Read how AlgoGlyph handles privacy, local-first workspace data, analytics, notes, and coding workspace security.';
-  } else if (pathname === '/terms') {
-    title = 'Terms of Service | AlgoGlyph';
-    description = 'Read the terms of service and conditions for using the AlgoGlyph workspace, applications, and learning tools.';
-  } else if (pathname !== '/') {
-    title = '404 Page Not Found | AlgoGlyph';
-    description = 'The requested page was not found on AlgoGlyph.';
+  if (type === 'article') {
+    pageSchema.headline = title.replace(/ \| AlgoGlyph.*$/, '');
+    pageSchema.mainEntityOfPage = canonicalUrl;
+    pageSchema.author = { '@id': `${SITE_IDENTITY.url}/#organization` };
+    pageSchema.publisher = { '@id': `${SITE_IDENTITY.url}/#organization` };
+    pageSchema.isAccessibleForFree = true;
+    if (datePublished) pageSchema.datePublished = datePublished;
+    if (dateModified) pageSchema.dateModified = dateModified;
   }
 
-  const finalTitle = overrideTitle || title;
-  const finalDescription = overrideDescription || description;
-  const finalType = overrideType || type;
-  const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
-  const shouldIndex = pathname !== '/404' && !pathname.startsWith('/404');
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    '@id': `${canonicalUrl}#breadcrumb`,
+    itemListElement: breadcrumbs.map((item, indexValue) => ({
+      '@type': 'ListItem',
+      position: indexValue + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
+  };
+
+  const jsonLd = [organizationSchema, websiteSchema, pageSchema, breadcrumbSchema, ...schemas];
 
   return (
     <Helmet>
-      <title>{finalTitle}</title>
-      <meta name="description" content={finalDescription} />
-      <meta name="robots" content={shouldIndex ? 'index, follow, max-image-preview:large' : 'noindex, nofollow'} />
-      <meta name="author" content={SITE_NAME} />
-      <meta name="application-name" content={SITE_NAME} />
+      <html lang={SITE_IDENTITY.language} />
+      <title>{title}</title>
+      <meta name="description" content={description} />
+      <meta
+        name="robots"
+        content={index ? 'index, follow, max-image-preview:large' : 'noindex, follow, max-image-preview:large'}
+      />
+      <meta name="author" content={SITE_IDENTITY.name} />
+      <meta name="application-name" content={SITE_IDENTITY.name} />
       <meta name="theme-color" content="#0a0a0a" />
       <link rel="canonical" href={canonicalUrl} />
       <link rel="alternate" hrefLang="en" href={canonicalUrl} />
       <link rel="alternate" hrefLang="x-default" href={canonicalUrl} />
 
-      <meta property="og:title" content={finalTitle} />
-      <meta property="og:description" content={finalDescription} />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
       <meta property="og:url" content={canonicalUrl} />
-      <meta property="og:type" content={finalType} />
+      <meta property="og:type" content={type} />
       <meta property="og:image" content={imageUrl} />
-      <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:locale" content="en_US" />
+      <meta property="og:image:secure_url" content={imageUrl} />
+      <meta property="og:image:width" content={String(SITE_IDENTITY.defaultImageWidth)} />
+      <meta property="og:image:height" content={String(SITE_IDENTITY.defaultImageHeight)} />
+      <meta property="og:image:alt" content={imageAlt} />
+      <meta property="og:site_name" content={SITE_IDENTITY.name} />
+      <meta property="og:locale" content={SITE_IDENTITY.locale} />
 
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={canonicalUrl} />
-      <meta name="twitter:title" content={finalTitle} />
-      <meta name="twitter:description" content={finalDescription} />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
+      <meta name="twitter:image:alt" content={imageAlt} />
 
-      {type === 'article' && <meta property="article:modified_time" content={DEFAULT_LAST_MODIFIED} />}
+      {type === 'article' && datePublished && <meta property="article:published_time" content={datePublished} />}
+      {type === 'article' && dateModified && <meta property="article:modified_time" content={dateModified} />}
 
-      {jsonLd.map((schema, index) => (
-        <script key={index} type="application/ld+json">
+      {jsonLd.map((schema, indexValue) => (
+        <script key={`${pathname}-${indexValue}`} type="application/ld+json">
           {JSON.stringify(schema)}
         </script>
       ))}

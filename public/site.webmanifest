@@ -1,7 +1,7 @@
 {
   "name": "AlgoGlyph",
   "short_name": "AlgoGlyph",
-  "description": "Visual Workspace for Learning Computer Science",
+  "description": "A local-first visual computer science workspace for diagrams, notes, code, algorithm visualizers, a connected roadmap, and MCP agents.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

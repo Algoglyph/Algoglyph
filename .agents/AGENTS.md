@@ -39,7 +39,9 @@ This document provides comprehensive context, architectural guidelines, and tech
      - *Code Runner* (full-screen CodeMirror editor connected to Wandbox)
      - *Algorithm Visualizer* (full-screen infinite pan/zoom canvas)
    - **Landing Page (`/`, `LandingPage.tsx`)**: High-converting showcase page with interactive mock workspace (`MockWorkspace.tsx`), visual morphing arena (`MorphingArena.tsx`), and hero search (`SearchHeroes.tsx`).
-   - **Roadmap & Knowledge Graph Hub (`/roadmap`, `RoadmapPage.tsx`)**: Interactive domain learning roadmap with integrated blog reader and dynamic routing (`/blog/:slug` redirects to mapped roadmap concept).
+   - **Roadmap & Knowledge Graph Hub (`/roadmap`, `RoadmapPage.tsx`)**: Interactive domain learning roadmap with integrated article reader and dynamic routing (`/blog/:slug` redirects to the canonical roadmap concept).
+   - **About / entity surface (`/about`, `AboutPage.tsx`)**: Canonical public description of AlgoGlyph, its audience, coverage, and product distinction.
+   - **Public SEO build**: `SEO.tsx` owns reusable route metadata/schema, `siteIdentity.ts` owns canonical brand facts, `generateSitemap.js` includes only canonical finished content, and `generateStaticSeoPages.mjs` emits route-specific crawlable HTML after Vite builds. Unfinished syllabus articles remain reachable but are `noindex` and absent from the sitemap. `npm run test:seo` validates the contract.
    - **Global Keyboard Shortcuts**: Registered in `App.tsx`:
      - `Ctrl+B`: Toggle layout modes
      - `Ctrl+S`: Manual workspace save
@@ -126,7 +128,9 @@ Writing and maintaining hundreds of deep technical articles in the project is dr
 
 4. **Auditing & Verification Tools**:
    - `check_articles.py`, `check_code.py`, `check_backend_status.cjs`, `find_missing_blogs.cjs`: Audit scripts that verify that every roadmap concept maps to a valid non-empty blog slug, ensure syntax highlighting blocks compile without syntax errors, and flag missing articles.
-   - `scripts/generateSitemap.js`: Crawls all roadmap zones, topics, and blog post slugs to generate `public/sitemap.xml` automatically for SEO search engine indexing.
+   - `scripts/generateSitemap.js`: Generates `public/sitemap.xml` from canonical public routes and finished roadmap content, with source-derived modification dates.
+   - `scripts/generateStaticSeoPages.mjs`: Emits per-route HTML metadata, H1/intro content, breadcrumbs, internal links, and JSON-LD for direct deep-route requests.
+   - `npm run test:seo`: Validates sitemap uniqueness, static route coverage, canonicals, JSON-LD, H1s, robots discovery, and internal route links.
    - `npm run test:mcp`: Runs the MCP connector's Node integration/security baseline against an isolated temporary loopback connector. Pending security requirements remain visible as `test.todo` contracts until their remediation stage implements them.
    - `npm run test:diagrams`: Runs deterministic diagram layout, routing, and overlap regressions.
 
