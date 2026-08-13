@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, describe, test } from 'node:test';
 import {
@@ -21,6 +23,10 @@ const OVERSIZED_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/oversizedAgent
 const SLOW_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/slowAgent.mjs', import.meta.url));
 const HANGING_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/hangingAgent.mjs', import.meta.url));
 const WARM_ANTIGRAVITY_FIXTURE = fileURLToPath(new URL('./fixtures/warmAntigravityAgent.mjs', import.meta.url));
+const RECOVERING_ANTIGRAVITY_FIXTURE = fileURLToPath(
+  new URL('./fixtures/recoveringAntigravityAgent.mjs', import.meta.url),
+);
+const VERSION_PROBE_PRELOAD = fileURLToPath(new URL('./fixtures/versionProbePreload.cjs', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
 const waitForPathRemoval = async (path, timeoutMs = 5_000) => {
@@ -34,6 +40,20 @@ const waitForPathRemoval = async (path, timeoutMs = 5_000) => {
     await wait(50);
   }
   return false;
+};
+
+const waitForJsonFile = async (path, predicate, timeoutMs = 5_000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const value = JSON.parse(await readFile(path, 'utf8'));
+      if (predicate(value)) return value;
+    } catch {
+      // The fixture may not have created its coordination file yet.
+    }
+    await wait(25);
+  }
+  return undefined;
 };
 
 const processIsAlive = (pid) => {
@@ -86,7 +106,7 @@ const runRawFixtureAgent = async (fixtureConnector, token, body) => {
   return { status: response.status, events: response.ok ? parseSseEvents(await response.text()) : [], response };
 };
 
-const runWarmAntigravity = async (fixtureConnector, token, marker) => {
+const runWarmAntigravity = async (fixtureConnector, token, marker, mcpServerId) => {
   const response = await fetch(`${fixtureConnector.endpoint}/v1/agents/run`, {
     method: 'POST',
     headers: {
@@ -95,7 +115,12 @@ const runWarmAntigravity = async (fixtureConnector, token, marker) => {
       'Content-Type': 'application/json',
       Origin: fixtureConnector.allowedOrigin,
     },
-    body: JSON.stringify({ agentId: 'antigravity', prompt: marker, outputMode: 'buffered' }),
+    body: JSON.stringify({
+      agentId: 'antigravity',
+      prompt: marker,
+      outputMode: 'buffered',
+      ...(mcpServerId ? { mcpServerId } : {}),
+    }),
   });
   const events = response.ok ? parseSseEvents(await response.text()) : [];
   const output = events.find((event) => event.event === 'output');
@@ -187,6 +212,24 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.equal(response.status, 403);
     assert.equal(response.headers.get('access-control-allow-origin'), null);
     assert.match(response.body.error.message, /origin is not allowed/i);
+  });
+
+  test('development origins trust only local Vite hosts unless preview is explicitly enabled', async () => {
+    const developmentConnector = await startConnectorHarness({
+      allowedOrigin: 'http://localhost:5173',
+      devOrigins: '1',
+    });
+    try {
+      const local = await developmentConnector.request('health');
+      assert.equal(local.status, 200);
+
+      const pagesPreview = await developmentConnector.request('health', {
+        origin: 'https://algoglyph.pages.dev',
+      });
+      assert.equal(pagesPreview.status, 403);
+    } finally {
+      await developmentConnector.stop();
+    }
   });
 
   test('allowed Private Network Access preflights are explicit and origin-scoped', async () => {
@@ -335,6 +378,48 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.equal(revoke.status, 200);
   });
 
+  test('agent version probes use an isolated cwd and deny parent environment inheritance', async () => {
+    const markerDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-version-probe-test-'));
+    const markerPath = join(markerDirectory, 'inherited-secret.txt');
+    const probeConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        NODE_OPTIONS: `--require=${VERSION_PROBE_PRELOAD}`,
+        ALGOGLYPH_TEST_VERSION_MARKER: markerPath,
+        ALGOGLYPH_TEST_PARENT_SECRET: 'must-not-reach-version-probe',
+        ALGOGLYPH_CODEX_PATH: process.execPath,
+        ALGOGLYPH_ANTIGRAVITY_PATH: process.execPath,
+        ALGOGLYPH_CLAUDE_PATH: process.execPath,
+      },
+    });
+    try {
+      const catalog = await probeConnector.request('v1/catalog', {
+        token: probeConnector.masterToken,
+      });
+      assert.equal(catalog.status, 200);
+      assert.equal(catalog.body.agents.every((agent) => agent.available), true);
+      await assert.rejects(access(markerPath), /ENOENT/);
+
+      const connectorSource = await readFile(
+        `${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`,
+        'utf8',
+      );
+      const probeSource = connectorSource.slice(
+        connectorSource.indexOf('const runVersionCheck ='),
+        connectorSource.indexOf('let agentCatalogPromise'),
+      );
+      assert.match(probeSource, /const environment = \{\}/);
+      assert.match(probeSource, /cwd: probeDirectory,\s*env: environment/);
+      assert.match(probeSource, /environment\.HOME = probeDirectory/);
+      assert.match(probeSource, /environment\.USERPROFILE = probeDirectory/);
+      assert.doesNotMatch(probeSource, /env:\s*process\.env|\.\.\.process\.env/);
+      assert.doesNotMatch(probeSource, /TOKEN|SECRET|PASSWORD|API_KEY/);
+    } finally {
+      await probeConnector.stop();
+      await rm(markerDirectory, { recursive: true, force: true });
+    }
+  });
+
   test('session count is bounded by evicting the least-recently-used grant', async () => {
     const boundedConnector = await startConnectorHarness({
       environment: { NODE_ENV: 'test', ALGOGLYPH_TEST_MAX_SESSIONS: '2' },
@@ -447,6 +532,47 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
         required: ['value'],
       },
     });
+  });
+
+  test('approved tool invocation stays on its inspected transport after dispatch failure', async () => {
+    const failingTransportServer = await startMcpServerFixture({ failToolAfterDispatch: true });
+    try {
+      const inspected = await connector.request('v1/mcp/test', {
+        method: 'POST',
+        token: connector.masterToken,
+        body: {
+          endpoint: failingTransportServer.endpoint,
+          accessToken: failingTransportServer.accessToken,
+          allowPrivateNetwork: true,
+        },
+      });
+      assert.equal(inspected.status, 200);
+      assert.equal(inspected.body.transport, 'streamable-http');
+      const getRequestsBeforeInvocation = failingTransportServer.stats.getRequests;
+
+      const invoked = await connector.request('v1/mcp/invoke', {
+        method: 'POST',
+        token: connector.masterToken,
+        body: {
+          serverId: inspected.body.serverId,
+          toolName: 'echo_for_test',
+          arguments: { value: 'fail-after-dispatch' },
+          confirmed: true,
+        },
+      });
+
+      assert.equal(invoked.status, 502);
+      assert.equal(
+        failingTransportServer.stats.toolDispatches,
+        1,
+        JSON.stringify(failingTransportServer.stats),
+      );
+      // Streamable HTTP opens one GET event channel per connection. An SSE
+      // fallback after the failed call would add a second GET connection.
+      assert.equal(failingTransportServer.stats.getRequests, getRequestsBeforeInvocation + 1);
+    } finally {
+      await failingTransportServer.stop();
+    }
   });
 
   test('diagram-mode agent output is coalesced into one transport event', async () => {
@@ -649,6 +775,17 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
         assert.doesNotMatch(JSON.stringify(response.body), /ssrf-secret/);
       }
 
+      const approvedLoopback = await ssrfConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: ssrfConnector.masterToken,
+        body: {
+          endpoint: mcpServer.endpoint,
+          accessToken: mcpServer.accessToken,
+          allowPrivateNetwork: true,
+        },
+      });
+      assert.equal(approvedLoopback.status, 200);
+
       const redirected = await ssrfConnector.request('v1/mcp/test', {
         method: 'POST',
         token: ssrfConnector.masterToken,
@@ -656,6 +793,20 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       });
       assert.notEqual(redirected.status, 200);
       assert.doesNotMatch(JSON.stringify(redirected.body), /redirect-secret/);
+
+      const connectorSource = await readFile(
+        `${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`,
+        'utf8',
+      );
+      const safeFetchSource = connectorSource.slice(
+        connectorSource.indexOf('const createSafeMcpFetch ='),
+        connectorSource.indexOf('const collectMcpPages ='),
+      );
+      assert.match(safeFetchSource, /initialDestination \|\|= destination/);
+      assert.match(
+        safeFetchSource,
+        /if \(destination\.isPrivate && !initialDestination\.isPrivate\)[\s\S]*?Public MCP endpoints may not redirect to private or loopback destinations/,
+      );
     } finally {
       await redirect.stop();
       await ssrfConnector.stop();
@@ -664,6 +815,7 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
 
   test('approved MCP grants are owner-scoped, capped, and removed with their owning session', async () => {
     const lifecycleConnector = await startConnectorHarness();
+    const cappedServers = [];
     try {
       const { session: firstSession } = await lifecycleConnector.pair();
       const firstApproval = await lifecycleConnector.request('v1/mcp/test', {
@@ -705,12 +857,32 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       });
       assert.equal(revokedOwner.status, 401);
 
+      const repeatedApproval = await lifecycleConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: lifecycleConnector.masterToken,
+        body: { endpoint: mcpServer.endpoint, accessToken: mcpServer.accessToken, allowPrivateNetwork: true },
+      });
+      const repeatedAgain = await lifecycleConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: lifecycleConnector.masterToken,
+        body: { endpoint: mcpServer.endpoint, accessToken: mcpServer.accessToken, allowPrivateNetwork: true },
+      });
+      assert.equal(repeatedApproval.status, 200);
+      assert.equal(repeatedAgain.status, 200);
+      assert.equal(repeatedAgain.body.serverId, repeatedApproval.body.serverId);
+
       const approvals = [];
       for (let index = 0; index < 5; index += 1) {
+        const distinctServer = await startMcpServerFixture({ accessToken: `fixture-access-${index}` });
+        cappedServers.push(distinctServer);
         const approval = await lifecycleConnector.request('v1/mcp/test', {
           method: 'POST',
           token: lifecycleConnector.masterToken,
-          body: { endpoint: mcpServer.endpoint, accessToken: mcpServer.accessToken, allowPrivateNetwork: true },
+          body: {
+            endpoint: distinctServer.endpoint,
+            accessToken: distinctServer.accessToken,
+            allowPrivateNetwork: true,
+          },
         });
         assert.equal(approval.status, 200);
         approvals.push(approval.body.serverId);
@@ -749,6 +921,7 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       assert.match(connectorSource, /pruneSessions[\s\S]{0,500}deleteSession\(token\)/);
       assert.match(connectorSource, /sessions\.size >= maxSessions[\s\S]{0,500}deleteSession\(oldest\[0\]\)/);
     } finally {
+      await Promise.allSettled(cappedServers.map((server) => server.stop()));
       await lifecycleConnector.stop();
     }
   });
@@ -870,6 +1043,7 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       environment: {
         NODE_ENV: 'test',
         ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: WARM_ANTIGRAVITY_FIXTURE,
+        ALGOGLYPH_TEST_ANTIGRAVITY_ELIGIBILITY_RETRY_DELAY_MS: '50',
       },
     });
     const descendantPids = new Set();
@@ -882,7 +1056,24 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       );
       assert.equal(first.status, 200);
       assert.equal(first.output.marker, 'WARM_REQUEST_ONE');
+      assert.equal(first.output.submissionCount, 1);
+      assert.deepEqual(first.output.promptPolicy, {
+        approvedToolsAvailable: false,
+        denyAllTools: true,
+        saysToolCallWillBeDenied: true,
+      });
       descendantPids.add(first.output.descendantPid);
+
+      const eligibilityRetry = await runWarmAntigravity(
+        warmConnector,
+        firstSession.sessionToken,
+        'WARM_REQUEST_ELIGIBILITY',
+      );
+      assert.equal(eligibilityRetry.status, 200);
+      assert.equal(eligibilityRetry.output.marker, 'WARM_REQUEST_ELIGIBILITY');
+      assert.equal(eligibilityRetry.output.submissionCount, 2);
+      assert.ok(eligibilityRetry.output.retryElapsedMs >= 40);
+      assert.equal(eligibilityRetry.output.homeDirectory, first.output.homeDirectory);
 
       const second = await runWarmAntigravity(
         warmConnector,
@@ -891,6 +1082,7 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       );
       assert.equal(second.status, 200);
       assert.equal(second.output.marker, 'WARM_REQUEST_TWO');
+      assert.equal(second.output.submissionCount, 1);
       assert.equal(second.output.homeDirectory, first.output.homeDirectory);
 
       const { session: nextSession } = await warmConnector.pair();
@@ -916,6 +1108,114 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       assert.equal(await waitForProcessExit(nextOwner.output.descendantPid), true);
     } finally {
       await warmConnector.stop();
+      for (const pid of descendantPids) {
+        if (processIsAlive(pid)) {
+          try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
+        }
+      }
+    }
+  });
+
+  test('an owner request recovers from a failed background Antigravity prewarm and remains warm', async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-recovery-test-'));
+    const stateFile = join(stateDirectory, 'attempt.txt');
+    let recoveryConnector;
+    try {
+      recoveryConnector = await startConnectorHarness({
+        environment: {
+          NODE_ENV: 'test',
+          ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: RECOVERING_ANTIGRAVITY_FIXTURE,
+          ALGOGLYPH_TEST_PREWARM_ANTIGRAVITY: '1',
+          ALGOGLYPH_TEST_ANTIGRAVITY_READY_TIMEOUT_MS: '1000',
+          ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE: stateFile,
+        },
+      });
+
+      // Enter the precise race window: the connector has published its global
+      // prewarm session, but that session has not and will not become ready.
+      const prewarmState = await waitForJsonFile(
+        stateFile,
+        (value) => value.phase === 'prewarm-started',
+      );
+      assert.equal(typeof prewarmState?.prewarmHomeDirectory, 'string');
+
+      const { session } = await recoveryConnector.pair();
+      const recovered = await runWarmAntigravity(
+        recoveryConnector,
+        session.sessionToken,
+        'RECOVERY_REQUEST_ONE',
+      );
+      assert.equal(recovered.status, 200);
+      assert.equal(recovered.output.marker, 'RECOVERY_REQUEST_ONE');
+      const healthyState = await waitForJsonFile(
+        stateFile,
+        (value) => value.phase === 'healthy-started',
+      );
+      assert.equal(typeof healthyState?.healthyHomeDirectory, 'string');
+      assert.notEqual(healthyState.healthyHomeDirectory, prewarmState.prewarmHomeDirectory);
+      assert.equal(await waitForPathRemoval(prewarmState.prewarmHomeDirectory), true);
+
+      const followUp = await runWarmAntigravity(
+        recoveryConnector,
+        session.sessionToken,
+        'RECOVERY_REQUEST_TWO',
+      );
+      assert.equal(followUp.status, 200);
+      assert.equal(followUp.output.marker, 'RECOVERY_REQUEST_TWO');
+      assert.equal(followUp.output.homeDirectory, recovered.output.homeDirectory);
+    } finally {
+      await recoveryConnector?.stop();
+      await rm(stateDirectory, { recursive: true, force: true });
+    }
+  });
+
+  test('Antigravity receives an approved relay only through its isolated current MCP config', async () => {
+    const relayConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: WARM_ANTIGRAVITY_FIXTURE,
+      },
+    });
+    const descendantPids = new Set();
+    try {
+      const { session } = await relayConnector.pair();
+      const approved = await relayConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: session.sessionToken,
+        body: {
+          endpoint: mcpServer.endpoint,
+          accessToken: mcpServer.accessToken,
+          allowPrivateNetwork: true,
+        },
+      });
+      assert.equal(approved.status, 200);
+
+      const run = await runWarmAntigravity(
+        relayConnector,
+        session.sessionToken,
+        'WARM_REQUEST_MCP_CONFIG',
+        approved.body.serverId,
+      );
+      assert.equal(run.status, 200);
+      assert.equal(run.output.marker, 'WARM_REQUEST_MCP_CONFIG');
+      descendantPids.add(run.output.descendantPid);
+      assert.deepEqual(run.output.promptPolicy, {
+        approvedToolsAvailable: true,
+        denyAllTools: false,
+        saysToolCallWillBeDenied: false,
+      });
+      assert.deepEqual(run.output.mcpIsolation, {
+        currentConfigPresent: true,
+        currentServerUrlIsLoopback: true,
+        authorizationHeaderPresent: true,
+        authorizationMatchesIsolatedRelay: true,
+        legacyMcpServersPresent: false,
+        legacyHttpUrlPresent: false,
+        exactMcpPermissionPresent: true,
+        broadMcpPermissionPresent: false,
+      });
+    } finally {
+      await relayConnector.stop();
       for (const pid of descendantPids) {
         if (processIsAlive(pid)) {
           try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }

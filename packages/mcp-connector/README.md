@@ -2,7 +2,7 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This repository contains the `0.2.0` / protocol-v2 release candidate. Until that candidate is deliberately published, the npm registry's `latest` tag remains on the older `0.1.0` connector. Running the release checks does not publish anything.
+The npm registry and this repository both provide `0.2.0` / protocol v2. Running the release checks does not publish anything.
 
 ## Requirements
 
@@ -41,11 +41,14 @@ An external server is available to an agent only when that individual run explic
 
 Loopback HTTP MCP endpoints require the explicit private-network opt-in. Non-loopback MCP endpoints must use HTTPS. Redirect targets and every resolved address are checked again; local, private, link-local, reserved, multicast, and cloud-metadata destinations are rejected.
 
+Antigravity uses the current isolated `.gemini/config/mcp_config.json` `serverUrl` schema. For explicitly attached servers, its separate isolated CLI settings grant only `mcp(algoglyph_approved/*)`; no command, file, browser, or global MCP wildcard is enabled. A confirmed transient account-eligibility rejection may be retried once after the provider settle window, and only when no transcript event shows that the prompt was accepted.
+
 ## Security boundary
 
 - The HTTP listener binds only to `127.0.0.1`; Host headers must match the configured loopback listener.
 - Browser access uses an exact CORS allowlist. Production defaults are `https://algoglyph.com`, `https://www.algoglyph.com`, and the packaged app origin `app://algoglyph`.
-- Development origins are **off by default**. `ALGOGLYPH_DEV_ORIGINS=1` adds exactly `https://algoglyph.pages.dev`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
+- Development origins are **off by default**. `ALGOGLYPH_DEV_ORIGINS=1` adds exactly `http://localhost:5173` and `http://127.0.0.1:5173`.
+- The public preview origin is separate: `ALGOGLYPH_PREVIEW_ORIGINS=1` explicitly adds `https://algoglyph.pages.dev`. The repository startup command does not trust that public origin by default.
 - `ALGOGLYPH_ALLOWED_ORIGINS` is an advanced, explicit comma-separated extension to that allowlist. Adding an origin grants that origin access to this local connector and must be treated as a security decision.
 - Pairing credentials are random, origin-bound, single-use, and expire after 90 seconds. Session tokens are random, capability-scoped, and kept in browser `sessionStorage`.
 - Request bodies, JSON structure, prompts, remote responses, MCP pagination, output, concurrency, and execution time are bounded. Unknown or dangerous request fields are rejected.
@@ -86,7 +89,8 @@ Agent output streams by default. `outputMode: "buffered"` coalesces output when 
 | Variable | Purpose |
 | --- | --- |
 | `ALGOGLYPH_CONNECTOR_PORT` | Loopback port from 1024 through 65535; default `4319`. Configure the same URL in AlgoGlyph Advanced settings. |
-| `ALGOGLYPH_DEV_ORIGINS=1` | Enables only the three development origins listed above. |
+| `ALGOGLYPH_DEV_ORIGINS=1` | Enables only the two local development origins listed above. |
+| `ALGOGLYPH_PREVIEW_ORIGINS=1` | Explicitly enables the public `https://algoglyph.pages.dev` preview origin. |
 | `ALGOGLYPH_ALLOWED_ORIGINS` | Adds explicitly trusted, comma-separated browser origins. |
 | `ALGOGLYPH_CONNECTOR_TOKEN` | Advanced manual bearer fallback. Use at least 32 bytes of unpredictable secret material. It is never printed. |
 

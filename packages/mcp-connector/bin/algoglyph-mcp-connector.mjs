@@ -57,10 +57,10 @@ const DEV_TIMING_ENABLED = process.env.ALGOGLYPH_DEV_TIMING === '1';
 const SESSION_SCOPES = Object.freeze(['catalog:read', 'mcp:test', 'mcp:invoke', 'agent:run', 'session:revoke']);
 const PRODUCTION_ORIGINS = ['https://algoglyph.com', 'https://www.algoglyph.com', 'app://algoglyph'];
 const DEVELOPMENT_ORIGINS = [
-  'https://algoglyph.pages.dev',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ];
+const PREVIEW_ORIGINS = ['https://algoglyph.pages.dev'];
 
 // The connector — never the browser — owns the command and its fixed arguments.
 // `runArgs` are constant; the user's prompt is delivered via stdin (`promptVia:
@@ -160,6 +160,17 @@ const maxSessions = testOverride('ALGOGLYPH_TEST_MAX_SESSIONS', MAX_SESSIONS);
 const pairingIssueRateLimit = testOverride('ALGOGLYPH_TEST_PAIRING_ISSUE_RATE_LIMIT', PAIRING_ISSUE_RATE_LIMIT);
 const pairingRedeemRateLimit = testOverride('ALGOGLYPH_TEST_PAIRING_REDEEM_RATE_LIMIT', PAIRING_REDEEM_RATE_LIMIT);
 const authRateWindowMs = testOverride('ALGOGLYPH_TEST_AUTH_RATE_WINDOW_MS', AUTH_RATE_WINDOW_MS, 25);
+const antigravitySessionReadyTimeoutMs = testOverride(
+  'ALGOGLYPH_TEST_ANTIGRAVITY_READY_TIMEOUT_MS',
+  ANTIGRAVITY_SESSION_READY_TIMEOUT_MS,
+  25,
+);
+const antigravityResetTimeoutMs = testOverride('ALGOGLYPH_TEST_ANTIGRAVITY_RESET_TIMEOUT_MS', 5_000, 25);
+const antigravityEligibilityRetryDelayMs = testOverride(
+  'ALGOGLYPH_TEST_ANTIGRAVITY_ELIGIBILITY_RETRY_DELAY_MS',
+  15_000,
+  25,
+);
 
 const parsePort = (value) => {
   if (!value) return DEFAULT_PORT;
@@ -175,6 +186,9 @@ const parseAllowedOrigins = () => {
   const origins = new Set(PRODUCTION_ORIGINS);
   if (process.env.ALGOGLYPH_DEV_ORIGINS === '1') {
     for (const origin of DEVELOPMENT_ORIGINS) origins.add(origin);
+  }
+  if (process.env.ALGOGLYPH_PREVIEW_ORIGINS === '1') {
+    for (const origin of PREVIEW_ORIGINS) origins.add(origin);
   }
   const configured = process.env.ALGOGLYPH_ALLOWED_ORIGINS || '';
 
@@ -637,8 +651,28 @@ const readJsonBody = (request, { objectOnly = true } = {}) =>
     });
   });
 
-const runVersionCheck = (command) =>
-  new Promise((resolve) => {
+const runVersionCheck = async (command) => {
+  let probeDirectory;
+  try {
+    probeDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-agent-probe-'));
+    trackedTempRoots.add(probeDirectory);
+  } catch {
+    return { available: false };
+  }
+  const environment = {};
+  for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'LANG', 'LC_ALL']) {
+    if (process.env[name]) environment[name] = process.env[name];
+  }
+  environment.PATH = [dirname(command), process.env.SystemRoot && join(process.env.SystemRoot, 'System32')]
+    .filter(Boolean)
+    .join(delimiter);
+  environment.HOME = probeDirectory;
+  environment.USERPROFILE = probeDirectory;
+  environment.TEMP = probeDirectory;
+  environment.TMP = probeDirectory;
+
+  try {
+    return await new Promise((resolveDone) => {
     let output = '';
     let settled = false;
     let child;
@@ -646,11 +680,13 @@ const runVersionCheck = (command) =>
     const finish = (result) => {
       if (settled) return;
       settled = true;
-      resolve(result);
+      resolveDone(result);
     };
 
     try {
       child = spawn(command, ['--version'], {
+        cwd: probeDirectory,
+        env: environment,
         shell: false,
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true,
@@ -678,7 +714,12 @@ const runVersionCheck = (command) =>
       const version = output.replace(/\s+/g, ' ').trim().slice(0, 160);
       finish({ available: code === 0, version: version || undefined });
     });
-  });
+    });
+  } finally {
+    await rm(probeDirectory, { recursive: true, force: true }).catch(() => undefined);
+    trackedTempRoots.delete(probeDirectory);
+  }
+};
 
 let agentCatalogPromise;
 let agentCatalogExpiresAt = 0;
@@ -919,6 +960,7 @@ const isLoopbackAddress = (address) => {
 
 const validateMcpDestination = async (url, allowPrivateNetwork) => {
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const explicitlyLoopback = hostname === 'localhost' || isLoopbackAddress(hostname);
   let addresses;
   try {
     addresses = isIP(hostname)
@@ -928,12 +970,14 @@ const validateMcpDestination = async (url, allowPrivateNetwork) => {
     throw new ConnectorError(502, 'The MCP server hostname could not be resolved.');
   }
   if (!addresses.length) throw new ConnectorError(502, 'The MCP server hostname did not resolve.');
+  let isPrivate = false;
   for (const { address } of addresses) {
     if (!isUnsafeIpAddress(address)) continue;
-    if (allowPrivateNetwork === true && isLoopbackAddress(address)) continue;
+    isPrivate = true;
+    if (allowPrivateNetwork === true && explicitlyLoopback && isLoopbackAddress(address)) continue;
     throw new ConnectorError(403, 'Private, reserved, link-local, and metadata-network MCP destinations are blocked.');
   }
-  return addresses;
+  return { addresses, isPrivate };
 };
 
 const boundedResponse = (response, dispatcher) => {
@@ -969,6 +1013,7 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
     ? await input.clone().arrayBuffer()
     : undefined);
   const originalOrigin = endpoint.origin;
+  let initialDestination;
 
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
     if (!['http:', 'https:'].includes(currentUrl.protocol)) {
@@ -978,7 +1023,12 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
       && !isLoopbackAddress(currentUrl.hostname)) {
       throw new ConnectorError(403, 'Insecure non-loopback MCP destinations are blocked.');
     }
-    const addresses = await validateMcpDestination(currentUrl, allowPrivateNetwork);
+    const destination = await validateMcpDestination(currentUrl, allowPrivateNetwork);
+    initialDestination ||= destination;
+    if (destination.isPrivate && !initialDestination.isPrivate) {
+      throw new ConnectorError(403, 'Public MCP endpoints may not redirect to private or loopback destinations.');
+    }
+    const { addresses } = destination;
     const dispatcher = new UndiciAgent({
       connect: {
         lookup(_hostname, options, callback) {
@@ -1175,23 +1225,37 @@ const approveMcpServer = async (body, authorization) => {
   if (Buffer.byteLength(serializedSummary, 'utf8') > MAX_MCP_APPROVAL_BYTES) {
     throw new ConnectorError(502, 'The MCP server catalog exceeded the approval safety limit.');
   }
-  const id = `mcp_${createSecret()}`;
   const endpoint = normalizeMcpEndpoint(body.endpoint);
+  const accessToken = optionalToken(body.accessToken, 'MCP server token');
+  const allowPrivateNetwork = body.allowPrivateNetwork === true;
   const owner = authorizationOwner(authorization);
   const owned = [...approvedMcpServers.values()]
     .filter((server) => server.owner === owner)
     .sort((left, right) => left.lastUsedAt - right.lastUsedAt);
+  const existing = owned.find((server) => (
+    server.endpoint === endpoint.toString()
+    && server.allowPrivateNetwork === allowPrivateNetwork
+    && ((server.accessToken === undefined && accessToken === undefined)
+      || constantTimeEquals(server.accessToken, accessToken))
+    && JSON.stringify(server.summary) === serializedSummary
+  ));
+  const now = Date.now();
+  if (existing) {
+    existing.lastUsedAt = now;
+    existing.expiresAt = now + APPROVED_MCP_TTL_MS;
+    return { ...summary, serverId: existing.id };
+  }
   while (owned.length >= MAX_APPROVED_MCP_SERVERS_PER_OWNER) {
     const oldest = owned.shift();
     if (oldest) deleteApprovedServer(oldest.id);
   }
-  const now = Date.now();
+  const id = `mcp_${createSecret()}`;
   approvedMcpServers.set(id, {
     id,
     owner,
     endpoint: endpoint.toString(),
-    accessToken: optionalToken(body.accessToken, 'MCP server token'),
-    allowPrivateNetwork: body.allowPrivateNetwork === true,
+    accessToken,
+    allowPrivateNetwork,
     summary,
     createdAt: now,
     lastUsedAt: now,
@@ -1233,13 +1297,15 @@ const callApprovedMcpTool = async (server, toolName, args) => runBoundedMcpOpera
   );
   let result;
   try {
-    result = await run('streamable-http', (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }));
-  } catch (streamableError) {
-    try {
+    if (server.summary.transport === 'streamable-http') {
+      result = await run('streamable-http', (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }));
+    } else if (server.summary.transport === 'sse') {
       result = await run('sse', (safeFetch) => new SSEClientTransport(endpoint, { fetch: safeFetch }));
-    } catch (sseError) {
-      throw new ConnectorError(502, `MCP tool invocation failed: ${redactError(sseError, [server.accessToken])}`);
+    } else {
+      throw new ConnectorError(502, 'The approved MCP transport is unavailable.');
     }
+  } catch (error) {
+    throw new ConnectorError(502, `MCP tool invocation failed: ${redactError(error, [server.accessToken])}`);
   }
   const serializedResult = JSON.stringify(result);
   if (!serializedResult) throw new ConnectorError(502, 'The MCP tool returned an invalid result.');
@@ -1335,15 +1401,21 @@ const agentRunSecrets = (prompt) => [prompt];
 
 const promptForAgent = (agent, prompt, approvedServer) => {
   if (agent.id !== 'antigravity') return prompt;
-  const permitted = approvedServer
-    ? 'You may use only the explicitly configured algoglyph_approved MCP tools when they are genuinely needed.'
-    : 'Do not call any tools.';
+  const toolPolicy = approvedServer
+    ? [
+      'The explicitly configured algoglyph_approved MCP tools are available for this request.',
+      'Use only those MCP tools, and only when the request genuinely requires them.',
+    ]
+    : [
+      'Do not call any tools.',
+      'A tool call will be denied and will make the task fail.',
+    ];
   return [
     'NON-INTERACTIVE OUTPUT-ONLY MODE:',
-    permitted,
+    ...toolPolicy,
     'Never use the command, terminal, shell, browser, file, search, edit, or workspace tools.',
     'Do not inspect the current directory or try to gather additional context.',
-    'Answer directly from the request below. A tool call will be denied and will make the task fail.',
+    'Answer directly from the request below.',
     '',
     prompt,
   ].join('\n');
@@ -1356,6 +1428,23 @@ const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, envir
   try {
   if (agent.id === 'antigravity') {
     const name = 'algoglyph_approved';
+    // Antigravity 1.1.12 reads the shared Gemini MCP configuration path and
+    // requires `serverUrl`. Keep this connector-owned file inside the isolated
+    // HOME; never merge the user's global MCP servers or expose the upstream
+    // server/token to the CLI.
+    const configDirectory = join(environment.HOME, '.gemini', 'config');
+    const configPath = join(configDirectory, 'mcp_config.json');
+    await mkdir(configDirectory, { recursive: true, mode: 0o700 });
+    const config = {
+      mcpServers: relay
+        ? { [name]: { serverUrl: relay.endpoint, headers: relayHeaders } }
+        : {},
+    };
+    await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
+
+    // Headless Antigravity cannot display an interactive permission prompt.
+    // Auto-approve only tools on this connector-owned relay name; never grant
+    // command/file/browser access or the global `mcp(*)` wildcard.
     const settingsDirectory = join(environment.HOME, '.gemini', 'antigravity-cli');
     const settingsPath = join(settingsDirectory, 'settings.json');
     await mkdir(settingsDirectory, { recursive: true, mode: 0o700 });
@@ -1364,11 +1453,9 @@ const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, envir
       const existing = JSON.parse(await readFile(settingsPath, 'utf8'));
       if (isRecord(existing)) settings = existing;
     } catch {
-      // A missing or corrupt cache must not prevent a clean isolated request.
+      // A missing or corrupt model-preference cache is safe to replace.
     }
-    settings.mcpServers = relay
-      ? { [name]: { httpUrl: relay.endpoint, headers: relayHeaders } }
-      : {};
+    settings.permissions = { allow: relay ? [`mcp(${name}/*)`] : [] };
     await writeFile(settingsPath, JSON.stringify(settings), { mode: 0o600 });
     return { extraArgs: [], relayId: relay?.id };
   }
@@ -1546,7 +1633,12 @@ const readAntigravityTranscript = async (homeDirectory) => {
   };
 };
 
-const waitForAntigravity = (session, predicate, timeoutMs) => new Promise((resolveDone, reject) => {
+const waitForAntigravity = (
+  session,
+  predicate,
+  timeoutMs,
+  timeoutMessage = 'The persistent Antigravity session did not become ready in time.',
+) => new Promise((resolveDone, reject) => {
   const startedAt = Date.now();
   const poll = () => {
     if (session.exited) {
@@ -1563,7 +1655,7 @@ const waitForAntigravity = (session, predicate, timeoutMs) => new Promise((resol
         return;
       }
       if (Date.now() - startedAt >= timeoutMs) {
-        reject(new Error('The persistent Antigravity session did not become ready in time.'));
+        reject(new Error(timeoutMessage));
         return;
       }
       session.pollTimer = setTimeout(poll, 250);
@@ -1619,7 +1711,6 @@ const stopAntigravitySession = (session = antigravitySession) => {
       trackedTempRoots.delete(session.rootDirectory);
       if (antigravitySession === session) {
         antigravitySession = undefined;
-        antigravitySessionPromise = undefined;
       }
     }
   })();
@@ -1665,6 +1756,8 @@ const startAntigravitySession = async (approvedServer, owner) => {
     environment.TERM = 'xterm-256color';
     if (testAntigravityFixture) {
       for (const name of agent.authEnv || []) delete environment[name];
+      const stateFile = process.env.ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE;
+      if (stateFile) environment.ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE = stateFile;
     } else {
       await seedAntigravityPreferences(homeDirectory);
       await provisionAgentCredentials(agent, environment, homeDirectory);
@@ -1758,21 +1851,29 @@ const startAntigravitySession = async (approvedServer, owner) => {
     session.resolveExit?.();
     if (antigravitySession === session) {
       antigravitySession = undefined;
-      antigravitySessionPromise = undefined;
     }
   });
 
-  await waitForAntigravity(session, () => {
-    const screen = antigravityScreenText(session);
-    return screen.includes('? for shortcuts');
-  }, ANTIGRAVITY_SESSION_READY_TIMEOUT_MS);
-  return session;
+  try {
+    await waitForAntigravity(session, () => {
+      const screen = antigravityScreenText(session);
+      return screen.includes('? for shortcuts');
+    }, antigravitySessionReadyTimeoutMs);
+    return session;
+  } catch (error) {
+    await stopAntigravitySession(session);
+    throw error;
+  }
 };
 
 const getAntigravitySession = async (approvedServer, owner) => {
   if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
-  if (antigravitySessionPromise && !antigravitySession) {
-    await antigravitySessionPromise.catch(() => undefined);
+  // A request must never adopt or mutate a prewarm session until startup has
+  // actually reached readiness. If startup fails, wait for its cleanup and let
+  // the request create a fresh session instead of reusing a rejected promise.
+  while (antigravitySessionPromise) {
+    const pendingStartup = antigravitySessionPromise;
+    await pendingStartup.catch(() => undefined);
     if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
   }
   const key = `${owner || 'prewarm'}:${approvedServer?.id || 'none'}`;
@@ -1785,14 +1886,15 @@ const getAntigravitySession = async (approvedServer, owner) => {
     await stopAntigravitySession(antigravitySession);
   }
   if (antigravitySession && !antigravitySession.exited && antigravitySession.key === key) {
-    return antigravitySessionPromise || antigravitySession;
+    return antigravitySession;
   }
-  antigravitySessionPromise = startAntigravitySession(approvedServer, owner).catch(async (error) => {
-    const failedSession = antigravitySession?.key === key ? antigravitySession : undefined;
-    if (failedSession) await stopAntigravitySession(failedSession);
-    throw error;
-  });
-  return antigravitySessionPromise;
+  const startupPromise = startAntigravitySession(approvedServer, owner);
+  antigravitySessionPromise = startupPromise;
+  try {
+    return await startupPromise;
+  } finally {
+    if (antigravitySessionPromise === startupPromise) antigravitySessionPromise = undefined;
+  }
 };
 
 const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
@@ -1802,7 +1904,7 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
     session.pty.write('/clear\r');
     await waitForAntigravity(session, () => (
       session.rawOutput.length > 0 && antigravityScreenText(session).includes('? for shortcuts')
-    ), 5_000);
+    ), antigravityResetTimeoutMs, 'The persistent Antigravity session did not reset in time.');
   }
   session.used = true;
   const previousTranscript = await readAntigravityTranscript(session.homeDirectory);
@@ -1815,7 +1917,14 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
   // rotate while polling. Floor to the current second because some CLI builds
   // serialize event timestamps without milliseconds.
   const submittedAtMs = Math.floor(Date.now() / 1_000) * 1_000;
-  session.pty.write(`\x1b[200~${terminalSafePrompt}\x1b[201~\r`);
+  const submit = () => {
+    session.rawOutput = '';
+    session.pty.write(`\x1b[200~${terminalSafePrompt}\x1b[201~\r`);
+  };
+  let eligibilityRejected = false;
+  let eligibilityRetryAt = 0;
+  let eligibilityRetryUsed = false;
+  submit();
 
   return waitForAntigravity(session, async () => {
     if (isCancelled()) throw new Error('The agent run was cancelled.');
@@ -1824,8 +1933,26 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
       candidate.createdAtMs >= submittedAtMs && !previousTranscript.eventKeys.has(candidate.key)
     ));
     if (output) return output.content;
+    const accepted = [...transcript.eventKeys].some((key) => !previousTranscript.eventKeys.has(key));
+    if (!accepted && session.rawOutput.includes('Verifying your account')
+      && session.rawOutput.includes('Please try again shortly')) {
+      eligibilityRejected = true;
+      eligibilityRetryAt ||= Date.now() + antigravityEligibilityRetryDelayMs;
+    }
+    // Antigravity 1.1.12 can expose its idle footer before provider account
+    // eligibility is ready, then explicitly reject the first prompt without
+    // creating any transcript event. Retry exactly once only after observing
+    // that specific rejection and a return to idle. Any transcript activity
+    // proves acceptance and permanently disables retry, preventing duplicate
+    // model/MCP side effects.
+    if (!accepted && eligibilityRejected && !eligibilityRetryUsed && Date.now() >= eligibilityRetryAt
+      && antigravityScreenText(session).includes('? for shortcuts')) {
+      eligibilityRetryUsed = true;
+      eligibilityRejected = false;
+      submit();
+    }
     return undefined;
-  }, AGENT_RUN_TIMEOUT_MS);
+  }, AGENT_RUN_TIMEOUT_MS, 'The persistent Antigravity session did not produce a response in time.');
 };
 
 let activeAgentRuns = 0;
@@ -2335,7 +2462,7 @@ server.listen(port, '127.0.0.1', () => {
   console.error(`[${SERVICE_NAME}] AlgoGlyph will pair automatically while this command is running.`);
   // Keep the actual Antigravity language-server process resident. Subsequent
   // drawings are queued through this session instead of spawning a cold CLI.
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== 'test' || process.env.ALGOGLYPH_TEST_PREWARM_ANTIGRAVITY === '1') {
     void getAntigravitySession(undefined, undefined).catch(() => undefined);
   }
 });

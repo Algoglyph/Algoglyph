@@ -2,7 +2,7 @@
 
 ## Release and compatibility status
 
-The browser workspace and repository connector implement protocol v2. The repository package is the `@algoglyph/mcp-connector@0.2.0` release candidate; the npm registry still serves the older `0.1.0` package until a maintainer performs a separate, deliberate publish. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.0` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
@@ -60,9 +60,10 @@ The production origin allowlist is exactly:
 
 Development access is disabled by default. `ALGOGLYPH_DEV_ORIGINS=1` adds exactly:
 
-- `https://algoglyph.pages.dev`
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
+
+The public preview is deliberately separate. `ALGOGLYPH_PREVIEW_ORIGINS=1` explicitly adds `https://algoglyph.pages.dev`; the repository `mcp:connector` command enables only the two localhost development origins.
 
 `ALGOGLYPH_ALLOWED_ORIGINS` is an advanced comma-separated extension. Each entry is normalized to an origin. Configuring one delegates browser access to that origin, so it must not be populated from untrusted input.
 
@@ -75,6 +76,8 @@ The browser selects only a stable agent ID and supplies a bounded prompt. The co
 - Codex runs ephemerally under a connector-owned deny-root filesystem permission profile. Shell/unified-exec, apps, web search, hooks, subagents, remote plugins, and skill installation are disabled; any tool-child environment inherits nothing and receives only runtime essentials. The prompt arrives over stdin after an option terminator.
 - Claude Code runs in print mode with every built-in tool disabled, non-interactive `dontAsk` permission mode, and session persistence disabled. An explicitly attached MCP server enables only its exact fully qualified tool names for that run; the prompt arrives over stdin.
 - Antigravity runs sandboxed in output-only mode. One-shot execution disables slash commands; warm execution retains only the connector-owned reset command.
+
+Antigravity's connector-owned relay is written only inside its isolated home at `.gemini/config/mcp_config.json`, using the current `serverUrl` schema. Its isolated CLI settings allow exactly `mcp(algoglyph_approved/*)` when that relay is attached, so headless use works without granting global MCP, command, file, or browser permissions. The user's global Gemini/Antigravity MCP configuration and permissions are never read, merged, or modified. A narrowly identified Antigravity account-eligibility rejection may cause one retry only when no transcript event proves the prompt was accepted; other failures are never automatically resubmitted.
 
 The HTTP API cannot supply a command, executable path, shell fragment, argument array, working directory, environment override, config path, or credential path. Unknown fields and unknown agent IDs are rejected. Child processes are started without a shell from a canonical, allowlisted executable path.
 
@@ -119,7 +122,7 @@ MCP access tokens stay in connector memory/private per-run configuration and are
 ### SSRF and remote-response boundary
 
 - Non-loopback MCP servers require HTTPS; URL credentials and fragments are rejected.
-- Loopback HTTP requires the UI's explicit private-network opt-in.
+- Loopback HTTP requires the UI's explicit private-network opt-in, and the endpoint hostname itself must explicitly be `localhost` or a loopback literal; a public hostname cannot opt into resolving or redirecting to loopback.
 - DNS is resolved and pinned for the connection, with every resolved address validated.
 - Private, loopback (without opt-in), link-local, multicast, unspecified, reserved/documentation, and cloud-metadata destinations are rejected for IPv4 and IPv6.
 - Redirect count is bounded; each redirect URL and DNS result is revalidated. Authorization is never forwarded across origins.
@@ -152,7 +155,8 @@ Agent runs stream by default. `outputMode: "buffered"` is an additive option tha
 | Variable | Default | Security effect |
 | --- | --- | --- |
 | `ALGOGLYPH_CONNECTOR_PORT` | `4319` | Accepts 1024-65535 and still binds to `127.0.0.1`; custom ports require matching Advanced UI configuration. |
-| `ALGOGLYPH_DEV_ORIGINS` | off | Value `1` enables only the three enumerated development origins. |
+| `ALGOGLYPH_DEV_ORIGINS` | off | Value `1` enables only the two enumerated localhost development origins. |
+| `ALGOGLYPH_PREVIEW_ORIGINS` | off | Value `1` explicitly trusts the public `https://algoglyph.pages.dev` preview origin. |
 | `ALGOGLYPH_ALLOWED_ORIGINS` | empty | Explicitly delegates browser access to additional exact origins. |
 | `ALGOGLYPH_CONNECTOR_TOKEN` | random in-memory fallback | Optional manual bearer; minimum 32 bytes, never printed. |
 

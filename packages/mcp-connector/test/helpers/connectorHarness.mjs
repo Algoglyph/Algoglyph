@@ -69,7 +69,7 @@ const readFixtureBody = (request) =>
     });
   });
 
-const createFixtureProtocolServer = () => {
+const createFixtureProtocolServer = ({ failToolAfterDispatch = false, stats } = {}) => {
   const server = new Server(
     { name: 'algoglyph-test-mcp-server', version: '1.2.3' },
     { capabilities: { tools: {}, resources: {}, prompts: {} } },
@@ -94,15 +94,25 @@ const createFixtureProtocolServer = () => {
   server.setRequestHandler(ListPromptsRequestSchema, async () => ({
     prompts: [{ name: 'fixture_prompt', description: 'A deterministic fixture prompt.' }],
   }));
-  server.setRequestHandler(CallToolRequestSchema, async (request) => ({
-    content: [{ type: 'text', text: `echo:${request.params.arguments?.value ?? ''}` }],
-  }));
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    if (stats) stats.toolDispatches += 1;
+    if (failToolAfterDispatch) throw new Error('Intentional failure after fixture tool dispatch.');
+    return {
+      content: [{ type: 'text', text: `echo:${request.params.arguments?.value ?? ''}` }],
+    };
+  });
   return server;
 };
 
-export const startMcpServerFixture = async ({ accessToken = 'fixture-mcp-access-token' } = {}) => {
+export const startMcpServerFixture = async ({
+  accessToken = 'fixture-mcp-access-token',
+  failToolAfterDispatch = false,
+} = {}) => {
   const port = await reserveLoopbackPort();
+  const stats = { getRequests: 0, postRequests: 0, toolDispatches: 0 };
   const server = createHttpServer(async (request, response) => {
+    if (request.method === 'GET') stats.getRequests += 1;
+    if (request.method === 'POST') stats.postRequests += 1;
     if (request.url !== '/mcp' || request.method !== 'POST') {
       response.writeHead(405, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ error: 'Method not allowed.' }));
@@ -118,7 +128,7 @@ export const startMcpServerFixture = async ({ accessToken = 'fixture-mcp-access-
     let transport;
     try {
       const body = await readFixtureBody(request);
-      protocolServer = createFixtureProtocolServer();
+      protocolServer = createFixtureProtocolServer({ failToolAfterDispatch, stats });
       transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       await protocolServer.connect(transport);
       await transport.handleRequest(request, response, body);
@@ -135,6 +145,7 @@ export const startMcpServerFixture = async ({ accessToken = 'fixture-mcp-access-
   return {
     accessToken,
     endpoint: `http://127.0.0.1:${port}/mcp`,
+    stats,
     stop: () => closeServer(server),
   };
 };
@@ -223,6 +234,8 @@ export const startConnectorHarness = async ({
   allowedOrigin = 'https://algoglyph.com',
   masterToken = 'algoglyph-integration-test-master-token',
   environment = {},
+  devOrigins = '0',
+  previewOrigins = '0',
 } = {}) => {
   const port = await reserveLoopbackPort();
   const workingDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-mcp-test-'));
@@ -235,7 +248,8 @@ export const startConnectorHarness = async ({
       ALGOGLYPH_CONNECTOR_PORT: String(port),
       ALGOGLYPH_CONNECTOR_TOKEN: masterToken,
       ALGOGLYPH_ALLOWED_ORIGINS: '',
-      ALGOGLYPH_DEV_ORIGINS: '0',
+      ALGOGLYPH_DEV_ORIGINS: devOrigins,
+      ALGOGLYPH_PREVIEW_ORIGINS: previewOrigins,
     },
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
