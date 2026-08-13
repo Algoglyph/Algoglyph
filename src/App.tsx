@@ -6,6 +6,7 @@ import { startMcpConnectionBootstrap } from './lib/mcp/bootstrap';
 import { useIsMobile } from './hooks/useIsMobile';
 import { SEO } from './components/SEO';
 import { LANDING_FAQ, SITE_IDENTITY } from './config/siteIdentity';
+import { LoadingSpinner } from './components/LoadingSpinner';
 
 // Heavy, route-/pane-level components are code-split so the first paint (the
 // landing page) doesn't ship Excalidraw, CodeMirror, TipTap, KaTeX and Mermaid.
@@ -47,7 +48,7 @@ const VIEW_TO_PATH: Record<View, string> = {
 const FullScreenLoader: React.FC = () => (
   <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
     <div className="flex flex-col items-center gap-4">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-link/30 border-t-link" />
+      <LoadingSpinner size={28} label="Loading page" />
       <div className="text-[11px] tracking-[0.3em] uppercase text-mute">Loading</div>
     </div>
   </div>
@@ -237,7 +238,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="flex h-screen w-screen items-center justify-center text-body font-mono">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-link/30 border-t-link"></div>
+          <LoadingSpinner size={28} label="Opening workspace" />
           <div className="text-[11px] tracking-[0.3em] uppercase text-mute">Opening workspace</div>
         </div>
       </div>
@@ -318,7 +319,7 @@ const AppContent: React.FC = () => {
               <Suspense
                 fallback={
                   <div className="flex flex-1 w-full items-center justify-center">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-link/30 border-t-link" />
+                    <LoadingSpinner size={24} label="Loading workspace view" />
                   </div>
                 }
               >

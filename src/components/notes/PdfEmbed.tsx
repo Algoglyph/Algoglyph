@@ -7,8 +7,9 @@ import {
   NodeViewWrapper,
   type NodeViewProps,
 } from '@tiptap/react';
-import { FileText, ExternalLink, Trash2, Loader2 } from 'lucide-react';
+import { FileText, ExternalLink, Trash2 } from 'lucide-react';
 import { getPdf } from '../../lib/notePdfStore';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 /**
  * PDF embedding for the notes editor — Obsidian-style inline PDF viewing.
@@ -132,7 +133,7 @@ const PdfNodeView: React.FC<NodeViewProps> = ({ node, deleteNode, selected }) =>
           </div>
         ) : !url ? (
           <div className="absolute inset-0 flex items-center justify-center gap-2 text-[13px] text-body bg-canvas">
-            <Loader2 size={15} className="animate-spin" />
+            <LoadingSpinner size={15} />
             Loading PDF…
           </div>
         ) : (

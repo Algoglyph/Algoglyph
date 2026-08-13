@@ -26,6 +26,7 @@ import {
   Globe,
   Trash2
 } from 'lucide-react';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface MockWorkspaceProps {
   interactive?: boolean;
@@ -175,7 +176,7 @@ Process finished with exit code 0.`);
           <div className="flex items-center gap-1.5 text-[10.5px] font-mono">
             {saveStatus === 'saving' ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                <LoadingSpinner size={11} inverted />
                 <span className="text-white/40">saving</span>
               </>
             ) : (
@@ -423,8 +424,8 @@ Process finished with exit code 0.`);
                     disabled={isRunning}
                     className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold transition-colors cursor-pointer"
                   >
-                    <Play size={11} fill="currentColor" />
-                    <span>Run</span>
+                    {isRunning ? <LoadingSpinner size={11} inverted /> : <Play size={11} fill="currentColor" />}
+                    <span>{isRunning ? 'Running…' : 'Run'}</span>
                   </button>
                 </div>
 

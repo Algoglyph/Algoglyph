@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useMcpStore } from '../store/mcpStore';
 import { StructuresPanel } from './StructuresPanel';
+import { LoadingSpinner } from './LoadingSpinner';
 import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
 import { generateCanvasResponse, insertCanvasSkeletons, CanvasAiError } from '../lib/ai/diagram';
 import { serializeCanvasForNotes } from '../lib/ai/notes';
@@ -417,7 +418,10 @@ export const Canvas: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-canvas text-mute">
-        <div className="text-xs font-mono tracking-widest uppercase animate-pulse">Loading canvas</div>
+        <div className="flex flex-col items-center gap-3">
+          <LoadingSpinner size={24} label="Loading canvas" />
+          <div className="text-xs font-mono tracking-widest uppercase">Loading canvas</div>
+        </div>
       </div>
     );
   }
@@ -453,7 +457,7 @@ export const Canvas: React.FC = () => {
           className="absolute bottom-4 right-4 z-20 inline-flex h-9 items-center gap-2 rounded-full border border-hairline bg-canvas px-3.5 text-xs font-medium text-ink shadow-[var(--shadow-modal)] transition-colors hover:border-ink hover:bg-canvas-soft"
           title="Type your request as text on the canvas, then Ask AI (⌘/Ctrl+Enter)"
         >
-          {aiBusy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          {aiBusy ? <LoadingSpinner size={14} /> : <Sparkles size={14} />}
           {aiBusy ? 'Generating…' : 'Ask AI'}
         </button>
       </div>

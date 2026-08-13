@@ -207,28 +207,44 @@
 
 .lp-agent-cluster-node--claude {
   left: 50%;
-  top: 12%;
+  top: 22%;
   animation-duration: 6.8s;
   animation-delay: -1.2s;
 }
 
 .lp-agent-cluster-node--codex {
-  left: 82%;
-  top: 76%;
+  left: 76%;
+  top: 72%;
   animation-duration: 8.4s;
   animation-direction: alternate-reverse;
   animation-delay: -4.8s;
 }
 
 .lp-agent-cluster-node--antigravity {
-  left: 18%;
-  top: 76%;
+  left: 24%;
+  top: 72%;
   animation-duration: 7.6s;
   animation-delay: -3s;
 }
 
 .lp-agent-cluster-logo {
   filter: drop-shadow(0 8px 18px rgba(10, 16, 39, 0.12));
+}
+
+.lp-agent-earth {
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.34));
+  transform-origin: 50% 50%;
+  animation: lp-agent-earth-turn 22s linear infinite;
+}
+
+@keyframes lp-agent-earth-turn {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 @keyframes lp-agent-cluster-drift {
@@ -422,6 +438,7 @@
   .lp-liquid-line,
   .lp-liquid-sheen,
   .lp-oracle-orb,
+  .lp-agent-earth,
   .lp-agent-cluster-node {
     animation: none;
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, RotateCcw, Search } from 'lucide-react';
+import { LoadingSpinner } from '../LoadingSpinner';
 
 interface MorphingArenaProps {
   activeStage: number; // 0 (Hero) to 6 (Workspace)
@@ -410,7 +411,7 @@ export const MorphingArena: React.FC<MorphingArenaProps> = ({ activeStage }) => 
               onClick={triggerArrayInsert}
               className="px-3 py-1.5 rounded-lg border border-white/10 bg-[#121215]/80 hover:bg-white/[0.03] text-[10px] font-mono tracking-wide text-white transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Play size={11} className={isInserting ? 'animate-spin' : ''} />
+              {isInserting ? <LoadingSpinner size={11} inverted /> : <Play size={11} />}
               <span>Insert [99] at Index 1</span>
             </button>
             {arrayInserted && (

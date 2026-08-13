@@ -354,237 +354,6 @@ function AizawaAttractorVisual() {
   );
 }
 
-type AcoNode = Readonly<{ x: number; y: number }>;
-type AcoEdge = Readonly<{ from: number; to: number }>;
-
-const ACO_NODES: readonly AcoNode[] = [
-  { x: 0.08, y: 0.52 },
-  { x: 0.24, y: 0.2 },
-  { x: 0.27, y: 0.5 },
-  { x: 0.24, y: 0.8 },
-  { x: 0.48, y: 0.27 },
-  { x: 0.5, y: 0.57 },
-  { x: 0.48, y: 0.84 },
-  { x: 0.72, y: 0.32 },
-  { x: 0.9, y: 0.55 },
-] as const;
-
-const ACO_EDGES: readonly AcoEdge[] = [
-  { from: 0, to: 1 }, { from: 0, to: 2 }, { from: 0, to: 3 },
-  { from: 1, to: 2 }, { from: 1, to: 4 },
-  { from: 2, to: 3 }, { from: 2, to: 4 }, { from: 2, to: 5 },
-  { from: 3, to: 5 }, { from: 3, to: 6 },
-  { from: 4, to: 5 }, { from: 4, to: 7 },
-  { from: 5, to: 6 }, { from: 5, to: 7 }, { from: 5, to: 8 },
-  { from: 6, to: 8 }, { from: 7, to: 8 },
-] as const;
-
-const createSeededRandom = () => {
-  let seed = 0x6d2b79f5;
-  return () => {
-    seed += 0x6d2b79f5;
-    let value = seed;
-    value = Math.imul(value ^ (value >>> 15), value | 1);
-    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-};
-
-function AntColonyVisual() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
-    const context = canvas.getContext('2d');
-    if (!context) return undefined;
-
-    const random = createSeededRandom();
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const pheromones = ACO_EDGES.map(() => 0.55);
-    let antPaths: number[][] = [];
-    let bestPath: number[] = [];
-    let bestDistance = Number.POSITIVE_INFINITY;
-    let lastIteration = -1;
-    let frameId = 0;
-    let width = 0;
-    let height = 0;
-    let pixelRatio = 1;
-
-    const edgeLength = (edgeIndex: number) => {
-      const edge = ACO_EDGES[edgeIndex];
-      const start = ACO_NODES[edge.from];
-      const end = ACO_NODES[edge.to];
-      return Math.hypot(end.x - start.x, end.y - start.y);
-    };
-
-    const choosePath = () => {
-      const path: number[] = [];
-      let currentNode = 0;
-
-      while (currentNode !== ACO_NODES.length - 1 && path.length < 10) {
-        const candidates = ACO_EDGES
-          .map((edge, edgeIndex) => ({ edge, edgeIndex }))
-          .filter(({ edge }) => edge.from === currentNode);
-        const weights = candidates.map(({ edgeIndex }) => (
-          pheromones[edgeIndex] ** 1.35 * (1 / edgeLength(edgeIndex)) ** 2.2
-        ));
-        const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-        let threshold = random() * totalWeight;
-        let selected = candidates[candidates.length - 1];
-
-        for (let index = 0; index < candidates.length; index += 1) {
-          threshold -= weights[index];
-          if (threshold <= 0) {
-            selected = candidates[index];
-            break;
-          }
-        }
-
-        path.push(selected.edgeIndex);
-        currentNode = selected.edge.to;
-      }
-
-      return path;
-    };
-
-    const runIteration = () => {
-      antPaths = Array.from({ length: 28 }, choosePath);
-      pheromones.forEach((value, index) => {
-        pheromones[index] = Math.max(0.08, value * 0.76);
-      });
-
-      antPaths.forEach((path) => {
-        const distance = path.reduce((sum, edgeIndex) => sum + edgeLength(edgeIndex), 0);
-        const deposit = 0.34 / distance;
-        path.forEach((edgeIndex) => {
-          pheromones[edgeIndex] = Math.min(3.4, pheromones[edgeIndex] + deposit);
-        });
-
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestPath = [...path];
-        }
-      });
-    };
-
-    const resize = () => {
-      const bounds = canvas.getBoundingClientRect();
-      width = bounds.width;
-      height = bounds.height;
-      pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.round(width * pixelRatio));
-      canvas.height = Math.max(1, Math.round(height * pixelRatio));
-      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    };
-
-    const pointForNode = (nodeIndex: number) => {
-      const node = ACO_NODES[nodeIndex];
-      const paddingX = Math.max(28, width * 0.08);
-      const paddingY = Math.max(28, height * 0.13);
-      return {
-        x: paddingX + node.x * (width - paddingX * 2),
-        y: paddingY + node.y * (height - paddingY * 2),
-      };
-    };
-
-    const draw = (elapsed = 0) => {
-      const iteration = reduceMotion ? 22 : Math.floor(elapsed / 760);
-      if (iteration !== lastIteration) {
-        runIteration();
-        lastIteration = iteration;
-      }
-
-      context.clearRect(0, 0, width, height);
-
-      ACO_EDGES.forEach((edge, edgeIndex) => {
-        const start = pointForNode(edge.from);
-        const end = pointForNode(edge.to);
-        const strength = Math.min(1, pheromones[edgeIndex] / 2.8);
-        const isBest = bestPath.includes(edgeIndex);
-
-        context.beginPath();
-        context.moveTo(start.x, start.y);
-        context.lineTo(end.x, end.y);
-        context.strokeStyle = isBest
-          ? `rgba(255, 255, 255, ${0.3 + strength * 0.58})`
-          : `rgba(255, 255, 255, ${0.07 + strength * 0.26})`;
-        context.lineWidth = isBest ? 1.2 + strength * 3.8 : 0.7 + strength * 2.1;
-        context.stroke();
-
-        const particleCount = Math.max(1, Math.round(strength * 7));
-        for (let particle = 0; particle < particleCount; particle += 1) {
-          const offset = particle / particleCount;
-          const progress = reduceMotion ? offset : (elapsed * 0.00009 + offset + edgeIndex * 0.071) % 1;
-          const x = start.x + (end.x - start.x) * progress;
-          const y = start.y + (end.y - start.y) * progress;
-          context.fillStyle = `rgba(255, 255, 255, ${0.14 + strength * 0.48})`;
-          context.fillRect(x, y, isBest ? 1.8 : 1.2, isBest ? 1.8 : 1.2);
-        }
-      });
-
-      if (!reduceMotion) {
-        antPaths.slice(0, 18).forEach((path, antIndex) => {
-          const segmentProgress = (elapsed * 0.00032 + antIndex / 18) * path.length;
-          const edgeIndex = path[Math.floor(segmentProgress) % path.length];
-          const progress = segmentProgress % 1;
-          const edge = ACO_EDGES[edgeIndex];
-          const start = pointForNode(edge.from);
-          const end = pointForNode(edge.to);
-          const x = start.x + (end.x - start.x) * progress;
-          const y = start.y + (end.y - start.y) * progress;
-
-          context.beginPath();
-          context.arc(x, y, antIndex % 5 === 0 ? 2.2 : 1.45, 0, Math.PI * 2);
-          context.fillStyle = antIndex % 5 === 0 ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.62)';
-          context.fill();
-        });
-      }
-
-      ACO_NODES.forEach((_, nodeIndex) => {
-        const point = pointForNode(nodeIndex);
-        const isTerminal = nodeIndex === 0 || nodeIndex === ACO_NODES.length - 1;
-        context.beginPath();
-        context.arc(point.x, point.y, isTerminal ? 7 : 4.5, 0, Math.PI * 2);
-        context.fillStyle = isTerminal ? '#f5f7ff' : '#1737ee';
-        context.fill();
-        context.lineWidth = 1.2;
-        context.strokeStyle = isTerminal ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.72)';
-        context.stroke();
-      });
-
-      if (!reduceMotion) frameId = window.requestAnimationFrame(draw);
-    };
-
-    const resizeObserver = new ResizeObserver(() => {
-      resize();
-      if (reduceMotion) draw();
-    });
-
-    resizeObserver.observe(canvas);
-    resize();
-    for (let index = 0; index < 22; index += 1) runIteration();
-    draw();
-
-    return () => {
-      resizeObserver.disconnect();
-      window.cancelAnimationFrame(frameId);
-    };
-  }, []);
-
-  return (
-    <div className="relative h-full min-h-[340px] overflow-hidden bg-[#10205f] lg:min-h-full">
-      <canvas
-        ref={canvasRef}
-        role="img"
-        aria-label="Animated ant colony optimization simulation with ants reinforcing the shortest pheromone trail"
-        className="absolute inset-0 h-full w-full"
-      />
-    </div>
-  );
-}
-
 function InstallConnector() {
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const resetTimer = useRef<number | null>(null);
@@ -684,7 +453,7 @@ const AGENT_ROWS = [
 function AgentCluster() {
   return (
     <div
-      className="pointer-events-none absolute left-1/2 top-8 h-[220px] w-[220px] -translate-x-1/2 sm:top-10 sm:h-[280px] sm:w-[280px] lg:top-12 lg:h-[330px] lg:w-[330px]"
+      className="pointer-events-none relative mx-auto h-[clamp(220px,30dvh,320px)] w-full max-w-[420px] shrink-0"
       aria-label="Claude Code, Codex, and Antigravity rotating together"
     >
       {ORBITING_AGENTS.map((agent) => (
@@ -695,7 +464,7 @@ function AgentCluster() {
           <img
             src={agent.logo}
             alt=""
-            className="lp-agent-cluster-logo h-14 w-14 object-contain sm:h-[68px] sm:w-[68px] lg:h-[76px] lg:w-[76px]"
+            className="lp-agent-cluster-logo h-[clamp(58px,5.2vw,76px)] w-[clamp(58px,5.2vw,76px)] object-contain"
           />
         </div>
       ))}
@@ -768,14 +537,16 @@ function StickyProductStory() {
                 ))}
               </div>
             </div>
-            <div className="relative order-1 flex flex-col justify-end overflow-hidden border-b border-[#0a1027]/18 px-5 py-10 pt-[220px] sm:px-12 sm:py-14 sm:pt-[270px] lg:order-2 lg:border-b-0 lg:border-l lg:px-14 lg:py-16 lg:pt-[300px]">
+            <div className="relative order-1 grid content-center overflow-hidden border-b border-[#0a1027]/18 px-5 py-10 sm:px-12 sm:py-12 lg:order-2 lg:border-b-0 lg:border-l lg:px-14 lg:py-14">
               <AgentCluster />
-              <h3 className="max-w-[8ch] text-[clamp(2.7rem,5.2vw,5.3rem)] font-semibold leading-[0.92] tracking-[-0.04em]">
-                Agents enter your workspace.
-              </h3>
-              <p className="mt-6 max-w-[34ch] text-[15px] leading-[1.55] text-[#0a1027]/68 sm:text-[17px]">
-                Let MCP clients write, draw, and leave editable work.
-              </p>
+              <div className="mx-auto mt-5 w-full max-w-[560px] text-center lg:mt-7 lg:text-left">
+                <h3 className="mx-auto max-w-[9ch] text-[clamp(2.7rem,5.2vw,5.3rem)] font-semibold leading-[0.92] tracking-[-0.04em] lg:mx-0">
+                  Agents enter your workspace.
+                </h3>
+                <p className="mx-auto mt-5 max-w-[34ch] text-[15px] leading-[1.55] text-[#0a1027]/68 sm:text-[17px] lg:mx-0">
+                  Let MCP clients write, draw, and leave editable work.
+                </p>
+              </div>
             </div>
           </div>
         </StorySheet>
@@ -792,9 +563,21 @@ function StickyProductStory() {
             </div>
             <div
               id="visualizer"
-              className="relative min-h-[340px] scroll-mt-16 overflow-hidden bg-[#10205f] lg:min-h-full"
+              className="relative min-h-[340px] scroll-mt-16 overflow-hidden bg-[#1737ee] lg:min-h-full"
             >
-              <AntColonyVisual />
+              <img
+                src="/illustrations/agent-globe-woman-v2.png"
+                alt="Fashion-forward illustrated woman wearing headphones studying a floating globe"
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-contain object-center"
+              />
+              <img
+                src="/illustrations/agent-earth-v2.png"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="lp-agent-earth absolute left-[31%] top-[47%] w-[clamp(82px,13.5%,160px)] -translate-x-1/2 -translate-y-1/2 object-contain"
+              />
             </div>
           </div>
         </StorySheet>

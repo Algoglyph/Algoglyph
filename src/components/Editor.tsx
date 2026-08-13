@@ -29,11 +29,11 @@ import {
   FunctionSquare as FunctionSquareIcon,
   Upload as UploadIcon,
   Sparkles as SparklesIcon,
-  Loader2 as Loader2Icon,
   FileText as FileTextIcon,
   Network as NetworkIcon,
   ScrollText as ScrollTextIcon,
 } from 'lucide-react';
+import { LoadingSpinner } from './LoadingSpinner';
 import { useMcpStore } from '../store/mcpStore';
 import {
   generateNotesMarkdown,
@@ -372,7 +372,7 @@ export const Editor: React.FC = () => {
               className={`flex items-center gap-1 rounded px-1.5 py-1.5 transition-colors cursor-pointer ${aiMenuOpen ? 'text-link bg-canvas-soft' : 'text-body hover:text-ink hover:bg-canvas-soft'}`}
               title="AI notes — from a topic, or from the canvas"
             >
-              {aiBusy ? <Loader2Icon size={14} className="animate-spin" /> : <SparklesIcon size={14} />}
+              {aiBusy ? <LoadingSpinner size={14} /> : <SparklesIcon size={14} />}
               <span className="text-[11px] font-medium">{aiBusy ? 'Writing…' : 'AI'}</span>
             </button>
             {aiMenuOpen && !aiBusy && (

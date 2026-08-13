@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { dsaStructures } from '../config/dsaStructures';
 import { useWorkspaceStore } from '../store/workspaceStore';
+import { LoadingSpinner } from './LoadingSpinner';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
 import type { InsertableStructure } from '../lib/insertStructure';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -173,9 +174,10 @@ export const StructuresPanel: React.FC = () => {
               {loadedLibraryVisible.map(Row)}
             </Section>
           ) : (
-            <p className="px-4 py-6 text-[12px] text-mute">
-              {!loadedLibrary ? 'Loading...' : `Nothing matches “${query}”.`}
-            </p>
+            <div className="flex items-center gap-2 px-4 py-6 text-[12px] text-mute">
+              {!loadedLibrary && <LoadingSpinner size={13} />}
+              <span>{!loadedLibrary ? 'Loading…' : `Nothing matches “${query}”.`}</span>
+            </div>
           )}
         </>
       )}

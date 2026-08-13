@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
-import { Play, Loader2, RotateCcw, ChevronUp, ChevronDown, Trash2, Globe } from 'lucide-react';
+import { Play, RotateCcw, ChevronUp, ChevronDown, Trash2, Globe } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { LANGUAGES, getLanguage } from '../config/languages';
 import { vscodeDark, vscodeLight } from '../config/editorTheme';
 import { runCode } from '../lib/wandbox';
 import type { RunResult } from '../lib/wandbox';
+import { LoadingSpinner } from './LoadingSpinner';
 
 export const CodeEditor: React.FC = () => {
   const code = useWorkspaceStore((state) => state.code);
@@ -96,7 +97,7 @@ export const CodeEditor: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors cursor-pointer shadow-sm shadow-emerald-900/40"
             title="Run (sends code to the Wandbox runner)"
           >
-            {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+            {running ? <LoadingSpinner size={13} inverted /> : <Play size={13} />}
             {running ? 'Running…' : 'Run'}
           </button>
 

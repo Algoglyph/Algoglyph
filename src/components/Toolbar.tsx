@@ -10,7 +10,6 @@ import {
   Maximize2,
   Code2,
   Workflow,
-  Loader2,
   Check,
   AlertCircle,
   Sun,
@@ -20,6 +19,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { startWorkspaceTour } from '../lib/workspaceTour';
+import { LoadingSpinner } from './LoadingSpinner';
 
 export const Toolbar: React.FC = () => {
   // Subscribe reactively ONLY to layout changes and save states
@@ -247,7 +247,7 @@ ${JSON.stringify(data, null, 2)}
         <div className="flex items-center gap-1.5 text-[11px] font-mono">
           {saveStatus === 'saving' && (
             <>
-              <Loader2 size={11} className="animate-spin text-link" />
+              <LoadingSpinner size={11} />
               <span className="hidden sm:inline text-mute">saving</span>
             </>
           )}
@@ -396,7 +396,7 @@ ${JSON.stringify(data, null, 2)}
             title="Export canvas as .excalidraw"
           >
             {exportingCanvas ? (
-              <Loader2 size={13} className="animate-spin" />
+              <LoadingSpinner size={13} />
             ) : (
               <ImageIcon size={13} />
             )}

@@ -5,7 +5,6 @@ import {
   Copy,
   Cpu,
   KeyRound,
-  Loader2,
   PlugZap,
   RefreshCw,
   Server,
@@ -24,6 +23,7 @@ import {
 } from '../lib/mcp/connectorClient';
 import type { McpServerTestResult } from '../lib/mcp/types';
 import { useMcpStore } from '../store/mcpStore';
+import { LoadingSpinner } from './LoadingSpinner';
 
 const inputClassName =
   'h-9 w-full rounded-md border border-hairline bg-canvas px-2.5 font-mono text-xs text-ink outline-none transition-colors placeholder:text-mute focus:border-ink';
@@ -355,7 +355,7 @@ export const McpConnectDialog: React.FC = () => {
               <p className="mt-1 text-xs leading-5 text-body">{statusDescription}</p>
             </div>
             {connectionState === 'error' && <CircleAlert size={16} className="mt-0.5 shrink-0 text-error" aria-hidden="true" />}
-            {isSearching && <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin text-body" aria-hidden="true" />}
+            {isSearching && <LoadingSpinner size={16} className="mt-0.5" />}
           </div>
 
           {!isReady && (
@@ -507,7 +507,7 @@ export const McpConnectDialog: React.FC = () => {
                       disabled={connectionState === 'checking'}
                       className="inline-flex h-9 items-center gap-2 rounded-md bg-ink px-3 text-xs font-medium text-canvas transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {connectionState === 'checking' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                      {connectionState === 'checking' ? <LoadingSpinner size={14} inverted /> : <RefreshCw size={14} />}
                       {connectionState === 'checking' ? 'Checking' : 'Check connector'}
                     </button>
                   </div>
@@ -570,7 +570,7 @@ export const McpConnectDialog: React.FC = () => {
                         disabled={testingServer}
                         className="inline-flex h-9 items-center gap-2 rounded-md border border-hairline px-3 text-xs font-medium text-body transition-colors hover:border-hairline-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {testingServer ? <Loader2 size={14} className="animate-spin" /> : <Server size={14} />}
+                        {testingServer ? <LoadingSpinner size={14} /> : <Server size={14} />}
                         {testingServer ? 'Testing' : 'Test server'}
                       </button>
                     </div>
