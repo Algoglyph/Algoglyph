@@ -12,7 +12,7 @@ import { Server as McpServer } from '@modelcontextprotocol/server';
 import { Agent as UndiciAgent } from 'undici';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
-const CONNECTOR_VERSION = '0.2.1';
+const CONNECTOR_VERSION = '0.2.2';
 const CONNECTOR_PROTOCOL_VERSION = 2;
 const DEFAULT_PORT = 4319;
 const MAX_BODY_BYTES = 64 * 1024;

@@ -2,11 +2,11 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.1` implement protocol v2. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.2` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
-Version 0.2.1 closes the end-to-end MCP deadline gap (including DNS, fallback, and shutdown), rejects pre-submission partial transcript completions, uses monotonic clocks for credential lifetimes, rate limits, caches, waits, and retries, guarantees PTY process-group escalation, fixes the packaged macOS native spawn helper through the reviewed `node-pty@1.2.0-beta.15` release, gives the browser stream a bounded watchdog, and replaces the legacy monolithic MCP SDK with its stable modular v2 packages.
+Version 0.2.2 removes the published npm shrinkwrap that Socket classifies as a high supply-chain heuristic while retaining the exact reviewed dependency tree in a source-only lock and comparing it with a clean packed install before release. It preserves the 0.2.1 deadline, transcript-boundary, monotonic-clock, process-cleanup, native PTY, browser-watchdog, and modular MCP SDK v2 hardening.
 
 ```text
 AlgoGlyph browser/app
@@ -25,7 +25,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.1
+npx --yes @algoglyph/mcp-connector@0.2.2
 ```
 
 Repository checkout:
@@ -166,18 +166,19 @@ Test-only environment overrides are accepted only when `NODE_ENV=test`; producti
 
 ## Dependency and package surface
 
-The release candidate pins its six direct runtime dependencies exactly:
+The release candidate pins its seven direct runtime dependencies exactly:
 
 - `@modelcontextprotocol/client@2.0.0`
 - `@modelcontextprotocol/node@2.0.0`
 - `@modelcontextprotocol/server@2.0.0`
 - `@xterm/headless@6.0.0`
+- `hono@4.13.1`
 - `node-pty@1.2.0-beta.15`
 - `undici@7.29.0`
 
 The package requires Node `>=20.18.1`, matching the reviewed `undici` engine floor. `node-pty` is the only direct native-code dependency and is used for the warm Antigravity terminal. Its reviewed install step selects the platform artifact included in the package and falls back to `node-gyp` compilation when necessary. The AlgoGlyph package manifest contains no lifecycle scripts.
 
-Because the connector is an installed command/daemon rather than a reusable library, its audited 21-package production tree is also fixed in a publishable `npm-shrinkwrap.json`. That is down from 98 packages with the monolithic MCP SDK. Release validation rejects a lock that is missing or out of sync and audits a clean install of the packed artifact. Integration coverage also connects the modular v2 relay to a legacy v1 MCP client and upstream server.
+The audited 21-package production tree is fixed in a source-only `packages/mcp-connector/package-lock.json`, down from 98 packages with the monolithic MCP SDK. npm excludes that review lock from the published dependency package, avoiding Socket's high-severity shrinkwrap heuristic. Release validation rejects a lock that is missing or out of sync, requires every reviewed dependency to have npm-registry integrity metadata, compares a clean packed install with the reviewed package identities, and audits the installed artifact. Integration coverage also connects the modular v2 relay to a legacy v1 MCP client and upstream server.
 
 Only these files may enter the tarball:
 
@@ -185,7 +186,6 @@ Only these files may enter the tarball:
 - `README.md`
 - `bin/algoglyph-mcp-connector.js`
 - `bin/algoglyph-mcp-connector.mjs`
-- `npm-shrinkwrap.json`
 
 Repository tests, fixtures, `.env` files, logs, credentials, workspaces, build output, and unrelated application sources are excluded by the manifest allowlist.
 
@@ -200,7 +200,7 @@ npm --prefix packages/mcp-connector audit --omit=dev
 npm run build
 ```
 
-The package validator runs `npm pack --dry-run --json`, checks exact inventory, reviewed dependencies, the 21-package ceiling, npm-registry integrity pins, the single expected transitive install-script package (`node-pty`), and shrinkwrap synchronization, rejects package scripts/secret-like content, and verifies package/runtime/browser protocol synchronization. `--install-smoke` packs into a temporary directory, performs a clean install, verifies registry signatures, runs an isolated production dependency audit, starts the generated installed bin shim on an ephemeral loopback port, checks health/version/protocol plus the native PTY path, terminates it, and deletes the temporary directory.
+The package validator runs `npm pack --dry-run --json`, checks exact inventory, reviewed dependencies, the 21-package ceiling, npm-registry integrity pins, the single expected transitive install-script package (`node-pty`), and source-lock synchronization, rejects package scripts/secret-like content, and verifies package/runtime/browser protocol synchronization. `--install-smoke` packs into a temporary directory, performs a clean install, compares the resolved production identities with the source review lock, verifies registry signatures, runs an isolated production dependency audit, starts the generated installed bin shim on an ephemeral loopback port, checks health/version/protocol plus the native PTY path, terminates it, and deletes the temporary directory.
 
 Publishing is a separate maintainer action and is intentionally absent from scripts. The package is `UNLICENSED`; registry availability does not grant permission to reuse its source.
 

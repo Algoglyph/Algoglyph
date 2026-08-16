@@ -192,7 +192,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.1',
+      version: '0.2.2',
       protocolVersion: 2,
       requiresToken: true,
     });
@@ -1458,7 +1458,7 @@ describe('security remediation contract', () => {
     const docs = await readFile(`${REPO_ROOT}/docs/mcp-connector.md`, 'utf8');
     const packageReadme = await readFile(`${REPO_ROOT}/packages/mcp-connector/README.md`, 'utf8');
     const packageJson = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/package.json`, 'utf8'));
-    const shrinkwrap = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/npm-shrinkwrap.json`, 'utf8'));
+    const reviewLock = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/package-lock.json`, 'utf8'));
     assert.match(mainSource, /app:\/\/algoglyph/);
     assert.match(mainSource, /Content-Security-Policy/);
     assert.match(mainSource, /contextIsolation: true/);
@@ -1466,10 +1466,10 @@ describe('security remediation contract', () => {
     assert.doesNotMatch(docs, /quick-connect link/i);
     assert.doesNotMatch(packageReadme, /credentials.*link is opened/i);
     assert.equal(packageJson.license, 'UNLICENSED');
-    assert.equal(shrinkwrap.version, packageJson.version);
-    assert.deepEqual(shrinkwrap.packages[''].dependencies, packageJson.dependencies);
+    assert.equal(reviewLock.version, packageJson.version);
+    assert.deepEqual(reviewLock.packages[''].dependencies, packageJson.dependencies);
     assert.deepEqual(packageJson.files.sort(), [
-      'README.md', 'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs', 'npm-shrinkwrap.json',
+      'README.md', 'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs',
     ].sort());
   });
 });

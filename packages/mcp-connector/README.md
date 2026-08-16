@@ -2,9 +2,14 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.1` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.2` / protocol v2. Running the release checks does not publish anything.
 
-## 0.2.1 security and reliability update
+## 0.2.2 supply-chain packaging update
+
+- Removes `npm-shrinkwrap.json` from the published artifact so package managers use their normal dependency-resolution procedure and Socket does not raise its shrinkwrap heuristic.
+- Retains the exact reviewed 21-package tree in a source-only `package-lock.json`; release smoke tests compare a clean packed install with that review lock before publication.
+- Declares the modular MCP Node transport's `hono@4.13.1` peer explicitly so clean installs cannot omit it.
+- Preserves the `0.2.1` security and reliability changes below.
 
 - Applies one end-to-end deadline to MCP DNS resolution, transport fallback, calls, and bounded client shutdown.
 - Rejects Antigravity transcript data that began before the current prompt, including stale partially written JSONL records.
@@ -24,7 +29,7 @@ This package provides `0.2.1` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.1
+npx --yes @algoglyph/mcp-connector@0.2.2
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
@@ -111,15 +116,14 @@ From the repository root:
 npm run test:mcp:package
 ```
 
-This checks version/protocol synchronization, exact reviewed dependency versions, the 21-package publishable production tree, registry/integrity pinning, the single expected transitive install-script package (`node-pty`), absence of package scripts and secret-like content, and an exact five-file tarball inventory:
+This checks version/protocol synchronization, exact reviewed dependency versions, the 21-package source review lock, registry/integrity pinning, the single expected transitive install-script package (`node-pty`), absence of package scripts and secret-like content, and an exact four-file tarball inventory:
 
 - `package.json`
 - `README.md`
 - `bin/algoglyph-mcp-connector.js`
 - `bin/algoglyph-mcp-connector.mjs`
-- `npm-shrinkwrap.json`
 
-To additionally create a temporary tarball, perform a clean install, verify registry signatures, run an isolated production dependency audit (including the reviewed `node-pty` native install surface), launch the installed binary through its generated npm shim on an ephemeral loopback port, and exercise health plus the native PTY path:
+The source-only `package-lock.json` is committed for review but is intentionally not published. To additionally create a temporary tarball, perform a clean install, compare its resolved package identities with that review lock, verify registry signatures, run an isolated production dependency audit (including the reviewed `node-pty` native install surface), launch the installed binary through its generated npm shim on an ephemeral loopback port, and exercise health plus the native PTY path:
 
 ```bash
 npm run test:mcp:package -- --install-smoke

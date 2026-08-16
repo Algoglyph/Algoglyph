@@ -16,7 +16,7 @@ const repositoryRoot = path.resolve(packageDirectory, '..', '..');
 const runtimePath = path.join(packageDirectory, 'bin', 'algoglyph-mcp-connector.mjs');
 const browserTypesPath = path.join(repositoryRoot, 'src', 'lib', 'mcp', 'types.ts');
 const packagePath = path.join(packageDirectory, 'package.json');
-const shrinkwrapPath = path.join(packageDirectory, 'npm-shrinkwrap.json');
+const reviewLockPath = path.join(packageDirectory, 'package-lock.json');
 const installSmoke = process.argv.includes('--install-smoke');
 const EXPECTED_LOCKED_PRODUCTION_PACKAGES = 21;
 const EXPECTED_INSTALL_SCRIPT_PACKAGES = ['node_modules/node-pty'];
@@ -25,7 +25,6 @@ const expectedFiles = [
   'README.md',
   'bin/algoglyph-mcp-connector.js',
   'bin/algoglyph-mcp-connector.mjs',
-  'npm-shrinkwrap.json',
   'package.json',
 ];
 
@@ -34,6 +33,7 @@ const expectedDependencies = {
   '@modelcontextprotocol/node': '2.0.0',
   '@modelcontextprotocol/server': '2.0.0',
   '@xterm/headless': '6.0.0',
+  hono: '4.13.1',
   'node-pty': '1.2.0-beta.15',
   undici: '7.29.0',
 };
@@ -87,6 +87,23 @@ const parsePackResult = (stdout) => {
   }
   return result[0];
 };
+
+const packageNameFromLockPath = (lockPath) => {
+  const matches = [...lockPath.matchAll(/(?:^|\/)node_modules\/((?:@[^/]+\/)?[^/]+)/g)];
+  return matches.at(-1)?.[1] || null;
+};
+
+const lockedProductionIdentities = (lock, excludedNames = new Set()) => [...new Set(
+  Object.entries(lock.packages || {})
+    .filter(([lockPath, entry]) => lockPath && entry?.dev !== true && typeof entry?.version === 'string')
+    .map(([lockPath, entry]) => {
+      const packageName = packageNameFromLockPath(lockPath);
+      return packageName && !excludedNames.has(packageName)
+        ? `${packageName}@${entry.version}`
+        : null;
+    })
+    .filter(Boolean),
+)].sort();
 
 const readReleaseSources = async () => Promise.all(
   expectedFiles.map(async (relativePath) => [
@@ -181,7 +198,7 @@ const stopChild = async (child) => {
   }
 };
 
-const runInstallSmoke = async (manifest, protocolVersion) => {
+const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIdentities) => {
   const temporaryDirectory = await mkdtemp(path.join(tmpdir(), 'algoglyph-mcp-release-'));
   let child = null;
   try {
@@ -240,6 +257,22 @@ const runInstallSmoke = async (manifest, protocolVersion) => {
       'installed package manifest',
     );
     if (installedManifest.version !== manifest.version) fail('clean install changed the package version');
+
+    const installedLock = parseJson(
+      await readFile(path.join(installDirectory, 'package-lock.json'), 'utf8'),
+      'clean-install package lock',
+    );
+    const installedDependencyIdentities = lockedProductionIdentities(
+      installedLock,
+      new Set([manifest.name]),
+    );
+    if (JSON.stringify(installedDependencyIdentities) !== JSON.stringify(reviewedDependencyIdentities)) {
+      fail([
+        'clean install resolved a dependency tree that differs from the reviewed source lock',
+        `reviewed: ${reviewedDependencyIdentities.join(', ')}`,
+        `installed: ${installedDependencyIdentities.join(', ')}`,
+      ].join('; '));
+    }
 
     const installedShimDirectory = path.join(installDirectory, 'node_modules', '.bin');
     const installedShim = path.join(
@@ -351,7 +384,7 @@ const runInstallSmoke = async (manifest, protocolVersion) => {
 
 const main = async () => {
   const manifest = parseJson(await readFile(packagePath, 'utf8'), 'package manifest');
-  const shrinkwrap = parseJson(await readFile(shrinkwrapPath, 'utf8'), 'package shrinkwrap');
+  const reviewLock = parseJson(await readFile(reviewLockPath, 'utf8'), 'source review lock');
   const runtimeSource = await readFile(runtimePath, 'utf8');
   const browserTypesSource = await readFile(browserTypesPath, 'utf8');
   const dryRun = parsePackResult((await runNpm([
@@ -365,25 +398,25 @@ const main = async () => {
   if (JSON.stringify(packedFiles) !== JSON.stringify(expectedFiles)) {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
-  if (manifest.version !== '0.2.1') fail(`expected release candidate 0.2.1, found ${manifest.version}`);
+  if (manifest.version !== '0.2.2') fail(`expected release candidate 0.2.2, found ${manifest.version}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
     fail('direct runtime dependencies are not exactly pinned to the reviewed versions');
   }
   if (
-    shrinkwrap.name !== manifest.name
-    || shrinkwrap.version !== manifest.version
-    || shrinkwrap.lockfileVersion !== 3
-    || JSON.stringify(shrinkwrap.packages?.['']?.dependencies) !== JSON.stringify(expectedDependencies)
+    reviewLock.name !== manifest.name
+    || reviewLock.version !== manifest.version
+    || reviewLock.lockfileVersion !== 3
+    || JSON.stringify(reviewLock.packages?.['']?.dependencies) !== JSON.stringify(expectedDependencies)
   ) {
-    fail('publishable transitive dependency lock is missing or out of sync');
+    fail('source-only dependency review lock is missing or out of sync');
   }
-  const lockedProductionPackages = Object.keys(shrinkwrap.packages || {})
+  const lockedProductionPackages = Object.keys(reviewLock.packages || {})
     .filter((packagePath) => packagePath.length > 0).length;
   if (lockedProductionPackages !== EXPECTED_LOCKED_PRODUCTION_PACKAGES) {
     fail(`locked production tree changed from ${EXPECTED_LOCKED_PRODUCTION_PACKAGES} packages`);
   }
-  const lockedEntries = Object.entries(shrinkwrap.packages || {})
+  const lockedEntries = Object.entries(reviewLock.packages || {})
     .filter(([packagePath]) => packagePath.length > 0);
   for (const [packagePath, lockedPackage] of lockedEntries) {
     if (!lockedPackage.integrity
@@ -445,7 +478,13 @@ const main = async () => {
   if (runtimeProtocol !== browserProtocol) fail('browser and runtime protocol versions differ');
   if (runtimeProtocol !== 2) fail(`release candidate must implement protocol v2, found v${runtimeProtocol}`);
 
-  if (installSmoke) await runInstallSmoke(manifest, runtimeProtocol);
+  if (installSmoke) {
+    await runInstallSmoke(
+      manifest,
+      runtimeProtocol,
+      lockedProductionIdentities(reviewLock),
+    );
+  }
 
   console.log(
     `Validated @algoglyph/mcp-connector@${manifest.version}: ${packedFiles.length} files, protocol v${runtimeProtocol}`

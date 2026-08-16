@@ -1,6 +1,6 @@
 {
   "name": "@algoglyph/mcp-connector",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Local loopback connector for pairing AlgoGlyph with local AI agents and MCP servers.",
   "type": "module",
   "bin": {
@@ -9,7 +9,6 @@
   "files": [
     "bin/algoglyph-mcp-connector.js",
     "bin/algoglyph-mcp-connector.mjs",
-    "npm-shrinkwrap.json",
     "README.md"
   ],
   "keywords": [
@@ -37,6 +36,7 @@
     "@modelcontextprotocol/node": "2.0.0",
     "@modelcontextprotocol/server": "2.0.0",
     "@xterm/headless": "6.0.0",
+    "hono": "4.13.1",
     "node-pty": "1.2.0-beta.15",
     "undici": "7.29.0"
   },
