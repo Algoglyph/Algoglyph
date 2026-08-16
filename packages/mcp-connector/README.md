@@ -116,8 +116,10 @@ From the repository root:
 npm run test:mcp:package
 ```
 
-This checks version/protocol synchronization, exact reviewed dependency versions, the 21-package source review lock, registry/integrity pinning, the single expected transitive install-script package (`node-pty`), absence of package scripts and secret-like content, and an exact four-file tarball inventory:
+This checks version/protocol synchronization, exact reviewed dependency versions, the 21-package source review lock, registry/integrity pinning, the single expected transitive install-script package (`node-pty`), absence of package scripts and secret-like content, and an exact six-file tarball inventory:
 
+- `LICENSE`
+- `NOTICE`
 - `package.json`
 - `README.md`
 - `bin/algoglyph-mcp-connector.js`
@@ -129,4 +131,8 @@ The source-only `package-lock.json` is committed for review but is intentionally
 npm run test:mcp:package -- --install-smoke
 ```
 
-Both commands clean up their temporary artifacts and never publish. The package is intentionally `UNLICENSED`; public distribution does not grant reuse rights.
+Both commands clean up their temporary artifacts and never publish.
+
+## License
+
+The AlgoGlyph MCP Connector is licensed under the [Apache License 2.0](LICENSE). Its `NOTICE` attribution must be retained when required by the license.

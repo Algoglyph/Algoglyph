@@ -7,6 +7,8 @@
     "algoglyph-mcp-connector": "bin/algoglyph-mcp-connector.js"
   },
   "files": [
+    "LICENSE",
+    "NOTICE",
     "bin/algoglyph-mcp-connector.js",
     "bin/algoglyph-mcp-connector.mjs",
     "README.md"
@@ -27,7 +29,7 @@
   "bugs": {
     "url": "https://github.com/Algoglyph/Algoglyph/issues"
   },
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=20.18.1"
   },

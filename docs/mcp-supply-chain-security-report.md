@@ -7,7 +7,7 @@ Scope: `@algoglyph/mcp-connector` published artifact, runtime dependencies, pack
 
 Published version `0.2.1` has zero known production vulnerabilities and its clean 22-package installation has valid npm registry signatures. Socket nevertheless assigns 71/100 for Supply Chain Security because the tarball contains `npm-shrinkwrap.json`, which Socket categorizes as a high-severity heuristic. Socket's alert is not evidence that the reviewed lock is malicious; npm recommends publishable shrinkwraps for command-line applications.
 
-Release candidate `0.2.2` removes the shrinkwrap from the published four-file artifact, retains the exact 21-dependency review tree in a source-only lock, explicitly declares the MCP Node transport's Hono peer, and rejects a clean install whose package identities differ from the reviewed lock. Its clean-install signature, vulnerability, executable, health, and native PTY checks pass.
+Release candidate `0.2.2` removes the shrinkwrap from the published six-file artifact, retains the exact 21-dependency review tree in a source-only lock, explicitly declares the MCP Node transport's Hono peer, and rejects a clean install whose package identities differ from the reviewed lock. Its clean-install signature, vulnerability, executable, health, and native PTY checks pass.
 
 A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documented score also weights download count, direct dependencies, and transitive dependencies. Those inputs remain below their mathematical maxima even after the only package-level high alert is removed. The correct release gate is zero untriaged critical/high malicious-behavior alerts, zero known vulnerabilities, valid registry signatures, reviewed dependency identities, and a working installed artifact.
 
@@ -16,8 +16,8 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 ### MCP-SC-001 — Published npm shrinkwrap triggers Socket's high alert
 
 - Status: Remediated in unpublished `0.2.2`; present in immutable `0.2.1`.
-- Location: `packages/mcp-connector/package.json:9-13`; `packages/mcp-connector/test/package-release.mjs:24-29`.
-- Evidence: The supplied Socket report shows `Shrinkwrap` as the only supply-chain alert. The registry tarball for `0.2.1` contains `package/npm-shrinkwrap.json`; the `0.2.2` pack validator proves an exact four-file inventory without it.
+- Location: `packages/mcp-connector/package.json:9-15`; `packages/mcp-connector/test/package-release.mjs:24-31`.
+- Evidence: The supplied Socket report shows `Shrinkwrap` as the only supply-chain alert. The registry tarball for `0.2.1` contains `package/npm-shrinkwrap.json`; the `0.2.2` pack validator proves an exact six-file inventory without it.
 - Impact: Socket applies a high-alert penalty and warns that shrinkwrap can alter normal dependency resolution. This is a scanner heuristic, not proof of malicious behavior in this package.
 - Fix: Publish `0.2.2`, which excludes the shrinkwrap.
 - Mitigation: Keep `packages/mcp-connector/package-lock.json` in source control and fail release validation when a clean packed install differs from its reviewed identities.
@@ -26,7 +26,7 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 ### MCP-SC-002 — Required native dependency executes install scripts
 
 - Status: Accepted, constrained, and tested.
-- Location: `packages/mcp-connector/package.json:40`; `packages/mcp-connector/test/package-release.mjs:21-22`.
+- Location: `packages/mcp-connector/package.json:42`; `packages/mcp-connector/test/package-release.mjs:21-22`.
 - Evidence: `node-pty@1.2.0-beta.15` defines `install` and `postinstall`; validation rejects every install-script package except the exact reviewed `node_modules/node-pty` entry.
 - Impact: npm lifecycle scripts execute code during installation and therefore have supply-chain impact if the upstream artifact is compromised.
 - Fix: No equivalent dependency-free implementation preserves the required native PTY behavior across supported platforms. Removing or hiding this dependency would break functionality or conceal risk.
@@ -38,7 +38,7 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 ### MCP-SC-003 — MCP Node transport peer was implicit without shrinkwrap
 
 - Status: Fixed in `0.2.2`.
-- Location: `packages/mcp-connector/package.json:34-41`; `packages/mcp-connector/package-lock.json:11-18`.
+- Location: `packages/mcp-connector/package.json:36-43`; `packages/mcp-connector/package-lock.json:11-18`.
 - Evidence: The first shrinkwrap-free install gate omitted `hono` and failed before runtime execution. `@modelcontextprotocol/node@2.0.0` declares Hono as a peer.
 - Impact: A clean consumer installation could be incomplete or depend on package-manager peer-resolution behavior.
 - Fix: Declare exact `hono@4.13.1` as a direct runtime dependency.
@@ -67,22 +67,22 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 - Mitigation: Gate releases on concrete security properties rather than an unattainable immediate aggregate score.
 - False-positive note: Socket states that its documented model may differ from the currently deployed model; only an authenticated post-publication Socket query can establish the new displayed score.
 
-### MCP-SC-006 — License score is separate and requires owner authorization
+### MCP-SC-006 — Package lacked a reuse license
 
-- Status: Unchanged.
-- Location: `packages/mcp-connector/package.json:30`.
-- Evidence: The package is explicitly `UNLICENSED`, matching the supplied Socket 0% License result.
-- Impact: Registry publication grants no reuse license and cannot receive a positive permissive-license score.
-- Fix: The copyright owner must explicitly choose and approve a license. This report does not make that legal grant.
-- Mitigation: Keep the manifest and documentation consistent until a license decision is made.
-- False-positive note: None; this is intentional package metadata, not a vulnerability.
+- Status: Fixed in `0.2.2` with owner authorization.
+- Location: `packages/mcp-connector/package.json:32`; `packages/mcp-connector/LICENSE`; `packages/mcp-connector/NOTICE`.
+- Evidence: Published `0.2.1` is explicitly `UNLICENSED`, matching the supplied Socket 0% License result. Release candidate `0.2.2` declares the SPDX identifier `Apache-2.0` and packs the canonical license terms plus attribution notice.
+- Impact: `0.2.1` grants no reuse license. `0.2.2` provides a permissive copyright license and an explicit patent grant, subject to Apache-2.0 conditions.
+- Fix: Publish `0.2.2` with the package-scoped Apache-2.0 license and NOTICE.
+- Mitigation: Release validation rejects license metadata drift and requires both files in the exact tarball inventory.
+- False-positive note: None.
 
 ## Verification evidence
 
-- Exact tarball inventory: four files; no shrinkwrap.
+- Exact tarball inventory: six files, including `LICENSE` and `NOTICE`; no shrinkwrap.
 - Reviewed production identities: 21 packages.
 - Unexpected package lifecycle scripts: rejected.
-- Clean-install dependency drift: rejected at `packages/mcp-connector/test/package-release.mjs:261-275`.
-- Registry signatures: verified during install smoke at `packages/mcp-connector/test/package-release.mjs:231-236`.
-- Known production vulnerabilities: must equal zero at `packages/mcp-connector/test/package-release.mjs:238-247`.
+- Clean-install dependency drift: rejected at `packages/mcp-connector/test/package-release.mjs:267-276`.
+- Registry signatures: verified during install smoke at `packages/mcp-connector/test/package-release.mjs:233-238`.
+- Known production vulnerabilities: must equal zero at `packages/mcp-connector/test/package-release.mjs:240-249`.
 - Installed CLI, protocol health, and native PTY path: exercised before release.

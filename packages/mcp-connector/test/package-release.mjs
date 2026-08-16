@@ -22,6 +22,8 @@ const EXPECTED_LOCKED_PRODUCTION_PACKAGES = 21;
 const EXPECTED_INSTALL_SCRIPT_PACKAGES = ['node_modules/node-pty'];
 
 const expectedFiles = [
+  'LICENSE',
+  'NOTICE',
   'README.md',
   'bin/algoglyph-mcp-connector.js',
   'bin/algoglyph-mcp-connector.mjs',
@@ -399,6 +401,7 @@ const main = async () => {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
   if (manifest.version !== '0.2.2') fail(`expected release candidate 0.2.2, found ${manifest.version}`);
+  if (manifest.license !== 'Apache-2.0') fail(`expected Apache-2.0 license, found ${manifest.license}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
     fail('direct runtime dependencies are not exactly pinned to the reviewed versions');
@@ -407,6 +410,7 @@ const main = async () => {
     reviewLock.name !== manifest.name
     || reviewLock.version !== manifest.version
     || reviewLock.lockfileVersion !== 3
+    || reviewLock.packages?.['']?.license !== manifest.license
     || JSON.stringify(reviewLock.packages?.['']?.dependencies) !== JSON.stringify(expectedDependencies)
   ) {
     fail('source-only dependency review lock is missing or out of sync');

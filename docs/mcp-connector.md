@@ -183,6 +183,8 @@ The audited 21-package production tree is fixed in a source-only `packages/mcp-c
 Only these files may enter the tarball:
 
 - `package.json`
+- `LICENSE`
+- `NOTICE`
 - `README.md`
 - `bin/algoglyph-mcp-connector.js`
 - `bin/algoglyph-mcp-connector.mjs`
@@ -202,7 +204,7 @@ npm run build
 
 The package validator runs `npm pack --dry-run --json`, checks exact inventory, reviewed dependencies, the 21-package ceiling, npm-registry integrity pins, the single expected transitive install-script package (`node-pty`), and source-lock synchronization, rejects package scripts/secret-like content, and verifies package/runtime/browser protocol synchronization. `--install-smoke` packs into a temporary directory, performs a clean install, compares the resolved production identities with the source review lock, verifies registry signatures, runs an isolated production dependency audit, starts the generated installed bin shim on an ephemeral loopback port, checks health/version/protocol plus the native PTY path, terminates it, and deletes the temporary directory.
 
-Publishing is a separate maintainer action and is intentionally absent from scripts. The package is `UNLICENSED`; registry availability does not grant permission to reuse its source.
+Publishing is a separate maintainer action and is intentionally absent from scripts. The MCP connector package is licensed under Apache-2.0; the license grant is scoped to `packages/mcp-connector` and does not relicense the rest of the repository.
 
 ## Production publishing
 

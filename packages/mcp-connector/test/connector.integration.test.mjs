@@ -1457,6 +1457,8 @@ describe('security remediation contract', () => {
     const mainSource = await readFile(`${REPO_ROOT}/main.cjs`, 'utf8');
     const docs = await readFile(`${REPO_ROOT}/docs/mcp-connector.md`, 'utf8');
     const packageReadme = await readFile(`${REPO_ROOT}/packages/mcp-connector/README.md`, 'utf8');
+    const packageLicense = await readFile(`${REPO_ROOT}/packages/mcp-connector/LICENSE`, 'utf8');
+    const packageNotice = await readFile(`${REPO_ROOT}/packages/mcp-connector/NOTICE`, 'utf8');
     const packageJson = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/package.json`, 'utf8'));
     const reviewLock = JSON.parse(await readFile(`${REPO_ROOT}/packages/mcp-connector/package-lock.json`, 'utf8'));
     assert.match(mainSource, /app:\/\/algoglyph/);
@@ -1465,11 +1467,14 @@ describe('security remediation contract', () => {
     assert.match(mainSource, /nodeIntegration: false/);
     assert.doesNotMatch(docs, /quick-connect link/i);
     assert.doesNotMatch(packageReadme, /credentials.*link is opened/i);
-    assert.equal(packageJson.license, 'UNLICENSED');
+    assert.equal(packageJson.license, 'Apache-2.0');
+    assert.match(packageLicense, /Apache License\s+Version 2\.0, January 2004/);
+    assert.match(packageNotice, /Copyright 2026 AlgoGlyph contributors/);
     assert.equal(reviewLock.version, packageJson.version);
     assert.deepEqual(reviewLock.packages[''].dependencies, packageJson.dependencies);
     assert.deepEqual(packageJson.files.sort(), [
-      'README.md', 'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs',
+      'LICENSE', 'NOTICE', 'README.md',
+      'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs',
     ].sort());
   });
 });
