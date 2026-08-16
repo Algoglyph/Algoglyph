@@ -1,0 +1,92 @@
+name: Publish MCP connector
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact package version to publish (for example, 0.2.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-mcp-connector
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      EXPECTED_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Check out the exact release commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Use Node.js 22 LTS
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.2'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Pin the release npm client
+        run: npm install --global --ignore-scripts npm@11.19.0
+
+      - name: Verify the requested release version
+        run: >-
+          node -e "const manifest = require('./packages/mcp-connector/package.json');
+          if (manifest.version !== process.env.EXPECTED_VERSION)
+          throw new Error('Requested version does not match package.json');"
+
+      - name: Install the reviewed dependency tree
+        run: npm ci
+
+      - name: Run MCP integration and security tests
+        run: npm run test:mcp
+
+      - name: Validate the packed artifact and native PTY
+        run: npm run test:mcp:package -- --install-smoke
+
+      - name: Lint the MCP release surface
+        run: npm run lint:mcp
+
+      - name: Build the production app
+        run: npm run build
+
+  publish:
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EXPECTED_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Check out the verified release commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Use Node.js 22 LTS
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.23.2'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Pin the npm client used for OIDC publishing
+        run: npm install --global --ignore-scripts npm@11.19.0
+
+      - name: Recheck the requested release version
+        run: >-
+          node -e "const manifest = require('./packages/mcp-connector/package.json');
+          if (manifest.version !== process.env.EXPECTED_VERSION)
+          throw new Error('Requested version does not match package.json');"
+
+      - name: Publish with npm trusted publishing
+        working-directory: packages/mcp-connector
+        run: npm publish --access public

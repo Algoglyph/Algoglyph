@@ -192,7 +192,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.0',
+      version: '0.2.1',
       protocolVersion: 2,
       requiresToken: true,
     });
@@ -813,6 +813,33 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
     }
   });
 
+  test('MCP DNS resolution cannot outlive the operation deadline', async () => {
+    const deadlineConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_TEST_MCP_REQUEST_TIMEOUT_MS: '80',
+        ALGOGLYPH_TEST_DNS_DELAY_MS: '250',
+      },
+    });
+    try {
+      const endpoint = new URL(mcpServer.endpoint);
+      endpoint.hostname = 'localhost';
+      const response = await deadlineConnector.request('v1/mcp/test', {
+        method: 'POST',
+        token: deadlineConnector.masterToken,
+        body: {
+          endpoint: endpoint.toString(),
+          accessToken: mcpServer.accessToken,
+          allowPrivateNetwork: true,
+        },
+      });
+      assert.equal(response.status, 504);
+      assert.match(response.body.error.message, /time/i);
+    } finally {
+      await deadlineConnector.stop();
+    }
+  });
+
   test('approved MCP grants are owner-scoped, capped, and removed with their owning session', async () => {
     const lifecycleConnector = await startConnectorHarness();
     const cappedServers = [];
@@ -1002,6 +1029,11 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       assert.equal(relayInspection.isolation.approvedMcpUsesInternalRelay, true);
       assert.equal(relayInspection.isolation.approvedMcpTokenMatchesEnvironment, true);
       assert.equal(relayInspection.isolation.upstreamFixtureTokenPresent, false);
+      assert.deepEqual(relayInspection.isolation.relayProbe, {
+        attempted: true,
+        listedTool: true,
+        result: 'echo:relay-compatibility',
+      });
       assert.equal(await waitForPathRemoval(relayInspection.cwd), true);
 
       const clientSource = await readFile(`${REPO_ROOT}/src/lib/mcp/connectorClient.ts`, 'utf8');
@@ -1063,6 +1095,15 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
         saysToolCallWillBeDenied: true,
       });
       descendantPids.add(first.output.descendantPid);
+
+      const stalePartial = await runWarmAntigravity(
+        warmConnector,
+        firstSession.sessionToken,
+        'WARM_REQUEST_STALE_PARTIAL',
+      );
+      assert.equal(stalePartial.status, 200);
+      assert.equal(stalePartial.output.marker, 'WARM_REQUEST_STALE_PARTIAL');
+      assert.equal(stalePartial.output.homeDirectory, first.output.homeDirectory);
 
       const eligibilityRetry = await runWarmAntigravity(
         warmConnector,
@@ -1348,7 +1389,22 @@ describe('security remediation contract', () => {
     assert.match(connectorSource, /ptyRuntime\.spawn\(executable, testAntigravityFixture \? \[testAntigravityFixture\] : \['--sandbox'\]/);
     assert.match(connectorSource, /session\.pty\.write\('\/clear\\r'\)/);
     assert.doesNotMatch(connectorSource, /agy models/);
+    const antigravityWaitSource = connectorSource.slice(
+      connectorSource.indexOf('const waitForAntigravity ='),
+      connectorSource.indexOf('const stopAntigravitySession ='),
+    );
+    assert.match(antigravityWaitSource, /monotonicMilliseconds\(\)/);
+    assert.doesNotMatch(antigravityWaitSource, /Date\.now\(\)/);
+    assert.match(connectorSource, /eligibilityRetryAt \|\|= monotonicMilliseconds\(\)/);
+    assert.match(connectorSource, /expiresAtMonotonic: monotonicMilliseconds\(\) \+ PAIRING_TTL_MS/);
+    assert.match(connectorSource, /timestamps\.push\(monotonicMilliseconds\(\)\)/);
+    assert.match(connectorSource, /session\.expiresAtMonotonic <= now/);
+    assert.match(connectorSource, /server\.expiresAtMonotonic <= now/);
+    assert.doesNotMatch(connectorSource, /\.expiresAt\s*<=\s*Date\.now\(\)/);
+    assert.doesNotMatch(connectorSource, /timestamps\.push\(Date\.now\(\)\)/);
     assert.match(clientSource, /MAX_SSE_BUFFER_BYTES/);
+    assert.match(clientSource, /AGENT_RUN_WATCHDOG_MS/);
+    assert.match(clientSource, /watchdogController/);
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);
     assert.match(dialogSource, /useMcpStore\.getState\(\)\.connectorToken/);

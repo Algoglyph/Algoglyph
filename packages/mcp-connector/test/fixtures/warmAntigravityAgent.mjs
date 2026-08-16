@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const homeDirectory = process.env.HOME;
@@ -16,8 +16,21 @@ const descendant = spawn(process.execPath, [
 });
 
 const brainDirectory = join(homeDirectory, '.gemini', 'antigravity-cli', 'brain');
+const staleTranscriptDirectory = join(
+  brainDirectory,
+  'conversation-stale-partial',
+  '.system_generated',
+  'logs',
+);
+const staleTranscriptPath = join(staleTranscriptDirectory, 'transcript.jsonl');
+mkdirSync(staleTranscriptDirectory, { recursive: true });
+writeFileSync(
+  staleTranscriptPath,
+  '{"step_index":0,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"',
+);
 let requestIndex = 0;
 let input = '';
+let staleTranscriptCompleted = false;
 const submissionCounts = new Map();
 const firstSubmissionAt = new Map();
 
@@ -36,6 +49,13 @@ const handlePrompt = (prompt) => {
       '',
     ].join('\r\n'));
     return;
+  }
+  if (marker === 'WARM_REQUEST_STALE_PARTIAL' && !staleTranscriptCompleted) {
+    staleTranscriptCompleted = true;
+    appendFileSync(
+      staleTranscriptPath,
+      `${new Date().toISOString()}","content":${JSON.stringify(JSON.stringify({ marker: 'STALE_PARTIAL_OUTPUT' }))}}\n`,
+    );
   }
 
   requestIndex += 1;

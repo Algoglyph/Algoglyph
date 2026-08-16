@@ -17,6 +17,7 @@ import { useMcpStore } from '../../store/mcpStore';
 
 const REQUEST_TIMEOUT_MS = 8_000;
 const MCP_OPERATION_TIMEOUT_MS = 22_000;
+const AGENT_RUN_WATCHDOG_MS = 125_000;
 const MAX_CONNECTOR_RESPONSE_BYTES = 1024 * 1024;
 const MAX_SSE_BUFFER_BYTES = 512 * 1024;
 
@@ -491,9 +492,9 @@ const readErrorMessage = async (response: Response): Promise<string> => {
 
 /**
  * POSTs a headless run to the connector and yields each streamed event. The run
- * is bounded by the connector, so there is no client timeout here — pass a
- * `signal` (from an `AbortController`) to stop it, which the connector turns into
- * a `SIGTERM` for the child process.
+ * is bounded by the connector and by a slightly longer browser watchdog. Pass
+ * a `signal` (from an `AbortController`) to stop it early, which the connector
+ * turns into process-tree cancellation.
  */
 export async function* runAgent(
   connectorEndpoint: string,
@@ -506,6 +507,19 @@ export async function* runAgent(
   const headers = new Headers({ Accept: 'text/event-stream', 'Content-Type': 'application/json' });
   const token = connectorToken === undefined ? runState.connectorToken?.trim() : connectorToken.trim();
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  const watchdogController = new AbortController();
+  let watchdogTimedOut = false;
+  const forwardCallerAbort = () => watchdogController.abort(signal?.reason);
+  if (signal?.aborted) forwardCallerAbort();
+  else signal?.addEventListener('abort', forwardCallerAbort, { once: true });
+  const watchdogTimer = globalThis.setTimeout(() => {
+    watchdogTimedOut = true;
+    watchdogController.abort();
+  }, AGENT_RUN_WATCHDOG_MS);
+  const clearWatchdog = () => {
+    globalThis.clearTimeout(watchdogTimer);
+    signal?.removeEventListener('abort', forwardCallerAbort);
+  };
 
   let response: Response;
   try {
@@ -513,12 +527,17 @@ export async function* runAgent(
       method: 'POST',
       headers,
       body: JSON.stringify(request),
-      signal,
+      signal: watchdogController.signal,
     });
   } catch {
+    clearWatchdog();
     if (signal?.aborted) {
       useMcpStore.getState().failAgentRun('The agent run was cancelled.');
       throw new McpConnectorRequestError('The agent run was cancelled.');
+    }
+    if (watchdogTimedOut) {
+      useMcpStore.getState().failAgentRun('The local connector did not finish the agent run in time.');
+      throw new McpConnectorRequestError('The local connector did not finish the agent run in time.');
     }
     useMcpStore.getState().failAgentRun('Could not reach the local connector.');
     throw new McpConnectorRequestError('Could not reach the local connector.');
@@ -526,6 +545,7 @@ export async function* runAgent(
 
   if (!response.ok || !response.body) {
     const message = await readErrorMessage(response);
+    clearWatchdog();
     if (response.status === 401 && token) clearStoredConnectorSession();
     useMcpStore.getState().failAgentRun(message);
     throw new McpConnectorRequestError(message, response.status);
@@ -587,12 +607,20 @@ export async function* runAgent(
     if (!sawExit) throw new McpConnectorRequestError(failureMessage || 'The agent stream ended without a terminal event.');
     if (failureMessage) throw new McpConnectorRequestError(failureMessage);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'The agent stream ended unexpectedly.';
+    const message = signal?.aborted
+      ? 'The agent run was cancelled.'
+      : watchdogTimedOut
+        ? 'The local connector did not finish the agent run in time.'
+        : error instanceof Error ? error.message : 'The agent stream ended unexpectedly.';
     useMcpStore.getState().failAgentRun(message);
-    if (error instanceof McpConnectorRequestError) throw error;
     if (signal?.aborted) throw new McpConnectorRequestError('The agent run was cancelled.');
+    if (watchdogTimedOut) {
+      throw new McpConnectorRequestError('The local connector did not finish the agent run in time.');
+    }
+    if (error instanceof McpConnectorRequestError) throw error;
     throw new McpConnectorRequestError('The agent stream ended unexpectedly.');
   } finally {
     reader.cancel().catch(() => undefined);
+    clearWatchdog();
   }
 }

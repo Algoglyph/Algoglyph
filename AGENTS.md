@@ -9,7 +9,8 @@ Scratchpad (legacy name: **dsadelta**) is a local-first notes + infinite-canvas 
 ```bash
 npm run dev            # Vite dev server on http://localhost:5173 (web app)
 npm run build          # tsc -b (typecheck) then vite build → dist/
-npm run test:mcp       # MCP connector integration/security baseline + remediation TODO contract
+npm run test:mcp       # MCP connector integration/security baseline
+npm run lint:mcp       # MCP connector, browser client, and install-command UI lint
 npm run test:diagrams  # Deterministic diagram layout and overlap regressions
 npm run preview        # serve the built dist/ locally (verify a production build)
 npm run lint           # eslint . (flat config in eslint.config.js)
@@ -18,7 +19,7 @@ npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg
 ```
 
 - **Running the desktop app in dev requires two processes**: `main.cjs` loads `http://localhost:5173` when not packaged, so run `npm run dev` first, then `npm run electron` in a second shell. The packaged build instead loads `dist/index.html`. The dev URL in `main.cjs` is **hardcoded to 5173** even though `vite.config.ts` honors a `PORT` env var — so don't override `PORT`, or Electron will point at the wrong (empty) port.
-- **Testing is focused rather than repository-wide.** `npm run test:mcp` uses Node's built-in test runner against a real temporary loopback connector process; `npm run test:diagrams` checks deterministic layout/overlap regressions. General verification still includes `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build.
+- **Testing is focused rather than repository-wide.** `npm run test:mcp` uses Node's built-in test runner against a real temporary loopback connector process; `npm run test:mcp:package -- --install-smoke` verifies the packed package, dependency signatures/audit, clean install, health, and native PTY; `npm run lint:mcp` checks the release surface; `npm run test:diagrams` checks deterministic layout/overlap regressions. General verification still includes `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build. Production MCP publishing is gated by `.github/workflows/publish-mcp.yml` after configuring npm trusted publishing for that exact workflow; only its minimal post-verification job receives OIDC publish authority.
 - `vite.config.ts` sets `base: './'` (relative asset paths) so the same build works under Electron's `file://`.
 - **`build/icon.png` is a committed *source* asset, not generated output** — it's the electron-builder app icon (`package.json` → `build.{win,mac}.icon`). The generated outputs are `dist/` (web bundle) and `release/` (packaged installers); only those are gitignored. Don't delete or gitignore `build/`.
 

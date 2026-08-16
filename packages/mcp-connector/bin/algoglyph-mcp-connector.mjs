@@ -1,21 +1,18 @@
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
-import { chmod, copyFile, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { isIP } from 'node:net';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, isAbsolute, join, resolve, sep } from 'node:path';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { Server as McpServer } from '@modelcontextprotocol/sdk/server/index.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { Client, SSEClientTransport, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
+import { Server as McpServer } from '@modelcontextprotocol/server';
 import { Agent as UndiciAgent } from 'undici';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
-const CONNECTOR_VERSION = '0.2.0';
+const CONNECTOR_VERSION = '0.2.1';
 const CONNECTOR_PROTOCOL_VERSION = 2;
 const DEFAULT_PORT = 4319;
 const MAX_BODY_BYTES = 64 * 1024;
@@ -26,6 +23,7 @@ const MAX_MCP_PAGES = 8;
 const MAX_REDIRECTS = 3;
 const PAIRING_TTL_MS = 90_000;
 const MCP_REQUEST_TIMEOUT_MS = 10_000;
+const MCP_CLOSE_TIMEOUT_MS = 1_000;
 const AGENT_RUN_TIMEOUT_MS = 120_000;
 const ANTIGRAVITY_SESSION_READY_TIMEOUT_MS = 90_000;
 const MAX_AGENT_OUTPUT_BYTES = 256 * 1024;
@@ -171,6 +169,12 @@ const antigravityEligibilityRetryDelayMs = testOverride(
   15_000,
   25,
 );
+const mcpRequestTimeoutMs = testOverride(
+  'ALGOGLYPH_TEST_MCP_REQUEST_TIMEOUT_MS',
+  MCP_REQUEST_TIMEOUT_MS,
+  25,
+);
+const testDnsDelayMs = testOverride('ALGOGLYPH_TEST_DNS_DELAY_MS', 0, 0);
 
 const parsePort = (value) => {
   if (!value) return DEFAULT_PORT;
@@ -227,6 +231,7 @@ const agentRunAttempts = new Map();
 const trackedTempRoots = new Set();
 
 const createSecret = () => randomBytes(32).toString('base64url');
+const monotonicMilliseconds = () => Number(process.hrtime.bigint()) / 1_000_000;
 
 const requestedScopes = (body = {}) => {
   if (body.scopes === undefined) return [...SESSION_SCOPES];
@@ -247,14 +252,20 @@ const requestedScopes = (body = {}) => {
 const createPairingCredential = (scopes = SESSION_SCOPES, origin) => {
   const token = createSecret();
   const expiresAt = Date.now() + PAIRING_TTL_MS;
-  pairingCredentials.set(token, { expiresAt, scopes: [...scopes], used: false, origin });
+  pairingCredentials.set(token, {
+    expiresAt,
+    expiresAtMonotonic: monotonicMilliseconds() + PAIRING_TTL_MS,
+    scopes: [...scopes],
+    used: false,
+    origin,
+  });
   return { token, expiresAt, scopes: [...scopes] };
 };
 
 const prunePairings = () => {
-  const now = Date.now();
+  const now = monotonicMilliseconds();
   for (const [token, pairing] of pairingCredentials) {
-    if (pairing.used || pairing.expiresAt <= now) pairingCredentials.delete(token);
+    if (pairing.used || pairing.expiresAtMonotonic <= now) pairingCredentials.delete(token);
   }
 };
 
@@ -295,17 +306,18 @@ const deleteSession = (token) => {
 };
 
 const pruneSessions = () => {
-  const now = Date.now();
+  const now = monotonicMilliseconds();
   for (const [token, session] of sessions) {
-    if (session.expiresAt <= now || session.lastUsedAt + sessionIdleTtlMs <= now) deleteSession(token);
+    if (session.expiresAtMonotonic <= now
+      || session.lastUsedAtMonotonic + sessionIdleTtlMs <= now) deleteSession(token);
   }
   for (const [id, server] of approvedMcpServers) {
-    if (server.expiresAt <= now) deleteApprovedServer(id);
+    if (server.expiresAtMonotonic <= now) deleteApprovedServer(id);
   }
 };
 
 const pruneRateLimits = (attempts) => {
-  const cutoff = Date.now() - authRateWindowMs;
+  const cutoff = monotonicMilliseconds() - authRateWindowMs;
   for (const [key, timestamps] of attempts) {
     const active = timestamps.filter((timestamp) => timestamp > cutoff);
     if (active.length) attempts.set(key, active);
@@ -317,10 +329,10 @@ const consumeRateLimit = (attempts, key, maximum, label = 'requests') => {
   pruneRateLimits(attempts);
   const timestamps = attempts.get(key) || [];
   if (timestamps.length >= maximum) {
-    const retryAfterMs = Math.max(1, timestamps[0] + authRateWindowMs - Date.now());
+    const retryAfterMs = Math.max(1, timestamps[0] + authRateWindowMs - monotonicMilliseconds());
     throw new ConnectorError(429, `Too many ${label}. Try again later.`, Math.ceil(retryAfterMs / 1000));
   }
-  timestamps.push(Date.now());
+  timestamps.push(monotonicMilliseconds());
   attempts.set(key, timestamps);
 };
 
@@ -375,8 +387,43 @@ const validateJsonValue = (value, depth = 0, state = { keys: 0 }) => {
   }
 };
 
-const monotonicMilliseconds = () => Number(process.hrtime.bigint()) / 1_000_000;
 const roundedMilliseconds = (value) => Math.round(value * 1000) / 1000;
+
+const mcpTimeoutError = () => new ConnectorError(
+  504,
+  'The MCP server operation did not complete before its time limit.',
+);
+
+const raceWithAbort = (operation, signal) => {
+  if (signal.aborted) return Promise.reject(mcpTimeoutError());
+  return new Promise((resolveDone, reject) => {
+    const cleanup = () => signal.removeEventListener('abort', onAbort);
+    const onAbort = () => {
+      cleanup();
+      reject(mcpTimeoutError());
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) {
+      onAbort();
+    }
+    Promise.resolve(operation).then((value) => {
+      cleanup();
+      resolveDone(value);
+    }, (error) => {
+      cleanup();
+      reject(error);
+    });
+  });
+};
+
+const abortableDelay = (milliseconds, signal) => {
+  let timer;
+  const delay = new Promise((resolveDone) => {
+    timer = setTimeout(resolveDone, milliseconds);
+    timer.unref();
+  });
+  return raceWithAbort(delay, signal).finally(() => clearTimeout(timer));
+};
 
 const logTimeOfDayMilliseconds = (line) => {
   const match = line.match(/\b[IEWF]\d{4}\s+(\d{2}):(\d{2}):(\d{2})\.(\d{6})\b/);
@@ -536,7 +583,7 @@ const requireAuthorization = (request, requiredScope) => {
     throw new ConnectorError(403, 'This connector session belongs to a different browser origin.');
   }
 
-  session.lastUsedAt = Date.now();
+  session.lastUsedAtMonotonic = monotonicMilliseconds();
   return { kind: 'session', session, token };
 };
 
@@ -547,7 +594,7 @@ const redeemPairingCredential = (body, origin) => {
   if (!pairing || pairing.used) {
     throw new ConnectorError(401, 'The pairing credential is invalid or already used.');
   }
-  if (pairing.expiresAt <= Date.now()) {
+  if (pairing.expiresAtMonotonic <= monotonicMilliseconds()) {
     pairingCredentials.delete(token);
     throw new ConnectorError(410, 'The pairing credential has expired.');
   }
@@ -561,16 +608,20 @@ const redeemPairingCredential = (body, origin) => {
   prunePairings();
   pruneSessions();
   if (sessions.size >= maxSessions) {
-    const oldest = [...sessions.entries()].sort((left, right) => left[1].lastUsedAt - right[1].lastUsedAt)[0];
+    const oldest = [...sessions.entries()].sort((left, right) => (
+      left[1].lastUsedAtMonotonic - right[1].lastUsedAtMonotonic
+    ))[0];
     if (oldest) deleteSession(oldest[0]);
   }
 
   const now = Date.now();
+  const nowMonotonic = monotonicMilliseconds();
   const sessionToken = createSecret();
   const session = {
     createdAt: now,
     expiresAt: now + sessionTtlMs,
-    lastUsedAt: now,
+    expiresAtMonotonic: nowMonotonic + sessionTtlMs,
+    lastUsedAtMonotonic: nowMonotonic,
     origin,
     scopes: new Set(pairing.scopes),
   };
@@ -724,8 +775,8 @@ const runVersionCheck = async (command) => {
 let agentCatalogPromise;
 let agentCatalogExpiresAt = 0;
 const detectAgents = async () => {
-  if (agentCatalogPromise && agentCatalogExpiresAt > Date.now()) return agentCatalogPromise;
-  agentCatalogExpiresAt = Date.now() + 30_000;
+  if (agentCatalogPromise && agentCatalogExpiresAt > monotonicMilliseconds()) return agentCatalogPromise;
+  agentCatalogExpiresAt = monotonicMilliseconds() + 30_000;
   agentCatalogPromise = Promise.all(
     AGENTS.map(async (agent) => {
       const executable = await resolveAgentExecutable(agent);
@@ -958,15 +1009,17 @@ const isLoopbackAddress = (address) => {
   return Boolean(mapped && mapped[1].startsWith('127.'));
 };
 
-const validateMcpDestination = async (url, allowPrivateNetwork) => {
+const validateMcpDestination = async (url, allowPrivateNetwork, signal) => {
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
   const explicitlyLoopback = hostname === 'localhost' || isLoopbackAddress(hostname);
   let addresses;
   try {
+    if (testDnsDelayMs > 0) await abortableDelay(testDnsDelayMs, signal);
     addresses = isIP(hostname)
       ? [{ address: hostname }]
-      : await lookup(hostname, { all: true, verbatim: true });
-  } catch {
+      : await raceWithAbort(lookup(hostname, { all: true, verbatim: true }), signal);
+  } catch (error) {
+    if (error instanceof ConnectorError) throw error;
     throw new ConnectorError(502, 'The MCP server hostname could not be resolved.');
   }
   if (!addresses.length) throw new ConnectorError(502, 'The MCP server hostname did not resolve.');
@@ -980,9 +1033,17 @@ const validateMcpDestination = async (url, allowPrivateNetwork) => {
   return { addresses, isPrivate };
 };
 
-const boundedResponse = (response, dispatcher) => {
+const closeDispatcher = (dispatcher) => {
+  try {
+    void dispatcher.close().catch(() => undefined);
+  } catch {
+    // The dispatcher may already be destroyed by a concurrent abort.
+  }
+};
+
+const boundedResponse = (response, closeRequestDispatcher) => {
   if (!response.body) {
-    void dispatcher.close();
+    closeRequestDispatcher();
     return response;
   }
   let bytes = 0;
@@ -995,8 +1056,8 @@ const boundedResponse = (response, dispatcher) => {
       }
       controller.enqueue(chunk);
     },
-    flush() { void dispatcher.close(); },
-    cancel() { void dispatcher.close(); },
+    flush() { closeRequestDispatcher(); },
+    cancel() { closeRequestDispatcher(); },
   });
   return new Response(response.body.pipeThrough(limiter), {
     status: response.status,
@@ -1023,7 +1084,7 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
       && !isLoopbackAddress(currentUrl.hostname)) {
       throw new ConnectorError(403, 'Insecure non-loopback MCP destinations are blocked.');
     }
-    const destination = await validateMcpDestination(currentUrl, allowPrivateNetwork);
+    const destination = await validateMcpDestination(currentUrl, allowPrivateNetwork, controller.signal);
     initialDestination ||= destination;
     if (destination.isPrivate && !initialDestination.isPrivate) {
       throw new ConnectorError(403, 'Public MCP endpoints may not redirect to private or loopback destinations.');
@@ -1038,7 +1099,15 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
         },
       },
     });
-    controller.signal.addEventListener('abort', () => void dispatcher.close(), { once: true });
+    const closeRequestDispatcher = () => {
+      controller.signal.removeEventListener('abort', closeRequestDispatcher);
+      closeDispatcher(dispatcher);
+    };
+    controller.signal.addEventListener('abort', closeRequestDispatcher, { once: true });
+    if (controller.signal.aborted) {
+      closeRequestDispatcher();
+      throw mcpTimeoutError();
+    }
     const headers = new Headers(input instanceof Request ? input.headers : undefined);
     for (const [name, value] of new Headers(init.headers)) headers.set(name, value);
     headers.delete('authorization');
@@ -1059,12 +1128,14 @@ const createSafeMcpFetch = (endpoint, accessToken, controller, allowPrivateNetwo
         dispatcher,
       });
     } catch (error) {
-      void dispatcher.close();
+      closeRequestDispatcher();
       throw error;
     }
-    if (![301, 302, 303, 307, 308].includes(response.status)) return boundedResponse(response, dispatcher);
+    if (![301, 302, 303, 307, 308].includes(response.status)) {
+      return boundedResponse(response, closeRequestDispatcher);
+    }
     await response.body?.cancel().catch(() => undefined);
-    void dispatcher.close();
+    closeRequestDispatcher();
     if (redirects === MAX_REDIRECTS) throw new ConnectorError(502, 'The MCP server redirected too many times.');
     const location = response.headers.get('location');
     if (!location) throw new ConnectorError(502, 'The MCP server returned an invalid redirect.');
@@ -1092,9 +1163,29 @@ const collectMcpPages = async (requestPage, field) => {
   return { items, truncated: Boolean(cursor) };
 };
 
-const connectMcpClient = async (transportName, endpoint, accessToken, allowPrivateNetwork, makeTransport, operation) => {
+const withMcpDeadline = async (operation) => {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), MCP_REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), mcpRequestTimeoutMs);
+  try {
+    return await operation(controller);
+  } catch (error) {
+    if (controller.signal.aborted) throw mcpTimeoutError();
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+};
+
+const connectMcpClient = async (
+  transportName,
+  endpoint,
+  accessToken,
+  allowPrivateNetwork,
+  makeTransport,
+  operation,
+  controller,
+) => {
   const safeFetch = createSafeMcpFetch(endpoint, accessToken, controller, allowPrivateNetwork);
   const client = new Client(
     { name: 'algoglyph-local-connector', version: CONNECTOR_VERSION },
@@ -1106,13 +1197,32 @@ const connectMcpClient = async (transportName, endpoint, accessToken, allowPriva
     await client.connect(transport);
     return await operation(client, transportName);
   } finally {
-    clearTimeout(timer);
-    await client.close().catch(() => undefined);
+    let closeTimer;
+    await Promise.race([
+      client.close().catch(() => undefined),
+      new Promise((resolveDone) => {
+        closeTimer = setTimeout(resolveDone, MCP_CLOSE_TIMEOUT_MS);
+        closeTimer.unref();
+      }),
+    ]);
+    clearTimeout(closeTimer);
   }
 };
 
-const summaryFromClient = async (transportName, endpoint, accessToken, allowPrivateNetwork, makeTransport) =>
-  connectMcpClient(transportName, endpoint, accessToken, allowPrivateNetwork, makeTransport, async (client) => {
+const summaryFromClient = async (
+  transportName,
+  endpoint,
+  accessToken,
+  allowPrivateNetwork,
+  makeTransport,
+  controller,
+) => connectMcpClient(
+  transportName,
+  endpoint,
+  accessToken,
+  allowPrivateNetwork,
+  makeTransport,
+  async (client) => {
     const capabilities = client.getServerCapabilities() || {};
     const toolsPage = capabilities.tools
       ? await collectMcpPages((params) => client.listTools(params), 'tools')
@@ -1157,7 +1267,9 @@ const summaryFromClient = async (transportName, endpoint, accessToken, allowPriv
       })),
       truncated: toolsPage.truncated || resourcesPage.truncated || promptsPage.truncated,
     };
-  });
+  },
+  controller,
+);
 
 const redactError = (error, secrets) => {
   const raw = error instanceof Error ? error.message : 'Could not connect to the MCP server.';
@@ -1178,26 +1290,37 @@ const inspectMcpServer = async (body) => {
   const endpoint = normalizeMcpEndpoint(body.endpoint);
   const accessToken = optionalToken(body.accessToken, 'MCP server token');
   const allowPrivateNetwork = body.allowPrivateNetwork === true;
-  await validateMcpDestination(endpoint, allowPrivateNetwork);
-
-  try {
-    return await summaryFromClient('streamable-http', endpoint, accessToken, allowPrivateNetwork, (safeFetch) =>
-      new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }),
-    );
-  } catch (streamableError) {
+  return withMcpDeadline(async (controller) => {
+    await validateMcpDestination(endpoint, allowPrivateNetwork, controller.signal);
     try {
-      return await summaryFromClient('sse', endpoint, accessToken, allowPrivateNetwork, (safeFetch) =>
-        new SSEClientTransport(endpoint, { fetch: safeFetch }),
+      return await summaryFromClient(
+        'streamable-http',
+        endpoint,
+        accessToken,
+        allowPrivateNetwork,
+        (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }),
+        controller,
       );
-    } catch (sseError) {
-      const streamableMessage = redactError(streamableError, [accessToken]);
-      const sseMessage = redactError(sseError, [accessToken]);
-      throw new ConnectorError(
-        502,
-        `Could not connect to the MCP server. Streamable HTTP: ${streamableMessage}. SSE fallback: ${sseMessage}.`,
-      );
+    } catch (streamableError) {
+      try {
+        return await summaryFromClient(
+          'sse',
+          endpoint,
+          accessToken,
+          allowPrivateNetwork,
+          (safeFetch) => new SSEClientTransport(endpoint, { fetch: safeFetch }),
+          controller,
+        );
+      } catch (sseError) {
+        const streamableMessage = redactError(streamableError, [accessToken]);
+        const sseMessage = redactError(sseError, [accessToken]);
+        throw new ConnectorError(
+          502,
+          `Could not connect to the MCP server. Streamable HTTP: ${streamableMessage}. SSE fallback: ${sseMessage}.`,
+        );
+      }
     }
-  }
+  });
 };
 
 const authorizationOwner = (authorization) => authorization.kind === 'session' ? authorization.token : 'master';
@@ -1231,7 +1354,7 @@ const approveMcpServer = async (body, authorization) => {
   const owner = authorizationOwner(authorization);
   const owned = [...approvedMcpServers.values()]
     .filter((server) => server.owner === owner)
-    .sort((left, right) => left.lastUsedAt - right.lastUsedAt);
+    .sort((left, right) => left.lastUsedAtMonotonic - right.lastUsedAtMonotonic);
   const existing = owned.find((server) => (
     server.endpoint === endpoint.toString()
     && server.allowPrivateNetwork === allowPrivateNetwork
@@ -1239,10 +1362,10 @@ const approveMcpServer = async (body, authorization) => {
       || constantTimeEquals(server.accessToken, accessToken))
     && JSON.stringify(server.summary) === serializedSummary
   ));
-  const now = Date.now();
+  const now = monotonicMilliseconds();
   if (existing) {
-    existing.lastUsedAt = now;
-    existing.expiresAt = now + APPROVED_MCP_TTL_MS;
+    existing.lastUsedAtMonotonic = now;
+    existing.expiresAtMonotonic = now + APPROVED_MCP_TTL_MS;
     return { ...summary, serverId: existing.id };
   }
   while (owned.length >= MAX_APPROVED_MCP_SERVERS_PER_OWNER) {
@@ -1257,9 +1380,9 @@ const approveMcpServer = async (body, authorization) => {
     accessToken,
     allowPrivateNetwork,
     summary,
-    createdAt: now,
-    lastUsedAt: now,
-    expiresAt: now + APPROVED_MCP_TTL_MS,
+    createdAtMonotonic: now,
+    lastUsedAtMonotonic: now,
+    expiresAtMonotonic: now + APPROVED_MCP_TTL_MS,
   });
   return { ...summary, serverId: id };
 };
@@ -1269,11 +1392,12 @@ const requireApprovedMcpServer = (serverId, authorization) => {
     throw new ConnectorError(400, 'An approved MCP server is required.');
   }
   const server = approvedMcpServers.get(serverId);
-  if (!server || server.expiresAt <= Date.now() || server.owner !== authorizationOwner(authorization)) {
-    if (server?.expiresAt <= Date.now()) deleteApprovedServer(serverId);
+  const now = monotonicMilliseconds();
+  if (!server || server.expiresAtMonotonic <= now || server.owner !== authorizationOwner(authorization)) {
+    if (server?.expiresAtMonotonic <= now) deleteApprovedServer(serverId);
     throw new ConnectorError(404, 'That approved MCP server is unavailable for this session.');
   }
-  server.lastUsedAt = Date.now();
+  server.lastUsedAtMonotonic = now;
   return server;
 };
 
@@ -1287,24 +1411,28 @@ const callApprovedMcpTool = async (server, toolName, args) => runBoundedMcpOpera
     throw new ConnectorError(400, 'Choose a tool exposed by the approved MCP server.');
   }
   const endpoint = new URL(server.endpoint);
-  const run = (transportName, makeTransport) => connectMcpClient(
-    transportName,
-    endpoint,
-    server.accessToken,
-    server.allowPrivateNetwork,
-    makeTransport,
-    (client) => client.callTool({ name: toolName, arguments: args }),
-  );
   let result;
   try {
-    if (server.summary.transport === 'streamable-http') {
-      result = await run('streamable-http', (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }));
-    } else if (server.summary.transport === 'sse') {
-      result = await run('sse', (safeFetch) => new SSEClientTransport(endpoint, { fetch: safeFetch }));
-    } else {
+    result = await withMcpDeadline(async (controller) => {
+      const run = (transportName, makeTransport) => connectMcpClient(
+        transportName,
+        endpoint,
+        server.accessToken,
+        server.allowPrivateNetwork,
+        makeTransport,
+        (client) => client.callTool({ name: toolName, arguments: args }),
+        controller,
+      );
+      if (server.summary.transport === 'streamable-http') {
+        return run('streamable-http', (safeFetch) => new StreamableHTTPClientTransport(endpoint, { fetch: safeFetch }));
+      }
+      if (server.summary.transport === 'sse') {
+        return run('sse', (safeFetch) => new SSEClientTransport(endpoint, { fetch: safeFetch }));
+      }
       throw new ConnectorError(502, 'The approved MCP transport is unavailable.');
-    }
+    });
   } catch (error) {
+    if (error instanceof ConnectorError && error.status === 504) throw error;
     throw new ConnectorError(502, `MCP tool invocation failed: ${redactError(error, [server.accessToken])}`);
   }
   const serializedResult = JSON.stringify(result);
@@ -1333,7 +1461,7 @@ const createMcpRelay = (server) => {
     token,
     owner: server.owner,
     server,
-    expiresAt: server.expiresAt,
+    expiresAtMonotonic: server.expiresAtMonotonic,
   });
   return {
     id,
@@ -1351,12 +1479,13 @@ const handleMcpRelayRequest = async (request, response, url) => {
   const match = url.pathname.match(/^\/internal\/mcp\/(relay_[A-Za-z0-9_-]{40,64})$/);
   if (!match) throw new ConnectorError(404, 'Route not found.');
   const relay = mcpRelays.get(match[1]);
-  if (!relay || relay.expiresAt <= Date.now() || !constantTimeEquals(bearerToken(request), relay.token)) {
-    if (relay?.expiresAt <= Date.now()) mcpRelays.delete(match[1]);
+  const now = monotonicMilliseconds();
+  if (!relay || relay.expiresAtMonotonic <= now || !constantTimeEquals(bearerToken(request), relay.token)) {
+    if (relay?.expiresAtMonotonic <= now) mcpRelays.delete(match[1]);
     throw new ConnectorError(401, 'A valid relay credential is required.');
   }
   const approved = approvedMcpServers.get(relay.server.id);
-  if (approved !== relay.server || approved.expiresAt <= Date.now()) {
+  if (approved !== relay.server || approved.expiresAtMonotonic <= now) {
     mcpRelays.delete(match[1]);
     throw new ConnectorError(410, 'The approved MCP relay has expired.');
   }
@@ -1365,13 +1494,13 @@ const handleMcpRelayRequest = async (request, response, url) => {
     { name: 'algoglyph-approved-mcp-relay', version: CONNECTOR_VERSION },
     { capabilities: { tools: {} } },
   );
-  protocolServer.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: relay.server.summary.tools }));
-  protocolServer.setRequestHandler(CallToolRequestSchema, async (toolRequest) => callApprovedMcpTool(
+  protocolServer.setRequestHandler('tools/list', async () => ({ tools: relay.server.summary.tools }));
+  protocolServer.setRequestHandler('tools/call', async (toolRequest) => callApprovedMcpTool(
     relay.server,
     toolRequest.params.name,
     toolRequest.params.arguments || {},
   ));
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new NodeStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   try {
     applySecurityHeaders(response);
     await protocolServer.connect(transport);
@@ -1558,16 +1687,17 @@ const antigravityScreenText = (session) => {
   return lines.join('\n');
 };
 
-const readAntigravityTranscript = async (homeDirectory) => {
+const readAntigravityTranscript = async (homeDirectory, previousFileSnapshots = new Map()) => {
   const brainDirectory = join(homeDirectory, '.gemini', 'antigravity-cli', 'brain');
   let conversations;
   try {
     conversations = await readdir(brainDirectory, { withFileTypes: true });
   } catch {
-    return { eventKeys: new Set(), outputs: [] };
+    return { eventKeys: new Set(), fileSnapshots: new Map(), outputs: [] };
   }
 
   const eventKeys = new Set();
+  const fileSnapshots = new Map();
   const outputs = [];
   // `readdir()` ordering is unspecified. Rank the actual transcript files by
   // modification time so reset-created conversations are selected
@@ -1596,37 +1726,56 @@ const readAntigravityTranscript = async (homeDirectory) => {
     .slice(0, MAX_TRANSCRIPT_FILES);
 
   await Promise.all(rankedConversations.map(async ({ id: conversationId, transcriptPath }) => {
-    let source;
+    let handle;
     try {
-      source = await readFile(transcriptPath, 'utf8');
+      handle = await open(transcriptPath, 'r');
+      const metadata = await handle.stat();
+      if (!metadata.isFile() || metadata.size > MAX_TRANSCRIPT_FILE_BYTES) return;
+      const sourceBuffer = Buffer.alloc(metadata.size);
+      const { bytesRead } = await handle.read(sourceBuffer, 0, metadata.size, 0);
+      const previous = previousFileSnapshots.get(conversationId);
+      const sameFile = previous
+        && previous.device === String(metadata.dev)
+        && previous.inode === String(metadata.ino)
+        && bytesRead >= previous.size;
+      const startOffset = sameFile ? previous.size : 0;
+      fileSnapshots.set(conversationId, {
+        device: String(metadata.dev),
+        inode: String(metadata.ino),
+        size: bytesRead,
+      });
+      const source = sourceBuffer.subarray(startOffset, bytesRead).toString('utf8');
+      for (const line of source.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+          const eventKey = `${conversationId}:${event.step_index}:${event.source || ''}:${event.type || ''}:${event.created_at || ''}`;
+          eventKeys.add(eventKey);
+          if (event.source !== 'MODEL' || event.type !== 'PLANNER_RESPONSE'
+            || event.status !== 'DONE' || typeof event.content !== 'string') continue;
+          const createdAt = typeof event.created_at === 'string' ? event.created_at : '';
+          const createdAtMs = Date.parse(createdAt);
+          if (!Number.isFinite(createdAtMs)) continue;
+          outputs.push({
+            key: eventKey,
+            conversationId,
+            content: event.content,
+            createdAt,
+            createdAtMs,
+          });
+        } catch {
+          // A partially written JSONL tail is expected while the model is active.
+        }
+      }
     } catch {
       return;
-    }
-    for (const line of source.split(/\r?\n/)) {
-      if (!line.trim()) continue;
-      try {
-        const event = JSON.parse(line);
-        const eventKey = `${conversationId}:${event.step_index}:${event.source || ''}:${event.type || ''}:${event.created_at || ''}`;
-        eventKeys.add(eventKey);
-        if (event.source !== 'MODEL' || event.type !== 'PLANNER_RESPONSE'
-          || event.status !== 'DONE' || typeof event.content !== 'string') continue;
-        const createdAt = typeof event.created_at === 'string' ? event.created_at : '';
-        const createdAtMs = Date.parse(createdAt);
-        if (!Number.isFinite(createdAtMs)) continue;
-        outputs.push({
-          key: eventKey,
-          conversationId,
-          content: event.content,
-          createdAt,
-          createdAtMs,
-        });
-      } catch {
-        // A partially written JSONL tail is expected while the model is active.
-      }
+    } finally {
+      await handle?.close().catch(() => undefined);
     }
   }));
   return {
     eventKeys,
+    fileSnapshots,
     outputs: outputs.sort((left, right) => (
       left.createdAtMs - right.createdAtMs || left.key.localeCompare(right.key)
     )),
@@ -1639,7 +1788,7 @@ const waitForAntigravity = (
   timeoutMs,
   timeoutMessage = 'The persistent Antigravity session did not become ready in time.',
 ) => new Promise((resolveDone, reject) => {
-  const startedAt = Date.now();
+  const startedAt = monotonicMilliseconds();
   const poll = () => {
     if (session.exited) {
       reject(new Error('The persistent Antigravity session exited unexpectedly.'));
@@ -1654,7 +1803,7 @@ const waitForAntigravity = (
         reject(new Error('The persistent Antigravity session exited unexpectedly.'));
         return;
       }
-      if (Date.now() - startedAt >= timeoutMs) {
+      if (monotonicMilliseconds() - startedAt >= timeoutMs) {
         reject(new Error(timeoutMessage));
         return;
       }
@@ -1690,12 +1839,17 @@ const stopAntigravitySession = (session = antigravitySession) => {
           session.exitPromise,
           new Promise((resolveDone) => setTimeout(resolveDone, 1_500)),
         ]);
-        if (!session.exited) {
-          try {
-            process.kill(-session.pty.pid, 'SIGKILL');
-          } catch {
+        // The PTY leader can exit on SIGTERM while a descendant deliberately
+        // ignores it. Escalate the whole process group even after the leader's
+        // exit event so no orphan retains the copied credential environment.
+        try {
+          process.kill(-session.pty.pid, 'SIGKILL');
+        } catch {
+          if (!session.exited) {
             try { session.pty.kill(); } catch { /* already gone */ }
           }
+        }
+        if (!session.exited) {
           await Promise.race([
             session.exitPromise,
             new Promise((resolveDone) => setTimeout(resolveDone, 500)),
@@ -1928,7 +2082,10 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
 
   return waitForAntigravity(session, async () => {
     if (isCancelled()) throw new Error('The agent run was cancelled.');
-    const transcript = await readAntigravityTranscript(session.homeDirectory);
+    const transcript = await readAntigravityTranscript(
+      session.homeDirectory,
+      previousTranscript.fileSnapshots,
+    );
     const output = transcript.outputs.find((candidate) => (
       candidate.createdAtMs >= submittedAtMs && !previousTranscript.eventKeys.has(candidate.key)
     ));
@@ -1937,7 +2094,7 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
     if (!accepted && session.rawOutput.includes('Verifying your account')
       && session.rawOutput.includes('Please try again shortly')) {
       eligibilityRejected = true;
-      eligibilityRetryAt ||= Date.now() + antigravityEligibilityRetryDelayMs;
+      eligibilityRetryAt ||= monotonicMilliseconds() + antigravityEligibilityRetryDelayMs;
     }
     // Antigravity 1.1.12 can expose its idle footer before provider account
     // eligibility is ready, then explicitly reject the first prompt without
@@ -1945,7 +2102,8 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
     // that specific rejection and a return to idle. Any transcript activity
     // proves acceptance and permanently disables retry, preventing duplicate
     // model/MCP side effects.
-    if (!accepted && eligibilityRejected && !eligibilityRetryUsed && Date.now() >= eligibilityRetryAt
+    if (!accepted && eligibilityRejected && !eligibilityRetryUsed
+      && monotonicMilliseconds() >= eligibilityRetryAt
       && antigravityScreenText(session).includes('? for shortcuts')) {
       eligibilityRetryUsed = true;
       eligibilityRejected = false;
@@ -2032,7 +2190,7 @@ const streamPersistentAntigravityRun = async (request, response, prompt, approve
 // back as Server-Sent Events. All validation that can reject the request happens
 // *before* the 200/SSE headers are written, so the outer handler can still emit a
 // normal JSON error. Once streaming begins, failures are surfaced as `error`
-// events. The run is bounded by a wall-clock timeout, a max-output cap, and is
+// events. The run is bounded by an elapsed-time deadline, a max-output cap, and is
 // killed if the client disconnects.
 const streamAgentRun = async (request, response, body, authorization) => {
   assertAllowedKeys(body, ['agentId', 'prompt', 'outputMode', 'mcpServerId', 'traceId']);

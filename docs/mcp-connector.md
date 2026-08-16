@@ -2,9 +2,11 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.0` implement protocol v2. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.1` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
+
+Version 0.2.1 closes the end-to-end MCP deadline gap (including DNS, fallback, and shutdown), rejects pre-submission partial transcript completions, uses monotonic clocks for credential lifetimes, rate limits, caches, waits, and retries, guarantees PTY process-group escalation, fixes the packaged macOS native spawn helper through the reviewed `node-pty@1.2.0-beta.15` release, gives the browser stream a bounded watchdog, and replaces the legacy monolithic MCP SDK with its stable modular v2 packages.
 
 ```text
 AlgoGlyph browser/app
@@ -23,7 +25,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx @algoglyph/mcp-connector
+npx --yes @algoglyph/mcp-connector@0.2.1
 ```
 
 Repository checkout:
@@ -164,16 +166,18 @@ Test-only environment overrides are accepted only when `NODE_ENV=test`; producti
 
 ## Dependency and package surface
 
-The release candidate pins its four direct runtime dependencies exactly:
+The release candidate pins its six direct runtime dependencies exactly:
 
-- `@modelcontextprotocol/sdk@1.30.0`
+- `@modelcontextprotocol/client@2.0.0`
+- `@modelcontextprotocol/node@2.0.0`
+- `@modelcontextprotocol/server@2.0.0`
 - `@xterm/headless@6.0.0`
-- `node-pty@1.1.0`
+- `node-pty@1.2.0-beta.15`
 - `undici@7.29.0`
 
-The package requires Node `>=20.18.1`, matching the reviewed `undici` engine floor. `node-pty` is the only direct native-code dependency and is used for the warm Antigravity terminal. It may run its own dependency install/build step. The AlgoGlyph package manifest contains no lifecycle scripts.
+The package requires Node `>=20.18.1`, matching the reviewed `undici` engine floor. `node-pty` is the only direct native-code dependency and is used for the warm Antigravity terminal. Its reviewed install step selects the platform artifact included in the package and falls back to `node-gyp` compilation when necessary. The AlgoGlyph package manifest contains no lifecycle scripts.
 
-Because the connector is an installed command/daemon rather than a reusable library, its audited transitive dependency tree is also fixed in a publishable `npm-shrinkwrap.json`. Release validation rejects a lock that is missing or out of sync and audits a clean install of the packed artifact.
+Because the connector is an installed command/daemon rather than a reusable library, its audited 21-package production tree is also fixed in a publishable `npm-shrinkwrap.json`. That is down from 98 packages with the monolithic MCP SDK. Release validation rejects a lock that is missing or out of sync and audits a clean install of the packed artifact. Integration coverage also connects the modular v2 relay to a legacy v1 MCP client and upstream server.
 
 Only these files may enter the tarball:
 
@@ -191,13 +195,26 @@ Repository tests, fixtures, `.env` files, logs, credentials, workspaces, build o
 npm run test:mcp
 npm run test:mcp:package
 npm run test:mcp:package -- --install-smoke
+npm run lint:mcp
 npm --prefix packages/mcp-connector audit --omit=dev
 npm run build
 ```
 
-The package validator runs `npm pack --dry-run --json`, checks exact inventory, reviewed dependencies, and shrinkwrap synchronization, rejects package scripts/secret-like content, and verifies package/runtime/browser protocol synchronization. `--install-smoke` packs into a temporary directory, performs a clean install plus an isolated production dependency audit, starts the installed bin through npm on an ephemeral loopback port, checks health/version/protocol, terminates it, and deletes the temporary directory.
+The package validator runs `npm pack --dry-run --json`, checks exact inventory, reviewed dependencies, the 21-package ceiling, npm-registry integrity pins, the single expected transitive install-script package (`node-pty`), and shrinkwrap synchronization, rejects package scripts/secret-like content, and verifies package/runtime/browser protocol synchronization. `--install-smoke` packs into a temporary directory, performs a clean install, verifies registry signatures, runs an isolated production dependency audit, starts the generated installed bin shim on an ephemeral loopback port, checks health/version/protocol plus the native PTY path, terminates it, and deletes the temporary directory.
 
 Publishing is a separate maintainer action and is intentionally absent from scripts. The package is `UNLICENSED`; registry availability does not grant permission to reuse its source.
+
+## Production publishing
+
+`.github/workflows/publish-mcp.yml` is a manual, `main`-branch-only release gate. Configure the npm trusted publisher for GitHub organization `Algoglyph`, repository `Algoglyph`, and workflow `publish-mcp.yml`, with `npm publish` permission. Its verification job has no OIDC permission: it verifies the requested version, runs the integration/security suite and packed-artifact smoke test, lints the MCP release surface, and builds. Only after that succeeds does a separate minimal job receive a short-lived OIDC credential, check out the same commit, install the exact npm client with lifecycle scripts disabled, recheck the version, and publish. It does not consume or store an npm automation token.
+
+After authenticating the maintainer locally with `npm login`, the equivalent pinned CLI setup is:
+
+```bash
+npm exec --yes --package=npm@11.19.0 -- npm trust github @algoglyph/mcp-connector --file publish-mcp.yml --repo Algoglyph/Algoglyph --allow-publish --yes
+```
+
+The GitHub repository is currently private. npm trusted publishing still works for a public package from a private repository, but npm cannot issue a public provenance attestation until the source repository is public. Do not make the repository public solely as an automated release step; that is a separate owner decision.
 
 ## Residual risks
 

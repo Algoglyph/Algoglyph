@@ -18,6 +18,8 @@ const browserTypesPath = path.join(repositoryRoot, 'src', 'lib', 'mcp', 'types.t
 const packagePath = path.join(packageDirectory, 'package.json');
 const shrinkwrapPath = path.join(packageDirectory, 'npm-shrinkwrap.json');
 const installSmoke = process.argv.includes('--install-smoke');
+const EXPECTED_LOCKED_PRODUCTION_PACKAGES = 21;
+const EXPECTED_INSTALL_SCRIPT_PACKAGES = ['node_modules/node-pty'];
 
 const expectedFiles = [
   'README.md',
@@ -28,9 +30,11 @@ const expectedFiles = [
 ];
 
 const expectedDependencies = {
-  '@modelcontextprotocol/sdk': '1.30.0',
+  '@modelcontextprotocol/client': '2.0.0',
+  '@modelcontextprotocol/node': '2.0.0',
+  '@modelcontextprotocol/server': '2.0.0',
   '@xterm/headless': '6.0.0',
-  'node-pty': '1.1.0',
+  'node-pty': '1.2.0-beta.15',
   undici: '7.29.0',
 };
 
@@ -142,7 +146,7 @@ const waitForHealth = async (endpoint, child, diagnostics) => {
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  fail(`installed connector did not become healthy within 15 seconds: ${diagnostics()}`);
+  fail(`installed connector did not become healthy within 30 seconds: ${diagnostics()}`);
 };
 
 const stopChild = async (child) => {
@@ -207,6 +211,13 @@ const runInstallSmoke = async (manifest, protocolVersion) => {
       tarballPath,
     ], temporaryDirectory);
 
+    await runNpm([
+      'audit',
+      'signatures',
+      '--prefix',
+      installDirectory,
+    ], temporaryDirectory);
+
     const audit = parseJson((await runNpm([
       'audit',
       '--omit=dev',
@@ -240,17 +251,18 @@ const runInstallSmoke = async (manifest, protocolVersion) => {
       await access(path.join(installedShimDirectory, 'algoglyph-mcp-connector.ps1'));
     }
 
+    const installedEntry = path.join(
+      installedPackageDirectory,
+      installedManifest.bin?.['algoglyph-mcp-connector'] || '',
+    );
+    await access(installedEntry);
+
     const port = await reservePort();
-    const npmCli = await npmCliPath();
-    if (!npmCli) fail('could not locate npm to exercise the installed package executable');
     let childOutput = '';
-    child = spawn(process.execPath, [
-      npmCli,
-      'exec',
-      '--offline',
-      '--',
-      'algoglyph-mcp-connector',
-    ], {
+    child = spawn(
+      process.platform === 'win32' ? process.execPath : installedShim,
+      process.platform === 'win32' ? [installedEntry] : [],
+      {
       cwd: installDirectory,
       detached: process.platform !== 'win32',
       env: {
@@ -265,12 +277,19 @@ const runInstallSmoke = async (manifest, protocolVersion) => {
         TMP: temporaryDirectory,
         HOME: temporaryDirectory,
         USERPROFILE: temporaryDirectory,
+        NODE_ENV: 'test',
         ALGOGLYPH_CONNECTOR_PORT: String(port),
         ALGOGLYPH_CONNECTOR_TOKEN: 'release-smoke-token-is-local-ephemeral-and-at-least-32-bytes-long',
+        ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: path.join(
+          testDirectory,
+          'fixtures',
+          'warmAntigravityAgent.mjs',
+        ),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
-    });
+      },
+    );
     const collectOutput = (chunk) => {
       childOutput = `${childOutput}${chunk.toString('utf8')}`.slice(-4_096);
     };
@@ -283,6 +302,47 @@ const runInstallSmoke = async (manifest, protocolVersion) => {
     );
     if (health.version !== manifest.version) fail('installed binary reports the wrong release version');
     if (health.protocolVersion !== protocolVersion) fail('installed binary reports the wrong protocol version');
+
+    const origin = 'https://algoglyph.com';
+    const jsonRequest = async (requestPath, body, token) => {
+      const response = await fetch(`http://127.0.0.1:${port}/${requestPath}`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Origin: origin,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const payload = await response.json();
+      if (!response.ok) fail(`installed connector ${requestPath} smoke failed (${response.status})`);
+      return payload;
+    };
+    const pairing = await jsonRequest('v1/pairings', {});
+    const session = await jsonRequest('v1/session', { pairingToken: pairing.pairingToken });
+    const antigravityResponse = await fetch(`http://127.0.0.1:${port}/v1/agents/run`, {
+      method: 'POST',
+      headers: {
+        Accept: 'text/event-stream',
+        Authorization: `Bearer ${session.sessionToken}`,
+        'Content-Type': 'application/json',
+        Origin: origin,
+      },
+      body: JSON.stringify({
+        agentId: 'antigravity',
+        prompt: 'WARM_REQUEST_INSTALL_SMOKE',
+        outputMode: 'buffered',
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const antigravityOutput = await antigravityResponse.text();
+    if (!antigravityResponse.ok
+      || !antigravityOutput.includes('WARM_REQUEST_INSTALL_SMOKE')
+      || !antigravityOutput.includes('event: exit')) {
+      fail(`installed native PTY smoke failed (${antigravityResponse.status}): ${antigravityOutput.slice(-1_024)}`);
+    }
   } finally {
     if (child) await stopChild(child);
     await rm(temporaryDirectory, { force: true, maxRetries: 3, recursive: true });
@@ -305,7 +365,7 @@ const main = async () => {
   if (JSON.stringify(packedFiles) !== JSON.stringify(expectedFiles)) {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
-  if (manifest.version !== '0.2.0') fail(`expected release candidate 0.2.0, found ${manifest.version}`);
+  if (manifest.version !== '0.2.1') fail(`expected release candidate 0.2.1, found ${manifest.version}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
     fail('direct runtime dependencies are not exactly pinned to the reviewed versions');
@@ -317,6 +377,26 @@ const main = async () => {
     || JSON.stringify(shrinkwrap.packages?.['']?.dependencies) !== JSON.stringify(expectedDependencies)
   ) {
     fail('publishable transitive dependency lock is missing or out of sync');
+  }
+  const lockedProductionPackages = Object.keys(shrinkwrap.packages || {})
+    .filter((packagePath) => packagePath.length > 0).length;
+  if (lockedProductionPackages !== EXPECTED_LOCKED_PRODUCTION_PACKAGES) {
+    fail(`locked production tree changed from ${EXPECTED_LOCKED_PRODUCTION_PACKAGES} packages`);
+  }
+  const lockedEntries = Object.entries(shrinkwrap.packages || {})
+    .filter(([packagePath]) => packagePath.length > 0);
+  for (const [packagePath, lockedPackage] of lockedEntries) {
+    if (!lockedPackage.integrity
+      || !lockedPackage.resolved?.startsWith('https://registry.npmjs.org/')) {
+      fail(`locked dependency is not integrity-pinned to the npm registry: ${packagePath}`);
+    }
+  }
+  const installScriptPackages = lockedEntries
+    .filter(([, lockedPackage]) => lockedPackage.hasInstallScript === true)
+    .map(([packagePath]) => packagePath)
+    .sort();
+  if (JSON.stringify(installScriptPackages) !== JSON.stringify(EXPECTED_INSTALL_SCRIPT_PACKAGES)) {
+    fail(`unexpected dependency install-script surface: ${installScriptPackages.join(', ')}`);
   }
   if (manifest.scripts && Object.keys(manifest.scripts).length > 0) {
     fail('the package must not define lifecycle or other npm scripts');
@@ -351,7 +431,12 @@ const main = async () => {
     ['Codex deny-root permission profile', /filesystem = \{ ":root" = "deny" \}/],
     ['Codex empty tool-child environment', /\[shell_environment_policy\][\s\S]*?inherit = "none"/],
     ['awaitable warm shutdown', /if \(session\.stopPromise\) return session\.stopPromise/],
+    ['bounded MCP transport close', /MCP_CLOSE_TIMEOUT_MS[\s\S]*?client\.close\(\)/],
+    ['abort-bounded DNS resolution', /validateMcpDestination[\s\S]*?raceWithAbort/],
+    ['monotonic security lifetimes', /expiresAtMonotonic[\s\S]*?monotonicMilliseconds/],
+    ['monotonic rate limits', /timestamps\.push\(monotonicMilliseconds\(\)\)/],
     ['post-submission transcript boundary', /candidate\.createdAtMs >= submittedAtMs/],
+    ['post-submission transcript byte boundary', /previousTranscript\.fileSnapshots/],
     ['connector-owned MCP relay', /\/internal\/mcp\/\$\{id\}/],
   ];
   for (const [label, expression] of requiredSecurityInvariants) {
@@ -364,7 +449,7 @@ const main = async () => {
 
   console.log(
     `Validated @algoglyph/mcp-connector@${manifest.version}: ${packedFiles.length} files, protocol v${runtimeProtocol}`
-      + (installSmoke ? ', clean install/audit and health smoke passed.' : '.'),
+      + (installSmoke ? ', clean install/signatures/audit, health, and native PTY smoke passed.' : '.'),
   );
 };
 

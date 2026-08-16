@@ -2,7 +2,16 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-The npm registry and this repository both provide `0.2.0` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.1` / protocol v2. Running the release checks does not publish anything.
+
+## 0.2.1 security and reliability update
+
+- Applies one end-to-end deadline to MCP DNS resolution, transport fallback, calls, and bounded client shutdown.
+- Rejects Antigravity transcript data that began before the current prompt, including stale partially written JSONL records.
+- Uses monotonic clocks for credential lifetimes, rate limits, caches, waits, and retries, and escalates shutdown across the whole PTY process group.
+- Uses the stable modular MCP SDK v2 client/server/Node packages, reducing the locked production tree from 98 packages to 21 while retaining a legacy-client relay compatibility test.
+- Pins the official `node-pty@1.2.0-beta.15` package whose macOS spawn helper ships executable, and exercises that native path from the packed artifact.
+- Adds a browser-side watchdog slightly beyond the connector's server-side agent deadline.
 
 ## Requirements
 
@@ -10,12 +19,12 @@ The npm registry and this repository both provide `0.2.0` / protocol v2. Running
 - A supported local agent CLI for agent-backed notes or drawings: Antigravity, Codex, or Claude Code.
 - A platform supported by the `node-pty` native dependency when using the warm Antigravity runtime.
 
-`node-pty` is native code and its dependency install may run a native install/build step. The AlgoGlyph package itself defines no `preinstall`, `install`, `postinstall`, `prepare`, or other npm scripts. On platforms without a compatible native artifact, normal compiler/build-tool requirements for `node-pty` apply.
+`node-pty` is native code and its dependency install runs a reviewed selector for the platform artifact already carried in its package, falling back to `node-gyp` compilation when no compatible artifact exists. The AlgoGlyph package itself defines no `preinstall`, `install`, `postinstall`, `prepare`, or other npm scripts. On platforms without a compatible native artifact, normal compiler/build-tool requirements for `node-pty` apply.
 
 ## Start and connect
 
 ```bash
-npx @algoglyph/mcp-connector
+npx --yes @algoglyph/mcp-connector@0.2.1
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
@@ -102,7 +111,7 @@ From the repository root:
 npm run test:mcp:package
 ```
 
-This checks version/protocol synchronization, exact reviewed dependency versions, the publishable transitive lock, absence of package scripts and secret-like content, and an exact five-file tarball inventory:
+This checks version/protocol synchronization, exact reviewed dependency versions, the 21-package publishable production tree, registry/integrity pinning, the single expected transitive install-script package (`node-pty`), absence of package scripts and secret-like content, and an exact five-file tarball inventory:
 
 - `package.json`
 - `README.md`
@@ -110,7 +119,7 @@ This checks version/protocol synchronization, exact reviewed dependency versions
 - `bin/algoglyph-mcp-connector.mjs`
 - `npm-shrinkwrap.json`
 
-To additionally create a temporary tarball, perform a clean install and isolated production dependency audit (including the reviewed `node-pty` native install surface), launch the installed binary through npm on an ephemeral loopback port, and verify health:
+To additionally create a temporary tarball, perform a clean install, verify registry signatures, run an isolated production dependency audit (including the reviewed `node-pty` native install surface), launch the installed binary through its generated npm shim on an ephemeral loopback port, and exercise health plus the native PTY path:
 
 ```bash
 npm run test:mcp:package -- --install-smoke
