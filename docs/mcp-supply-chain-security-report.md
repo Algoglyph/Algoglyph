@@ -5,9 +5,9 @@ Scope: `@algoglyph/mcp-connector` published artifact, runtime dependencies, pack
 
 ## Executive summary
 
-Published version `0.2.1` has zero known production vulnerabilities and its clean 22-package installation has valid npm registry signatures. Socket nevertheless assigns 71/100 for Supply Chain Security because the tarball contains `npm-shrinkwrap.json`, which Socket categorizes as a high-severity heuristic. Socket's alert is not evidence that the reviewed lock is malicious; npm recommends publishable shrinkwraps for command-line applications.
+Published version `0.2.1` had zero known production vulnerabilities, but Socket assigned 71/100 for Supply Chain Security because the tarball contained `npm-shrinkwrap.json`, which Socket categorizes as a high-severity heuristic. Socket's alert was not evidence that the reviewed lock was malicious; npm recommends publishable shrinkwraps for command-line applications.
 
-Release candidate `0.2.2` removes the shrinkwrap from the published six-file artifact, retains the exact 21-dependency review tree in a source-only lock, explicitly declares the MCP Node transport's Hono peer, and rejects a clean install whose package identities differ from the reviewed lock. Its clean-install signature, vulnerability, executable, health, and native PTY checks pass.
+Published version `0.2.2` removes the shrinkwrap from its six-file artifact, retains the exact 21-dependency review tree in a source-only lock, explicitly declares the MCP Node transport's Hono peer, and rejects a clean install whose package identities differ from the reviewed lock. Socket reports no alert count and now assigns 77/100 for Supply Chain Security. An independent clean install verified 22 registry signatures, 11 dependency attestations, zero known vulnerabilities, Apache-2.0 metadata, executable health, and the native PTY path.
 
 A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documented score also weights download count, direct dependencies, and transitive dependencies. Those inputs remain below their mathematical maxima even after the only package-level high alert is removed. The correct release gate is zero untriaged critical/high malicious-behavior alerts, zero known vulnerabilities, valid registry signatures, reviewed dependency identities, and a working installed artifact.
 
@@ -15,11 +15,11 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 
 ### MCP-SC-001 — Published npm shrinkwrap triggers Socket's high alert
 
-- Status: Remediated in unpublished `0.2.2`; present in immutable `0.2.1`.
+- Status: Remediated in published `0.2.2`; present in immutable `0.2.1`.
 - Location: `packages/mcp-connector/package.json:9-15`; `packages/mcp-connector/test/package-release.mjs:24-31`.
 - Evidence: The supplied Socket report shows `Shrinkwrap` as the only supply-chain alert. The registry tarball for `0.2.1` contains `package/npm-shrinkwrap.json`; the `0.2.2` pack validator proves an exact six-file inventory without it.
 - Impact: Socket applies a high-alert penalty and warns that shrinkwrap can alter normal dependency resolution. This is a scanner heuristic, not proof of malicious behavior in this package.
-- Fix: Publish `0.2.2`, which excludes the shrinkwrap.
+- Fix: Published `0.2.2` excludes the shrinkwrap.
 - Mitigation: Keep `packages/mcp-connector/package-lock.json` in source control and fail release validation when a clean packed install differs from its reviewed identities.
 - False-positive note: npm documents command-line tools as a recommended use case for `npm-shrinkwrap.json`. Removing it is therefore a scoring/interoperability trade-off, not an unconditional security improvement.
 
@@ -45,12 +45,12 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 - Mitigation: The install-smoke test compares all clean-install package identities with the source review lock.
 - False-positive note: None; the failure was reproduced from the packed artifact.
 
-### MCP-SC-004 — Published `0.2.1` lacks public provenance
+### MCP-SC-004 — Published `0.2.2` lacks public provenance
 
-- Status: Pending the next authenticated release path.
+- Status: Open; the manual `0.2.2` release has registry signatures but no package-level provenance attestation.
 - Location: `.github/workflows/publish-mcp.yml:60-92`.
-- Evidence: npm metadata for `0.2.1` has a registry signature but no package-level provenance attestation. The prepared workflow isolates `id-token: write` to a post-verification publish job.
-- Impact: Consumers can verify registry integrity, but cannot cryptographically link `0.2.1` to a public source commit and build workflow.
+- Evidence: npm metadata for `0.2.2` has a registry signature and `gitHead` `4a523c8e266a62c5b1d6500e59372fb8874da9b9`, but no package-level provenance attestation. The prepared workflow isolates `id-token: write` to a post-verification publish job.
+- Impact: Consumers can verify registry integrity, but cannot cryptographically link `0.2.2` to a public source commit and build workflow.
 - Fix: Publish future releases through npm trusted publishing. Public npm provenance additionally requires a public source repository; the repository is currently private.
 - Mitigation: Pinned action commits, pinned Node/npm versions, separated verification and OIDC jobs, exact version checks, and no long-lived npm token in the workflow.
 - False-positive note: Registry signatures are present and valid; provenance is an additional assurance layer.
@@ -61,19 +61,19 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 
 - Status: Not achievable immediately from the package source alone.
 - Location: External Socket scoring model and npm download metadata.
-- Evidence: Socket documents Supply Chain Risk weights for download count (5), transitive dependency count (1), total dependency count (1), and direct dependency count (1). The package currently has 187 weekly downloads and the reviewed `0.2.2` tree has 7 direct and 21 total dependencies.
-- Impact: Removing all alerts does not make every normalized metric equal to one, so the score remains below 100 until external adoption and dependency characteristics change.
+- Evidence: Socket documents Supply Chain Risk weights for download count (5), transitive dependency count (1), total dependency count (1), direct dependency count (1), and dev dependency count (0.5), in addition to alert metrics. With zero alerts, 187 downloads, 7 direct dependencies, 14 transitive dependencies, 21 total dependencies, and no dev dependencies, the documented normalizations produce a weighted average of `0.692564`. The displayed 77 implies a current scaling exponent of approximately `0.7115`, reproducing the observed result. Holding that exponent constant, even infinite downloads would produce approximately 99.29 with the required dependency footprint.
+- Impact: Removing all alerts does not make every normalized metric equal to one, so the score remains below 100 until external adoption and Socket's popularity-dependent scaling change. The 77 is not evidence of a remaining vulnerability or malicious-behavior alert.
 - Fix: Do not fake downloads, maintainers, releases, or hide dependencies. Reduce dependencies only when functionality and security remain intact, and let adoption metrics grow organically.
 - Mitigation: Gate releases on concrete security properties rather than an unattainable immediate aggregate score.
-- False-positive note: Socket states that its documented model may differ from the currently deployed model; only an authenticated post-publication Socket query can establish the new displayed score.
+- False-positive note: Socket states that its documented model may differ from the currently deployed model. The supplied post-publication Socket report establishes the displayed score as 77 and shows no alert-count badge.
 
 ### MCP-SC-006 — Package lacked a reuse license
 
 - Status: Fixed in `0.2.2` with owner authorization.
 - Location: `packages/mcp-connector/package.json:32`; `packages/mcp-connector/LICENSE`; `packages/mcp-connector/NOTICE`.
-- Evidence: Published `0.2.1` is explicitly `UNLICENSED`, matching the supplied Socket 0% License result. Release candidate `0.2.2` declares the SPDX identifier `Apache-2.0` and packs the canonical license terms plus attribution notice.
+- Evidence: Published `0.2.1` is explicitly `UNLICENSED`, matching the original Socket 0% License result. Published `0.2.2` declares the SPDX identifier `Apache-2.0` and packs the canonical license terms plus attribution notice; Socket now reports 80 for License.
 - Impact: `0.2.1` grants no reuse license. `0.2.2` provides a permissive copyright license and an explicit patent grant, subject to Apache-2.0 conditions.
-- Fix: Publish `0.2.2` with the package-scoped Apache-2.0 license and NOTICE.
+- Fix: Published `0.2.2` includes the package-scoped Apache-2.0 license and NOTICE.
 - Mitigation: Release validation rejects license metadata drift and requires both files in the exact tarball inventory.
 - False-positive note: None.
 
@@ -86,3 +86,4 @@ A literal Socket 100/100 cannot be guaranteed by a code change. Socket's documen
 - Registry signatures: verified during install smoke at `packages/mcp-connector/test/package-release.mjs:233-238`.
 - Known production vulnerabilities: must equal zero at `packages/mcp-connector/test/package-release.mjs:240-249`.
 - Installed CLI, protocol health, and native PTY path: exercised before release.
+- Published `0.2.2` post-release audit: 22 registry signatures, 11 dependency attestations, and zero known production vulnerabilities.
