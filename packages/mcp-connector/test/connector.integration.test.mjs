@@ -1116,6 +1116,17 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       assert.ok(eligibilityRetry.output.retryElapsedMs >= 40);
       assert.equal(eligibilityRetry.output.homeDirectory, first.output.homeDirectory);
 
+      const repeatedEligibilityRetry = await runWarmAntigravity(
+        warmConnector,
+        firstSession.sessionToken,
+        'WARM_REQUEST_ELIGIBILITY_MULTIPLE',
+      );
+      assert.equal(repeatedEligibilityRetry.status, 200);
+      assert.equal(repeatedEligibilityRetry.output.marker, 'WARM_REQUEST_ELIGIBILITY_MULTIPLE');
+      assert.equal(repeatedEligibilityRetry.output.submissionCount, 4);
+      assert.ok(repeatedEligibilityRetry.output.retryElapsedMs >= 120);
+      assert.equal(repeatedEligibilityRetry.output.homeDirectory, first.output.homeDirectory);
+
       const second = await runWarmAntigravity(
         warmConnector,
         firstSession.sessionToken,

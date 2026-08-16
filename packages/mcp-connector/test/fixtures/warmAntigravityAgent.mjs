@@ -40,7 +40,12 @@ const handlePrompt = (prompt) => {
   submissionCounts.set(marker, submissionCount);
   if (!firstSubmissionAt.has(marker)) firstSubmissionAt.set(marker, Date.now());
   const retryElapsedMs = Date.now() - firstSubmissionAt.get(marker);
-  if (marker === 'WARM_REQUEST_ELIGIBILITY' && submissionCount === 1) {
+  const simulatedEligibilityRejection = (
+    marker === 'WARM_REQUEST_ELIGIBILITY' && submissionCount === 1
+  ) || (
+    marker === 'WARM_REQUEST_ELIGIBILITY_MULTIPLE' && submissionCount <= 3
+  );
+  if (simulatedEligibilityRejection) {
     process.stdout.write([
       'Verifying your account...',
       "We're finishing verifying your account eligibility.",

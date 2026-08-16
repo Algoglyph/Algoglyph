@@ -26,6 +26,8 @@ const MCP_REQUEST_TIMEOUT_MS = 10_000;
 const MCP_CLOSE_TIMEOUT_MS = 1_000;
 const AGENT_RUN_TIMEOUT_MS = 120_000;
 const ANTIGRAVITY_SESSION_READY_TIMEOUT_MS = 90_000;
+const ANTIGRAVITY_ELIGIBILITY_RETRY_DELAY_MS = 1_000;
+const MAX_ANTIGRAVITY_ELIGIBILITY_RETRIES = 12;
 const MAX_AGENT_OUTPUT_BYTES = 256 * 1024;
 const MAX_PROMPT_BYTES = 32 * 1024;
 const MAX_CONCURRENT_AGENT_RUNS = 1;
@@ -166,7 +168,7 @@ const antigravitySessionReadyTimeoutMs = testOverride(
 const antigravityResetTimeoutMs = testOverride('ALGOGLYPH_TEST_ANTIGRAVITY_RESET_TIMEOUT_MS', 5_000, 25);
 const antigravityEligibilityRetryDelayMs = testOverride(
   'ALGOGLYPH_TEST_ANTIGRAVITY_ELIGIBILITY_RETRY_DELAY_MS',
-  15_000,
+  ANTIGRAVITY_ELIGIBILITY_RETRY_DELAY_MS,
   25,
 );
 const mcpRequestTimeoutMs = testOverride(
@@ -2077,7 +2079,7 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
   };
   let eligibilityRejected = false;
   let eligibilityRetryAt = 0;
-  let eligibilityRetryUsed = false;
+  let eligibilityRetryCount = 0;
   submit();
 
   return waitForAntigravity(session, async () => {
@@ -2096,17 +2098,18 @@ const runPersistentAntigravityPrompt = async (session, prompt, isCancelled) => {
       eligibilityRejected = true;
       eligibilityRetryAt ||= monotonicMilliseconds() + antigravityEligibilityRetryDelayMs;
     }
-    // Antigravity 1.1.12 can expose its idle footer before provider account
-    // eligibility is ready, then explicitly reject the first prompt without
-    // creating any transcript event. Retry exactly once only after observing
-    // that specific rejection and a return to idle. Any transcript activity
-    // proves acceptance and permanently disables retry, preventing duplicate
-    // model/MCP side effects.
-    if (!accepted && eligibilityRejected && !eligibilityRetryUsed
+    // Antigravity can expose its idle footer while provider account eligibility
+    // is still settling, then explicitly reject prompts without creating any
+    // transcript event. Retry only after that exact rejection and a return to
+    // idle. Any transcript activity proves acceptance and permanently disables
+    // retries, preventing duplicate model/MCP side effects.
+    if (!accepted && eligibilityRejected
+      && eligibilityRetryCount < MAX_ANTIGRAVITY_ELIGIBILITY_RETRIES
       && monotonicMilliseconds() >= eligibilityRetryAt
       && antigravityScreenText(session).includes('? for shortcuts')) {
-      eligibilityRetryUsed = true;
+      eligibilityRetryCount += 1;
       eligibilityRejected = false;
+      eligibilityRetryAt = 0;
       submit();
     }
     return undefined;
