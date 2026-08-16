@@ -5,11 +5,12 @@ import { chmod, copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpa
 import { createServer } from 'node:http';
 import { isIP } from 'node:net';
 import { tmpdir } from 'node:os';
-import { delimiter, dirname, isAbsolute, join, resolve, sep } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { Client, SSEClientTransport, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { Server as McpServer } from '@modelcontextprotocol/server';
 import { Agent as UndiciAgent } from 'undici';
+import { invocationArgs, invocationPath, resolveCliInvocation } from './cli-runtime.mjs';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
 const CONNECTOR_VERSION = '0.2.2';
@@ -704,7 +705,7 @@ const readJsonBody = (request, { objectOnly = true } = {}) =>
     });
   });
 
-const runVersionCheck = async (command) => {
+const runVersionCheck = async (invocation) => {
   let probeDirectory;
   try {
     probeDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-agent-probe-'));
@@ -716,9 +717,7 @@ const runVersionCheck = async (command) => {
   for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'LANG', 'LC_ALL']) {
     if (process.env[name]) environment[name] = process.env[name];
   }
-  environment.PATH = [dirname(command), process.env.SystemRoot && join(process.env.SystemRoot, 'System32')]
-    .filter(Boolean)
-    .join(delimiter);
+  environment.PATH = invocationPath(invocation);
   environment.HOME = probeDirectory;
   environment.USERPROFILE = probeDirectory;
   environment.TEMP = probeDirectory;
@@ -737,7 +736,7 @@ const runVersionCheck = async (command) => {
     };
 
     try {
-      child = spawn(command, ['--version'], {
+      child = spawn(invocation.command, invocationArgs(invocation, ['--version']), {
         cwd: probeDirectory,
         env: environment,
         shell: false,
@@ -781,8 +780,8 @@ const detectAgents = async () => {
   agentCatalogExpiresAt = monotonicMilliseconds() + 30_000;
   agentCatalogPromise = Promise.all(
     AGENTS.map(async (agent) => {
-      const executable = await resolveAgentExecutable(agent);
-      const result = executable ? await runVersionCheck(executable) : { available: false };
+      const invocation = await resolveAgentInvocation(agent);
+      const result = invocation ? await runVersionCheck(invocation) : { available: false };
       return { id: agent.id, label: agent.label, command: agent.command, ...result };
     }),
   ).catch((error) => {
@@ -793,52 +792,22 @@ const detectAgents = async () => {
   return agentCatalogPromise;
 };
 
-const resolvedExecutables = new Map();
+const resolvedAgentInvocations = new Map();
 
-const resolveAgentExecutable = async (agent) => {
-  if (resolvedExecutables.has(agent.id)) return resolvedExecutables.get(agent.id);
+const resolveAgentInvocation = async (agent) => {
+  if (resolvedAgentInvocations.has(agent.id)) return resolvedAgentInvocations.get(agent.id);
   const configured = process.env[`ALGOGLYPH_${agent.id.toUpperCase()}_PATH`]?.trim();
-  const candidates = [];
-  if (configured) {
-    if (!isAbsolute(configured)) throw new Error(`ALGOGLYPH_${agent.id.toUpperCase()}_PATH must be absolute.`);
-    candidates.push(configured);
-  }
-  else if (isAbsolute(agent.command)) candidates.push(agent.command);
-  else {
-    const extensions = process.platform === 'win32'
-      ? (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';')
-      : [''];
-    for (const directory of (process.env.PATH || '').split(delimiter).filter(Boolean)) {
-      for (const extension of extensions) candidates.push(join(directory, `${agent.command}${extension}`));
-    }
-  }
-  for (const candidate of candidates) {
-    try {
-      const absolute = await realpath(resolve(candidate));
-      const metadata = await stat(absolute);
-      if (!metadata.isFile()) continue;
-      const normalized = process.platform === 'win32' ? absolute.toLowerCase() : absolute;
-      const resolvedCwd = resolve(process.cwd());
-      const projectRoot = `${process.platform === 'win32' ? resolvedCwd.toLowerCase() : resolvedCwd}${sep}`;
-      const dependencyBin = `${sep}node_modules${sep}.bin${sep}`;
-      if (!configured && (normalized.startsWith(projectRoot) || normalized.includes(dependencyBin))) continue;
-      resolvedExecutables.set(agent.id, absolute);
-      return absolute;
-    } catch {
-      // Try the next explicitly resolved candidate.
-    }
-  }
-  return undefined;
+  const invocation = await resolveCliInvocation({ command: agent.command, configuredPath: configured });
+  if (invocation) resolvedAgentInvocations.set(agent.id, invocation);
+  return invocation;
 };
 
-const createAgentEnvironment = (agent, executable, homeDirectory) => {
+const createAgentEnvironment = (agent, invocation, homeDirectory) => {
   const environment = {};
   for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'LANG', 'LC_ALL']) {
     if (process.env[name]) environment[name] = process.env[name];
   }
-  environment.PATH = [dirname(executable), process.env.SystemRoot && join(process.env.SystemRoot, 'System32')]
-    .filter(Boolean)
-    .join(delimiter);
+  environment.PATH = invocationPath(invocation);
   environment.HOME = homeDirectory;
   environment.USERPROFILE = homeDirectory;
   // Runtime scratch files must live inside the request-owned root as well;
@@ -1893,8 +1862,16 @@ const startAntigravitySession = async (approvedServer, owner) => {
   if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
   const agent = AGENTS.find((candidate) => candidate.id === 'antigravity');
   if (!agent) throw new ConnectorError(503, 'Antigravity is unavailable.');
-  const executable = testAntigravityFixture ? process.execPath : await resolveAgentExecutable(agent);
-  if (!executable) throw new ConnectorError(503, 'The Antigravity executable is unavailable.');
+  const invocation = testAntigravityFixture
+    ? {
+      command: process.execPath,
+      argsPrefix: [],
+      resolvedPath: process.execPath,
+      kind: 'native',
+      pathEntries: [dirname(process.execPath)],
+    }
+    : await resolveAgentInvocation(agent);
+  if (!invocation) throw new ConnectorError(503, 'The Antigravity executable is unavailable.');
   const { ptyRuntime, HeadlessTerminal } = await loadAntigravityPtyModules();
 
   const rootDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-session-'));
@@ -1908,7 +1885,7 @@ const startAntigravitySession = async (approvedServer, owner) => {
       mkdir(homeDirectory, { recursive: true, mode: 0o700 }),
       mkdir(runDirectory, { recursive: true, mode: 0o700 }),
     ]);
-    environment = createAgentEnvironment(agent, executable, homeDirectory);
+    environment = createAgentEnvironment(agent, invocation, homeDirectory);
     environment.TERM = 'xterm-256color';
     if (testAntigravityFixture) {
       for (const name of agent.authEnv || []) delete environment[name];
@@ -1940,7 +1917,10 @@ const startAntigravitySession = async (approvedServer, owner) => {
     // Keep built-in slash commands enabled for the connector-owned `/clear`
     // between requests. User prompts are bracketed-pasted after control-byte
     // stripping, so they cannot inject terminal commands or keystrokes.
-    ptyProcess = ptyRuntime.spawn(executable, testAntigravityFixture ? [testAntigravityFixture] : ['--sandbox'], {
+    ptyProcess = ptyRuntime.spawn(invocation.command, invocationArgs(
+      invocation,
+      testAntigravityFixture ? [testAntigravityFixture] : ['--sandbox'],
+    ), {
       cwd: runDirectory,
       env: environment,
       cols: 160,
@@ -2242,15 +2222,15 @@ const streamAgentRun = async (request, response, body, authorization) => {
   }
 
   const executableStartedAt = monotonicMilliseconds();
-  let executable;
+  let invocation;
   try {
-    executable = await resolveAgentExecutable(agent);
+    invocation = await resolveAgentInvocation(agent);
   } catch (error) {
     releaseSlot();
     throw error;
   }
   const executableResolvedAt = monotonicMilliseconds();
-  if (!executable) {
+  if (!invocation) {
     releaseSlot();
     throw new ConnectorError(503, 'The selected agent executable is unavailable.');
   }
@@ -2262,7 +2242,7 @@ const streamAgentRun = async (request, response, body, authorization) => {
     throw error;
   }
   const { workingDirectory, runDirectory, homeDirectory } = directories;
-  const environment = createAgentEnvironment(agent, executable, homeDirectory);
+  const environment = createAgentEnvironment(agent, invocation, homeDirectory);
   const credentialsStartedAt = monotonicMilliseconds();
   let credentialsFinishedAt = credentialsStartedAt;
   let mcpConfigStartedAt = credentialsStartedAt;
@@ -2306,7 +2286,7 @@ const streamAgentRun = async (request, response, body, authorization) => {
   let child;
   const spawnStartedAt = monotonicMilliseconds();
   try {
-    child = spawn(executable, args, {
+    child = spawn(invocation.command, invocationArgs(invocation, args), {
       cwd: runDirectory,
       env: environment,
       shell: false,

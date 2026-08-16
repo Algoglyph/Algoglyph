@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, describe, test } from 'node:test';
+import { buildExecutableCandidates, resolveCliInvocation } from '../bin/cli-runtime.mjs';
 import {
   startConnectorHarness,
   startMcpServerFixture,
@@ -418,6 +419,105 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       await probeConnector.stop();
       await rm(markerDirectory, { recursive: true, force: true });
     }
+  });
+
+  test('Windows npm command shims resolve and launch without enabling a shell', {
+    skip: process.platform !== 'win32',
+  }, async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), 'algoglyph-cli-shim-test-'));
+    const shimDirectory = join(fixtureRoot, 'npm');
+    const emptyCodexHome = join(fixtureRoot, 'empty-codex-home');
+    const entryDirectory = join(shimDirectory, 'node_modules', '@openai', 'codex', 'bin');
+    const entryPath = join(entryDirectory, 'codex.js');
+    const shimPath = join(shimDirectory, 'codex.cmd');
+    await mkdir(entryDirectory, { recursive: true });
+    await mkdir(emptyCodexHome, { recursive: true });
+    await writeFile(entryPath, [
+      "if (process.argv.includes('--version')) { console.log('codex-cli 9.9.9'); process.exit(0); }",
+      "let input = '';",
+      "process.stdin.setEncoding('utf8');",
+      "process.stdin.on('data', (chunk) => { input += chunk; });",
+      "process.stdin.on('end', () => { console.log(input ? 'shim-run-ok' : 'missing-prompt'); });",
+    ].join('\n'));
+    await writeFile(shimPath, [
+      '@ECHO off',
+      'GOTO start',
+      ':find_dp0',
+      'SET dp0=%~dp0',
+      'EXIT /b',
+      ':start',
+      'SETLOCAL',
+      'CALL :find_dp0',
+      'SET "_prog=node"',
+      'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%" "%dp0%\\node_modules\\@openai\\codex\\bin\\codex.js" %*',
+    ].join('\r\n'));
+
+    const invocation = await resolveCliInvocation({
+      command: 'codex',
+      configuredPath: shimPath,
+      platform: 'win32',
+    });
+    assert.equal(invocation?.kind, 'npm-node-shim');
+    assert.equal(invocation?.command, process.execPath);
+    assert.deepEqual(invocation?.argsPrefix, [entryPath]);
+
+    const shimConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        CODEX_HOME: emptyCodexHome,
+        ALGOGLYPH_CODEX_PATH: shimPath,
+        ALGOGLYPH_ANTIGRAVITY_PATH: process.execPath,
+        ALGOGLYPH_CLAUDE_PATH: process.execPath,
+      },
+    });
+    try {
+      const { session } = await shimConnector.pair();
+      const catalog = await shimConnector.request('v1/catalog', { token: session.sessionToken });
+      const codex = catalog.body.agents.find((agent) => agent.id === 'codex');
+      assert.deepEqual(codex, {
+        id: 'codex',
+        label: 'Codex CLI',
+        command: 'codex',
+        available: true,
+        version: 'codex-cli 9.9.9',
+      });
+
+      const run = await runRawFixtureAgent(shimConnector, session.sessionToken, { agentId: 'codex' });
+      assert.equal(run.status, 200);
+      assert.match(run.events.find((event) => event.event === 'output')?.data.chunk || '', /shim-run-ok/);
+      assert.equal(run.events.at(-1)?.event, 'exit');
+      assert.equal(run.events.at(-1)?.data.code, 0);
+    } finally {
+      await shimConnector.stop();
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('cross-platform CLI candidate construction does not invoke a login shell', () => {
+    const macCandidates = buildExecutableCandidates('agy', {
+      platform: 'darwin',
+      pathValue: '/custom/bin',
+      nodeExecutable: '/Applications/Node/bin/node',
+      homeDirectory: '/Users/example',
+    });
+    assert.deepEqual(macCandidates.slice(0, 2), ['/custom/bin/agy', '/Applications/Node/bin/agy']);
+    assert.equal(macCandidates.includes('/opt/homebrew/bin/agy'), true);
+    assert.equal(macCandidates.includes('/usr/local/bin/agy'), true);
+    assert.equal(macCandidates.includes('/Users/example/.volta/bin/agy'), true);
+
+    const windowsCandidates = buildExecutableCandidates('codex', {
+      platform: 'win32',
+      pathValue: 'C:\\npm;C:\\tools',
+      pathExtValue: '.EXE;.CMD',
+      nodeExecutable: 'C:\\node\\node.exe',
+      homeDirectory: 'C:\\Users\\example',
+    });
+    assert.deepEqual(windowsCandidates.slice(0, 4), [
+      'C:\\npm\\codex.EXE',
+      'C:\\npm\\codex.CMD',
+      'C:\\tools\\codex.EXE',
+      'C:\\tools\\codex.CMD',
+    ]);
   });
 
   test('session count is bounded by evicting the least-recently-used grant', async () => {
@@ -1394,10 +1494,10 @@ describe('security remediation contract', () => {
     const clientSource = await readFile(`${REPO_ROOT}/src/lib/mcp/connectorClient.ts`, 'utf8');
     const dialogSource = await readFile(`${REPO_ROOT}/src/components/McpConnectDialog.tsx`, 'utf8');
     assert.match(connectorSource, /taskkill\.exe.*\/T.*\/F/s);
-    assert.match(connectorSource, /resolveAgentExecutable/);
+    assert.match(connectorSource, /resolveAgentInvocation/);
     assert.match(connectorSource, /--sandbox/);
     assert.match(connectorSource, /runArgs: \['--sandbox', '--disable-slash-commands', '-p'\]/);
-    assert.match(connectorSource, /ptyRuntime\.spawn\(executable, testAntigravityFixture \? \[testAntigravityFixture\] : \['--sandbox'\]/);
+    assert.match(connectorSource, /ptyRuntime\.spawn\(invocation\.command, invocationArgs\(/);
     assert.match(connectorSource, /session\.pty\.write\('\/clear\\r'\)/);
     assert.doesNotMatch(connectorSource, /agy models/);
     const antigravityWaitSource = connectorSource.slice(
@@ -1485,7 +1585,7 @@ describe('security remediation contract', () => {
     assert.deepEqual(reviewLock.packages[''].dependencies, packageJson.dependencies);
     assert.deepEqual(packageJson.files.sort(), [
       'LICENSE', 'NOTICE', 'README.md',
-      'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs',
+      'bin/algoglyph-mcp-connector.js', 'bin/algoglyph-mcp-connector.mjs', 'bin/cli-runtime.mjs',
     ].sort());
   });
 });

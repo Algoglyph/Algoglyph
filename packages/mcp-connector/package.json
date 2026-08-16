@@ -9,6 +9,7 @@
   "files": [
     "LICENSE",
     "NOTICE",
+    "bin/cli-runtime.mjs",
     "bin/algoglyph-mcp-connector.js",
     "bin/algoglyph-mcp-connector.mjs",
     "README.md"

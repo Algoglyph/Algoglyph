@@ -27,6 +27,7 @@ const expectedFiles = [
   'README.md',
   'bin/algoglyph-mcp-connector.js',
   'bin/algoglyph-mcp-connector.mjs',
+  'bin/cli-runtime.mjs',
   'package.json',
 ];
 
