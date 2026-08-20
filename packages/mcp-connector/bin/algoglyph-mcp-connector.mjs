@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { chmod, copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
@@ -10,7 +10,7 @@ import { Client, SSEClientTransport, StreamableHTTPClientTransport } from '@mode
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { Server as McpServer } from '@modelcontextprotocol/server';
 import { Agent as UndiciAgent } from 'undici';
-import { invocationArgs, invocationPath, resolveCliInvocation } from './cli-runtime.mjs';
+import { invocationArgs, invocationPath, resolveCliInvocations } from './cli-runtime.mjs';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
 const CONNECTOR_VERSION = '0.2.2';
@@ -26,6 +26,11 @@ const PAIRING_TTL_MS = 90_000;
 const MCP_REQUEST_TIMEOUT_MS = 10_000;
 const MCP_CLOSE_TIMEOUT_MS = 1_000;
 const AGENT_RUN_TIMEOUT_MS = 120_000;
+const CODEX_APP_SERVER_READY_TIMEOUT_MS = 15_000;
+const CODEX_APP_SERVER_REQUEST_TIMEOUT_MS = 15_000;
+const CODEX_APP_SERVER_INTERRUPT_GRACE_MS = 2_000;
+const MAX_CODEX_PROTOCOL_BUFFER_BYTES = 1024 * 1024;
+const MAX_CODEX_STDERR_BYTES = 32 * 1024;
 const ANTIGRAVITY_SESSION_READY_TIMEOUT_MS = 90_000;
 const ANTIGRAVITY_ELIGIBILITY_RETRY_DELAY_MS = 1_000;
 const MAX_ANTIGRAVITY_ELIGIBILITY_RETRIES = 12;
@@ -63,6 +68,19 @@ const DEVELOPMENT_ORIGINS = [
 ];
 const PREVIEW_ORIGINS = ['https://algoglyph.pages.dev'];
 
+const CODEX_SECURITY_CONFIG_ARGS = [
+  '-c', 'approval_policy="never"',
+  '-c', 'web_search="disabled"',
+  '-c', 'features.shell_tool=false',
+  '-c', 'features.shell_snapshot=false',
+  '-c', 'features.unified_exec=false',
+  '-c', 'features.apps=false',
+  '-c', 'features.remote_plugin=false',
+  '-c', 'features.multi_agent=false',
+  '-c', 'features.hooks=false',
+  '-c', 'features.skill_mcp_dependency_install=false',
+];
+
 // The connector — never the browser — owns the command and its fixed arguments.
 // `runArgs` are constant; the user's prompt is delivered via stdin (`promptVia:
 // 'stdin'`), or as a single positional placed after the `--` separator in
@@ -83,16 +101,7 @@ const AGENTS = [
       // authenticate, but the model must never receive a command-capable tool
       // that could read those secrets. Keep only the explicitly configured MCP
       // relay available; disable every local/open-world execution surface.
-      '-c', 'approval_policy="never"',
-      '-c', 'web_search="disabled"',
-      '-c', 'features.shell_tool=false',
-      '-c', 'features.shell_snapshot=false',
-      '-c', 'features.unified_exec=false',
-      '-c', 'features.apps=false',
-      '-c', 'features.remote_plugin=false',
-      '-c', 'features.multi_agent=false',
-      '-c', 'features.hooks=false',
-      '-c', 'features.skill_mcp_dependency_install=false',
+      ...CODEX_SECURITY_CONFIG_ARGS,
       '--',
     ],
     promptVia: 'stdin',
@@ -129,6 +138,9 @@ const testAgentFixture = process.env.NODE_ENV === 'test'
   : undefined;
 const testAntigravityFixture = process.env.NODE_ENV === 'test'
   ? process.env.ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE?.trim()
+  : undefined;
+const testCodexAppServerFixture = process.env.NODE_ENV === 'test'
+  ? process.env.ALGOGLYPH_TEST_CODEX_APP_SERVER_FIXTURE?.trim()
   : undefined;
 if (testAgentFixture) {
   AGENTS.push({
@@ -175,6 +187,21 @@ const antigravityEligibilityRetryDelayMs = testOverride(
 const mcpRequestTimeoutMs = testOverride(
   'ALGOGLYPH_TEST_MCP_REQUEST_TIMEOUT_MS',
   MCP_REQUEST_TIMEOUT_MS,
+  25,
+);
+const codexAppServerReadyTimeoutMs = testOverride(
+  'ALGOGLYPH_TEST_CODEX_APP_SERVER_READY_TIMEOUT_MS',
+  CODEX_APP_SERVER_READY_TIMEOUT_MS,
+  25,
+);
+const codexAppServerRequestTimeoutMs = testOverride(
+  'ALGOGLYPH_TEST_CODEX_APP_SERVER_REQUEST_TIMEOUT_MS',
+  CODEX_APP_SERVER_REQUEST_TIMEOUT_MS,
+  25,
+);
+const codexAppServerInterruptGraceMs = testOverride(
+  'ALGOGLYPH_TEST_CODEX_APP_SERVER_INTERRUPT_GRACE_MS',
+  CODEX_APP_SERVER_INTERRUPT_GRACE_MS,
   25,
 );
 const testDnsDelayMs = testOverride('ALGOGLYPH_TEST_DNS_DELAY_MS', 0, 0);
@@ -279,6 +306,7 @@ const deleteApprovedServer = (id) => {
   for (const [relayId, relay] of mcpRelays) {
     if (relay.server.id === id) mcpRelays.delete(relayId);
   }
+  if (codexAppServerSession?.approvedServerId === id) void stopCodexAppServerSession(codexAppServerSession);
   if (antigravitySession?.approvedServerId === id) void stopAntigravitySession(antigravitySession);
   return true;
 };
@@ -294,9 +322,11 @@ const removeApprovedServersForOwner = (owner) => {
 
 const stopOwnerResources = async (owner) => {
   removeApprovedServersForOwner(owner);
+  const codexWorker = codexAppServerSession?.owner === owner ? codexAppServerSession : undefined;
   const warmSession = antigravitySession?.owner === owner ? antigravitySession : undefined;
   const ownedChildren = [...activeChildren].filter((entry) => entry.owner === owner);
   await Promise.allSettled([
+    ...(codexWorker ? [stopCodexAppServerSession(codexWorker)] : []),
     ...(warmSession ? [stopAntigravitySession(warmSession)] : []),
     ...ownedChildren.map((entry) => terminateProcessTree(entry.child, true)),
   ]);
@@ -780,9 +810,13 @@ const detectAgents = async () => {
   agentCatalogExpiresAt = monotonicMilliseconds() + 30_000;
   agentCatalogPromise = Promise.all(
     AGENTS.map(async (agent) => {
-      const invocation = await resolveAgentInvocation(agent);
-      const result = invocation ? await runVersionCheck(invocation) : { available: false };
-      return { id: agent.id, label: agent.label, command: agent.command, ...result };
+      const runtime = await resolveAgentRuntime(agent);
+      return {
+        id: agent.id,
+        label: agent.label,
+        command: agent.command,
+        ...(runtime?.version || { available: false }),
+      };
     }),
   ).catch((error) => {
     agentCatalogPromise = undefined;
@@ -792,15 +826,33 @@ const detectAgents = async () => {
   return agentCatalogPromise;
 };
 
-const resolvedAgentInvocations = new Map();
+const resolvedAgentRuntimes = new Map();
+const pendingAgentRuntimeResolutions = new Map();
 
-const resolveAgentInvocation = async (agent) => {
-  if (resolvedAgentInvocations.has(agent.id)) return resolvedAgentInvocations.get(agent.id);
-  const configured = process.env[`ALGOGLYPH_${agent.id.toUpperCase()}_PATH`]?.trim();
-  const invocation = await resolveCliInvocation({ command: agent.command, configuredPath: configured });
-  if (invocation) resolvedAgentInvocations.set(agent.id, invocation);
-  return invocation;
+const resolveAgentRuntime = async (agent) => {
+  if (resolvedAgentRuntimes.has(agent.id)) return resolvedAgentRuntimes.get(agent.id);
+  if (pendingAgentRuntimeResolutions.has(agent.id)) return pendingAgentRuntimeResolutions.get(agent.id);
+  const resolution = (async () => {
+    const configured = process.env[`ALGOGLYPH_${agent.id.toUpperCase()}_PATH`]?.trim();
+    const invocations = await resolveCliInvocations({ command: agent.command, configuredPath: configured });
+    for (const invocation of invocations) {
+      const version = await runVersionCheck(invocation);
+      if (!version.available) continue;
+      const runtime = { invocation, version };
+      resolvedAgentRuntimes.set(agent.id, runtime);
+      return runtime;
+    }
+    return undefined;
+  })();
+  pendingAgentRuntimeResolutions.set(agent.id, resolution);
+  try {
+    return await resolution;
+  } finally {
+    pendingAgentRuntimeResolutions.delete(agent.id);
+  }
 };
+
+const resolveAgentInvocation = async (agent) => (await resolveAgentRuntime(agent))?.invocation;
 
 const createAgentEnvironment = (agent, invocation, homeDirectory) => {
   const environment = {};
@@ -875,6 +927,27 @@ const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
       );
     }
   }
+};
+
+const codexCredentialFingerprint = async () => {
+  const digest = createHash('sha256');
+  digest.update('algoglyph-codex-worker-v1\0');
+  const apiKey = process.env.OPENAI_API_KEY;
+  digest.update(apiKey ? createHash('sha256').update(apiKey).digest() : Buffer.from('no-api-key'));
+
+  const userProfile = process.env.USERPROFILE || process.env.HOME;
+  const sourceHome = process.env.CODEX_HOME || (userProfile && join(userProfile, '.codex'));
+  try {
+    const sourcePath = join(sourceHome, 'auth.json');
+    const sourceMetadata = await lstat(sourcePath);
+    if (!sourceMetadata.isFile() || sourceMetadata.isSymbolicLink()) throw new Error('Unsupported credential file.');
+    const [resolvedSource, resolvedRoot] = await Promise.all([realpath(sourcePath), realpath(sourceHome)]);
+    if (!isContainedPath(resolvedSource, resolvedRoot)) throw new Error('Credential path escaped its root.');
+    digest.update(await readFile(resolvedSource));
+  } catch {
+    digest.update('no-file-credential');
+  }
+  return digest.digest('hex');
 };
 
 const activeChildren = new Set();
@@ -1629,6 +1702,560 @@ const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, envir
   }
 };
 
+class CodexAppServerUnavailableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'CodexAppServerUnavailableError';
+  }
+}
+
+let codexAppServerSession;
+let codexAppServerSessionPromise;
+const unsupportedCodexAppServers = new Set();
+
+const createDeferred = () => {
+  let resolvePromise;
+  let rejectPromise;
+  const promise = new Promise((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+  return { promise, resolve: resolvePromise, reject: rejectPromise };
+};
+
+const codexAppServerIdentity = (invocation) => `${invocation.kind}:${invocation.resolvedPath}`;
+
+const rememberUnsupportedCodexAppServer = (identity, error, stderr = '') => {
+  const detail = `${error instanceof Error ? error.message : error}\n${stderr}`;
+  if (/unknown (?:command|subcommand|method)|unrecognized (?:command|subcommand|option)|method not found|unsupported.*app-server|unknown (?:config|configuration)/i.test(detail)) {
+    unsupportedCodexAppServers.add(identity);
+  }
+};
+
+const writeCodexProtocolMessage = (session, message) => {
+  if (session.exited || !session.child.stdin.writable) {
+    throw new CodexAppServerUnavailableError('The Codex app-server is not running.');
+  }
+  session.child.stdin.write(`${JSON.stringify(message)}\n`);
+};
+
+const requestCodexAppServer = (session, method, params = {}, timeoutMs = codexAppServerRequestTimeoutMs) => {
+  if (session.exited) return Promise.reject(new CodexAppServerUnavailableError('The Codex app-server exited.'));
+  const id = session.nextRequestId++;
+  const deferred = createDeferred();
+  const timer = setTimeout(() => {
+    session.pendingRequests.delete(id);
+    deferred.reject(new CodexAppServerUnavailableError(`Codex app-server ${method} timed out.`));
+  }, timeoutMs);
+  timer.unref();
+  session.pendingRequests.set(id, {
+    resolve: (value) => {
+      clearTimeout(timer);
+      deferred.resolve(value);
+    },
+    reject: (error) => {
+      clearTimeout(timer);
+      deferred.reject(error);
+    },
+  });
+  try {
+    writeCodexProtocolMessage(session, { id, method, params });
+  } catch (error) {
+    clearTimeout(timer);
+    session.pendingRequests.delete(id);
+    deferred.reject(error);
+  }
+  return deferred.promise;
+};
+
+const rejectCodexPendingRequests = (session, error) => {
+  for (const pending of session.pendingRequests.values()) pending.reject(error);
+  session.pendingRequests.clear();
+  session.activeTurn?.completion.reject(error);
+};
+
+const codexNotificationMatchesTurn = (turn, params) => (
+  turn
+  && params?.threadId === turn.threadId
+  && (!turn.turnId || !params.turnId || params.turnId === turn.turnId)
+);
+
+const handleCodexNotification = (session, message) => {
+  const turn = session.activeTurn;
+  const params = message.params;
+  if (message.method === 'turn/started' && turn && params?.threadId === turn.threadId) {
+    if (typeof params.turn?.id === 'string') turn.turnId = params.turn.id;
+    return;
+  }
+  if (!codexNotificationMatchesTurn(turn, params)) return;
+
+  if (message.method === 'item/agentMessage/delta' && typeof params.delta === 'string') {
+    turn.outputBytes += Buffer.byteLength(params.delta, 'utf8');
+    if (turn.outputBytes > MAX_AGENT_OUTPUT_BYTES) {
+      turn.limitExceeded = true;
+      void interruptCodexTurn(session, turn);
+      return;
+    }
+    turn.deltas.push(params.delta);
+    turn.onDelta?.(params.delta);
+    return;
+  }
+  if (message.method === 'item/completed'
+    && params.item?.type === 'agentMessage'
+    && typeof params.item.text === 'string') {
+    const bytes = Buffer.byteLength(params.item.text, 'utf8');
+    if (bytes > MAX_AGENT_OUTPUT_BYTES) {
+      turn.limitExceeded = true;
+      void interruptCodexTurn(session, turn);
+    } else {
+      turn.finalText = params.item.text;
+    }
+    return;
+  }
+  if (message.method === 'turn/completed') {
+    turn.completion.resolve(params.turn);
+  }
+};
+
+const handleCodexProtocolLine = (session, line) => {
+  if (!line.trim()) return;
+  let message;
+  try {
+    message = JSON.parse(line);
+  } catch {
+    throw new CodexAppServerUnavailableError('The Codex app-server emitted invalid JSON.');
+  }
+  if (!message || typeof message !== 'object' || Array.isArray(message)) return;
+  if (message.id !== undefined && !message.method) {
+    const pending = session.pendingRequests.get(message.id);
+    if (!pending) return;
+    session.pendingRequests.delete(message.id);
+    if (message.error) {
+      pending.reject(new CodexAppServerUnavailableError(
+        typeof message.error.message === 'string' ? message.error.message : 'Codex app-server request failed.',
+      ));
+    } else {
+      pending.resolve(message.result);
+    }
+    return;
+  }
+  if (message.id !== undefined && typeof message.method === 'string') {
+    // Approval policy is `never`; fail closed if a future CLI nevertheless asks
+    // the connector to approve a command, file, network, or elicitation action.
+    writeCodexProtocolMessage(session, {
+      id: message.id,
+      error: { code: -32601, message: 'Interactive requests are disabled for AlgoGlyph.' },
+    });
+    return;
+  }
+  if (typeof message.method === 'string') handleCodexNotification(session, message);
+};
+
+const attachCodexProtocol = (session) => {
+  session.child.stdout.setEncoding('utf8');
+  session.child.stdout.on('data', (chunk) => {
+    if (session.exited) return;
+    session.stdoutBuffer += chunk;
+    if (Buffer.byteLength(session.stdoutBuffer, 'utf8') > MAX_CODEX_PROTOCOL_BUFFER_BYTES) {
+      session.protocolError = new CodexAppServerUnavailableError('The Codex app-server protocol buffer overflowed.');
+      terminateWithGrace(session.child);
+      return;
+    }
+    let boundary;
+    while ((boundary = session.stdoutBuffer.indexOf('\n')) !== -1) {
+      const line = session.stdoutBuffer.slice(0, boundary).replace(/\r$/, '');
+      session.stdoutBuffer = session.stdoutBuffer.slice(boundary + 1);
+      try {
+        handleCodexProtocolLine(session, line);
+      } catch (error) {
+        session.protocolError = error;
+        terminateWithGrace(session.child);
+        return;
+      }
+    }
+  });
+  session.child.stderr.on('data', (chunk) => {
+    if (session.stderrBytes >= MAX_CODEX_STDERR_BYTES) return;
+    const remaining = MAX_CODEX_STDERR_BYTES - session.stderrBytes;
+    const slice = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
+    session.stderrBytes += slice.length;
+    session.stderr += slice.toString('utf8');
+  });
+  session.child.once('error', (error) => {
+    session.protocolError = new CodexAppServerUnavailableError(error.message);
+    rejectCodexPendingRequests(session, session.protocolError);
+  });
+  session.child.once('close', (code) => {
+    session.exited = true;
+    session.exitCode = code;
+    session.resolveExit?.();
+    rejectCodexPendingRequests(
+      session,
+      session.protocolError || new CodexAppServerUnavailableError(`Codex app-server exited (code ${code ?? 'unknown'}).`),
+    );
+    if (!session.stopping) void stopCodexAppServerSession(session);
+  });
+};
+
+const stopCodexAppServerSession = (session = codexAppServerSession) => {
+  if (!session) return Promise.resolve();
+  if (session.stopPromise) return session.stopPromise;
+  session.stopPromise = (async () => {
+    session.stopping = true;
+    if (!session.exited) {
+      try { session.child.stdin.end(); } catch { /* already closed */ }
+      await Promise.race([
+        session.exitPromise,
+        new Promise((resolveDone) => setTimeout(resolveDone, 250)),
+      ]);
+    }
+    if (!session.exited) {
+      await terminateProcessTree(session.child, false);
+      await Promise.race([
+        session.exitPromise,
+        new Promise((resolveDone) => setTimeout(resolveDone, 1_500)),
+      ]);
+    }
+    if (!session.exited) await terminateProcessTree(session.child, true);
+    session.exited = true;
+    rejectCodexPendingRequests(session, new CodexAppServerUnavailableError('The Codex app-server stopped.'));
+    destroyMcpRelay(session.relayId);
+    await rm(session.rootDirectory, { recursive: true, force: true }).catch(() => undefined);
+    trackedTempRoots.delete(session.rootDirectory);
+    if (codexAppServerSession === session) codexAppServerSession = undefined;
+    if (codexAppServerSessionPromise?.session === session) codexAppServerSessionPromise = undefined;
+  })();
+  return session.stopPromise;
+};
+
+const startCodexAppServerSession = async (agent, invocation, approvedServer, owner, key) => {
+  if (connectorShuttingDown) throw new CodexAppServerUnavailableError('The connector is shutting down.');
+  if (process.env.NODE_ENV === 'test' && !testCodexAppServerFixture) {
+    throw new CodexAppServerUnavailableError('Codex app-server is disabled for one-shot fixtures.');
+  }
+  const identity = codexAppServerIdentity(invocation);
+  if (unsupportedCodexAppServers.has(identity)) {
+    throw new CodexAppServerUnavailableError('This Codex CLI does not support the app-server protocol.');
+  }
+
+  const { workingDirectory, runDirectory, homeDirectory } = await createIsolatedAgentDirectories(agent);
+  const environment = createAgentEnvironment(agent, invocation, homeDirectory);
+  let relayId;
+  let child;
+  const startedAt = monotonicMilliseconds();
+  try {
+    await provisionAgentCredentials(agent, environment, homeDirectory);
+    ({ relayId } = await prepareApprovedMcpForAgent(agent, approvedServer, workingDirectory, environment));
+    if (testCodexAppServerFixture) {
+      environment.ALGOGLYPH_TEST_CODEX_STATE_FILE = process.env.ALGOGLYPH_TEST_CODEX_STATE_FILE || '';
+    }
+    const appInvocation = testCodexAppServerFixture
+      ? {
+        command: process.execPath,
+        argsPrefix: [testCodexAppServerFixture],
+        resolvedPath: testCodexAppServerFixture,
+        kind: 'test-fixture',
+        pathEntries: [dirname(process.execPath)],
+      }
+      : invocation;
+    const appServerArgs = [
+      'app-server', '--listen', 'stdio://', '--strict-config',
+      ...CODEX_SECURITY_CONFIG_ARGS,
+    ];
+    child = spawn(appInvocation.command, invocationArgs(appInvocation, appServerArgs), {
+      cwd: runDirectory,
+      env: environment,
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+      detached: process.platform !== 'win32',
+    });
+  } catch (error) {
+    destroyMcpRelay(relayId);
+    await rm(workingDirectory, { recursive: true, force: true }).catch(() => undefined);
+    trackedTempRoots.delete(workingDirectory);
+    throw error;
+  }
+
+  const exitDeferred = createDeferred();
+  const session = {
+    key,
+    identity,
+    owner,
+    approvedServerId: approvedServer?.id,
+    rootDirectory: workingDirectory,
+    runDirectory,
+    homeDirectory,
+    environment,
+    relayId,
+    child,
+    pid: child.pid,
+    startedAt,
+    initializedAt: undefined,
+    initializationMs: undefined,
+    nextRequestId: 1,
+    pendingRequests: new Map(),
+    stdoutBuffer: '',
+    stderr: '',
+    stderrBytes: 0,
+    activeTurn: undefined,
+    exited: false,
+    exitPromise: exitDeferred.promise,
+    resolveExit: exitDeferred.resolve,
+    stopPromise: undefined,
+  };
+  attachCodexProtocol(session);
+  try {
+    await requestCodexAppServer(session, 'initialize', {
+      clientInfo: {
+        name: 'algoglyph-mcp-connector',
+        title: 'AlgoGlyph MCP Connector',
+        version: CONNECTOR_VERSION,
+      },
+      capabilities: {},
+    }, codexAppServerReadyTimeoutMs);
+    writeCodexProtocolMessage(session, { method: 'initialized' });
+    session.initializedAt = monotonicMilliseconds();
+    session.initializationMs = session.initializedAt - startedAt;
+    return session;
+  } catch (error) {
+    rememberUnsupportedCodexAppServer(identity, error, session.stderr);
+    await stopCodexAppServerSession(session);
+    throw new CodexAppServerUnavailableError(error instanceof Error ? error.message : 'Codex app-server initialization failed.');
+  }
+};
+
+const getCodexAppServerSession = async (approvedServer, owner) => {
+  const agent = AGENTS.find((candidate) => candidate.id === 'codex');
+  const invocation = agent && await resolveAgentInvocation(agent);
+  if (!agent || !invocation) throw new CodexAppServerUnavailableError('The Codex executable is unavailable.');
+  const credentialFingerprint = await codexCredentialFingerprint();
+  const key = [
+    owner,
+    approvedServer?.id || 'none',
+    credentialFingerprint,
+    codexAppServerIdentity(invocation),
+  ].join(':');
+  if (codexAppServerSession?.key === key && !codexAppServerSession.exited && !codexAppServerSession.stopping) {
+    return { session: codexAppServerSession, reused: true };
+  }
+  if (codexAppServerSessionPromise?.key === key) {
+    return { session: await codexAppServerSessionPromise.promise, reused: true };
+  }
+  if (codexAppServerSession) await stopCodexAppServerSession(codexAppServerSession);
+
+  const promise = startCodexAppServerSession(agent, invocation, approvedServer, owner, key);
+  codexAppServerSessionPromise = { key, promise, session: undefined };
+  try {
+    const session = await promise;
+    codexAppServerSession = session;
+    codexAppServerSessionPromise.session = session;
+    return { session, reused: false };
+  } finally {
+    if (codexAppServerSessionPromise?.promise === promise) codexAppServerSessionPromise = undefined;
+  }
+};
+
+const createCodexEphemeralThread = async (session) => {
+  const response = await requestCodexAppServer(session, 'thread/start', {
+    cwd: session.runDirectory,
+    approvalPolicy: 'never',
+    ephemeral: true,
+  });
+  const threadId = response?.thread?.id;
+  if (typeof threadId !== 'string'
+    || response.thread.ephemeral !== true
+    || response.approvalPolicy !== 'never') {
+    throw new CodexAppServerUnavailableError('Codex did not create the required isolated ephemeral thread.');
+  }
+  return threadId;
+};
+
+const interruptCodexTurn = async (session, turn = session.activeTurn) => {
+  if (!turn?.threadId || !turn.turnId || session.exited || turn.interrupting) return;
+  turn.interrupting = true;
+  try {
+    await requestCodexAppServer(
+      session,
+      'turn/interrupt',
+      { threadId: turn.threadId, turnId: turn.turnId },
+      codexAppServerInterruptGraceMs,
+    );
+  } catch {
+    await stopCodexAppServerSession(session);
+  }
+};
+
+const executeCodexTurn = async (session, threadId, prompt, { onDelta, isCancelled, cancellationPromise }) => {
+  const completion = createDeferred();
+  const turn = {
+    threadId,
+    turnId: undefined,
+    completion,
+    deltas: [],
+    finalText: undefined,
+    outputBytes: 0,
+    limitExceeded: false,
+    interrupting: false,
+    onDelta,
+  };
+  session.activeTurn = turn;
+  const turnStartedAt = monotonicMilliseconds();
+  let timeout;
+  try {
+    const started = await requestCodexAppServer(session, 'turn/start', {
+      threadId,
+      approvalPolicy: 'never',
+      input: [{ type: 'text', text: prompt }],
+    });
+    if (typeof started?.turn?.id !== 'string') {
+      throw new CodexAppServerUnavailableError('Codex did not acknowledge the turn.');
+    }
+    turn.turnId = started.turn.id;
+    if (isCancelled()) await interruptCodexTurn(session, turn);
+    const turnAcknowledgedAt = monotonicMilliseconds();
+    const timedOut = createDeferred();
+    timeout = setTimeout(() => timedOut.resolve(true), AGENT_RUN_TIMEOUT_MS);
+    timeout.unref();
+    const outcome = await Promise.race([
+      completion.promise.then((value) => ({ kind: 'completed', value })),
+      timedOut.promise.then(() => ({ kind: 'timeout' })),
+      cancellationPromise.then(() => ({ kind: 'cancelled' })),
+    ]);
+    if (outcome.kind === 'timeout' || outcome.kind === 'cancelled') {
+      await interruptCodexTurn(session, turn);
+      const quiesced = await Promise.race([
+        completion.promise.then(() => true, () => true),
+        new Promise((resolveDone) => setTimeout(() => resolveDone(false), codexAppServerInterruptGraceMs)),
+      ]);
+      if (!quiesced) await stopCodexAppServerSession(session);
+      if (outcome.kind === 'cancelled') throw new Error('The agent run was cancelled.');
+      throw new Error(`The agent run timed out after ${AGENT_RUN_TIMEOUT_MS / 1000}s.`);
+    }
+    if (turn.limitExceeded) throw new Error('The agent run exceeded the output safety limit.');
+    if (isCancelled()) throw new Error('The agent run was cancelled.');
+    const completed = outcome.value;
+    if (completed?.status !== 'completed') {
+      const detail = typeof completed?.error?.message === 'string' ? completed.error.message : completed?.status;
+      throw new Error(detail ? `Codex turn ${detail}.` : 'Codex turn failed.');
+    }
+    return {
+      output: turn.finalText ?? turn.deltas.join(''),
+      turnStartAckMs: turnAcknowledgedAt - turnStartedAt,
+      modelRequestMs: monotonicMilliseconds() - turnAcknowledgedAt,
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    session.activeTurn = undefined;
+    if (!session.exited) {
+      await requestCodexAppServer(session, 'thread/unsubscribe', { threadId }, 1_000).catch(() => undefined);
+    }
+  }
+};
+
+const streamPersistentCodexRun = async (
+  request,
+  response,
+  prompt,
+  approvedServer,
+  secrets,
+  authorization,
+  releaseSlot,
+  bufferedOutputMode,
+) => {
+  const requestStartedAt = monotonicMilliseconds();
+  let worker;
+  let reused;
+  let threadId;
+  let workerReadyAt;
+  let threadStartedAt;
+  let threadReadyAt;
+  try {
+    ({ session: worker, reused } = await getCodexAppServerSession(
+      approvedServer,
+      authorizationOwner(authorization),
+    ));
+    workerReadyAt = monotonicMilliseconds();
+    threadStartedAt = monotonicMilliseconds();
+    threadId = await createCodexEphemeralThread(worker);
+    threadReadyAt = monotonicMilliseconds();
+  } catch (error) {
+    if (worker) {
+      rememberUnsupportedCodexAppServer(worker.identity, error, worker.stderr);
+      await stopCodexAppServerSession(worker);
+    }
+    console.error(`[${SERVICE_NAME}] Codex app-server unavailable; using isolated one-shot fallback.`);
+    return false;
+  }
+
+  applySecurityHeaders(response);
+  response.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  let settled = false;
+  let cancelled = false;
+  let streamedOutput = false;
+  const cancellation = createDeferred();
+  const send = (event, data) => {
+    if (!response.writableEnded && !response.destroyed) {
+      response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    }
+  };
+  const cancel = () => {
+    if (settled || cancelled) return;
+    cancelled = true;
+    cancellation.resolve();
+    void interruptCodexTurn(worker);
+  };
+  request.once('aborted', cancel);
+  response.once('close', cancel);
+
+  try {
+    const result = await executeCodexTurn(worker, threadId, prompt, {
+      isCancelled: () => cancelled,
+      cancellationPromise: cancellation.promise,
+      onDelta: (delta) => {
+        if (response.writableEnded || response.destroyed) return;
+        if (!bufferedOutputMode) {
+          streamedOutput = true;
+          send('output', { stream: 'stdout', chunk: delta });
+        }
+      },
+    });
+    if (result.output && (bufferedOutputMode || !streamedOutput)) {
+      send('output', { stream: 'stdout', chunk: result.output });
+    }
+    if (DEV_TIMING_ENABLED) {
+      send('timing', {
+        stages: {
+          connector_request_to_worker_ready_ms: roundedMilliseconds(workerReadyAt - requestStartedAt),
+          codex_initialization_ms: roundedMilliseconds(reused ? 0 : worker.initializationMs),
+          codex_worker_reused: reused ? 1 : 0,
+          codex_process_pid: worker.pid,
+          codex_thread_start_ms: roundedMilliseconds(threadReadyAt - threadStartedAt),
+          codex_turn_start_ack_ms: roundedMilliseconds(result.turnStartAckMs),
+          codex_model_request_ms: roundedMilliseconds(result.modelRequestMs),
+        },
+      });
+    }
+    send('exit', { code: 0 });
+  } catch (error) {
+    const message = cancelled ? 'The agent run was cancelled.' : redactError(error, secrets);
+    send('error', { message });
+    send('exit', { code: 1 });
+    if (worker.exited || worker.protocolError) await stopCodexAppServerSession(worker);
+  } finally {
+    settled = true;
+    releaseSlot();
+    response.end();
+  }
+  return true;
+};
+
 let antigravitySession;
 let antigravitySessionPromise;
 let antigravityPtyModulesPromise;
@@ -2208,6 +2835,20 @@ const streamAgentRun = async (request, response, body, authorization) => {
     activeAgentRuns = Math.max(0, activeAgentRuns - 1);
   };
 
+  if (agent.id === 'codex') {
+    const handled = await streamPersistentCodexRun(
+      request,
+      response,
+      prompt,
+      approvedServer,
+      secrets,
+      authorization,
+      releaseSlot,
+      bufferedOutput,
+    );
+    if (handled) return;
+  }
+
   if (agent.id === 'antigravity' && (process.env.NODE_ENV !== 'test' || testAntigravityFixture)) {
     await streamPersistentAntigravityRun(
       request,
@@ -2612,6 +3253,7 @@ const shutDown = async () => {
   connectorShuttingDown = true;
   clearInterval(authSweepTimer);
   await Promise.allSettled([...activeChildren].map((entry) => terminateProcessTree(entry.child, true)));
+  await stopCodexAppServerSession();
   await stopAntigravitySession();
   await Promise.allSettled([...trackedTempRoots].map(async (root) => {
     await rm(root, { recursive: true, force: true });

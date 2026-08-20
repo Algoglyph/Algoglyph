@@ -44,6 +44,8 @@ The default port is part of automatic discovery. If `ALGOGLYPH_CONNECTOR_PORT` c
 - Streamable HTTP MCP inspection with SSE fallback, bounded pagination/results, DNS and redirect revalidation, and SSRF protections.
 - Session-bound, expiring MCP approvals and confirmation-gated tool invocation.
 - A warm Antigravity runtime whose owner and approved MCP configuration are isolated from other connector sessions.
+- An owner-bound Codex app-server worker with a fresh ephemeral thread for every request and a safe one-shot fallback.
+- Shell-free CLI discovery across Windows native executables/npm `.cmd` shims and macOS native executables/Node launchers, including reduced-GUI PATH and standard package-manager environment hints.
 
 The web app and connector reject incompatible protocol versions instead of silently attempting a partial connection.
 
@@ -79,6 +81,18 @@ Warm reuse avoids repeated CLI initialization, but reuse is restricted to one ow
 
 The warm runtime may retain Antigravity's provider/account caches inside that session's private temporary home. It is an optimization within a trusted same-user process, not a substitute for operating-system isolation. Restart the connector to discard all in-memory warm state immediately.
 
+### Warm Codex app-server
+
+When the installed Codex CLI supports its official app-server protocol, the connector initializes one private stdio worker per owning session and approved-MCP identity. Every diagram starts a new `ephemeral: true` thread with `approvalPolicy: never`, so requests do not share conversation history and no rollout is materialized on disk. Completed threads are unsubscribed and unloaded. Credential changes, owner changes, MCP changes, revocation, expiry, cancellation that cannot be confirmed, unexpected exit, and shutdown destroy the worker and its private home.
+
+If app-server initialization or compatibility checks fail before a model turn is dispatched, the connector uses the existing isolated `codex exec --ephemeral` path. It never retries or falls back automatically after `turn/start`, because doing so could duplicate model or MCP side effects.
+
+Claude Code remains one-shot. Its CLI streaming-input mode represents one continuing conversation and does not provide a documented independent-context reset boundary, so reusing it across unrelated drawings would violate request isolation. Missing Claude installations are reported as unavailable without affecting the connector.
+
+CLI discovery checks the inherited absolute PATH entries first, then the connector's trusted Node directory, explicit package-manager environment hints (`NVM_BIN`, `PNPM_HOME`, `VOLTA_HOME`, `FNM_MULTISHELL_PATH`, npm prefix, Bun, asdf, and mise), and standard per-user bin roots. It does not run `where`, `which`, a login shell, PowerShell, `cmd.exe`, bash, or zsh. Windows Node shims are parsed and resolved to a canonical JavaScript entry point that is run by the connector's own Node executable; macOS Node launchers are handled the same way instead of relying on a shebang lookup. Relative PATH entries, project-local binaries, malformed shims, unsupported shell wrappers, and `node_modules/.bin` candidates are rejected. If an earlier structural candidate fails its isolated `--version` probe, discovery continues to the next candidate.
+
+Unusual installations can use the absolute per-agent overrides below. An override selects a path; it does not enable shell execution or relax executable/shim validation.
+
 ## Endpoints
 
 Public only for loopback discovery or trusted-origin pairing:
@@ -107,6 +121,9 @@ Agent output streams by default. `outputMode: "buffered"` coalesces output when 
 | `ALGOGLYPH_PREVIEW_ORIGINS=1` | Explicitly enables the public `https://algoglyph.pages.dev` preview origin. |
 | `ALGOGLYPH_ALLOWED_ORIGINS` | Adds explicitly trusted, comma-separated browser origins. |
 | `ALGOGLYPH_CONNECTOR_TOKEN` | Advanced manual bearer fallback. Use at least 32 bytes of unpredictable secret material. It is never printed. |
+| `ALGOGLYPH_CODEX_PATH` | Optional absolute Codex native executable or validated Node-shim path. |
+| `ALGOGLYPH_ANTIGRAVITY_PATH` | Optional absolute Antigravity native executable or validated Node-shim path. |
+| `ALGOGLYPH_CLAUDE_PATH` | Optional absolute Claude native executable or validated Node-shim path. |
 
 ## Release validation
 

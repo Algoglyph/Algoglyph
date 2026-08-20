@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { after, before, describe, test } from 'node:test';
-import { buildExecutableCandidates, resolveCliInvocation } from '../bin/cli-runtime.mjs';
+import {
+  buildExecutableCandidates,
+  executableSearchDirectories,
+  resolveCliInvocation,
+  resolveCliInvocations,
+} from '../bin/cli-runtime.mjs';
 import {
   startConnectorHarness,
   startMcpServerFixture,
@@ -27,8 +32,53 @@ const WARM_ANTIGRAVITY_FIXTURE = fileURLToPath(new URL('./fixtures/warmAntigravi
 const RECOVERING_ANTIGRAVITY_FIXTURE = fileURLToPath(
   new URL('./fixtures/recoveringAntigravityAgent.mjs', import.meta.url),
 );
+const CODEX_APP_SERVER_FIXTURE = fileURLToPath(new URL('./fixtures/codexAppServerAgent.mjs', import.meta.url));
 const VERSION_PROBE_PRELOAD = fileURLToPath(new URL('./fixtures/versionProbePreload.cjs', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+
+const createVirtualCliFileSystem = ({ files, aliases = {} }) => {
+  const entries = new Map(Object.entries(files).map(([path, value]) => [
+    path,
+    {
+      content: Buffer.from(value.content || ''),
+      executable: value.executable !== false,
+    },
+  ]));
+  const resolvePath = (path) => aliases[path] || path;
+  const getEntry = (path) => {
+    const resolved = resolvePath(path);
+    const entry = entries.get(resolved);
+    if (!entry) {
+      const error = new Error(`ENOENT: ${path}`);
+      error.code = 'ENOENT';
+      throw error;
+    }
+    return { resolved, entry };
+  };
+  return {
+    access: async (path) => {
+      const { entry } = getEntry(path);
+      if (!entry.executable) {
+        const error = new Error(`EACCES: ${path}`);
+        error.code = 'EACCES';
+        throw error;
+      }
+    },
+    readFile: async (path, encoding) => {
+      const { entry } = getEntry(path);
+      return encoding ? entry.content.toString(encoding) : Buffer.from(entry.content);
+    },
+    readFilePrefix: async (path, byteLimit) => {
+      const { entry } = getEntry(path);
+      return entry.content.subarray(0, byteLimit);
+    },
+    realpath: async (path) => getEntry(path).resolved,
+    stat: async (path) => {
+      const { entry } = getEntry(path);
+      return { isFile: () => true, size: entry.content.length };
+    },
+  };
+};
 
 const waitForPathRemoval = async (path, timeoutMs = 5_000) => {
   const deadline = Date.now() + timeoutMs;
@@ -421,6 +471,69 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     }
   });
 
+  test('agent discovery falls through when an earlier PATH candidate fails its version probe', async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), 'algoglyph-cli-fallback-test-'));
+    const firstDirectory = join(fixtureRoot, 'first');
+    const secondDirectory = join(fixtureRoot, 'second');
+    await Promise.all([
+      mkdir(firstDirectory, { recursive: true }),
+      mkdir(secondDirectory, { recursive: true }),
+    ]);
+    const makeLauncher = async (directory, exitCode, version) => {
+      const entryPath = join(directory, 'codex-entry.js');
+      await writeFile(entryPath, [
+        '#!/usr/bin/env node',
+        `if (process.argv.includes('--version')) { ${version ? `console.log('${version}');` : ''} process.exit(${exitCode}); }`,
+        "process.exit(0);",
+      ].join('\n'));
+      if (process.platform === 'win32') {
+        const shimPath = join(directory, 'codex.cmd');
+        await writeFile(shimPath, [
+          '@ECHO off',
+          'GOTO start',
+          ':find_dp0',
+          'SET dp0=%~dp0',
+          'EXIT /b',
+          ':start',
+          'SETLOCAL',
+          'CALL :find_dp0',
+          'SET "_prog=node"',
+          'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%" "%dp0%\\codex-entry.js" %*',
+        ].join('\r\n'));
+      } else {
+        const executablePath = join(directory, 'codex');
+        await writeFile(executablePath, await readFile(entryPath));
+        await chmod(executablePath, 0o755);
+      }
+    };
+    await makeLauncher(firstDirectory, 1);
+    await makeLauncher(secondDirectory, 0, 'codex-cli portable-fixture');
+
+    const fallbackConnector = await startConnectorHarness({
+      environment: {
+        PATH: [firstDirectory, secondDirectory].join(delimiter),
+        ALGOGLYPH_ANTIGRAVITY_PATH: process.execPath,
+        ALGOGLYPH_CLAUDE_PATH: process.execPath,
+      },
+    });
+    try {
+      const catalog = await fallbackConnector.request('v1/catalog', {
+        token: fallbackConnector.masterToken,
+      });
+      assert.equal(catalog.status, 200);
+      assert.deepEqual(catalog.body.agents.find((agent) => agent.id === 'codex'), {
+        id: 'codex',
+        label: 'Codex CLI',
+        command: 'codex',
+        available: true,
+        version: 'codex-cli portable-fixture',
+      });
+    } finally {
+      await fallbackConnector.stop();
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   test('Windows npm command shims resolve and launch without enabling a shell', {
     skip: process.platform !== 'win32',
   }, async () => {
@@ -430,7 +543,11 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     const entryDirectory = join(shimDirectory, 'node_modules', '@openai', 'codex', 'bin');
     const entryPath = join(entryDirectory, 'codex.js');
     const shimPath = join(shimDirectory, 'codex.cmd');
+    const claudeEntryDirectory = join(shimDirectory, 'node_modules', '@anthropic-ai', 'claude-code');
+    const claudeEntryPath = join(claudeEntryDirectory, 'cli.js');
+    const claudeShimPath = join(shimDirectory, 'claude.cmd');
     await mkdir(entryDirectory, { recursive: true });
+    await mkdir(claudeEntryDirectory, { recursive: true });
     await mkdir(emptyCodexHome, { recursive: true });
     await writeFile(entryPath, [
       "if (process.argv.includes('--version')) { console.log('codex-cli 9.9.9'); process.exit(0); }",
@@ -451,6 +568,25 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       'SET "_prog=node"',
       'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%" "%dp0%\\node_modules\\@openai\\codex\\bin\\codex.js" %*',
     ].join('\r\n'));
+    await writeFile(claudeEntryPath, [
+      "if (process.argv.includes('--version')) { console.log('claude-cli 8.8.8'); process.exit(0); }",
+      "let input = '';",
+      "process.stdin.setEncoding('utf8');",
+      "process.stdin.on('data', (chunk) => { input += chunk; });",
+      "process.stdin.on('end', () => { console.log(input ? 'claude-shim-run-ok' : 'missing-prompt'); });",
+    ].join('\n'));
+    await writeFile(claudeShimPath, [
+      '@ECHO off',
+      'GOTO start',
+      ':find_dp0',
+      'SET dp0=%~dp0',
+      'EXIT /b',
+      ':start',
+      'SETLOCAL',
+      'CALL :find_dp0',
+      'SET "_prog=node"',
+      'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%" "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*',
+    ].join('\r\n'));
 
     const invocation = await resolveCliInvocation({
       command: 'codex',
@@ -460,6 +596,14 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.equal(invocation?.kind, 'npm-node-shim');
     assert.equal(invocation?.command, process.execPath);
     assert.deepEqual(invocation?.argsPrefix, [entryPath]);
+    const claudeInvocation = await resolveCliInvocation({
+      command: 'claude',
+      configuredPath: claudeShimPath,
+      platform: 'win32',
+    });
+    assert.equal(claudeInvocation?.kind, 'npm-node-shim');
+    assert.equal(claudeInvocation?.command, process.execPath);
+    assert.deepEqual(claudeInvocation?.argsPrefix, [claudeEntryPath]);
 
     const shimConnector = await startConnectorHarness({
       environment: {
@@ -467,7 +611,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
         CODEX_HOME: emptyCodexHome,
         ALGOGLYPH_CODEX_PATH: shimPath,
         ALGOGLYPH_ANTIGRAVITY_PATH: process.execPath,
-        ALGOGLYPH_CLAUDE_PATH: process.execPath,
+        ALGOGLYPH_CLAUDE_PATH: claudeShimPath,
       },
     });
     try {
@@ -481,29 +625,61 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
         available: true,
         version: 'codex-cli 9.9.9',
       });
+      const claude = catalog.body.agents.find((agent) => agent.id === 'claude');
+      assert.deepEqual(claude, {
+        id: 'claude',
+        label: 'Claude Code',
+        command: 'claude',
+        available: true,
+        version: 'claude-cli 8.8.8',
+      });
 
       const run = await runRawFixtureAgent(shimConnector, session.sessionToken, { agentId: 'codex' });
       assert.equal(run.status, 200);
       assert.match(run.events.find((event) => event.event === 'output')?.data.chunk || '', /shim-run-ok/);
       assert.equal(run.events.at(-1)?.event, 'exit');
       assert.equal(run.events.at(-1)?.data.code, 0);
+      const claudeRun = await runRawFixtureAgent(shimConnector, session.sessionToken, { agentId: 'claude' });
+      assert.equal(claudeRun.status, 200);
+      assert.match(
+        claudeRun.events.find((event) => event.event === 'output')?.data.chunk || '',
+        /claude-shim-run-ok/,
+      );
+      assert.equal(claudeRun.events.at(-1)?.event, 'exit');
+      assert.equal(claudeRun.events.at(-1)?.data.code, 0);
     } finally {
       await shimConnector.stop();
       await rm(fixtureRoot, { recursive: true, force: true });
     }
   });
 
-  test('cross-platform CLI candidate construction does not invoke a login shell', () => {
+  test('cross-platform CLI candidates include reduced-GUI and package-manager locations', () => {
     const macCandidates = buildExecutableCandidates('agy', {
       platform: 'darwin',
       pathValue: '/custom/bin',
       nodeExecutable: '/Applications/Node/bin/node',
       homeDirectory: '/Users/example',
+      environment: {
+        PNPM_HOME: '/Users/example/custom-pnpm',
+        NPM_CONFIG_PREFIX: '/Users/example/custom-npm',
+      },
     });
     assert.deepEqual(macCandidates.slice(0, 2), ['/custom/bin/agy', '/Applications/Node/bin/agy']);
+    assert.equal(macCandidates.includes('/Users/example/custom-pnpm/agy'), true);
+    assert.equal(macCandidates.includes('/Users/example/custom-npm/bin/agy'), true);
     assert.equal(macCandidates.includes('/opt/homebrew/bin/agy'), true);
     assert.equal(macCandidates.includes('/usr/local/bin/agy'), true);
     assert.equal(macCandidates.includes('/Users/example/.volta/bin/agy'), true);
+    const macClaudeCandidates = buildExecutableCandidates('claude', {
+      platform: 'darwin',
+      pathValue: '/custom/bin',
+      nodeExecutable: '/Applications/Node/bin/node',
+      homeDirectory: '/Users/example',
+      environment: {},
+    });
+    assert.equal(macClaudeCandidates.includes('/opt/homebrew/bin/claude'), true);
+    assert.equal(macClaudeCandidates.includes('/usr/local/bin/claude'), true);
+    assert.equal(macClaudeCandidates.includes('/Users/example/.npm-global/bin/claude'), true);
 
     const windowsCandidates = buildExecutableCandidates('codex', {
       platform: 'win32',
@@ -511,13 +687,280 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       pathExtValue: '.EXE;.CMD',
       nodeExecutable: 'C:\\node\\node.exe',
       homeDirectory: 'C:\\Users\\example',
+      environment: {
+        APPDATA: 'D:\\Profiles\\example\\Roaming',
+        LOCALAPPDATA: 'D:\\Profiles\\example\\Local',
+        VOLTA_HOME: 'D:\\toolchains\\volta',
+      },
     });
-    assert.deepEqual(windowsCandidates.slice(0, 4), [
+    assert.deepEqual(windowsCandidates.slice(0, 6), [
       'C:\\npm\\codex.EXE',
       'C:\\npm\\codex.CMD',
+      'C:\\npm\\codex.COM',
       'C:\\tools\\codex.EXE',
       'C:\\tools\\codex.CMD',
+      'C:\\tools\\codex.COM',
     ]);
+    assert.equal(windowsCandidates.includes('D:\\Profiles\\example\\Roaming\\npm\\codex.CMD'), true);
+    assert.equal(windowsCandidates.includes('D:\\Profiles\\example\\Local\\agy\\bin\\codex.EXE'), true);
+    assert.equal(windowsCandidates.includes('D:\\toolchains\\volta\\bin\\codex.EXE'), true);
+    const windowsClaudeCandidates = buildExecutableCandidates('claude', {
+      platform: 'win32',
+      pathValue: '',
+      pathExtValue: '.EXE;.CMD',
+      nodeExecutable: 'C:\\node\\node.exe',
+      homeDirectory: 'C:\\Users\\example',
+      environment: {},
+    });
+    assert.equal(windowsClaudeCandidates.includes('C:\\Users\\example\\AppData\\Roaming\\npm\\claude.CMD'), true);
+    assert.equal(windowsClaudeCandidates.includes('C:\\Users\\example\\.volta\\bin\\claude.EXE'), true);
+    assert.equal(buildExecutableCandidates('claude', {
+      platform: 'win32',
+      pathValue: '"C:\\Program Files\\Portable Bin";relative-bin',
+      nodeExecutable: 'C:\\node\\node.exe',
+      homeDirectory: 'C:\\Users\\example',
+      environment: {},
+    }).includes('C:\\Program Files\\Portable Bin\\claude.EXE'), true);
+
+    const reducedMacDirectories = executableSearchDirectories({
+      platform: 'darwin',
+      pathValue: '/usr/bin:/bin',
+      nodeExecutable: '/Applications/AlgoGlyph/node',
+      homeDirectory: '/Users/example',
+      environment: { FNM_MULTISHELL_PATH: '/private/tmp/fnm-shell' },
+    });
+    assert.equal(reducedMacDirectories.includes('/private/tmp/fnm-shell'), true);
+    assert.equal(reducedMacDirectories.includes('/Users/example/Library/pnpm'), true);
+    const relativePathDirectories = executableSearchDirectories({
+      platform: 'darwin',
+      pathValue: 'relative-bin:/safe/bin',
+      nodeExecutable: '/Applications/AlgoGlyph/node',
+      homeDirectory: '/Users/example',
+      environment: {},
+    });
+    assert.equal(relativePathDirectories.some((directory) => directory.includes('relative-bin')), false);
+  });
+
+  test('simulated macOS npm shims use trusted Node while native CLIs stay native', async () => {
+    const nodePath = '/Applications/AlgoGlyph Runtime/bin/node';
+    const npmShim = '/Users/example/.npm-global/bin/codex';
+    const npmEntry = '/Users/example/.npm-global/lib/node_modules/@openai/codex/bin/codex.js';
+    const nativeAgy = '/opt/homebrew/bin/agy';
+    const fileSystem = createVirtualCliFileSystem({
+      files: {
+        [nodePath]: { content: '\u00cf\u00fa\u00ed\u00fe' },
+        [npmEntry]: { content: '#!/usr/bin/env node\nconsole.log("codex");\n' },
+        [nativeAgy]: { content: '\u00cf\u00fa\u00ed\u00fe' },
+      },
+      aliases: { [npmShim]: npmEntry },
+    });
+
+    const codex = await resolveCliInvocation({
+      command: 'codex',
+      platform: 'darwin',
+      pathValue: '',
+      nodeExecutable: nodePath,
+      homeDirectory: '/Users/example',
+      projectDirectory: '/Users/example/project',
+      environment: { NPM_CONFIG_PREFIX: '/Users/example/.npm-global' },
+      fileSystem,
+    });
+    assert.equal(codex?.kind, 'node-script');
+    assert.equal(codex?.command, nodePath);
+    assert.deepEqual(codex?.argsPrefix, [npmEntry]);
+    assert.equal(codex?.pathEntries[0], '/Applications/AlgoGlyph Runtime/bin');
+
+    const agy = await resolveCliInvocation({
+      command: 'agy',
+      platform: 'darwin',
+      pathValue: '/opt/homebrew/bin',
+      nodeExecutable: nodePath,
+      homeDirectory: '/Users/example',
+      projectDirectory: '/Users/example/project',
+      environment: {},
+      fileSystem,
+    });
+    assert.equal(agy?.kind, 'native');
+    assert.equal(agy?.command, nativeAgy);
+    assert.deepEqual(agy?.argsPrefix, []);
+  });
+
+  test('resolver rejects malformed launchers and falls through to a valid candidate', async () => {
+    const nodePath = 'C:\\Runtime\\node.exe';
+    const malformedShim = 'C:\\first\\claude.CMD';
+    const escapedEntry = 'C:\\outside\\steal.js';
+    const nativeFallback = 'C:\\second\\claude.EXE';
+    const packageManagerShim = 'C:\\pnpm\\claude.CMD';
+    const packageManagerEntry = 'C:\\store\\claude\\cli.js';
+    const fileSystem = createVirtualCliFileSystem({
+      files: {
+        [nodePath]: { content: 'node' },
+        [malformedShim]: {
+          content: '@ECHO off\r\nCALL :find_dp0\r\nSET "_prog=node"\r\n"%dp0%\\..\\outside\\steal.js" %*',
+        },
+        [escapedEntry]: { content: 'console.log("unsafe")' },
+        [nativeFallback]: { content: 'native' },
+        [packageManagerShim]: {
+          content: '@echo off\r\n"%~dp0..\\runtime\\node.exe" "%~dp0..\\store\\claude\\cli.js" %*',
+        },
+        [packageManagerEntry]: { content: 'console.log("claude")' },
+      },
+    });
+    const invocations = await resolveCliInvocations({
+      command: 'claude',
+      platform: 'win32',
+      pathValue: 'C:\\first;C:\\second',
+      pathExtValue: '.CMD;.EXE',
+      nodeExecutable: nodePath,
+      homeDirectory: 'C:\\Users\\example',
+      projectDirectory: 'C:\\project',
+      environment: {},
+      fileSystem,
+    });
+    assert.equal(invocations.length, 1);
+    assert.equal(invocations[0].kind, 'native');
+    assert.equal(invocations[0].command, nativeFallback);
+
+    const packageManagerInvocation = await resolveCliInvocation({
+      command: 'claude',
+      platform: 'win32',
+      pathValue: 'C:\\pnpm',
+      pathExtValue: '.CMD',
+      nodeExecutable: nodePath,
+      homeDirectory: 'C:\\Users\\example',
+      projectDirectory: 'C:\\project',
+      environment: {},
+      fileSystem,
+    });
+    assert.equal(packageManagerInvocation?.kind, 'node-command-shim');
+    assert.equal(packageManagerInvocation?.command, nodePath);
+    assert.deepEqual(packageManagerInvocation?.argsPrefix, [packageManagerEntry]);
+
+    const missing = await resolveCliInvocation({
+      command: 'codex',
+      platform: 'win32',
+      pathValue: 'C:\\missing',
+      nodeExecutable: nodePath,
+      homeDirectory: 'C:\\Users\\example',
+      projectDirectory: 'C:\\project',
+      environment: {},
+      fileSystem,
+    });
+    assert.equal(missing, undefined);
+    await assert.rejects(
+      resolveCliInvocation({
+        command: 'codex',
+        configuredPath: '.\\codex.cmd',
+        platform: 'win32',
+        nodeExecutable: nodePath,
+        fileSystem,
+      }),
+      /must be absolute/,
+    );
+  });
+
+  test('shared CLI runtime never delegates discovery or execution to a shell', async () => {
+    const [runtimeSource, connectorSource] = await Promise.all([
+      readFile(`${REPO_ROOT}/packages/mcp-connector/bin/cli-runtime.mjs`, 'utf8'),
+      readFile(`${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`, 'utf8'),
+    ]);
+    assert.doesNotMatch(runtimeSource, /where\.exe|\bwhich\b|login-shell|bash|zsh|powershell/i);
+    assert.doesNotMatch(connectorSource, /shell:\s*true/);
+    assert.match(connectorSource, /spawn\(invocation\.command,[\s\S]*?shell:\s*false/);
+    assert.match(connectorSource, /spawn\(appInvocation\.command,[\s\S]*?shell:\s*false/);
+  });
+
+  test('Codex app-server reuses one worker while every request gets a fresh ephemeral thread', async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), 'algoglyph-codex-app-server-test-'));
+    const statePath = join(fixtureRoot, 'state.json');
+    const warmConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_DEV_TIMING: '1',
+        ALGOGLYPH_CODEX_PATH: process.execPath,
+        ALGOGLYPH_TEST_CODEX_APP_SERVER_FIXTURE: CODEX_APP_SERVER_FIXTURE,
+        ALGOGLYPH_TEST_CODEX_STATE_FILE: statePath,
+      },
+    });
+    try {
+      const { session } = await warmConnector.pair();
+      const runs = [];
+      for (const prompt of ['cold-request', 'warm-request-two', 'warm-request-three']) {
+        const run = await runRawFixtureAgent(warmConnector, session.sessionToken, {
+          agentId: 'codex',
+          prompt,
+        });
+        assert.equal(run.status, 200);
+        assert.match(
+          run.events.find((event) => event.event === 'output')?.data.chunk || '',
+          new RegExp(`fixture:${prompt}`),
+        );
+        assert.equal(run.events.at(-1)?.event, 'exit');
+        assert.equal(run.events.at(-1)?.data.code, 0);
+        runs.push(run);
+      }
+
+      const state = await waitForJsonFile(statePath, (value) => value.turns?.length === 3);
+      assert.equal(state.processes.length, 1);
+      assert.equal(new Set(state.turns.map((turn) => turn.pid)).size, 1);
+      assert.equal(new Set(state.threads.map((thread) => thread.threadId)).size, 3);
+      assert.equal(state.threads.every((thread) => thread.ephemeral === true), true);
+      assert.equal(state.threads.every((thread) => thread.approvalPolicy === 'never'), true);
+      assert.equal(state.turns.every((turn) => turn.approvalPolicy === 'never'), true);
+      assert.deepEqual(state.processes[0].security, {
+        approvalNever: true,
+        rootDenied: true,
+        childEnvironmentDenied: true,
+        historyDisabled: true,
+      });
+
+      const timings = runs.map((run) => run.events.find((event) => event.event === 'timing')?.data.stages);
+      assert.equal(timings[0].codex_worker_reused, 0);
+      assert.equal(timings[1].codex_worker_reused, 1);
+      assert.equal(timings[2].codex_worker_reused, 1);
+      assert.equal(new Set(timings.map((timing) => timing.codex_process_pid)).size, 1);
+
+      const abortController = new AbortController();
+      const cancelledRun = fetch(`${warmConnector.endpoint}/v1/agents/run`, {
+        method: 'POST',
+        headers: {
+          Accept: 'text/event-stream',
+          Authorization: `Bearer ${session.sessionToken}`,
+          'Content-Type': 'application/json',
+          Origin: warmConnector.allowedOrigin,
+        },
+        body: JSON.stringify({ agentId: 'codex', prompt: 'slow-turn', outputMode: 'buffered' }),
+        signal: abortController.signal,
+      });
+      setTimeout(() => abortController.abort(), 100);
+      await assert.rejects(cancelledRun, /abort/i);
+      const interrupted = await waitForJsonFile(statePath, (value) => value.interrupts === 1);
+      assert.equal(interrupted.interrupts, 1);
+
+      const afterCancel = await runRawFixtureAgent(warmConnector, session.sessionToken, {
+        agentId: 'codex',
+        prompt: 'after-cancel',
+      });
+      assert.equal(afterCancel.status, 200);
+      assert.match(afterCancel.events.find((event) => event.event === 'output')?.data.chunk || '', /after-cancel/);
+      const afterCancelState = await waitForJsonFile(statePath, (value) => value.turns?.length === 5);
+      assert.equal(afterCancelState.processes.length, 1);
+      assert.equal(new Set(afterCancelState.turns.map((turn) => turn.pid)).size, 1);
+
+      const workerPid = state.processes[0].pid;
+      const workerHome = state.processes[0].homeDirectory;
+      const revoked = await warmConnector.request('v1/session/revoke', {
+        method: 'POST',
+        token: session.sessionToken,
+        body: {},
+      });
+      assert.equal(revoked.status, 200);
+      assert.equal(await waitForProcessExit(workerPid), true);
+      assert.equal(await waitForPathRemoval(workerHome), true);
+    } finally {
+      await warmConnector.stop();
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
   });
 
   test('session count is bounded by evicting the least-recently-used grant', async () => {
@@ -1381,17 +1824,23 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       `${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`,
       'utf8',
     );
-    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.shell_tool=false'/);
-    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.unified_exec=false'/);
-    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.apps=false'/);
-    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.multi_agent=false'/);
-    assert.match(connectorSource, /id: 'codex'[\s\S]*?'features\.hooks=false'/);
-    assert.match(connectorSource, /id: 'codex'[\s\S]*?'web_search="disabled"'/);
+    assert.match(connectorSource, /const CODEX_SECURITY_CONFIG_ARGS = \[[\s\S]*?'features\.shell_tool=false'/);
+    assert.match(connectorSource, /const CODEX_SECURITY_CONFIG_ARGS = \[[\s\S]*?'features\.unified_exec=false'/);
+    assert.match(connectorSource, /const CODEX_SECURITY_CONFIG_ARGS = \[[\s\S]*?'features\.apps=false'/);
+    assert.match(connectorSource, /const CODEX_SECURITY_CONFIG_ARGS = \[[\s\S]*?'features\.multi_agent=false'/);
+    assert.match(connectorSource, /const CODEX_SECURITY_CONFIG_ARGS = \[[\s\S]*?'features\.hooks=false'/);
+    assert.match(connectorSource, /const CODEX_SECURITY_CONFIG_ARGS = \[[\s\S]*?'web_search="disabled"'/);
+    assert.match(connectorSource, /id: 'codex'[\s\S]*?\.\.\.CODEX_SECURITY_CONFIG_ARGS/);
     assert.match(connectorSource, /id: 'codex'[\s\S]*?'--ignore-rules'/);
     assert.match(connectorSource, /default_permissions = "algoglyph_connector"/);
     assert.match(connectorSource, /filesystem = \{ ":root" = "deny" \}/);
     assert.match(connectorSource, /\[shell_environment_policy\][\s\S]*?inherit = "none"/);
     assert.match(connectorSource, /if \(copiedFileCredential\) delete environment\.OPENAI_API_KEY/);
+    assert.match(connectorSource, /'app-server', '--listen', 'stdio:\/\/', '--strict-config'/);
+    assert.match(connectorSource, /requestCodexAppServer\(session, 'thread\/start'[\s\S]*?approvalPolicy: 'never'[\s\S]*?ephemeral: true/);
+    assert.match(connectorSource, /requestCodexAppServer\(session, 'turn\/start'[\s\S]*?approvalPolicy: 'never'/);
+    assert.match(connectorSource, /requestCodexAppServer\(session, 'thread\/unsubscribe'/);
+    assert.match(connectorSource, /Codex app-server unavailable; using isolated one-shot fallback/);
   });
 
   test('Claude adapter exposes no built-ins and auto-approves only exact per-run MCP tools', async () => {

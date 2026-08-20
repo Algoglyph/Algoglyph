@@ -75,13 +75,17 @@ The connector rejects unrecognized `Origin` values and rejects Host headers that
 
 The browser selects only a stable agent ID and supplies a bounded prompt. The connector owns the executable name and fixed argument vector:
 
-- Codex runs ephemerally under a connector-owned deny-root filesystem permission profile. Shell/unified-exec, apps, web search, hooks, subagents, remote plugins, and skill installation are disabled; any tool-child environment inherits nothing and receives only runtime essentials. The prompt arrives over stdin after an option terminator.
+- Codex normally uses one owner-bound app-server stdio worker. Every request creates a fresh ephemeral thread with `approvalPolicy: never`, then unsubscribes it after completion; no conversational history is shared. The connector-owned deny-root profile still disables shell/unified-exec, apps, web search, hooks, subagents, remote plugins, and skill installation. If app-server compatibility fails before turn dispatch, the existing isolated `codex exec --ephemeral` adapter is used.
 - Claude Code runs in print mode with every built-in tool disabled, non-interactive `dontAsk` permission mode, and session persistence disabled. An explicitly attached MCP server enables only its exact fully qualified tool names for that run; the prompt arrives over stdin.
 - Antigravity runs sandboxed in output-only mode. One-shot execution disables slash commands; warm execution retains only the connector-owned reset command.
 
 Antigravity's connector-owned relay is written only inside its isolated home at `.gemini/config/mcp_config.json`, using the current `serverUrl` schema. Its isolated CLI settings allow exactly `mcp(algoglyph_approved/*)` when that relay is attached, so headless use works without granting global MCP, command, file, or browser permissions. The user's global Gemini/Antigravity MCP configuration and permissions are never read, merged, or modified. A narrowly identified Antigravity account-eligibility rejection may cause one retry only when no transcript event proves the prompt was accepted; other failures are never automatically resubmitted.
 
 The HTTP API cannot supply a command, executable path, shell fragment, argument array, working directory, environment override, config path, or credential path. Unknown fields and unknown agent IDs are rejected. Child processes are started without a shell from a canonical, allowlisted executable path.
+
+The shared resolver is capability-based rather than shell-based. It tries absolute PATH entries, the running connector's trusted Node directory, package-manager environment hints, and standard Windows/macOS per-user bin roots. Native `.exe`/Mach-O-style executables run directly. Validated Windows Node `.cmd` shims and executable macOS Node launchers are reduced to their canonical JavaScript entry and executed with the connector's trusted Node binary. Relative PATH entries, project-local binaries, `node_modules/.bin`, malformed shims, and arbitrary shell wrappers are rejected. A candidate that cannot pass the isolated `--version` probe does not mask a valid later candidate. No `where`, `which`, login shell, PowerShell, `cmd.exe`, bash, or zsh discovery is used.
+
+For an unusual installation, `ALGOGLYPH_CODEX_PATH`, `ALGOGLYPH_ANTIGRAVITY_PATH`, or `ALGOGLYPH_CLAUDE_PATH` may name an absolute executable/shim. These overrides still go through canonical-path, file-type, and shim validation and never enable shell execution.
 
 Every run receives:
 
@@ -93,6 +97,10 @@ Every run receives:
 - prompt, output, time, concurrency, and response limits;
 - cancellation handling, graceful termination, and forced descendant process-tree cleanup;
 - removal of temporary state on success, error, cancellation, timeout, revocation, and shutdown.
+
+For a warm Codex worker, the private directory lives for that owner/configuration lifetime rather than one request. Credential fingerprints, owner identity, executable identity, and approved-MCP identity are part of the worker key. A change to any of them terminates the process tree and deletes the directory before replacement. Each request still receives an independent in-memory ephemeral thread, bounded output/deadline handling, and `turn/interrupt` cancellation. No fallback is attempted after a model turn has been dispatched.
+
+Claude Code intentionally remains on the reviewed one-shot print-mode adapter. The documented streaming-input interface is a persistent conversation, not an independent-session multiplexer, and therefore is not reused across unrelated AlgoGlyph requests.
 
 Prompts are data, never arguments that can become flags or shell syntax. Terminal control bytes are removed before warm PTY submission, and bracketed paste prevents prompt text from becoming interactive keystrokes.
 
