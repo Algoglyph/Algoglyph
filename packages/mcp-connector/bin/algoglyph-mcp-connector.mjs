@@ -1,11 +1,11 @@
 import { execFile, spawn } from 'node:child_process';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
-import { chmod, copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { isIP } from 'node:net';
 import { tmpdir } from 'node:os';
-import { dirname, join, sep } from 'node:path';
+import { dirname, isAbsolute, join, sep } from 'node:path';
 import { Client, SSEClientTransport, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { Server as McpServer } from '@modelcontextprotocol/server';
@@ -139,6 +139,8 @@ const testAgentFixture = process.env.NODE_ENV === 'test'
 const testAntigravityFixture = process.env.NODE_ENV === 'test'
   ? process.env.ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE?.trim()
   : undefined;
+const testProvisionAntigravityCredentials = process.env.NODE_ENV === 'test'
+  && process.env.ALGOGLYPH_TEST_PROVISION_ANTIGRAVITY_CREDENTIALS === '1';
 const testCodexAppServerFixture = process.env.NODE_ENV === 'test'
   ? process.env.ALGOGLYPH_TEST_CODEX_APP_SERVER_FIXTURE?.trim()
   : undefined;
@@ -897,6 +899,49 @@ const copyCredentialIfPresent = async (source, destination, expectedRoot) => {
   }
 };
 
+const readMacOsDefaultKeychain = async (userProfile) => {
+  const fallback = join(userProfile, 'Library', 'Keychains', 'login.keychain-db');
+  try {
+    const stdout = await new Promise((resolveOutput, reject) => {
+      execFile('/usr/bin/security', ['default-keychain', '-d', 'user'], {
+        env: {
+          HOME: userProfile,
+          ...(process.env.USER ? { USER: process.env.USER } : {}),
+          ...(process.env.LOGNAME ? { LOGNAME: process.env.LOGNAME } : {}),
+        },
+        maxBuffer: 4 * 1024,
+        timeout: 2_000,
+        windowsHide: true,
+      }, (error, output) => (error ? reject(error) : resolveOutput(output)));
+    });
+    const value = stdout.trim();
+    const candidate = value.startsWith('"') ? JSON.parse(value) : value;
+    return typeof candidate === 'string' && isAbsolute(candidate) ? candidate : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const provisionMacOsLoginKeychain = async (homeDirectory, userProfile) => {
+  if (process.platform !== 'darwin' || !userProfile) return false;
+  try {
+    const source = await readMacOsDefaultKeychain(userProfile);
+    const resolvedSource = await realpath(source);
+    if (!(await stat(resolvedSource)).isFile()) return false;
+    const destinationDirectory = join(homeDirectory, 'Library', 'Keychains');
+    await mkdir(destinationDirectory, { recursive: true, mode: 0o700 });
+    // Security.framework resolves the default login Keychain relative to HOME.
+    // Antigravity needs that Keychain for token refresh, while its `.gemini`
+    // configuration must remain inside the request-owned isolated profile.
+    await symlink(resolvedSource, join(destinationDirectory, 'login.keychain-db'), 'file');
+    return true;
+  } catch {
+    // API-key auth and first-time interactive sign-in do not require an
+    // existing login Keychain link, so leave those flows available.
+    return false;
+  }
+};
+
 const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
   const userProfile = process.env.USERPROFILE || process.env.HOME;
   if (agent.id === 'codex') {
@@ -918,6 +963,7 @@ const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
       sourceHome,
     );
   } else if (agent.id === 'antigravity') {
+    await provisionMacOsLoginKeychain(homeDirectory, userProfile);
     const sourceHome = userProfile && join(userProfile, '.gemini');
     for (const filename of ['oauth_creds.json', 'google_accounts.json']) {
       await copyCredentialIfPresent(
@@ -926,6 +972,12 @@ const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
         sourceHome,
       );
     }
+    const antigravityCliHome = sourceHome && join(sourceHome, 'antigravity-cli');
+    await copyCredentialIfPresent(
+      antigravityCliHome && join(antigravityCliHome, 'antigravity-oauth-token'),
+      join(homeDirectory, '.gemini', 'antigravity-cli', 'antigravity-oauth-token'),
+      antigravityCliHome,
+    );
   }
 };
 
@@ -2392,6 +2444,13 @@ const waitForAntigravity = (
       reject(new Error('The persistent Antigravity session exited unexpectedly.'));
       return;
     }
+    if (session.rawOutput.includes('Select login method:')) {
+      reject(new ConnectorError(
+        503,
+        'Sign in to Antigravity CLI by running `agy` once, then restart the AlgoGlyph connector.',
+      ));
+      return;
+    }
     Promise.resolve(predicate()).then((value) => {
       if (value) {
         resolveDone(value);
@@ -2518,6 +2577,9 @@ const startAntigravitySession = async (approvedServer, owner) => {
       for (const name of agent.authEnv || []) delete environment[name];
       const stateFile = process.env.ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE;
       if (stateFile) environment.ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE = stateFile;
+      if (testProvisionAntigravityCredentials) {
+        await provisionAgentCredentials(agent, environment, homeDirectory);
+      }
     } else {
       await seedAntigravityPreferences(homeDirectory);
       await provisionAgentCredentials(agent, environment, homeDirectory);

@@ -69,7 +69,7 @@ Antigravity uses the current isolated `.gemini/config/mcp_config.json` `serverUr
 - Pairing credentials are random, origin-bound, single-use, and expire after 90 seconds. Session tokens are random, capability-scoped, and kept in browser `sessionStorage`.
 - Request bodies, JSON structure, prompts, remote responses, MCP pagination, output, concurrency, and execution time are bounded. Unknown or dangerous request fields are rejected.
 - Browser data never chooses a command, executable, shell, argument vector, working directory, environment variable, or filesystem path. Processes are launched without a shell.
-- Agent credentials are copied only from reviewed locations into private temporary homes. Source paths are checked for links/escape, copied files are private, and temporary trees are removed after use.
+- Agent file credentials are copied only from reviewed locations into private temporary homes. Source paths are checked for links/escape, copied files are private, and temporary trees are removed after use. On macOS, Antigravity's temporary profile links only its standard login-Keychain path to the user's current default Keychain so Security.framework can refresh OAuth credentials; Antigravity's `.gemini` MCP and permission configuration remains isolated.
 - Codex uses a connector-owned deny-root permission profile with command, app, web, hook, subagent, and plugin surfaces disabled. Tool-child processes inherit no credential environment; when private file credentials are available, duplicate API-key environment auth is removed from the Codex host too.
 - Errors and normal logs do not include prompts, pairing/session tokens, MCP bearer tokens, copied credentials, or generated content.
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createBasicIllustrationPlan } from '../src/lib/ai/basicIllustrations.ts';
 import { inspectCanvasLayout, parseCanvasResponse } from '../src/lib/ai/diagramLayout.ts';
+import { extractJsonObject } from '../src/lib/ai/modelJson.ts';
 import { placeSkeletonsBelowAnchor } from '../src/lib/ai/canvasPlacement.ts';
 import {
   applyLibraryMatches,
@@ -21,6 +22,25 @@ let legacyPayloadBytes = 0;
 let batchedPayloadBytes = 0;
 let legacyLayoutMilliseconds = 0;
 let batchedLayoutMilliseconds = 0;
+
+const recoveredModelJson = extractJsonObject(`Here is the requested plan:
+\`\`\`json
+{
+  "intent": "draw",
+  "elements": [
+    { "type": "rectangle", "id": "queue", "label": "Cache, } queue", },
+  ],
+}
+\`\`\``);
+assert.deepEqual(recoveredModelJson, {
+  intent: 'draw',
+  elements: [{ type: 'rectangle', id: 'queue', label: 'Cache, } queue' }],
+}, 'model JSON recovery must remove structural trailing commas without changing commas inside strings');
+assert.throws(
+  () => extractJsonObject('{"intent":"draw" "elements":[]}'),
+  SyntaxError,
+  'model JSON recovery must not guess how to repair unrelated syntax errors',
+);
 
 const fixtures = [
   {

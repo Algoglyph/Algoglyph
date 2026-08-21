@@ -32,6 +32,12 @@ const WARM_ANTIGRAVITY_FIXTURE = fileURLToPath(new URL('./fixtures/warmAntigravi
 const RECOVERING_ANTIGRAVITY_FIXTURE = fileURLToPath(
   new URL('./fixtures/recoveringAntigravityAgent.mjs', import.meta.url),
 );
+const UNAUTHENTICATED_ANTIGRAVITY_FIXTURE = fileURLToPath(
+  new URL('./fixtures/unauthenticatedAntigravityAgent.mjs', import.meta.url),
+);
+const SIGNING_IN_ANTIGRAVITY_FIXTURE = fileURLToPath(
+  new URL('./fixtures/signingInAntigravityAgent.mjs', import.meta.url),
+);
 const CODEX_APP_SERVER_FIXTURE = fileURLToPath(new URL('./fixtures/codexAppServerAgent.mjs', import.meta.url));
 const VERSION_PROBE_PRELOAD = fileURLToPath(new URL('./fixtures/versionProbePreload.cjs', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -174,10 +180,12 @@ const runWarmAntigravity = async (fixtureConnector, token, marker, mcpServerId) 
     }),
   });
   const events = response.ok ? parseSseEvents(await response.text()) : [];
+  const error = response.ok ? undefined : await response.json();
   const output = events.find((event) => event.event === 'output');
   return {
     status: response.status,
     events,
+    error,
     output: output ? JSON.parse(output.data.chunk) : undefined,
   };
 };
@@ -1708,6 +1716,118 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
           try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ }
         }
       }
+    }
+  });
+
+  test('Antigravity provisions the current OAuth token into its isolated home', async () => {
+    const sourceHome = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-auth-source-'));
+    const authToken = 'fixture-antigravity-oauth-token';
+    let authConnector;
+    try {
+      const authDirectory = join(sourceHome, '.gemini', 'antigravity-cli');
+      await mkdir(authDirectory, { recursive: true });
+      await writeFile(join(authDirectory, 'antigravity-oauth-token'), authToken, { mode: 0o600 });
+      authConnector = await startConnectorHarness({
+        environment: {
+          NODE_ENV: 'test',
+          HOME: sourceHome,
+          USERPROFILE: sourceHome,
+          ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: WARM_ANTIGRAVITY_FIXTURE,
+          ALGOGLYPH_TEST_PROVISION_ANTIGRAVITY_CREDENTIALS: '1',
+        },
+      });
+      const { session } = await authConnector.pair();
+      const run = await runWarmAntigravity(
+        authConnector,
+        session.sessionToken,
+        'WARM_REQUEST_AUTH_TOKEN',
+      );
+      assert.equal(run.status, 200);
+      assert.equal(run.output.credentialIsolation.currentAuthTokenPresent, true);
+      assert.equal(run.output.credentialIsolation.currentAuthTokenMatchesFixture, true);
+    } finally {
+      await authConnector?.stop();
+      await rm(sourceHome, { recursive: true, force: true });
+    }
+  });
+
+  test('Antigravity exposes the macOS login Keychain inside its isolated home', {
+    skip: process.platform !== 'darwin',
+  }, async () => {
+    const sourceHome = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-keychain-source-'));
+    let keychainConnector;
+    try {
+      const keychainDirectory = join(sourceHome, 'Library', 'Keychains');
+      await mkdir(keychainDirectory, { recursive: true });
+      await writeFile(join(keychainDirectory, 'login.keychain-db'), 'fixture-login-keychain', { mode: 0o600 });
+      keychainConnector = await startConnectorHarness({
+        environment: {
+          NODE_ENV: 'test',
+          HOME: sourceHome,
+          USERPROFILE: sourceHome,
+          ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: WARM_ANTIGRAVITY_FIXTURE,
+          ALGOGLYPH_TEST_PROVISION_ANTIGRAVITY_CREDENTIALS: '1',
+        },
+      });
+      const { session } = await keychainConnector.pair();
+      const run = await runWarmAntigravity(
+        keychainConnector,
+        session.sessionToken,
+        'WARM_REQUEST_MACOS_KEYCHAIN',
+      );
+      assert.equal(run.status, 200);
+      assert.equal(run.output.credentialIsolation.macOsLoginKeychainPresent, true);
+      assert.equal(run.output.credentialIsolation.macOsLoginKeychainIsSymbolicLink, true);
+      assert.equal(run.output.credentialIsolation.macOsLoginKeychainMatchesFixture, true);
+    } finally {
+      await keychainConnector?.stop();
+      await rm(sourceHome, { recursive: true, force: true });
+    }
+  });
+
+  test('Antigravity reports an interactive sign-in requirement without waiting for readiness timeout', async () => {
+    const unauthenticatedConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: UNAUTHENTICATED_ANTIGRAVITY_FIXTURE,
+        ALGOGLYPH_TEST_ANTIGRAVITY_READY_TIMEOUT_MS: '1000',
+      },
+    });
+    try {
+      const { session } = await unauthenticatedConnector.pair();
+      const startedAt = performance.now();
+      const run = await runWarmAntigravity(
+        unauthenticatedConnector,
+        session.sessionToken,
+        'WARM_REQUEST_UNAUTHENTICATED',
+      );
+      assert.equal(run.status, 503);
+      assert.ok(performance.now() - startedAt < 750);
+      assert.match(run.error?.error?.message || '', /sign in to Antigravity CLI/i);
+    } finally {
+      await unauthenticatedConnector.stop();
+    }
+  });
+
+  test('Antigravity allows silent sign-in recovery to finish before requiring interaction', async () => {
+    const signingInConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: SIGNING_IN_ANTIGRAVITY_FIXTURE,
+        ALGOGLYPH_TEST_ANTIGRAVITY_READY_TIMEOUT_MS: '1000',
+      },
+    });
+    try {
+      const { session } = await signingInConnector.pair();
+      const run = await runWarmAntigravity(
+        signingInConnector,
+        session.sessionToken,
+        'WARM_REQUEST_SILENT_SIGN_IN',
+      );
+      assert.equal(run.status, 200);
+      assert.equal(run.output.marker, 'WARM_REQUEST_SILENT_SIGN_IN');
+    } finally {
+      await signingInConnector.stop();
     }
   });
 

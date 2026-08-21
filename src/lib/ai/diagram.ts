@@ -4,6 +4,7 @@ import { serializeCanvasForNotes } from './notes';
 import { createBasicIllustrationPlan } from './basicIllustrations';
 import { recordCanvasPerfStage, recordCanvasPerfStages } from './devTiming';
 import { parseCanvasResponse, type CanvasResponse } from './diagramLayout';
+import { extractJsonObject } from './modelJson';
 import { placeSkeletonsBelowAnchor, type CanvasPlacementAnchor } from './canvasPlacement';
 import {
   applyLibraryMatches,
@@ -15,6 +16,7 @@ import {
 } from './libraryAssets';
 
 export { inspectCanvasLayout, parseCanvasResponse } from './diagramLayout';
+export { extractJsonObject } from './modelJson';
 export type { CanvasIntent, CanvasLayout, CanvasResponse } from './diagramLayout';
 
 /**
@@ -76,18 +78,6 @@ export class CanvasAiError extends Error {
     this.name = 'CanvasAiError';
   }
 }
-
-/** Pull the first balanced JSON object out of a model response. */
-export const extractJsonObject = (text: string): unknown => {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const source = fenced ? fenced[1] : text;
-  const start = source.indexOf('{');
-  const end = source.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error('The model did not return a JSON object.');
-  }
-  return JSON.parse(source.slice(start, end + 1));
-};
 
 /**
  * Run one canvas generation end to end: read the current canvas as context,
