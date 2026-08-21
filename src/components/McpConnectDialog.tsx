@@ -17,24 +17,15 @@ import {
   inspectMcpConnector,
   invokeMcpTool,
   normalizeConnectorEndpoint,
-  pairMcpConnector,
   revokeMcpConnectorSession,
   testMcpServer,
 } from '../lib/mcp/connectorClient';
-import type { McpServerTestResult } from '../lib/mcp/types';
+import { MCP_CONNECTOR_USER_COMMAND, type McpServerTestResult } from '../lib/mcp/types';
 import { useMcpStore } from '../store/mcpStore';
 import { LoadingSpinner } from './LoadingSpinner';
 
 const inputClassName =
   'h-9 w-full rounded-md border border-hairline bg-canvas px-2.5 font-mono text-xs text-ink outline-none transition-colors placeholder:text-mute focus:border-ink';
-
-const connectorCommand = (): string => {
-  if (typeof window === 'undefined') return 'npx --yes @algoglyph/mcp-connector@0.2.4';
-  const host = window.location.hostname;
-  return host === 'localhost' || host === '127.0.0.1'
-    ? 'npm run mcp:connector'
-    : 'npx --yes @algoglyph/mcp-connector@0.2.4';
-};
 
 const errorMessage = (error: unknown): string => {
   if (error instanceof McpConnectorRequestError) return error.message;
@@ -64,11 +55,13 @@ export const McpConnectDialog: React.FC = () => {
   const connectorHealth = useMcpStore((state) => state.connectorHealth);
   const connectorCatalog = useMcpStore((state) => state.connectorCatalog);
   const connectionError = useMcpStore((state) => state.connectionError);
+  const intentionalDisconnect = useMcpStore((state) => state.intentionalDisconnect);
   const activeAgentId = useMcpStore((state) => state.activeAgentId);
   const closeMcpPanel = useMcpStore((state) => state.closeMcpPanel);
   const setConnectorEndpoint = useMcpStore((state) => state.setConnectorEndpoint);
   const setConnectionState = useMcpStore((state) => state.setConnectionState);
   const setStoredConnectorToken = useMcpStore((state) => state.setConnectorToken);
+  const setIntentionalDisconnect = useMcpStore((state) => state.setIntentionalDisconnect);
   const setActiveAgentId = useMcpStore((state) => state.setActiveAgentId);
 
   const endpointInputRef = useRef<HTMLInputElement>(null);
@@ -115,68 +108,6 @@ export const McpConnectDialog: React.FC = () => {
     clearSessionOwnedUi();
   }), [clearSessionOwnedUi]);
 
-  useEffect(() => {
-    const initialState = useMcpStore.getState();
-    if (!isOpen) return;
-
-    let cancelled = false;
-    let timer: number | undefined;
-    let attempt = 0;
-
-    const schedule = () => {
-      const delay = attempt < 8 ? 1500 : 4000;
-      timer = window.setTimeout(() => void connect(), delay);
-    };
-
-    const connect = async () => {
-      if (initialState.connectionState === 'ready' && initialState.connectorToken) {
-        try {
-          const endpoint = normalizeConnectorEndpoint(connectorEndpoint);
-          const snapshot = await inspectMcpConnector(endpoint, initialState.connectorToken);
-          if (cancelled || !snapshot.catalog) return;
-          setConnectorEndpoint(endpoint);
-          setConnectionState('ready', snapshot.health, snapshot.catalog);
-        } catch {
-          // Keep the last usable snapshot on transient refresh failures. A 401
-          // independently clears the expired session in the connector client.
-        }
-        return;
-      }
-      attempt += 1;
-      setServerResult(null);
-      setServerError(null);
-
-      try {
-        const endpoint = normalizeConnectorEndpoint(connectorEndpoint);
-        setConnectionState(attempt === 1 ? 'searching' : 'checking');
-        const snapshot = await pairMcpConnector(endpoint);
-        if (cancelled) return;
-        setConnectorEndpoint(endpoint);
-        setStoredConnectorToken(snapshot.session.sessionToken, snapshot.session);
-        setConnectorToken(snapshot.session.sessionToken);
-        setConnectionState('ready', snapshot.health, snapshot.catalog);
-        setEditingConnection(false);
-      } catch (error) {
-        if (cancelled) return;
-        if (error instanceof McpConnectorRequestError && error.status === 404) {
-          setConnectionState('needs-token', connectorHealth, null, 'Connector detected, but it does not support automatic pairing yet.');
-          return;
-        }
-        const message = errorMessage(error);
-        const isReachabilityError = message === 'Could not reach the local connector.' || message === 'The connector did not respond in time.';
-        setConnectionState(isReachabilityError ? 'not-found' : 'error', null, null, message);
-        if (isReachabilityError) schedule();
-      }
-    };
-
-    void connect();
-
-    return () => {
-      cancelled = true;
-      if (timer !== undefined) window.clearTimeout(timer);
-    };
-  }, [connectorEndpoint, connectorHealth, isOpen, setConnectionState, setConnectorEndpoint, setStoredConnectorToken]);
-
   const checkConnector = async () => {
     setConnectionState('checking');
     setServerResult(null);
@@ -210,22 +141,29 @@ export const McpConnectDialog: React.FC = () => {
 
   const disconnectConnector = async () => {
     const token = useMcpStore.getState().connectorToken || connectorToken;
+    setIntentionalDisconnect(true);
+    setStoredConnectorToken(null);
+    setConnectorToken('');
+    clearSessionOwnedUi();
+    setConnectionState('idle');
+    setEditingConnection(false);
     try {
       await revokeMcpConnectorSession(connectorEndpoint, token || undefined);
     } catch {
       // Local disconnect should still clear the browser-side session if revoke fails.
-    } finally {
-      setStoredConnectorToken(null);
-      setConnectorToken('');
-      clearSessionOwnedUi();
-      setConnectionState('idle');
-      setEditingConnection(false);
     }
+  };
+
+  const reconnectConnector = () => {
+    setServerResult(null);
+    setServerError(null);
+    setConnectionState('searching');
+    setIntentionalDisconnect(false);
   };
 
   const copyCommand = async () => {
     try {
-      await navigator.clipboard.writeText(connectorCommand());
+      await navigator.clipboard.writeText(MCP_CONNECTOR_USER_COMMAND);
       setCopiedCommand(true);
       window.setTimeout(() => setCopiedCommand(false), 1500);
     } catch {
@@ -294,14 +232,17 @@ export const McpConnectDialog: React.FC = () => {
 
   if (!isOpen) return null;
 
-  const isReady = connectionState === 'ready';
-  const isSearching = connectionState === 'searching' || connectionState === 'checking' || connectionState === 'pairing';
+  const isReady = connectionState === 'ready' && !intentionalDisconnect;
+  const isSearching = !intentionalDisconnect
+    && (connectionState === 'searching' || connectionState === 'checking' || connectionState === 'pairing');
   const showManualConnectionForm = advancedOpen || editingConnection || connectionState === 'needs-token';
   const agents = connectorCatalog?.agents ?? [];
   const availableAgents = agents.filter((agent) => agent.available);
   const activeAgent = agents.find((agent) => agent.id === activeAgentId) || null;
 
-  const statusTitle = isReady
+  const statusTitle = intentionalDisconnect
+    ? 'Local Agent Disconnected'
+    : isReady
     ? 'Local Agent Connected'
     : connectionState === 'not-found'
       ? 'Local connector not running'
@@ -311,7 +252,9 @@ export const McpConnectDialog: React.FC = () => {
           ? 'Connection needs attention'
           : 'Looking for AlgoGlyph Connector...';
 
-  const statusDescription = isReady
+  const statusDescription = intentionalDisconnect
+    ? 'Disconnected by you. The local connector was left running and will reconnect only when you choose.'
+    : isReady
     ? `Connected to ${endpointHost(connectorEndpoint)}${connectorHealth?.version ? ` / v${connectorHealth.version}` : ''}`
     : connectionState === 'needs-token'
       ? connectionError || 'Automatic pairing is unavailable for this connector. Use Advanced to connect manually.'
@@ -378,7 +321,7 @@ export const McpConnectDialog: React.FC = () => {
                   <p className="text-xs font-medium text-ink">Start the AlgoGlyph Connector</p>
                   <div className="mt-2 flex min-w-0 items-center gap-2 rounded-md border border-hairline bg-canvas px-2.5 py-2">
                     <Terminal size={13} className="shrink-0 text-body" aria-hidden="true" />
-                    <code className="truncate font-mono text-[11px] text-ink">{connectorCommand()}</code>
+                    <code className="truncate font-mono text-[11px] text-ink">{MCP_CONNECTOR_USER_COMMAND}</code>
                   </div>
                 </div>
                 <button
@@ -390,7 +333,21 @@ export const McpConnectDialog: React.FC = () => {
                   {copiedCommand ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <p className="mt-2 text-[11px] leading-4 text-mute">Waiting for connector...</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-[11px] leading-4 text-mute">
+                  {intentionalDisconnect ? 'Connector process left untouched.' : 'Waiting for connector...'}
+                </p>
+                {intentionalDisconnect && (
+                  <button
+                    type="button"
+                    onClick={reconnectConnector}
+                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-ink px-2.5 text-[11px] font-medium text-canvas transition-opacity hover:opacity-90"
+                  >
+                    <RefreshCw size={13} />
+                    Reconnect
+                  </button>
+                )}
+              </div>
             </section>
           )}
 

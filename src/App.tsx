@@ -90,8 +90,8 @@ const AppContent: React.FC = () => {
   // Initialize workspace from IndexedDB on load and map navigation APIs globally
   useEffect(() => {
     initializeWorkspace();
-    // Starting the connector command is the entire connection flow. A bounded
-    // retry window also covers users who launch it just after opening the app.
+    // Starting the connector command is the entire connection flow. This owner
+    // also validates health and recovers unexpected connector restarts.
     const stopMcpBootstrap = startMcpConnectionBootstrap();
     (window as any).useWorkspaceStore = useWorkspaceStore;
     (window as any).goToLanding = () => navigate('/');

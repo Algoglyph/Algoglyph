@@ -8,6 +8,7 @@
     "dev": "vite",
     "mcp:connector": "node scripts/algoglyph-mcp-connector.mjs",
     "test:mcp": "node --test --test-concurrency=1 packages/mcp-connector/test/connector.integration.test.mjs",
+    "test:mcp:ui": "node --test packages/mcp-connector/test/browser-connection-state.test.mjs",
     "test:mcp:package": "node packages/mcp-connector/test/package-release.mjs",
     "test:diagrams": "node scripts/validateDiagramLayout.mjs",
     "test:seo": "node scripts/validateSeo.mjs",

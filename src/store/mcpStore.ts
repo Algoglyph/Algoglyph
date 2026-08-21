@@ -45,6 +45,7 @@ const persistConnectorEndpoint = (endpoint: string) => {
 // closes) — not localStorage — so a page refresh keeps the live connection
 // without persisting a credential to disk long-term.
 const MCP_CONNECTOR_TOKEN_KEY = 'algoglyph-mcp-connector-token';
+const MCP_INTENTIONAL_DISCONNECT_KEY = 'algoglyph-mcp-intentionally-disconnected';
 
 const readConnectorToken = (): string | null => {
   if (typeof window === 'undefined') return null;
@@ -62,6 +63,25 @@ const persistConnectorToken = (token: string | null) => {
     else window.sessionStorage.removeItem(MCP_CONNECTOR_TOKEN_KEY);
   } catch {
     // A non-persisted token still works for the current page lifetime.
+  }
+};
+
+const readIntentionalDisconnect = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.sessionStorage.getItem(MCP_INTENTIONAL_DISCONNECT_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const persistIntentionalDisconnect = (intentional: boolean) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (intentional) window.sessionStorage.setItem(MCP_INTENTIONAL_DISCONNECT_KEY, '1');
+    else window.sessionStorage.removeItem(MCP_INTENTIONAL_DISCONNECT_KEY);
+  } catch {
+    // The in-memory flag still preserves the user's choice for this page lifetime.
   }
 };
 
@@ -122,6 +142,9 @@ interface McpStoreState {
   // Session metadata is memory-only and is replaced atomically with its token,
   // preventing expiry/scope information from surviving a credential change.
   connectorSession: McpConnectorSession | null;
+  // Separates a deliberate UI Disconnect from an unexpected connector loss.
+  // Session storage keeps the choice stable across component rerenders/refreshes.
+  intentionalDisconnect: boolean;
   // Which CLI powers the AI features; resolved against the catalog when it loads.
   activeAgentId: string | null;
   agentRun: McpAgentRunState | null;
@@ -129,6 +152,7 @@ interface McpStoreState {
   closeMcpPanel: () => void;
   setConnectorEndpoint: (endpoint: string) => void;
   setConnectorToken: (token: string | null, session?: McpConnectorSession | null) => void;
+  setIntentionalDisconnect: (intentional: boolean) => void;
   setActiveAgentId: (agentId: string) => void;
   setConnectionState: (
     state: McpConnectionState,
@@ -152,6 +176,7 @@ export const useMcpStore = create<McpStoreState>((set) => ({
   connectionError: null,
   connectorToken: readConnectorToken(),
   connectorSession: null,
+  intentionalDisconnect: readIntentionalDisconnect(),
   activeAgentId: readActiveAgentId(),
   agentRun: null,
   openMcpPanel: () => set({ mcpPanelOpen: true }),
@@ -171,6 +196,10 @@ export const useMcpStore = create<McpStoreState>((set) => ({
         : matchingSession ?? (state.connectorToken === connectorToken ? state.connectorSession : null);
       return { connectorToken, connectorSession };
     });
+  },
+  setIntentionalDisconnect: (intentionalDisconnect) => {
+    persistIntentionalDisconnect(intentionalDisconnect);
+    set({ intentionalDisconnect });
   },
   setActiveAgentId: (agentId) => {
     persistActiveAgentId(agentId);

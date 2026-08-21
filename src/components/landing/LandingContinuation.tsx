@@ -389,6 +389,29 @@ function InstallConnector() {
         </h2>
 
         <div className="mt-7 border border-white/14 bg-[#0a0c0d]">
+          <div className="border-b border-white/12 px-4 py-6 sm:px-6 sm:py-7">
+            <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-white/56">
+              Before you start
+            </span>
+            <div className="mt-5 grid gap-5 sm:grid-cols-3 sm:gap-7">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-hero-cyan)]">01 / Runtime</p>
+                <p className="mt-2 text-sm leading-6 text-white/72">Node.js 20.18.1 or newer, with npm/npx.</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-hero-cyan)]">02 / Choose one CLI</p>
+                <p className="mt-2 text-sm leading-6 text-white/72">Codex CLI, Antigravity CLI, or Claude Code. You do not need all three.</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-hero-cyan)]">03 / Authenticate</p>
+                <p className="mt-2 text-sm leading-6 text-white/72">Sign in to that CLI, or configure one of its supported API keys, before using Ask AI.</p>
+              </div>
+            </div>
+            <p className="mt-5 font-mono text-[11px] leading-5 text-white/44">
+              Supported setup: Windows or macOS.
+            </p>
+          </div>
+
           <div className="flex min-h-14 items-center justify-between gap-6 border-b border-white/12 px-4 sm:px-6">
             <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-white/56">
               MCP connector
@@ -405,12 +428,15 @@ function InstallConnector() {
 
           <div className="px-4 py-7 sm:px-7 sm:py-9">
             <p className="font-mono text-[12px] italic text-white/48 sm:text-[14px]">
-              # Connect AlgoGlyph to any MCP client
+              # Start the local bridge between AlgoGlyph and your AI CLI
             </p>
             <code className="mt-5 block overflow-x-auto whitespace-nowrap font-mono text-[clamp(1rem,2.35vw,1.75rem)] font-medium tracking-[-0.025em] text-white">
               <span className="mr-3 text-[var(--lp-hero-cyan)]">$</span>
               {CONNECTOR_COMMAND}
             </code>
+            <p className="mt-5 max-w-3xl text-sm leading-6 text-white/56">
+              Keep this terminal command running. AlgoGlyph detects the loopback connector automatically and uses it to communicate with your installed local AI CLI.
+            </p>
           </div>
         </div>
       </div>

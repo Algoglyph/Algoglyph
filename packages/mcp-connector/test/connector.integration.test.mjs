@@ -2186,6 +2186,9 @@ describe('security remediation contract', () => {
     const connectorSource = await readFile(`${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`, 'utf8');
     const clientSource = await readFile(`${REPO_ROOT}/src/lib/mcp/connectorClient.ts`, 'utf8');
     const dialogSource = await readFile(`${REPO_ROOT}/src/components/McpConnectDialog.tsx`, 'utf8');
+    const bootstrapSource = await readFile(`${REPO_ROOT}/src/lib/mcp/bootstrap.ts`, 'utf8');
+    const storeSource = await readFile(`${REPO_ROOT}/src/store/mcpStore.ts`, 'utf8');
+    const mcpTypesSource = await readFile(`${REPO_ROOT}/src/lib/mcp/types.ts`, 'utf8');
     assert.match(connectorSource, /taskkill\.exe.*\/T.*\/F/s);
     assert.match(connectorSource, /resolveAgentInvocation/);
     assert.match(connectorSource, /--sandbox/);
@@ -2212,12 +2215,16 @@ describe('security remediation contract', () => {
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);
     assert.match(dialogSource, /useMcpStore\.getState\(\)\.connectorToken/);
-    const dialogConnectionEffect = dialogSource.slice(
-      dialogSource.indexOf('useEffect(() => {\n    const initialState'),
-      dialogSource.indexOf('  const checkConnector = async'),
-    );
-    assert.match(dialogConnectionEffect, /inspectMcpConnector/);
-    assert.doesNotMatch(dialogConnectionEffect, /connectionState === 'ready'\) return/);
+    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.2\.4'/);
+    assert.match(dialogSource, /MCP_CONNECTOR_USER_COMMAND/);
+    assert.doesNotMatch(dialogSource, /npm run mcp:connector/);
+    assert.doesNotMatch(dialogSource, /pairMcpConnector/);
+    assert.match(storeSource, /MCP_INTENTIONAL_DISCONNECT_KEY/);
+    assert.match(dialogSource, /setIntentionalDisconnect\(true\)/);
+    assert.match(dialogSource, /setIntentionalDisconnect\(false\)/);
+    assert.match(bootstrapSource, /refreshConnectedMcpConnection/);
+    assert.match(bootstrapSource, /inspectMcpConnector\(endpoint, initial\.connectorToken\)/);
+    assert.match(bootstrapSource, /state\.intentionalDisconnect/);
   });
 
   test('Stage 6: raw MCP credentials and unapproved server IDs cannot be supplied to agents', async () => {
