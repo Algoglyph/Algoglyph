@@ -1,7 +1,7 @@
 export const DEFAULT_MCP_CONNECTOR_ENDPOINT = 'http://127.0.0.1:4319';
 export const MCP_CONNECTOR_STORAGE_KEY = 'algoglyph-mcp-connector-v1';
 export const MCP_CONNECTOR_PROTOCOL_VERSION = 2 as const;
-export const MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.2.4';
+export const MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.2.5';
 
 export type McpConnectionState =
   | 'idle'

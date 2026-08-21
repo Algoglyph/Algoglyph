@@ -410,7 +410,7 @@ const main = async () => {
   if (JSON.stringify(packedFiles) !== JSON.stringify(expectedFiles)) {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
-  if (manifest.version !== '0.2.4') fail(`expected release candidate 0.2.4, found ${manifest.version}`);
+  if (manifest.version !== '0.2.5') fail(`expected release candidate 0.2.5, found ${manifest.version}`);
   if (manifest.license !== 'Apache-2.0') fail(`expected Apache-2.0 license, found ${manifest.license}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {

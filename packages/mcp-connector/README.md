@@ -2,9 +2,15 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.4` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.5` / protocol v2. Running the release checks does not publish anything.
 
-## 0.2.4 macOS Antigravity credential fix
+## 0.2.5 production CLI discovery fix
+
+- Detects normally installed per-user Codex, Claude Code, and Antigravity CLIs when the connector is started from the user's home directory.
+- Keeps arbitrary project-local executables and every `node_modules/.bin` candidate blocked from implicit discovery.
+- Preserves isolated version probes, shell-free execution, fixed agent adapters, and all protocol v2 security controls.
+
+### 0.2.4 macOS Antigravity credential fix
 
 - Prevents Antigravity from opening a `Keychain Not Found` dialog when the connector runs it with an isolated macOS home.
 - Uses Antigravity's copied file-backed token with UTC expiry handling on macOS; Windows retains its native credential-store behavior.
@@ -41,7 +47,7 @@ This package provides `0.2.4` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.4
+npx --yes @algoglyph/mcp-connector@0.2.5
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.

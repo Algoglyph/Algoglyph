@@ -255,7 +255,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.4',
+      version: '0.2.5',
       protocolVersion: 2,
       requiresToken: true,
     });
@@ -803,6 +803,78 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       environment: {},
     });
     assert.equal(relativePathDirectories.some((directory) => directory.includes('relative-bin')), false);
+  });
+
+  test('home-directory launches trust known CLI roots but still reject project-local shadows', async () => {
+    const windowsNode = 'C:\\Runtime\\node.exe';
+    const windowsHome = 'C:\\Users\\example';
+    const windowsNpm = `${windowsHome}\\AppData\\Roaming\\npm`;
+    const windowsCodexShim = `${windowsNpm}\\codex.CMD`;
+    const windowsCodexEntry = `${windowsNpm}\\node_modules\\@openai\\codex\\bin\\codex.js`;
+    const windowsAgy = `${windowsHome}\\AppData\\Local\\agy\\bin\\agy.EXE`;
+    const windowsProjectShadow = `${windowsHome}\\project-bin\\codex.EXE`;
+    const windowsFileSystem = createVirtualCliFileSystem({
+      files: {
+        [windowsNode]: { content: 'node' },
+        [windowsCodexShim]: {
+          content: [
+            '@ECHO off',
+            'CALL :find_dp0',
+            'SET "_prog=node"',
+            'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%" "%dp0%\\node_modules\\@openai\\codex\\bin\\codex.js" %*',
+          ].join('\r\n'),
+        },
+        [windowsCodexEntry]: { content: 'console.log("codex")' },
+        [windowsAgy]: { content: 'native' },
+        [windowsProjectShadow]: { content: 'native' },
+      },
+    });
+    const windowsOptions = {
+      platform: 'win32',
+      pathValue: `${windowsHome}\\project-bin`,
+      pathExtValue: '.CMD;.EXE',
+      nodeExecutable: windowsNode,
+      homeDirectory: windowsHome,
+      projectDirectory: windowsHome,
+      environment: {},
+      fileSystem: windowsFileSystem,
+    };
+    const windowsCodex = await resolveCliInvocation({ command: 'codex', ...windowsOptions });
+    const windowsAgyInvocation = await resolveCliInvocation({ command: 'agy', ...windowsOptions });
+    assert.equal(windowsCodex?.resolvedPath, windowsCodexShim);
+    assert.equal(windowsCodex?.kind, 'npm-node-shim');
+    assert.equal(windowsAgyInvocation?.resolvedPath, windowsAgy);
+    assert.equal(
+      (await resolveCliInvocations({ command: 'codex', ...windowsOptions }))
+        .some((invocation) => invocation.resolvedPath === windowsProjectShadow),
+      false,
+    );
+
+    const macNode = '/Applications/AlgoGlyph Runtime/bin/node';
+    const macHome = '/Users/example';
+    const macShim = `${macHome}/.npm-global/bin/codex`;
+    const macEntry = `${macHome}/.npm-global/lib/node_modules/@openai/codex/bin/codex.js`;
+    const macProjectShadow = `${macHome}/project-bin/codex`;
+    const macFileSystem = createVirtualCliFileSystem({
+      files: {
+        [macNode]: { content: '\u00cf\u00fa\u00ed\u00fe' },
+        [macEntry]: { content: '#!/usr/bin/env node\nconsole.log("codex");\n' },
+        [macProjectShadow]: { content: '\u00cf\u00fa\u00ed\u00fe' },
+      },
+      aliases: { [macShim]: macEntry },
+    });
+    const macInvocations = await resolveCliInvocations({
+      command: 'codex',
+      platform: 'darwin',
+      pathValue: `${macHome}/project-bin`,
+      nodeExecutable: macNode,
+      homeDirectory: macHome,
+      projectDirectory: macHome,
+      environment: { NPM_CONFIG_PREFIX: `${macHome}/.npm-global` },
+      fileSystem: macFileSystem,
+    });
+    assert.equal(macInvocations.some((invocation) => invocation.resolvedPath === macEntry), true);
+    assert.equal(macInvocations.some((invocation) => invocation.resolvedPath === macProjectShadow), false);
   });
 
   test('simulated macOS npm shims use trusted Node while native CLIs stay native', async () => {
@@ -2215,7 +2287,7 @@ describe('security remediation contract', () => {
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);
     assert.match(dialogSource, /useMcpStore\.getState\(\)\.connectorToken/);
-    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.2\.4'/);
+    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.2\.5'/);
     assert.match(dialogSource, /MCP_CONNECTOR_USER_COMMAND/);
     assert.doesNotMatch(dialogSource, /npm run mcp:connector/);
     assert.doesNotMatch(dialogSource, /pairMcpConnector/);

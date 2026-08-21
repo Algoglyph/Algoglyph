@@ -2,11 +2,11 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.4` implement protocol v2. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.5` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
-Version 0.2.4 prevents macOS Antigravity from opening a `Keychain Not Found` dialog under the connector's isolated home by using its copied file-backed token with UTC expiry handling. It retains the 0.2.3 cross-platform Codex, Claude Code, and Antigravity execution pipeline, the 0.2.2 supply-chain packaging controls, and the earlier security and reliability hardening.
+Version 0.2.5 restores production CLI discovery when the connector is started from a user's home directory while retaining project-local executable rejection. It includes the 0.2.4 macOS Antigravity credential fix, the 0.2.3 cross-platform Codex, Claude Code, and Antigravity execution pipeline, the 0.2.2 supply-chain packaging controls, and the earlier security and reliability hardening.
 
 ```text
 AlgoGlyph browser/app
@@ -25,7 +25,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.4
+npx --yes @algoglyph/mcp-connector@0.2.5
 ```
 
 Repository checkout:

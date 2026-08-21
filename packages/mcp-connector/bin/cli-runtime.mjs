@@ -137,12 +137,25 @@ export const buildExecutableCandidates = (command, {
   return candidates;
 };
 
-const isUntrustedImplicitCandidate = (candidate, projectDirectory, platform) => {
+const isTrustedDiscoveryCandidate = (candidate, trustedDirectories, platform) => {
+  const paths = pathApi(platform);
+  const candidateDirectory = normalizedPath(paths.dirname(paths.resolve(candidate)), platform);
+  return trustedDirectories.some(
+    (directory) => normalizedPath(paths.resolve(directory), platform) === candidateDirectory,
+  );
+};
+
+const isUntrustedImplicitCandidate = (
+  candidate,
+  projectDirectory,
+  platform,
+  allowProjectRoot = false,
+) => {
   const paths = pathApi(platform);
   const normalized = normalizedPath(paths.resolve(candidate), platform);
   const projectRoot = `${normalizedPath(paths.resolve(projectDirectory), platform)}${paths.sep}`;
   const dependencyBin = `${paths.sep}node_modules${paths.sep}.bin${paths.sep}`;
-  return normalized.startsWith(projectRoot) || normalized.includes(dependencyBin);
+  return normalized.includes(dependencyBin) || (!allowProjectRoot && normalized.startsWith(projectRoot));
 };
 
 const resolveTrustedNodeExecutable = async (nodeExecutable, platform, fileSystem) => {
@@ -174,6 +187,7 @@ const resolveWindowsNpmNodeShim = async ({
   fileSystem,
   configured,
   projectDirectory,
+  allowProjectRoot,
 }) => {
   const metadata = await fileSystem.stat(shimPath);
   if (!metadata.isFile() || metadata.size > MAX_WINDOWS_SHIM_BYTES) return undefined;
@@ -192,13 +206,23 @@ const resolveWindowsNpmNodeShim = async ({
   // relative global-store entry; accept that only after the same project/.bin
   // rejection used for executable candidates.
   if (npmTemplate && !isContainedPath(lexicalEntry, shimDirectory, 'win32')) return undefined;
-  if (!configured && isUntrustedImplicitCandidate(lexicalEntry, projectDirectory, 'win32')) return undefined;
+  if (!configured && isUntrustedImplicitCandidate(
+    lexicalEntry,
+    projectDirectory,
+    'win32',
+    allowProjectRoot,
+  )) return undefined;
 
   const entryPath = await fileSystem.realpath(lexicalEntry);
   const entryMetadata = await fileSystem.stat(entryPath);
   if (!entryMetadata.isFile()) return undefined;
   if (npmTemplate && !isContainedPath(entryPath, shimDirectory, 'win32')) return undefined;
-  if (!configured && isUntrustedImplicitCandidate(entryPath, projectDirectory, 'win32')) return undefined;
+  if (!configured && isUntrustedImplicitCandidate(
+    entryPath,
+    projectDirectory,
+    'win32',
+    allowProjectRoot,
+  )) return undefined;
   return {
     command: nodeExecutable,
     argsPrefix: [entryPath],
@@ -271,15 +295,36 @@ export const resolveCliInvocations = async ({
   }
   if (!trustedNode) return [];
 
+  // A connector launched from the user's home directory must still be able to
+  // use CLIs installed in the explicit package-manager and per-user locations
+  // above. Preserve the project-shadowing guard for arbitrary PATH entries and
+  // always reject node_modules/.bin, but trust candidates found directly in a
+  // recognized installation root even when that root sits below process.cwd().
+  const trustedDiscoveryDirectories = uniqueDirectories([
+    paths.dirname(nodeExecutable),
+    ...environmentDirectoryHints({ platform, environment, homeDirectory }),
+  ], platform);
   const invocations = [];
   const seenInvocations = new Set();
   for (const candidate of candidates) {
     try {
-      if (!configuredPath && isUntrustedImplicitCandidate(candidate, projectDirectory, platform)) continue;
+      const allowProjectRoot = !configuredPath
+        && isTrustedDiscoveryCandidate(candidate, trustedDiscoveryDirectories, platform);
+      if (!configuredPath && isUntrustedImplicitCandidate(
+        candidate,
+        projectDirectory,
+        platform,
+        allowProjectRoot,
+      )) continue;
       const absolute = await fileSystem.realpath(paths.resolve(candidate));
       const metadata = await fileSystem.stat(absolute);
       if (!metadata.isFile()) continue;
-      if (!configuredPath && isUntrustedImplicitCandidate(absolute, projectDirectory, platform)) continue;
+      if (!configuredPath && isUntrustedImplicitCandidate(
+        absolute,
+        projectDirectory,
+        platform,
+        allowProjectRoot,
+      )) continue;
 
       if (platform === 'win32') {
         const extension = absolute.slice(absolute.lastIndexOf('.')).toLowerCase();
@@ -290,6 +335,7 @@ export const resolveCliInvocations = async ({
             fileSystem,
             configured: Boolean(configuredPath),
             projectDirectory,
+            allowProjectRoot,
           });
           if (shimInvocation) {
             const key = `${shimInvocation.command}\0${shimInvocation.argsPrefix.join('\0')}`;
