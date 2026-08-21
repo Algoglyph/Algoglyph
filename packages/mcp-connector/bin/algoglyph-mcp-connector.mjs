@@ -2570,7 +2570,6 @@ const startClaudeStreamSession = async (agent, invocation, approvedServer, owner
     stopPromise: undefined,
   };
   attachClaudeStreamProtocol(session);
-  console.error(`[${SERVICE_NAME}] Claude stream worker started (pid ${session.pid}).`);
   return session;
 };
 
