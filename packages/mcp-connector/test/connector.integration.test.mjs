@@ -255,7 +255,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.2',
+      version: '0.2.3',
       protocolVersion: 2,
       requiresToken: true,
     });

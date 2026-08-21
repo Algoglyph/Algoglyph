@@ -13,7 +13,7 @@ import { Agent as UndiciAgent } from 'undici';
 import { invocationArgs, invocationPath, resolveCliInvocations } from './cli-runtime.mjs';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
-const CONNECTOR_VERSION = '0.2.2';
+const CONNECTOR_VERSION = '0.2.3';
 const CONNECTOR_PROTOCOL_VERSION = 2;
 const DEFAULT_PORT = 4319;
 const MAX_BODY_BYTES = 64 * 1024;

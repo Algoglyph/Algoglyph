@@ -2,15 +2,21 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.2` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.3` / protocol v2. Running the release checks does not publish anything.
 
-## 0.2.2 supply-chain packaging update
+## 0.2.3 cross-platform agent update
+
+- Supports native and npm-installed Codex, Claude Code, and Antigravity executables on macOS and Windows.
+- Reuses owner-bound workers for all three agents while clearing request context between runs: ephemeral Codex threads, Claude stream-json `/clear`, and Antigravity PTY `/clear`.
+- Lets Claude use its native OS-profile authentication while keeping its workspace and MCP configuration isolated, built-in tools disabled, and approved MCP tools strictly allowlisted.
+- Keeps CLI warnings on diagnostic stderr out of executable-version labels and keeps warm-worker startup details out of normal connector output.
+- Preserves the `0.2.2` supply-chain packaging controls and the `0.2.1` security and reliability changes below.
+
+### Previous packaging and security changes
 
 - Removes `npm-shrinkwrap.json` from the published artifact so package managers use their normal dependency-resolution procedure and Socket does not raise its shrinkwrap heuristic.
 - Retains the exact reviewed 21-package tree in a source-only `package-lock.json`; release smoke tests compare a clean packed install with that review lock before publication.
 - Declares the modular MCP Node transport's `hono@4.13.1` peer explicitly so clean installs cannot omit it.
-- Preserves the `0.2.1` security and reliability changes below.
-
 - Applies one end-to-end deadline to MCP DNS resolution, transport fallback, calls, and bounded client shutdown.
 - Rejects Antigravity transcript data that began before the current prompt, including stale partially written JSONL records.
 - Uses monotonic clocks for credential lifetimes, rate limits, caches, waits, and retries, and escalates shutdown across the whole PTY process group.
@@ -29,7 +35,7 @@ This package provides `0.2.2` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.2
+npx --yes @algoglyph/mcp-connector@0.2.3
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
@@ -45,6 +51,7 @@ The default port is part of automatic discovery. If `ALGOGLYPH_CONNECTOR_PORT` c
 - Session-bound, expiring MCP approvals and confirmation-gated tool invocation.
 - A warm Antigravity runtime whose owner and approved MCP configuration are isolated from other connector sessions.
 - An owner-bound Codex app-server worker with a fresh ephemeral thread for every request and a safe one-shot fallback.
+- An owner-bound Claude stream-json worker that clears and verifies its conversation boundary before every reused request.
 - Shell-free CLI discovery across Windows native executables/npm `.cmd` shims and macOS native executables/Node launchers, including reduced-GUI PATH and standard package-manager environment hints.
 
 The web app and connector reject incompatible protocol versions instead of silently attempting a partial connection.
@@ -87,7 +94,9 @@ When the installed Codex CLI supports its official app-server protocol, the conn
 
 If app-server initialization or compatibility checks fail before a model turn is dispatched, the connector uses the existing isolated `codex exec --ephemeral` path. It never retries or falls back automatically after `turn/start`, because doing so could duplicate model or MCP side effects.
 
-Claude Code remains one-shot. Its CLI streaming-input mode represents one continuing conversation and does not provide a documented independent-context reset boundary, so reusing it across unrelated drawings would violate request isolation. Missing Claude installations are reported as unavailable without affecting the connector.
+### Warm Claude stream worker
+
+Claude Code runs through its stream-json protocol in an owner-bound process. Before every request after the first, the connector sends `/clear` and requires Claude to return a new session identifier; a failed reset destroys the worker instead of risking context reuse. Owner changes, MCP changes, revocation, expiry, cancellation, protocol errors, unexpected exit, and connector shutdown also destroy the process and its temporary state. Missing Claude installations are reported as unavailable without affecting the connector.
 
 CLI discovery checks the inherited absolute PATH entries first, then the connector's trusted Node directory, explicit package-manager environment hints (`NVM_BIN`, `PNPM_HOME`, `VOLTA_HOME`, `FNM_MULTISHELL_PATH`, npm prefix, Bun, asdf, and mise), and standard per-user bin roots. It does not run `where`, `which`, a login shell, PowerShell, `cmd.exe`, bash, or zsh. Windows Node shims are parsed and resolved to a canonical JavaScript entry point that is run by the connector's own Node executable; macOS Node launchers are handled the same way instead of relying on a shebang lookup. Relative PATH entries, project-local binaries, malformed shims, unsupported shell wrappers, and `node_modules/.bin` candidates are rejected. If an earlier structural candidate fails its isolated `--version` probe, discovery continues to the next candidate.
 

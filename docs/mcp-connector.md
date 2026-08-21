@@ -2,11 +2,11 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.2` implement protocol v2. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.3` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
-Version 0.2.2 removes the published npm shrinkwrap that Socket classifies as a high supply-chain heuristic while retaining the exact reviewed dependency tree in a source-only lock and comparing it with a clean packed install before release. It preserves the 0.2.1 deadline, transcript-boundary, monotonic-clock, process-cleanup, native PTY, browser-watchdog, and modular MCP SDK v2 hardening.
+Version 0.2.3 adds cross-platform Codex, Claude Code, and Antigravity executable discovery and owner-bound warm execution for all three agents. It preserves the 0.2.2 supply-chain packaging controls and the earlier deadline, transcript-boundary, monotonic-clock, process-cleanup, native PTY, browser-watchdog, and modular MCP SDK v2 hardening.
 
 ```text
 AlgoGlyph browser/app
@@ -25,7 +25,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.2
+npx --yes @algoglyph/mcp-connector@0.2.3
 ```
 
 Repository checkout:
@@ -100,7 +100,7 @@ Every run receives:
 
 For a warm Codex worker, the private directory lives for that owner/configuration lifetime rather than one request. Credential fingerprints, owner identity, executable identity, and approved-MCP identity are part of the worker key. A change to any of them terminates the process tree and deletes the directory before replacement. Each request still receives an independent in-memory ephemeral thread, bounded output/deadline handling, and `turn/interrupt` cancellation. No fallback is attempted after a model turn has been dispatched.
 
-Claude Code intentionally remains on the reviewed one-shot print-mode adapter. The documented streaming-input interface is a persistent conversation, not an independent-session multiplexer, and therefore is not reused across unrelated AlgoGlyph requests.
+Claude Code uses an owner-bound stream-json worker. Every reused request first sends `/clear` and must receive a new Claude session identifier; otherwise the connector discards the worker. Owner, executable, credential, or approved-MCP changes also replace the worker, and cancellation or protocol failures terminate it.
 
 Prompts are data, never arguments that can become flags or shell syntax. Terminal control bytes are removed before warm PTY submission, and bracketed paste prevents prompt text from becoming interactive keystrokes.
 
