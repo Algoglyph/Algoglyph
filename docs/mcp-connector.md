@@ -34,19 +34,22 @@ Repository checkout:
 npm run mcp:connector
 ```
 
-Starting the command is the complete normal connection flow. While it remains running, the workspace polls `http://127.0.0.1:4319` and pairs automatically. The connector does not print a credential or connection URL, and the user does not click a link or copy a token.
+Keep the command running. On the public website, the first connection is initiated by the user's **Connect MCP** action so current browsers can show their Local Network access permission prompt before allowing a public origin to reach `http://127.0.0.1:4319`. After permission is granted, the workspace pairs and reconnects automatically. Localhost development retains automatic discovery. The connector does not print a credential or connection URL, and the user does not copy a token.
+
+On macOS, the browser must also be enabled under **System Settings > Privacy & Security > Local Network**. A previous denial can be recovered by enabling that operating-system setting, allowing Local network access for `algoglyph.com` in the browser's site settings, and choosing **Try again** in AlgoGlyph.
 
 Automatic discovery checks only the default endpoint. If `ALGOGLYPH_CONNECTOR_PORT` is set, the user must enter the matching `http://127.0.0.1:<port>` endpoint in **MCP > Advanced**. Custom-port discovery is intentionally not attempted.
 
 ### Pairing sequence
 
-1. The browser requests `/health` and verifies service identity and protocol v2.
-2. A trusted browser origin requests a one-time credential with `POST /v1/pairings`.
-3. The connector binds the credential to that exact origin, requested capability scopes, and a 90-second expiry.
-4. The same origin redeems it once at `POST /v1/session`.
-5. The credential is destroyed and the returned session token is stored only in that tab's `sessionStorage`.
-6. Authenticated requests carry `Authorization: Bearer <session token>` and are checked for the required endpoint scope.
-7. Disconnect uses `POST /v1/session/revoke`, clears browser state, terminates owned work, and destroys owned MCP approvals/warm state.
+1. For a public web origin without an existing grant, the user chooses **Connect MCP** and approves the browser's Local Network access prompt.
+2. The browser requests `/health` and verifies service identity and protocol v2.
+3. A trusted browser origin requests a one-time credential with `POST /v1/pairings`.
+4. The connector binds the credential to that exact origin, requested capability scopes, and a 90-second expiry.
+5. The same origin redeems it once at `POST /v1/session`.
+6. The credential is destroyed and the returned session token is stored only in that tab's `sessionStorage`.
+7. Authenticated requests carry `Authorization: Bearer <session token>` and are checked for the required endpoint scope.
+8. Disconnect uses `POST /v1/session/revoke`, clears browser state, terminates owned work, and destroys owned MCP approvals/warm state.
 
 Pairing issuance and redemption are separately rate-limited. Credentials are random, single-use, origin-bound, time-limited, and never valid as normal operation tokens. Sessions have an absolute eight-hour lifetime, a 30-minute inactivity timeout, a bounded process-wide count, least-recently-used eviction, and explicit revocation. Expiry/eviction uses the same cleanup path as manual revocation.
 

@@ -21,6 +21,7 @@ import {
   testMcpServer,
 } from '../lib/mcp/connectorClient';
 import { MCP_CONNECTOR_USER_COMMAND, type McpServerTestResult } from '../lib/mcp/types';
+import { requestMcpConnection } from '../lib/mcp/bootstrap';
 import { useMcpStore } from '../store/mcpStore';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -157,8 +158,8 @@ export const McpConnectDialog: React.FC = () => {
   const reconnectConnector = () => {
     setServerResult(null);
     setServerError(null);
-    setConnectionState('searching');
     setIntentionalDisconnect(false);
+    void requestMcpConnection();
   };
 
   const copyCommand = async () => {
@@ -235,6 +236,10 @@ export const McpConnectDialog: React.FC = () => {
   const isReady = connectionState === 'ready' && !intentionalDisconnect;
   const isSearching = !intentionalDisconnect
     && (connectionState === 'searching' || connectionState === 'checking' || connectionState === 'pairing');
+  const permissionRequired = connectionState === 'permission-required';
+  const permissionDenied = connectionState === 'permission-denied';
+  const connectionNeedsAttention = connectionState === 'error' || permissionDenied;
+  const isMacOs = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
   const showManualConnectionForm = advancedOpen || editingConnection || connectionState === 'needs-token';
   const agents = connectorCatalog?.agents ?? [];
   const availableAgents = agents.filter((agent) => agent.available);
@@ -244,7 +249,11 @@ export const McpConnectDialog: React.FC = () => {
     ? 'Local Agent Disconnected'
     : isReady
     ? 'Local Agent Connected'
-    : connectionState === 'not-found'
+    : permissionRequired
+      ? 'Ready to connect locally'
+      : permissionDenied
+        ? 'Local network access blocked'
+        : connectionState === 'not-found'
       ? 'Local connector not running'
       : connectionState === 'needs-token'
         ? 'Connector detected'
@@ -256,7 +265,13 @@ export const McpConnectDialog: React.FC = () => {
     ? 'Disconnected by you. The local connector was left running and will reconnect only when you choose.'
     : isReady
     ? `Connected to ${endpointHost(connectorEndpoint)}${connectorHealth?.version ? ` / v${connectorHealth.version}` : ''}`
-    : connectionState === 'needs-token'
+    : permissionRequired
+      ? 'Start the connector, then choose Connect. Your browser may ask for permission to reach the connector on this Mac.'
+      : permissionDenied
+        ? isMacOs
+          ? 'In macOS System Settings, allow your browser under Privacy & Security → Local Network. Then allow Local network access for algoglyph.com in the browser site settings.'
+          : 'Allow Local network access for algoglyph.com in the browser site settings, then try again.'
+        : connectionState === 'needs-token'
       ? connectionError || 'Automatic pairing is unavailable for this connector. Use Advanced to connect manually.'
       : connectionState === 'error'
         ? connectionError || 'The connector request failed.'
@@ -302,7 +317,7 @@ export const McpConnectDialog: React.FC = () => {
           <div className="flex items-start gap-3">
             <span
               className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
-                isReady ? 'bg-ink' : connectionState === 'error' ? 'bg-error' : isSearching ? 'bg-mute animate-pulse' : 'bg-mute/70'
+                isReady ? 'bg-ink' : connectionNeedsAttention ? 'bg-error' : isSearching ? 'bg-mute animate-pulse' : 'bg-mute/70'
               }`}
               aria-hidden="true"
             />
@@ -310,7 +325,7 @@ export const McpConnectDialog: React.FC = () => {
               <p className="text-sm font-medium text-ink">{statusTitle}</p>
               <p className="mt-1 text-xs leading-5 text-body">{statusDescription}</p>
             </div>
-            {connectionState === 'error' && <CircleAlert size={16} className="mt-0.5 shrink-0 text-error" aria-hidden="true" />}
+            {connectionNeedsAttention && <CircleAlert size={16} className="mt-0.5 shrink-0 text-error" aria-hidden="true" />}
             {isSearching && <LoadingSpinner size={16} className="mt-0.5" />}
           </div>
 
@@ -335,16 +350,22 @@ export const McpConnectDialog: React.FC = () => {
               </div>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className="text-[11px] leading-4 text-mute">
-                  {intentionalDisconnect ? 'Connector process left untouched.' : 'Waiting for connector...'}
+                  {intentionalDisconnect
+                    ? 'Connector process left untouched.'
+                    : permissionRequired
+                      ? 'Permission is requested only when you choose Connect.'
+                      : permissionDenied
+                        ? 'Change the permission, then try again.'
+                        : 'Waiting for connector...'}
                 </p>
-                {intentionalDisconnect && (
+                {!isSearching && (
                   <button
                     type="button"
                     onClick={reconnectConnector}
                     className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-ink px-2.5 text-[11px] font-medium text-canvas transition-opacity hover:opacity-90"
                   >
                     <RefreshCw size={13} />
-                    Reconnect
+                    {intentionalDisconnect ? 'Reconnect' : permissionDenied ? 'Try again' : 'Connect'}
                   </button>
                 )}
               </div>

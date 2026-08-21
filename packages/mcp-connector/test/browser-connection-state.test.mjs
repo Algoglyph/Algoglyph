@@ -27,6 +27,8 @@ const waitFor = async (predicate, message) => {
 let vite;
 let originalFetch;
 let stopConnectionManager;
+let startConnectionManager;
+let requestConnection;
 let useMcpStore;
 let connectorRunning = true;
 let nextSession = 0;
@@ -108,8 +110,10 @@ before(async () => {
     server: { middlewareMode: true },
   });
   ({ useMcpStore } = await vite.ssrLoadModule('/src/store/mcpStore.ts'));
-  const { startMcpConnectionBootstrap } = await vite.ssrLoadModule('/src/lib/mcp/bootstrap.ts');
-  stopConnectionManager = startMcpConnectionBootstrap();
+  const bootstrap = await vite.ssrLoadModule('/src/lib/mcp/bootstrap.ts');
+  startConnectionManager = bootstrap.startMcpConnectionBootstrap;
+  requestConnection = bootstrap.requestMcpConnection;
+  stopConnectionManager = startConnectionManager();
 });
 
 after(async () => {
@@ -159,4 +163,83 @@ test('normal connection, unexpected loss/recovery, and intentional disconnect us
     'an explicit reconnect did not restore the connection',
   );
   assert.equal(pairingCount, pairingsBeforeDisconnect + 1);
+});
+
+test('a public website waits for a user-initiated loopback permission request', async () => {
+  stopConnectionManager?.();
+  stopConnectionManager = undefined;
+
+  const pairingsBeforePublicStart = pairingCount;
+  globalThis.window.location.href = 'https://algoglyph.com/workspace';
+  globalThis.window.navigator = {
+    permissions: {
+      query: async () => ({ state: 'prompt' }),
+    },
+  };
+
+  const state = useMcpStore.getState();
+  state.setConnectorToken(null);
+  state.setIntentionalDisconnect(false);
+  state.setConnectionState('idle');
+  stopConnectionManager = startConnectionManager();
+
+  await waitFor(
+    () => useMcpStore.getState().connectionState === 'permission-required',
+    'the public website did not wait for a user-initiated permission request',
+  );
+  assert.equal(pairingCount, pairingsBeforePublicStart);
+
+  await requestConnection();
+  await waitFor(
+    () => useMcpStore.getState().connectionState === 'ready',
+    'the user-initiated connection did not pair with the connector',
+  );
+  assert.equal(pairingCount, pairingsBeforePublicStart + 1);
+});
+
+test('a denied browser loopback permission is reported without probing the connector', async () => {
+  stopConnectionManager?.();
+  stopConnectionManager = undefined;
+
+  const pairingsBeforeDeniedStart = pairingCount;
+  globalThis.window.navigator.permissions.query = async () => ({ state: 'denied' });
+  const state = useMcpStore.getState();
+  state.setConnectorToken(null);
+  state.setConnectionState('idle');
+  stopConnectionManager = startConnectionManager();
+
+  await waitFor(
+    () => useMcpStore.getState().connectionState === 'permission-denied',
+    'the denied loopback permission was not reported',
+  );
+  assert.equal(pairingCount, pairingsBeforeDeniedStart);
+  assert.match(useMcpStore.getState().connectionError, /local network access is blocked/i);
+});
+
+test('a stale permission query cannot overwrite a successful user connection', async () => {
+  stopConnectionManager?.();
+  stopConnectionManager = undefined;
+
+  let resolvePermission;
+  globalThis.window.navigator.permissions.query = () => new Promise((resolveQuery) => {
+    resolvePermission = resolveQuery;
+  });
+  const state = useMcpStore.getState();
+  state.setConnectorToken(null);
+  state.setConnectionState('idle');
+  stopConnectionManager = startConnectionManager();
+
+  await requestConnection();
+  assert.equal(useMcpStore.getState().connectionState, 'ready');
+  const observedStates = [];
+  const unsubscribe = useMcpStore.subscribe((nextState, previousState) => {
+    if (nextState.connectionState !== previousState.connectionState) {
+      observedStates.push(nextState.connectionState);
+    }
+  });
+  resolvePermission({ state: 'prompt' });
+  await new Promise((resolveWait) => setTimeout(resolveWait, 20));
+  unsubscribe();
+  assert.equal(useMcpStore.getState().connectionState, 'ready');
+  assert.doesNotMatch(observedStates.join(','), /permission-required|permission-denied/);
 });

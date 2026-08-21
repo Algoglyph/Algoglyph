@@ -7,6 +7,10 @@ import {
   revokeMcpConnectorSession,
 } from './connectorClient';
 import type { McpPairedConnectorSnapshot } from './types';
+import {
+  readBrowserLoopbackPermission,
+  requiresBrowserLoopbackPermission,
+} from './localNetworkAccess';
 
 let connectionUrlScrubbed = false;
 const BACKGROUND_RETRY_DELAYS_MS = [1_500, 3_000, 5_000, 8_000, 12_000, 20_000] as const;
@@ -67,6 +71,9 @@ const isRetryableConnectionError = (error: unknown): boolean =>
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : 'Could not connect to the local connector.';
 
+const deniedLoopbackMessage =
+  'Local network access is blocked. Allow it for AlgoGlyph in your browser site settings, then try again.';
+
 const attemptMcpConnection = async (): Promise<BootstrapOutcome> => {
   if (typeof window === 'undefined') return 'terminal';
 
@@ -111,6 +118,14 @@ const attemptMcpConnection = async (): Promise<BootstrapOutcome> => {
     if (store.intentionalDisconnect) return 'paused';
     if (store.connectionState === 'ready' && store.connectorToken) return 'ready';
     if (isRetryableConnectionError(error)) {
+      if (requiresBrowserLoopbackPermission(window.location.href, store.connectorEndpoint)) {
+        const permission = await readBrowserLoopbackPermission(store.connectorEndpoint);
+        if (permission === 'denied') {
+          store.setConnectorToken(null);
+          store.setConnectionState('permission-denied', null, null, deniedLoopbackMessage);
+          return 'terminal';
+        }
+      }
       store.setConnectorToken(null);
       store.setConnectionState('not-found', null, null, errorMessage(error));
       return 'retry';
@@ -130,6 +145,19 @@ export function bootstrapMcpConnection(): Promise<BootstrapOutcome> {
     });
   }
   return bootstrapInFlight;
+}
+
+/**
+ * Starts the first public-site loopback request directly from a user gesture so
+ * Chromium can show its Local Network Access prompt instead of silently denying
+ * a background probe. Local development and already-granted sessions keep the
+ * existing automatic connection manager.
+ */
+export async function requestMcpConnection(): Promise<void> {
+  const store = useMcpStore.getState();
+  store.setIntentionalDisconnect(false);
+  store.setConnectionState('pairing');
+  await bootstrapMcpConnection();
 }
 
 const refreshConnectedMcpConnection = async (): Promise<BootstrapOutcome> => {
@@ -220,17 +248,57 @@ export function startMcpConnectionBootstrap(): () => void {
   };
 
   const unsubscribe = useMcpStore.subscribe((state, previousState) => {
-    if (state.intentionalDisconnect === previousState.intentionalDisconnect) return;
-    if (timer !== undefined) window.clearTimeout(timer);
-    if (state.intentionalDisconnect) {
-      rerunRequested = false;
+    if (state.intentionalDisconnect !== previousState.intentionalDisconnect) {
+      if (timer !== undefined) window.clearTimeout(timer);
+      if (state.intentionalDisconnect) {
+        rerunRequested = false;
+        return;
+      }
+      retryIndex = 0;
+      schedule(0);
       return;
     }
-    retryIndex = 0;
-    schedule(0);
+
+    if (
+      state.connectionState !== previousState.connectionState
+      && (state.connectionState === 'pairing' || state.connectionState === 'searching')
+    ) {
+      retryIndex = 0;
+      schedule(0);
+    }
   });
 
-  void run();
+  const initialize = async () => {
+    const state = useMcpStore.getState();
+    const initialConnectionState = state.connectionState;
+    if (state.intentionalDisconnect) return;
+    if (state.connectorToken || !requiresBrowserLoopbackPermission(window.location.href, state.connectorEndpoint)) {
+      await run();
+      return;
+    }
+
+    const permission = await readBrowserLoopbackPermission(state.connectorEndpoint);
+    const current = useMcpStore.getState();
+    if (
+      cancelled
+      || current.intentionalDisconnect
+      || current.connectorToken
+      || current.connectionState !== initialConnectionState
+    ) return;
+    if (permission === 'granted') {
+      await run();
+      return;
+    }
+
+    const store = useMcpStore.getState();
+    if (permission === 'denied') {
+      store.setConnectionState('permission-denied', null, null, deniedLoopbackMessage);
+    } else {
+      store.setConnectionState('permission-required');
+    }
+  };
+
+  void initialize();
   return () => {
     cancelled = true;
     unsubscribe();

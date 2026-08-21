@@ -5,6 +5,8 @@ export const MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.
 
 export type McpConnectionState =
   | 'idle'
+  | 'permission-required'
+  | 'permission-denied'
   | 'searching'
   | 'checking'
   | 'pairing'
