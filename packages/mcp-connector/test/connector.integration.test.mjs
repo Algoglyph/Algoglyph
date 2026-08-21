@@ -32,9 +32,6 @@ const OVERSIZED_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/oversizedAgent
 const SLOW_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/slowAgent.mjs', import.meta.url));
 const HANGING_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/hangingAgent.mjs', import.meta.url));
 const WARM_ANTIGRAVITY_FIXTURE = fileURLToPath(new URL('./fixtures/warmAntigravityAgent.mjs', import.meta.url));
-const RECOVERING_ANTIGRAVITY_FIXTURE = fileURLToPath(
-  new URL('./fixtures/recoveringAntigravityAgent.mjs', import.meta.url),
-);
 const UNAUTHENTICATED_ANTIGRAVITY_FIXTURE = fileURLToPath(
   new URL('./fixtures/unauthenticatedAntigravityAgent.mjs', import.meta.url),
 );
@@ -115,6 +112,13 @@ const waitForJsonFile = async (path, predicate, timeoutMs = 5_000) => {
     await wait(25);
   }
   return undefined;
+};
+
+const writeFakeAntigravityExecutable = async (directory, source) => {
+  const executablePath = join(directory, 'agy');
+  await writeFile(executablePath, `#!${process.execPath}\n${source}`, { mode: 0o700 });
+  await chmod(executablePath, 0o700);
+  return executablePath;
 };
 
 const processIsAlive = (pid) => {
@@ -255,7 +259,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.5',
+      version: '0.2.6',
       protocolVersion: 2,
       requiresToken: true,
     });
@@ -1890,6 +1894,100 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
     }
   });
 
+  test('production connector startup does not launch Antigravity before an authorized request', async () => {
+    const fixtureDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-startup-'));
+    const startedPath = join(fixtureDirectory, 'started.json');
+    let productionConnector;
+    try {
+      const executablePath = await writeFakeAntigravityExecutable(fixtureDirectory, `
+import { writeFileSync } from 'node:fs';
+if (process.argv.includes('--version')) {
+  process.stdout.write('1.1.17\\n');
+  process.exit(0);
+}
+writeFileSync(${JSON.stringify(startedPath)}, JSON.stringify({ pid: process.pid }));
+process.stdout.write('? for shortcuts\\r\\n');
+setInterval(() => {}, 1000);
+`);
+      productionConnector = await startConnectorHarness({
+        environment: {
+          NODE_ENV: 'production',
+          ALGOGLYPH_ANTIGRAVITY_PATH: executablePath,
+        },
+      });
+
+      const unexpectedStart = await waitForJsonFile(startedPath, () => true, 1_500);
+      assert.equal(unexpectedStart, undefined);
+    } finally {
+      await productionConnector?.stop();
+      await rm(fixtureDirectory, { recursive: true, force: true });
+    }
+  });
+
+  test('macOS Antigravity uses its existing profile only for an explicit one-shot run', {
+    skip: process.platform !== 'darwin',
+  }, async () => {
+    const sourceHome = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-profile-'));
+    const fixtureDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-executable-'));
+    const profileConfigPath = join(sourceHome, '.gemini', 'config', 'mcp_config.json');
+    const profileSettingsPath = join(sourceHome, '.gemini', 'antigravity-cli', 'settings.json');
+    let profileConnector;
+    try {
+      await mkdir(join(sourceHome, '.gemini', 'config'), { recursive: true });
+      await mkdir(join(sourceHome, '.gemini', 'antigravity-cli'), { recursive: true });
+      await writeFile(profileConfigPath, JSON.stringify({ fixture: 'profile-config' }), { mode: 0o600 });
+      await writeFile(profileSettingsPath, JSON.stringify({ fixture: 'profile-settings' }), { mode: 0o600 });
+      const executablePath = await writeFakeAntigravityExecutable(fixtureDirectory, `
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+if (process.argv.includes('--version')) {
+  process.stdout.write('1.1.17\\n');
+  process.exit(0);
+}
+const home = process.env.HOME || '';
+const readJson = (path) => {
+  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return undefined; }
+};
+process.stdout.write(JSON.stringify({
+  home,
+  userProfile: process.env.USERPROFILE,
+  args: process.argv.slice(2),
+  config: readJson(join(home, '.gemini', 'config', 'mcp_config.json')),
+  settings: readJson(join(home, '.gemini', 'antigravity-cli', 'settings.json')),
+}));
+`);
+      profileConnector = await startConnectorHarness({
+        environment: {
+          NODE_ENV: 'test',
+          HOME: sourceHome,
+          USERPROFILE: sourceHome,
+          ALGOGLYPH_ANTIGRAVITY_PATH: executablePath,
+        },
+      });
+      const { session } = await profileConnector.pair();
+      const run = await runWarmAntigravity(
+        profileConnector,
+        session.sessionToken,
+        'WARM_REQUEST_PROFILE',
+      );
+
+      assert.equal(run.status, 200);
+      assert.equal(run.output.home, sourceHome);
+      assert.equal(run.output.userProfile, sourceHome);
+      assert.deepEqual(run.output.config, { fixture: 'profile-config' });
+      assert.deepEqual(run.output.settings, { fixture: 'profile-settings' });
+      assert.ok(run.output.args.includes('--sandbox'));
+      assert.ok(run.output.args.includes('--disable-slash-commands'));
+      assert.ok(run.output.args.includes('-p'));
+      assert.deepEqual(JSON.parse(await readFile(profileConfigPath, 'utf8')), { fixture: 'profile-config' });
+      assert.deepEqual(JSON.parse(await readFile(profileSettingsPath, 'utf8')), { fixture: 'profile-settings' });
+    } finally {
+      await profileConnector?.stop();
+      await rm(sourceHome, { recursive: true, force: true });
+      await rm(fixtureDirectory, { recursive: true, force: true });
+    }
+  });
+
   test('Antigravity provisions the current OAuth token into its isolated home', async () => {
     const sourceHome = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-auth-source-'));
     const authToken = 'fixture-antigravity-oauth-token';
@@ -1918,41 +2016,6 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       assert.equal(run.output.credentialIsolation.currentAuthTokenMatchesFixture, true);
     } finally {
       await authConnector?.stop();
-      await rm(sourceHome, { recursive: true, force: true });
-    }
-  });
-
-  test('macOS Antigravity uses isolated file auth without linking the login Keychain', {
-    skip: process.platform !== 'darwin',
-  }, async () => {
-    const sourceHome = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-keychain-source-'));
-    let keychainConnector;
-    try {
-      const keychainDirectory = join(sourceHome, 'Library', 'Keychains');
-      await mkdir(keychainDirectory, { recursive: true });
-      await writeFile(join(keychainDirectory, 'login.keychain-db'), 'fixture-login-keychain', { mode: 0o600 });
-      keychainConnector = await startConnectorHarness({
-        environment: {
-          NODE_ENV: 'test',
-          HOME: sourceHome,
-          USERPROFILE: sourceHome,
-          ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: WARM_ANTIGRAVITY_FIXTURE,
-          ALGOGLYPH_TEST_PROVISION_ANTIGRAVITY_CREDENTIALS: '1',
-        },
-      });
-      const { session } = await keychainConnector.pair();
-      const run = await runWarmAntigravity(
-        keychainConnector,
-        session.sessionToken,
-        'WARM_REQUEST_MACOS_KEYCHAIN',
-      );
-      assert.equal(run.status, 200);
-      assert.equal(run.output.credentialIsolation.currentAuthTokenPresent, false);
-      assert.equal(run.output.credentialIsolation.fileStorageForced, true);
-      assert.equal(run.output.credentialIsolation.timezoneIsUtc, true);
-      assert.equal(run.output.credentialIsolation.macOsLoginKeychainPresent, false);
-    } finally {
-      await keychainConnector?.stop();
       await rm(sourceHome, { recursive: true, force: true });
     }
   });
@@ -2000,59 +2063,6 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       assert.equal(run.output.marker, 'WARM_REQUEST_SILENT_SIGN_IN');
     } finally {
       await signingInConnector.stop();
-    }
-  });
-
-  test('an owner request recovers from a failed background Antigravity prewarm and remains warm', async () => {
-    const stateDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-recovery-test-'));
-    const stateFile = join(stateDirectory, 'attempt.txt');
-    let recoveryConnector;
-    try {
-      recoveryConnector = await startConnectorHarness({
-        environment: {
-          NODE_ENV: 'test',
-          ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: RECOVERING_ANTIGRAVITY_FIXTURE,
-          ALGOGLYPH_TEST_PREWARM_ANTIGRAVITY: '1',
-          ALGOGLYPH_TEST_ANTIGRAVITY_READY_TIMEOUT_MS: '1000',
-          ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE: stateFile,
-        },
-      });
-
-      // Enter the precise race window: the connector has published its global
-      // prewarm session, but that session has not and will not become ready.
-      const prewarmState = await waitForJsonFile(
-        stateFile,
-        (value) => value.phase === 'prewarm-started',
-      );
-      assert.equal(typeof prewarmState?.prewarmHomeDirectory, 'string');
-
-      const { session } = await recoveryConnector.pair();
-      const recovered = await runWarmAntigravity(
-        recoveryConnector,
-        session.sessionToken,
-        'RECOVERY_REQUEST_ONE',
-      );
-      assert.equal(recovered.status, 200);
-      assert.equal(recovered.output.marker, 'RECOVERY_REQUEST_ONE');
-      const healthyState = await waitForJsonFile(
-        stateFile,
-        (value) => value.phase === 'healthy-started',
-      );
-      assert.equal(typeof healthyState?.healthyHomeDirectory, 'string');
-      assert.notEqual(healthyState.healthyHomeDirectory, prewarmState.prewarmHomeDirectory);
-      assert.equal(await waitForPathRemoval(prewarmState.prewarmHomeDirectory), true);
-
-      const followUp = await runWarmAntigravity(
-        recoveryConnector,
-        session.sessionToken,
-        'RECOVERY_REQUEST_TWO',
-      );
-      assert.equal(followUp.status, 200);
-      assert.equal(followUp.output.marker, 'RECOVERY_REQUEST_TWO');
-      assert.equal(followUp.output.homeDirectory, recovered.output.homeDirectory);
-    } finally {
-      await recoveryConnector?.stop();
-      await rm(stateDirectory, { recursive: true, force: true });
     }
   });
 
@@ -2147,11 +2157,11 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
     assert.match(connectorSource, /id: 'claude'[\s\S]*?inheritProfileEnvironment: true/);
     assert.match(
       connectorSource,
-      /if \(agent\.inheritProfileEnvironment\)[\s\S]*?environment\.CLAUDE_CODE_SAFE_MODE = '1'/,
+      /if \(inheritProfile\)[\s\S]*?if \(agent\.id === 'claude'\)[\s\S]*?environment\.CLAUDE_CODE_SAFE_MODE = '1'/,
     );
     assert.match(
       connectorSource,
-      /if \(agent\.inheritProfileEnvironment\)[\s\S]*?delete environment\.CLAUDE_CONFIG_DIR/,
+      /if \(inheritProfile\)[\s\S]*?if \(agent\.id === 'claude'\)[\s\S]*?delete environment\.CLAUDE_CONFIG_DIR/,
     );
     assert.match(connectorSource, /if \(agent\.id === 'claude'\)[\s\S]*?`mcp__\$\{name\}__\$\{tool\.name\}`/);
     assert.match(
@@ -2287,7 +2297,7 @@ describe('security remediation contract', () => {
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);
     assert.match(dialogSource, /useMcpStore\.getState\(\)\.connectorToken/);
-    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.2\.5'/);
+    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.2\.6'/);
     assert.match(dialogSource, /MCP_CONNECTOR_USER_COMMAND/);
     assert.doesNotMatch(dialogSource, /npm run mcp:connector/);
     assert.doesNotMatch(dialogSource, /pairMcpConnector/);

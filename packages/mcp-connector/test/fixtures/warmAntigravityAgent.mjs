@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { appendFileSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const homeDirectory = process.env.HOME;
@@ -75,20 +75,12 @@ const handlePrompt = (prompt) => {
   const currentConfigPath = join(homeDirectory, '.gemini', 'config', 'mcp_config.json');
   const legacySettingsPath = join(homeDirectory, '.gemini', 'antigravity-cli', 'settings.json');
   const authTokenPath = join(homeDirectory, '.gemini', 'antigravity-cli', 'antigravity-oauth-token');
-  const macOsLoginKeychainPath = join(homeDirectory, 'Library', 'Keychains', 'login.keychain-db');
   let currentConfig;
   let legacySettings;
   let provisionedAuthToken;
-  let macOsLoginKeychain;
   try { currentConfig = JSON.parse(readFileSync(currentConfigPath, 'utf8')); } catch { /* absent */ }
   try { legacySettings = JSON.parse(readFileSync(legacySettingsPath, 'utf8')); } catch { /* absent */ }
   try { provisionedAuthToken = readFileSync(authTokenPath, 'utf8'); } catch { /* absent */ }
-  try {
-    macOsLoginKeychain = {
-      isSymbolicLink: lstatSync(macOsLoginKeychainPath).isSymbolicLink(),
-      contents: readFileSync(macOsLoginKeychainPath, 'utf8'),
-    };
-  } catch { /* absent */ }
   const approvedServer = currentConfig?.mcpServers?.algoglyph_approved;
   const authorization = approvedServer?.headers?.Authorization;
   const permissionAllow = Array.isArray(legacySettings?.permissions?.allow)
@@ -130,11 +122,6 @@ const handlePrompt = (prompt) => {
       credentialIsolation: {
         currentAuthTokenPresent: typeof provisionedAuthToken === 'string',
         currentAuthTokenMatchesFixture: provisionedAuthToken === 'fixture-antigravity-oauth-token',
-        fileStorageForced: process.env.GEMINI_FORCE_FILE_STORAGE === 'true',
-        timezoneIsUtc: process.env.TZ === 'UTC',
-        macOsLoginKeychainPresent: Boolean(macOsLoginKeychain),
-        macOsLoginKeychainIsSymbolicLink: macOsLoginKeychain?.isSymbolicLink === true,
-        macOsLoginKeychainMatchesFixture: macOsLoginKeychain?.contents === 'fixture-login-keychain',
       },
     }),
   };

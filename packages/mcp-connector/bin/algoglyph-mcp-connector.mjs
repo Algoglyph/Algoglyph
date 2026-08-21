@@ -13,7 +13,7 @@ import { Agent as UndiciAgent } from 'undici';
 import { invocationArgs, invocationPath, resolveCliInvocations } from './cli-runtime.mjs';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
-const CONNECTOR_VERSION = '0.2.5';
+const CONNECTOR_VERSION = '0.2.6';
 const CONNECTOR_PROTOCOL_VERSION = 2;
 const DEFAULT_PORT = 4319;
 const MAX_BODY_BYTES = 64 * 1024;
@@ -868,9 +868,15 @@ const resolveAgentRuntime = async (agent) => {
 
 const resolveAgentInvocation = async (agent) => (await resolveAgentRuntime(agent))?.invocation;
 
+const shouldInheritAgentProfile = (agent) => (
+  agent.inheritProfileEnvironment === true
+  || (agent.id === 'antigravity' && process.platform === 'darwin' && !testAntigravityFixture)
+);
+
 const createAgentEnvironment = (agent, invocation, homeDirectory) => {
-  const environment = agent.inheritProfileEnvironment ? { ...process.env } : {};
-  if (agent.inheritProfileEnvironment) {
+  const inheritProfile = shouldInheritAgentProfile(agent);
+  const environment = inheritProfile ? { ...process.env } : {};
+  if (inheritProfile) {
     const allowedAuthNames = new Set(agent.authEnv || []);
     for (const name of Object.keys(environment)) {
       if (
@@ -886,16 +892,18 @@ const createAgentEnvironment = (agent, invocation, homeDirectory) => {
     for (const name of Object.keys(environment)) {
       if (/^(?:DYLD_|LD_PRELOAD$)/i.test(name)) delete environment[name];
     }
-    delete environment.CLAUDE_CONFIG_DIR;
-    // Current Claude Code uses this to disable hooks, plugins, skills, global
-    // MCP servers, and other profile customizations while keeping native auth.
-    environment.CLAUDE_CODE_SAFE_MODE = '1';
+    if (agent.id === 'claude') {
+      delete environment.CLAUDE_CONFIG_DIR;
+      // Current Claude Code uses this to disable hooks, plugins, skills, global
+      // MCP servers, and other profile customizations while keeping native auth.
+      environment.CLAUDE_CODE_SAFE_MODE = '1';
+    }
   }
   for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'LANG', 'LC_ALL']) {
     if (process.env[name]) environment[name] = process.env[name];
   }
   environment.PATH = invocationPath(invocation);
-  if (!agent.inheritProfileEnvironment) {
+  if (!inheritProfile) {
     environment.HOME = homeDirectory;
     environment.USERPROFILE = homeDirectory;
     // Runtime scratch files must live inside the request-owned root as well;
@@ -904,16 +912,6 @@ const createAgentEnvironment = (agent, invocation, homeDirectory) => {
     environment.TMP = homeDirectory;
     environment.CODEX_HOME = join(homeDirectory, '.codex');
     environment.CLAUDE_CONFIG_DIR = join(homeDirectory, '.claude');
-    if (agent.id === 'antigravity' && process.platform === 'darwin') {
-      // A relocated HOME has no valid macOS default-Keychain context. Linking
-      // login.keychain-db is insufficient and can make agy display a modal
-      // "Keychain Not Found" prompt while refreshing OAuth. Keep the copied
-      // token inside the connector-owned profile and force agy's file backend.
-      environment.GEMINI_FORCE_FILE_STORAGE = 'true';
-      // The current file backend applies local timezone offsets while checking
-      // token expiry. UTC prevents a valid refreshed token from appearing old.
-      environment.TZ = 'UTC';
-    }
   }
   for (const name of agent.authEnv || []) {
     if (process.env[name]) environment[name] = process.env[name];
@@ -939,7 +937,7 @@ const copyCredentialIfPresent = async (source, destination, expectedRoot) => {
     await chmod(destination, 0o600);
     return true;
   } catch {
-    // Environment-based or OS-keychain authentication may be used instead.
+    // Environment-based or native authentication may be used instead.
     return false;
   }
 };
@@ -957,14 +955,14 @@ const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
     // expose an API key to the Codex host process. Environment auth remains a
     // fallback, but the model-tool environment is independently deny-all below.
     if (copiedFileCredential) delete environment.OPENAI_API_KEY;
-  } else if (agent.id === 'claude' && !agent.inheritProfileEnvironment) {
+  } else if (agent.id === 'claude' && !shouldInheritAgentProfile(agent)) {
     const sourceHome = userProfile && join(userProfile, '.claude');
     await copyCredentialIfPresent(
       sourceHome && join(sourceHome, '.credentials.json'),
       join(environment.CLAUDE_CONFIG_DIR, '.credentials.json'),
       sourceHome,
     );
-  } else if (agent.id === 'antigravity') {
+  } else if (agent.id === 'antigravity' && !shouldInheritAgentProfile(agent)) {
     const sourceHome = userProfile && join(userProfile, '.gemini');
     for (const filename of ['oauth_creds.json', 'google_accounts.json']) {
       await copyCredentialIfPresent(
@@ -1648,6 +1646,17 @@ const promptForAgent = (agent, prompt, approvedServer) => {
 };
 
 const prepareApprovedMcpForAgent = async (agent, server, workingDirectory, environment) => {
+  if (agent.id === 'antigravity' && shouldInheritAgentProfile(agent)) {
+    if (server) {
+      throw new ConnectorError(
+        503,
+        'This Antigravity installation cannot safely load a connector-scoped MCP server.',
+      );
+    }
+    // Agy has no supported per-run settings root. With the normal macOS user
+    // profile retained for native authentication, never rewrite shared config.
+    return { extraArgs: [], relayId: undefined };
+  }
   const relay = server ? createMcpRelay(server) : undefined;
   const relayHeaders = relay ? { Authorization: `Bearer ${relay.token}` } : undefined;
   if (relay) environment.ALGOGLYPH_APPROVED_MCP_TOKEN = relay.token;
@@ -2979,8 +2988,6 @@ const startAntigravitySession = async (approvedServer, owner) => {
     environment.TERM = 'xterm-256color';
     if (testAntigravityFixture) {
       for (const name of agent.authEnv || []) delete environment[name];
-      const stateFile = process.env.ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE;
-      if (stateFile) environment.ALGOGLYPH_TEST_ANTIGRAVITY_STATE_FILE = stateFile;
       if (testProvisionAntigravityCredentials) {
         await provisionAgentCredentials(agent, environment, homeDirectory);
       }
@@ -3034,7 +3041,7 @@ const startAntigravitySession = async (approvedServer, owner) => {
     resolveExit = resolveDone;
   });
   const session = {
-    key: `${owner || 'prewarm'}:${approvedServer?.id || 'none'}`,
+    key: `${owner || 'unowned'}:${approvedServer?.id || 'none'}`,
     owner,
     approvedServerId: approvedServer?.id,
     relayId,
@@ -3097,20 +3104,14 @@ const startAntigravitySession = async (approvedServer, owner) => {
 
 const getAntigravitySession = async (approvedServer, owner) => {
   if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
-  // A request must never adopt or mutate a prewarm session until startup has
-  // actually reached readiness. If startup fails, wait for its cleanup and let
-  // the request create a fresh session instead of reusing a rejected promise.
+  // Concurrent requests must never adopt a session before startup reaches
+  // readiness. If startup fails, wait for cleanup before creating a new one.
   while (antigravitySessionPromise) {
     const pendingStartup = antigravitySessionPromise;
     await pendingStartup.catch(() => undefined);
     if (connectorShuttingDown) throw new ConnectorError(503, 'The connector is shutting down.');
   }
-  const key = `${owner || 'prewarm'}:${approvedServer?.id || 'none'}`;
-  if (owner && !approvedServer && antigravitySession && !antigravitySession.used
-    && antigravitySession.key === 'prewarm:none') {
-    antigravitySession.owner = owner;
-    antigravitySession.key = key;
-  }
+  const key = `${owner || 'unowned'}:${approvedServer?.id || 'none'}`;
   if (antigravitySession && antigravitySession.key !== key) {
     await stopAntigravitySession(antigravitySession);
   }
@@ -3328,7 +3329,9 @@ const streamAgentRun = async (request, response, body, authorization) => {
     if (handled) return;
   }
 
-  if (agent.id === 'antigravity' && (process.env.NODE_ENV !== 'test' || testAntigravityFixture)) {
+  if (agent.id === 'antigravity'
+    && (process.platform !== 'darwin' || Boolean(testAntigravityFixture))
+    && (process.env.NODE_ENV !== 'test' || testAntigravityFixture)) {
     await streamPersistentAntigravityRun(
       request,
       response,
@@ -3734,11 +3737,6 @@ server.listen(port, '127.0.0.1', () => {
     console.error(`[${SERVICE_NAME}] Advanced token override loaded from ALGOGLYPH_CONNECTOR_TOKEN.`);
   }
   console.error(`[${SERVICE_NAME}] AlgoGlyph will pair automatically while this command is running.`);
-  // Keep the actual Antigravity language-server process resident. Subsequent
-  // drawings are queued through this session instead of spawning a cold CLI.
-  if (process.env.NODE_ENV !== 'test' || process.env.ALGOGLYPH_TEST_PREWARM_ANTIGRAVITY === '1') {
-    void getAntigravitySession(undefined, undefined).catch(() => undefined);
-  }
 });
 
 const shutDown = async () => {

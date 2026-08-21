@@ -1,6 +1,6 @@
 {
   "name": "@algoglyph/mcp-connector",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Local loopback connector for pairing AlgoGlyph with local AI agents and MCP servers.",
   "type": "module",
   "bin": {

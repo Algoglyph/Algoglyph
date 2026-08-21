@@ -2,11 +2,11 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.5` implement protocol v2. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.6` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
-Version 0.2.5 restores production CLI discovery when the connector is started from a user's home directory while retaining project-local executable rejection. It includes the 0.2.4 macOS Antigravity credential fix, the 0.2.3 cross-platform Codex, Claude Code, and Antigravity execution pipeline, the 0.2.2 supply-chain packaging controls, and the earlier security and reliability hardening.
+Version 0.2.6 starts Antigravity only for an authorized request and restores the normal one-shot Agy profile on macOS. It includes the 0.2.5 production CLI-discovery fix, the 0.2.3 cross-platform Codex, Claude Code, and Antigravity execution pipeline, the 0.2.2 supply-chain packaging controls, and the earlier security and reliability hardening.
 
 ```text
 AlgoGlyph browser/app
@@ -25,7 +25,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.5
+npx --yes @algoglyph/mcp-connector@0.2.6
 ```
 
 Repository checkout:
@@ -77,11 +77,11 @@ The browser selects only a stable agent ID and supplies a bounded prompt. The co
 
 - Codex normally uses one owner-bound app-server stdio worker. Every request creates a fresh ephemeral thread with `approvalPolicy: never`, then unsubscribes it after completion; no conversational history is shared. The connector-owned deny-root profile still disables shell/unified-exec, apps, web search, hooks, subagents, remote plugins, and skill installation. If app-server compatibility fails before turn dispatch, the existing isolated `codex exec --ephemeral` adapter is used.
 - Claude Code runs in print mode with every built-in tool disabled, non-interactive `dontAsk` permission mode, and session persistence disabled. An explicitly attached MCP server enables only its exact fully qualified tool names for that run; the prompt arrives over stdin.
-- Antigravity runs sandboxed in output-only mode. One-shot execution disables slash commands; warm execution retains only the connector-owned reset command.
+- Antigravity runs sandboxed in output-only mode. macOS uses one-shot execution with slash commands disabled and starts only for an authorized request. Other supported platforms may retain a connector-owned session with only the reset command available between requests.
 
-On macOS, the connector copies Antigravity's file token into its private profile and forces the CLI's file-storage backend with UTC expiry handling. It does not link the user's login Keychain into a relocated `HOME`, which prevents `Keychain Not Found` dialogs during token refresh. Windows keeps its native credential-store behavior.
+On macOS, Antigravity retains its normal user profile because that is part of the native CLI's supported authentication model. The connector never starts Agy during connector startup and never rewrites the user's shared Agy configuration. Windows keeps its existing isolated-session behavior.
 
-Antigravity's connector-owned relay is written only inside its isolated home at `.gemini/config/mcp_config.json`, using the current `serverUrl` schema. Its isolated CLI settings allow exactly `mcp(algoglyph_approved/*)` when that relay is attached, so headless use works without granting global MCP, command, file, or browser permissions. The user's global Gemini/Antigravity MCP configuration and permissions are never read, merged, or modified. A narrowly identified Antigravity account-eligibility rejection may cause one retry only when no transcript event proves the prompt was accepted; other failures are never automatically resubmitted.
+Where Antigravity supports an isolated profile, its connector-owned relay is written only inside that home at `.gemini/config/mcp_config.json`, using the current `serverUrl` schema. Its isolated CLI settings allow exactly `mcp(algoglyph_approved/*)` when that relay is attached, so headless use works without granting global MCP, command, file, or browser permissions. On macOS, connector-scoped MCP attachment fails closed because Agy does not provide a supported per-run settings root; the connector does not merge or modify the shared profile. A narrowly identified Antigravity account-eligibility rejection may cause one retry only when no transcript event proves the prompt was accepted; other failures are never automatically resubmitted.
 
 The HTTP API cannot supply a command, executable path, shell fragment, argument array, working directory, environment override, config path, or credential path. Unknown fields and unknown agent IDs are rejected. Child processes are started without a shell from a canonical, allowlisted executable path.
 
@@ -92,8 +92,8 @@ For an unusual installation, `ALGOGLYPH_CODEX_PATH`, `ALGOGLYPH_ANTIGRAVITY_PATH
 Every run receives:
 
 - an empty connector-created working directory;
-- a private temporary home and agent configuration root;
-- a minimal allowlisted environment instead of wholesale environment inheritance;
+- a private temporary home and agent configuration root where the CLI supports profile isolation;
+- a scrubbed environment with only the selected adapter's required profile values retained;
 - only the selected adapter's reviewed provider-auth variables/files;
 - private copied credential/config permissions and source-link/containment checks;
 - prompt, output, time, concurrency, and response limits;
@@ -106,9 +106,9 @@ Claude Code uses an owner-bound stream-json worker. Every reused request first s
 
 Prompts are data, never arguments that can become flags or shell syntax. Terminal control bytes are removed before warm PTY submission, and bracketed paste prevents prompt text from becoming interactive keystrokes.
 
-### Warm Antigravity reuse
+### Persistent Antigravity reuse
 
-Warm reuse exists only to avoid Antigravity startup latency. It is not global conversation reuse:
+Persistent reuse is limited to platforms where Antigravity supports the connector's isolated profile. macOS uses a fresh one-shot print-mode process instead. Persistent reuse is not global conversation reuse:
 
 - A runtime has one owning connector session and one approved-MCP identity.
 - A runtime cannot move to another browser session, token, user context, or MCP configuration.

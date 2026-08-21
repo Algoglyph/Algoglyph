@@ -2,24 +2,25 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.5` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.6` / protocol v2. Running the release checks does not publish anything.
+
+## 0.2.6 macOS Antigravity launch fix
+
+- Starts Antigravity only after an authorized run request.
+- Uses Agy's normal profile and one-shot print mode on macOS while preserving the existing Windows runtime path.
+- Never rewrites the user's shared Agy configuration on macOS and fails closed for connector-scoped MCP attachment until Agy provides a supported per-run settings root.
 
 ## 0.2.5 production CLI discovery fix
 
 - Detects normally installed per-user Codex, Claude Code, and Antigravity CLIs when the connector is started from the user's home directory.
 - Keeps arbitrary project-local executables and every `node_modules/.bin` candidate blocked from implicit discovery.
 - Preserves isolated version probes, shell-free execution, fixed agent adapters, and all protocol v2 security controls.
-
-### 0.2.4 macOS Antigravity credential fix
-
-- Prevents Antigravity from opening a `Keychain Not Found` dialog when the connector runs it with an isolated macOS home.
-- Uses Antigravity's copied file-backed token with UTC expiry handling on macOS; Windows retains its native credential-store behavior.
 - Keeps the repository command and public NPX package on the same connector runtime so fixes cannot drift between them.
 
 ### 0.2.3 cross-platform agent update
 
 - Supports native and npm-installed Codex, Claude Code, and Antigravity executables on macOS and Windows.
-- Reuses owner-bound workers for all three agents while clearing request context between runs: ephemeral Codex threads, Claude stream-json `/clear`, and Antigravity PTY `/clear`.
+- Reuses owner-bound workers where the CLI supports safe profile isolation while clearing request context between runs.
 - Lets Claude use its native OS-profile authentication while keeping its workspace and MCP configuration isolated, built-in tools disabled, and approved MCP tools strictly allowlisted.
 - Keeps CLI warnings on diagnostic stderr out of executable-version labels and keeps warm-worker startup details out of normal connector output.
 - Preserves the `0.2.2` supply-chain packaging controls and the `0.2.1` security and reliability changes below.
@@ -47,7 +48,7 @@ This package provides `0.2.5` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.5
+npx --yes @algoglyph/mcp-connector@0.2.6
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
@@ -76,7 +77,7 @@ An external server is available to an agent only when that individual run explic
 
 Loopback HTTP MCP endpoints require the explicit private-network opt-in. Non-loopback MCP endpoints must use HTTPS. Redirect targets and every resolved address are checked again; local, private, link-local, reserved, multicast, and cloud-metadata destinations are rejected.
 
-Antigravity uses the current isolated `.gemini/config/mcp_config.json` `serverUrl` schema. For explicitly attached servers, its separate isolated CLI settings grant only `mcp(algoglyph_approved/*)`; no command, file, browser, or global MCP wildcard is enabled. A confirmed transient account-eligibility rejection may be retried once after the provider settle window, and only when no transcript event shows that the prompt was accepted.
+Where Antigravity supports an isolated profile, it uses the current `.gemini/config/mcp_config.json` `serverUrl` schema. For explicitly attached servers, its separate isolated CLI settings grant only `mcp(algoglyph_approved/*)`; no command, file, browser, or global MCP wildcard is enabled. A confirmed transient account-eligibility rejection may be retried once after the provider settle window, and only when no transcript event shows that the prompt was accepted. macOS Agy runs use the user's normal profile without rewriting shared settings, so a connector-scoped MCP relay is rejected there until Agy provides a supported per-run settings root.
 
 ## Security boundary
 
@@ -88,15 +89,15 @@ Antigravity uses the current isolated `.gemini/config/mcp_config.json` `serverUr
 - Pairing credentials are random, origin-bound, single-use, and expire after 90 seconds. Session tokens are random, capability-scoped, and kept in browser `sessionStorage`.
 - Request bodies, JSON structure, prompts, remote responses, MCP pagination, output, concurrency, and execution time are bounded. Unknown or dangerous request fields are rejected.
 - Browser data never chooses a command, executable, shell, argument vector, working directory, environment variable, or filesystem path. Processes are launched without a shell.
-- Agent file credentials are copied only from reviewed locations into private temporary homes. Source paths are checked for links/escape, copied files are private, and temporary trees are removed after use. On macOS, Antigravity uses its file-backed token inside the private profile instead of linking the user's login Keychain; this avoids modal Keychain prompts while its `.gemini` MCP and permission configuration remains isolated. Windows continues using its native credential behavior.
+- Agent file credentials are copied only from reviewed locations into private temporary homes. Source paths are checked for links/escape, copied files are private, and temporary trees are removed after use. macOS Antigravity instead retains the normal user profile required by the native CLI and never rewrites its shared settings; Windows keeps the existing isolated-session behavior.
 - Codex uses a connector-owned deny-root permission profile with command, app, web, hook, subagent, and plugin surfaces disabled. Tool-child processes inherit no credential environment; when private file credentials are available, duplicate API-key environment auth is removed from the Codex host too.
 - Errors and normal logs do not include prompts, pairing/session tokens, MCP bearer tokens, copied credentials, or generated content.
 
 This remains a same-user local integration, not a multi-user security boundary. Origin/CORS checks prevent drive-by websites, but a hostile native process can forge an HTTP `Origin` header; the no-link pairing flow therefore assumes other processes running as the same OS user are trusted. Stronger native-local consent would require an OS-protected IPC or signed bootstrap channel and a different setup flow. Do not expose the port through a proxy, port forward, container publish, tunnel, or `0.0.0.0`. A compromised process running as the same operating-system user may still attack local processes or their files. Local agent/provider CLIs and explicitly approved MCP servers also receive the data necessary to answer the request; review their own privacy and retention policies.
 
-### Warm Antigravity limitation
+### Persistent Antigravity limitation
 
-Warm reuse avoids repeated CLI initialization, but reuse is restricted to one owning connector session and one approved-MCP identity. Every request starts a cleared conversation; if ownership or reset cannot be confirmed, the connector discards the runtime instead of reusing it. Revocation, expiry, cancellation failure, configuration change, and shutdown also destroy the owned process and temporary state.
+On platforms using persistent Antigravity sessions, reuse is restricted to one owning connector session and one approved-MCP identity. Every request starts a cleared conversation; if ownership or reset cannot be confirmed, the connector discards the runtime instead of reusing it. Revocation, expiry, cancellation failure, configuration change, and shutdown also destroy the owned process and temporary state. macOS uses an explicit one-shot print-mode run instead.
 
 The warm runtime may retain Antigravity's provider/account caches inside that session's private temporary home. It is an optimization within a trusted same-user process, not a substitute for operating-system isolation. Restart the connector to discard all in-memory warm state immediately.
 

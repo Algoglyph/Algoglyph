@@ -410,7 +410,7 @@ const main = async () => {
   if (JSON.stringify(packedFiles) !== JSON.stringify(expectedFiles)) {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
-  if (manifest.version !== '0.2.5') fail(`expected release candidate 0.2.5, found ${manifest.version}`);
+  if (manifest.version !== '0.2.6') fail(`expected release candidate 0.2.6, found ${manifest.version}`);
   if (manifest.license !== 'Apache-2.0') fail(`expected Apache-2.0 license, found ${manifest.license}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
@@ -486,7 +486,8 @@ const main = async () => {
     ['Codex unified-exec denial', /features\.unified_exec=false/],
     ['Codex deny-root permission profile', /filesystem = \{ ":root" = "deny" \}/],
     ['Codex empty tool-child environment', /\[shell_environment_policy\][\s\S]*?inherit = "none"/],
-    ['macOS Antigravity file-backed auth', /GEMINI_FORCE_FILE_STORAGE = 'true'[\s\S]*?environment\.TZ = 'UTC'/],
+    ['macOS Antigravity profile retention', /agent\.id === 'antigravity'[\s\S]*?process\.platform === 'darwin'[\s\S]*?!testAntigravityFixture/],
+    ['macOS Antigravity one-shot routing', /process\.platform !== 'darwin' \|\| Boolean\(testAntigravityFixture\)/],
     ['awaitable warm shutdown', /if \(session\.stopPromise\) return session\.stopPromise/],
     ['bounded MCP transport close', /MCP_CLOSE_TIMEOUT_MS[\s\S]*?client\.close\(\)/],
     ['abort-bounded DNS resolution', /validateMcpDestination[\s\S]*?raceWithAbort/],
