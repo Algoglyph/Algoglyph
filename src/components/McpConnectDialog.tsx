@@ -117,7 +117,7 @@ export const McpConnectDialog: React.FC = () => {
 
   useEffect(() => {
     const initialState = useMcpStore.getState();
-    if (!isOpen || initialState.connectionState === 'ready') return;
+    if (!isOpen) return;
 
     let cancelled = false;
     let timer: number | undefined;
@@ -129,6 +129,19 @@ export const McpConnectDialog: React.FC = () => {
     };
 
     const connect = async () => {
+      if (initialState.connectionState === 'ready' && initialState.connectorToken) {
+        try {
+          const endpoint = normalizeConnectorEndpoint(connectorEndpoint);
+          const snapshot = await inspectMcpConnector(endpoint, initialState.connectorToken);
+          if (cancelled || !snapshot.catalog) return;
+          setConnectorEndpoint(endpoint);
+          setConnectionState('ready', snapshot.health, snapshot.catalog);
+        } catch {
+          // Keep the last usable snapshot on transient refresh failures. A 401
+          // independently clears the expired session in the connector client.
+        }
+        return;
+      }
       attempt += 1;
       setServerResult(null);
       setServerError(null);

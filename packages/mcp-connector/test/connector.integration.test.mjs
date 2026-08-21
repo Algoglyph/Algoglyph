@@ -25,6 +25,9 @@ const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, mill
 const CHUNKED_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/chunkedAgent.mjs', import.meta.url));
 const INSPECT_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/inspectAgent.mjs', import.meta.url));
 const FAILING_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/failingAgent.mjs', import.meta.url));
+const UNAUTHENTICATED_AGENT_FIXTURE = fileURLToPath(
+  new URL('./fixtures/unauthenticatedAgent.mjs', import.meta.url),
+);
 const OVERSIZED_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/oversizedAgent.mjs', import.meta.url));
 const SLOW_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/slowAgent.mjs', import.meta.url));
 const HANGING_AGENT_FIXTURE = fileURLToPath(new URL('./fixtures/hangingAgent.mjs', import.meta.url));
@@ -39,6 +42,7 @@ const SIGNING_IN_ANTIGRAVITY_FIXTURE = fileURLToPath(
   new URL('./fixtures/signingInAntigravityAgent.mjs', import.meta.url),
 );
 const CODEX_APP_SERVER_FIXTURE = fileURLToPath(new URL('./fixtures/codexAppServerAgent.mjs', import.meta.url));
+const CLAUDE_STREAM_FIXTURE = fileURLToPath(new URL('./fixtures/claudeStreamAgent.mjs', import.meta.url));
 const VERSION_PROBE_PRELOAD = fileURLToPath(new URL('./fixtures/versionProbePreload.cjs', import.meta.url));
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -479,6 +483,56 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     }
   });
 
+  test('agent version labels use stdout and do not surface diagnostic stderr warnings', async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), 'algoglyph-version-output-test-'));
+    const entryPath = join(fixtureRoot, 'version-entry.js');
+    const executablePath = process.platform === 'win32'
+      ? join(fixtureRoot, 'version-cli.cmd')
+      : join(fixtureRoot, 'version-cli');
+    await writeFile(entryPath, [
+      '#!/usr/bin/env node',
+      "if (process.argv.includes('--version')) {",
+      "  console.error('WARNING: harmless version probe diagnostic');",
+      "  console.log('fixture-cli 7.8.9');",
+      '  process.exit(0);',
+      '}',
+      'process.exit(0);',
+    ].join('\n'));
+    if (process.platform === 'win32') {
+      await writeFile(executablePath, [
+        '@ECHO off',
+        'GOTO start',
+        ':find_dp0',
+        'SET dp0=%~dp0',
+        'EXIT /b',
+        ':start',
+        'SETLOCAL',
+        'CALL :find_dp0',
+        'SET "_prog=node"',
+        'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%" "%dp0%\\version-entry.js" %*',
+      ].join('\r\n'));
+    } else {
+      await writeFile(executablePath, await readFile(entryPath));
+      await chmod(executablePath, 0o755);
+    }
+
+    const versionConnector = await startConnectorHarness({
+      environment: {
+        ALGOGLYPH_CODEX_PATH: executablePath,
+        ALGOGLYPH_ANTIGRAVITY_PATH: executablePath,
+        ALGOGLYPH_CLAUDE_PATH: executablePath,
+      },
+    });
+    try {
+      const catalog = await versionConnector.request('v1/catalog', { token: versionConnector.masterToken });
+      assert.equal(catalog.status, 200);
+      assert.equal(catalog.body.agents.every((agent) => agent.version === 'fixture-cli 7.8.9'), true);
+    } finally {
+      await versionConnector.stop();
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   test('agent discovery falls through when an earlier PATH candidate fails its version probe', async () => {
     const fixtureRoot = await mkdtemp(join(tmpdir(), 'algoglyph-cli-fallback-test-'));
     const firstDirectory = join(fixtureRoot, 'first');
@@ -687,6 +741,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     });
     assert.equal(macClaudeCandidates.includes('/opt/homebrew/bin/claude'), true);
     assert.equal(macClaudeCandidates.includes('/usr/local/bin/claude'), true);
+    assert.equal(macClaudeCandidates.includes('/Users/example/.local/bin/claude'), true);
     assert.equal(macClaudeCandidates.includes('/Users/example/.npm-global/bin/claude'), true);
 
     const windowsCandidates = buildExecutableCandidates('codex', {
@@ -721,6 +776,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       environment: {},
     });
     assert.equal(windowsClaudeCandidates.includes('C:\\Users\\example\\AppData\\Roaming\\npm\\claude.CMD'), true);
+    assert.equal(windowsClaudeCandidates.includes('C:\\Users\\example\\.local\\bin\\claude.EXE'), true);
     assert.equal(windowsClaudeCandidates.includes('C:\\Users\\example\\.volta\\bin\\claude.EXE'), true);
     assert.equal(buildExecutableCandidates('claude', {
       platform: 'win32',
@@ -965,6 +1021,49 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       assert.equal(revoked.status, 200);
       assert.equal(await waitForProcessExit(workerPid), true);
       assert.equal(await waitForPathRemoval(workerHome), true);
+    } finally {
+      await warmConnector.stop();
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  test('Claude stream-json reuses one worker and clears context before every later request', async () => {
+    const fixtureRoot = await mkdtemp(join(tmpdir(), 'algoglyph-claude-stream-test-'));
+    const statePath = join(fixtureRoot, 'state.json');
+    const warmConnector = await startConnectorHarness({
+      environment: {
+        NODE_ENV: 'test',
+        ALGOGLYPH_DEV_TIMING: '1',
+        ALGOGLYPH_CLAUDE_PATH: process.execPath,
+        ALGOGLYPH_TEST_CLAUDE_STREAM_FIXTURE: CLAUDE_STREAM_FIXTURE,
+        ALGOGLYPH_TEST_CLAUDE_STATE_FILE: statePath,
+      },
+    });
+    try {
+      const { session } = await warmConnector.pair();
+      const runs = [];
+      for (const prompt of ['first-request', 'second-request', 'third-request']) {
+        const run = await runRawFixtureAgent(warmConnector, session.sessionToken, {
+          agentId: 'claude',
+          prompt,
+        });
+        assert.equal(run.status, 200);
+        assert.equal(run.events.find((event) => event.event === 'output')?.data.chunk, `fixture:${prompt}`);
+        assert.equal(run.events.at(-1)?.event, 'exit');
+        assert.equal(run.events.at(-1)?.data.code, 0);
+        runs.push(run);
+      }
+
+      const state = await waitForJsonFile(statePath, (value) => value.prompts?.length === 3);
+      assert.equal(state.processes.length, 1);
+      assert.equal(new Set(state.prompts.map((prompt) => prompt.pid)).size, 1);
+      assert.equal(state.clears.length, 2);
+      assert.equal(new Set(state.prompts.map((prompt) => prompt.sessionId)).size, 3);
+      const timings = runs.map((run) => run.events.find((event) => event.event === 'timing')?.data.stages);
+      assert.equal(timings[0].claude_worker_reused, 0);
+      assert.equal(timings[1].claude_worker_reused, 1);
+      assert.equal(timings[2].claude_worker_reused, 1);
+      assert.equal(new Set(timings.map((timing) => timing.claude_process_pid)).size, 1);
     } finally {
       await warmConnector.stop();
       await rm(fixtureRoot, { recursive: true, force: true });
@@ -1972,6 +2071,15 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
       connectorSource,
       /id: 'claude'[\s\S]*?runArgs: \['-p', '--tools', '', '--permission-mode', 'dontAsk', '--no-session-persistence'\]/,
     );
+    assert.match(connectorSource, /id: 'claude'[\s\S]*?inheritProfileEnvironment: true/);
+    assert.match(
+      connectorSource,
+      /if \(agent\.inheritProfileEnvironment\)[\s\S]*?environment\.CLAUDE_CODE_SAFE_MODE = '1'/,
+    );
+    assert.match(
+      connectorSource,
+      /if \(agent\.inheritProfileEnvironment\)[\s\S]*?delete environment\.CLAUDE_CONFIG_DIR/,
+    );
     assert.match(connectorSource, /if \(agent\.id === 'claude'\)[\s\S]*?`mcp__\$\{name\}__\$\{tool\.name\}`/);
     assert.match(
       connectorSource,
@@ -2048,6 +2156,21 @@ describe('security remediation contract', () => {
       await failing.stop();
     }
 
+    const unauthenticated = await startConnectorHarness({
+      environment: { NODE_ENV: 'test', ALGOGLYPH_TEST_AGENT_FIXTURE: UNAUTHENTICATED_AGENT_FIXTURE },
+    });
+    try {
+      const { session } = await unauthenticated.pair();
+      const run = await runRawFixtureAgent(unauthenticated, session.sessionToken, {});
+      assert.equal(run.events.some((event) => (
+        event.event === 'error'
+        && /Claude Code is not authenticated.*claude auth login/i.test(event.data.message)
+      )), true);
+      assert.equal(run.events.at(-1).data.code, 1);
+    } finally {
+      await unauthenticated.stop();
+    }
+
     const oversized = await startConnectorHarness({
       environment: { NODE_ENV: 'test', ALGOGLYPH_TEST_AGENT_FIXTURE: OVERSIZED_AGENT_FIXTURE },
     });
@@ -2088,6 +2211,12 @@ describe('security remediation contract', () => {
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);
     assert.match(dialogSource, /useMcpStore\.getState\(\)\.connectorToken/);
+    const dialogConnectionEffect = dialogSource.slice(
+      dialogSource.indexOf('useEffect(() => {\n    const initialState'),
+      dialogSource.indexOf('  const checkConnector = async'),
+    );
+    assert.match(dialogConnectionEffect, /inspectMcpConnector/);
+    assert.doesNotMatch(dialogConnectionEffect, /connectionState === 'ready'\) return/);
   });
 
   test('Stage 6: raw MCP credentials and unapproved server IDs cannot be supplied to agents', async () => {

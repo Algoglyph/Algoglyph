@@ -129,7 +129,11 @@ const AGENTS = [
     // `dontAsk` then denies anything outside the exact per-run allowlist below.
     runArgs: ['-p', '--tools', '', '--permission-mode', 'dontAsk', '--no-session-persistence'],
     promptVia: 'stdin',
-    authEnv: ['ANTHROPIC_API_KEY'],
+    authEnv: ['ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'],
+    // Claude's native OAuth store is bound to the real OS profile on both
+    // macOS and Windows. Replacing HOME/USERPROFILE makes a logged-in CLI look
+    // logged out, so retain the profile while isolating cwd and capabilities.
+    inheritProfileEnvironment: true,
   },
 ];
 
@@ -143,6 +147,9 @@ const testProvisionAntigravityCredentials = process.env.NODE_ENV === 'test'
   && process.env.ALGOGLYPH_TEST_PROVISION_ANTIGRAVITY_CREDENTIALS === '1';
 const testCodexAppServerFixture = process.env.NODE_ENV === 'test'
   ? process.env.ALGOGLYPH_TEST_CODEX_APP_SERVER_FIXTURE?.trim()
+  : undefined;
+const testClaudeStreamFixture = process.env.NODE_ENV === 'test'
+  ? process.env.ALGOGLYPH_TEST_CLAUDE_STREAM_FIXTURE?.trim()
   : undefined;
 if (testAgentFixture) {
   AGENTS.push({
@@ -309,6 +316,7 @@ const deleteApprovedServer = (id) => {
     if (relay.server.id === id) mcpRelays.delete(relayId);
   }
   if (codexAppServerSession?.approvedServerId === id) void stopCodexAppServerSession(codexAppServerSession);
+  if (claudeStreamSession?.approvedServerId === id) void stopClaudeStreamSession(claudeStreamSession);
   if (antigravitySession?.approvedServerId === id) void stopAntigravitySession(antigravitySession);
   return true;
 };
@@ -325,10 +333,12 @@ const removeApprovedServersForOwner = (owner) => {
 const stopOwnerResources = async (owner) => {
   removeApprovedServersForOwner(owner);
   const codexWorker = codexAppServerSession?.owner === owner ? codexAppServerSession : undefined;
+  const claudeWorker = claudeStreamSession?.owner === owner ? claudeStreamSession : undefined;
   const warmSession = antigravitySession?.owner === owner ? antigravitySession : undefined;
   const ownedChildren = [...activeChildren].filter((entry) => entry.owner === owner);
   await Promise.allSettled([
     ...(codexWorker ? [stopCodexAppServerSession(codexWorker)] : []),
+    ...(claudeWorker ? [stopClaudeStreamSession(claudeWorker)] : []),
     ...(warmSession ? [stopAntigravitySession(warmSession)] : []),
     ...ownedChildren.map((entry) => terminateProcessTree(entry.child, true)),
   ]);
@@ -757,7 +767,7 @@ const runVersionCheck = async (invocation) => {
 
   try {
     return await new Promise((resolveDone) => {
-    let output = '';
+    let stdout = '';
     let settled = false;
     let child;
 
@@ -783,19 +793,21 @@ const runVersionCheck = async (invocation) => {
     const timer = setTimeout(() => {
       void terminateProcessTree(child, true).finally(() => finish({ available: false }));
     }, 3_000);
-    const capture = (chunk) => {
-      if (output.length < 512) output += chunk.toString('utf8');
+    const captureStdout = (chunk) => {
+      if (stdout.length < 512) stdout += chunk.toString('utf8');
     };
 
-    child.stdout.on('data', capture);
-    child.stderr.on('data', capture);
+    child.stdout.on('data', captureStdout);
+    // Diagnostics such as Codex's PATH-alias warning are not version data.
+    // Drain stderr without exposing it as the catalog's user-facing label.
+    child.stderr.on('data', () => undefined);
     child.on('error', () => {
       clearTimeout(timer);
       finish({ available: false });
     });
     child.on('close', (code) => {
       clearTimeout(timer);
-      const version = output.replace(/\s+/g, ' ').trim().slice(0, 160);
+      const version = stdout.replace(/\s+/g, ' ').trim().slice(0, 160);
       finish({ available: code === 0, version: version || undefined });
     });
     });
@@ -857,19 +869,42 @@ const resolveAgentRuntime = async (agent) => {
 const resolveAgentInvocation = async (agent) => (await resolveAgentRuntime(agent))?.invocation;
 
 const createAgentEnvironment = (agent, invocation, homeDirectory) => {
-  const environment = {};
+  const environment = agent.inheritProfileEnvironment ? { ...process.env } : {};
+  if (agent.inheritProfileEnvironment) {
+    const allowedAuthNames = new Set(agent.authEnv || []);
+    for (const name of Object.keys(environment)) {
+      if (
+        /TOKEN|SECRET|PASSWORD|CREDENTIAL|COOKIE|PRIVATE_KEY|ACCESS_KEY|API_KEY|AUTHORIZATION/i.test(name)
+        && !allowedAuthNames.has(name)
+      ) {
+        delete environment[name];
+      }
+    }
+    for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'BASH_ENV', 'ENV', 'ZDOTDIR']) {
+      delete environment[name];
+    }
+    for (const name of Object.keys(environment)) {
+      if (/^(?:DYLD_|LD_PRELOAD$)/i.test(name)) delete environment[name];
+    }
+    delete environment.CLAUDE_CONFIG_DIR;
+    // Current Claude Code uses this to disable hooks, plugins, skills, global
+    // MCP servers, and other profile customizations while keeping native auth.
+    environment.CLAUDE_CODE_SAFE_MODE = '1';
+  }
   for (const name of ['SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'LANG', 'LC_ALL']) {
     if (process.env[name]) environment[name] = process.env[name];
   }
   environment.PATH = invocationPath(invocation);
-  environment.HOME = homeDirectory;
-  environment.USERPROFILE = homeDirectory;
-  // Runtime scratch files must live inside the request-owned root as well;
-  // inheriting the user's shared TEMP/TMP would weaken cross-request cleanup.
-  environment.TEMP = homeDirectory;
-  environment.TMP = homeDirectory;
-  environment.CODEX_HOME = join(homeDirectory, '.codex');
-  environment.CLAUDE_CONFIG_DIR = join(homeDirectory, '.claude');
+  if (!agent.inheritProfileEnvironment) {
+    environment.HOME = homeDirectory;
+    environment.USERPROFILE = homeDirectory;
+    // Runtime scratch files must live inside the request-owned root as well;
+    // inheriting the user's shared TEMP/TMP would weaken cross-request cleanup.
+    environment.TEMP = homeDirectory;
+    environment.TMP = homeDirectory;
+    environment.CODEX_HOME = join(homeDirectory, '.codex');
+    environment.CLAUDE_CONFIG_DIR = join(homeDirectory, '.claude');
+  }
   for (const name of agent.authEnv || []) {
     if (process.env[name]) environment[name] = process.env[name];
   }
@@ -955,7 +990,7 @@ const provisionAgentCredentials = async (agent, environment, homeDirectory) => {
     // expose an API key to the Codex host process. Environment auth remains a
     // fallback, but the model-tool environment is independently deny-all below.
     if (copiedFileCredential) delete environment.OPENAI_API_KEY;
-  } else if (agent.id === 'claude') {
+  } else if (agent.id === 'claude' && !agent.inheritProfileEnvironment) {
     const sourceHome = userProfile && join(userProfile, '.claude');
     await copyCredentialIfPresent(
       sourceHome && join(sourceHome, '.credentials.json'),
@@ -2308,6 +2343,410 @@ const streamPersistentCodexRun = async (
   return true;
 };
 
+class ClaudeStreamUnavailableError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'ClaudeStreamUnavailableError';
+  }
+}
+
+let claudeStreamSession;
+let claudeStreamSessionPromise;
+
+const claudeStreamIdentity = (invocation) => `${invocation.kind}:${invocation.resolvedPath}`;
+
+const writeClaudeStreamMessage = (session, content) => {
+  if (session.exited || !session.child.stdin.writable) {
+    throw new ClaudeStreamUnavailableError('The Claude stream worker is not running.');
+  }
+  session.child.stdin.write(`${JSON.stringify({
+    type: 'user',
+    message: { role: 'user', content },
+  })}\n`);
+};
+
+const rejectClaudeActiveMessage = (session, error) => {
+  session.activeMessage?.completion.reject(error);
+};
+
+const handleClaudeStreamLine = (session, line) => {
+  if (!line.trim()) return;
+  let message;
+  try {
+    message = JSON.parse(line);
+  } catch {
+    throw new ClaudeStreamUnavailableError('Claude emitted invalid stream JSON.');
+  }
+  if (!message || typeof message !== 'object' || Array.isArray(message)) return;
+  if (message.type === 'system' && message.subtype === 'init') {
+    if (!Array.isArray(message.tools) || message.tools.length !== 0) {
+      throw new ClaudeStreamUnavailableError('Claude enabled unexpected built-in tools.');
+    }
+    session.initializedAt ||= monotonicMilliseconds();
+    session.initializationMs ||= session.initializedAt - session.startedAt;
+    return;
+  }
+  if (message.type !== 'result' || !session.activeMessage) return;
+  const active = session.activeMessage;
+  if (message.is_error === true || message.subtype !== 'success') {
+    const detail = typeof message.result === 'string' && message.result.trim()
+      ? message.result.trim()
+      : 'Claude returned an unsuccessful stream result.';
+    active.completion.reject(new ClaudeStreamUnavailableError(detail));
+    return;
+  }
+  const output = typeof message.result === 'string' ? message.result : '';
+  if (Buffer.byteLength(output, 'utf8') > MAX_AGENT_OUTPUT_BYTES) {
+    active.completion.reject(new ClaudeStreamUnavailableError('The agent run exceeded the output safety limit.'));
+    return;
+  }
+  active.completion.resolve({
+    output,
+    sessionId: typeof message.session_id === 'string' ? message.session_id : undefined,
+  });
+};
+
+const attachClaudeStreamProtocol = (session) => {
+  session.child.stdout.setEncoding('utf8');
+  session.child.stdout.on('data', (chunk) => {
+    if (session.exited) return;
+    session.stdoutBuffer += chunk;
+    if (Buffer.byteLength(session.stdoutBuffer, 'utf8') > MAX_CODEX_PROTOCOL_BUFFER_BYTES) {
+      session.protocolError = new ClaudeStreamUnavailableError('Claude stream buffer overflowed.');
+      terminateWithGrace(session.child);
+      return;
+    }
+    let boundary;
+    while ((boundary = session.stdoutBuffer.indexOf('\n')) !== -1) {
+      const line = session.stdoutBuffer.slice(0, boundary).replace(/\r$/, '');
+      session.stdoutBuffer = session.stdoutBuffer.slice(boundary + 1);
+      try {
+        handleClaudeStreamLine(session, line);
+      } catch (error) {
+        session.protocolError = error;
+        rejectClaudeActiveMessage(session, error);
+        terminateWithGrace(session.child);
+        return;
+      }
+    }
+  });
+  session.child.stderr.on('data', (chunk) => {
+    if (session.stderrBytes >= MAX_CODEX_STDERR_BYTES) return;
+    const remaining = MAX_CODEX_STDERR_BYTES - session.stderrBytes;
+    const slice = chunk.length > remaining ? chunk.subarray(0, remaining) : chunk;
+    session.stderrBytes += slice.length;
+    session.stderr += slice.toString('utf8');
+  });
+  session.child.once('error', (error) => {
+    session.protocolError = new ClaudeStreamUnavailableError(error.message);
+    rejectClaudeActiveMessage(session, session.protocolError);
+  });
+  session.child.once('close', (code) => {
+    session.exited = true;
+    session.exitCode = code;
+    session.resolveExit?.();
+    rejectClaudeActiveMessage(
+      session,
+      session.protocolError
+        || new ClaudeStreamUnavailableError(`Claude stream worker exited (code ${code ?? 'unknown'}).`),
+    );
+    if (!session.stopping) void stopClaudeStreamSession(session);
+  });
+};
+
+const stopClaudeStreamSession = (session = claudeStreamSession) => {
+  if (!session) return Promise.resolve();
+  if (session.stopPromise) return session.stopPromise;
+  session.stopPromise = (async () => {
+    session.stopping = true;
+    if (!session.exited) {
+      try { session.child.stdin.end(); } catch { /* already closed */ }
+      await Promise.race([
+        session.exitPromise,
+        new Promise((resolveDone) => setTimeout(resolveDone, 250)),
+      ]);
+    }
+    if (!session.exited) {
+      await terminateProcessTree(session.child, false);
+      await Promise.race([
+        session.exitPromise,
+        new Promise((resolveDone) => setTimeout(resolveDone, 1_500)),
+      ]);
+    }
+    if (!session.exited) await terminateProcessTree(session.child, true);
+    session.exited = true;
+    rejectClaudeActiveMessage(session, new ClaudeStreamUnavailableError('The Claude stream worker stopped.'));
+    destroyMcpRelay(session.relayId);
+    await rm(session.rootDirectory, { recursive: true, force: true }).catch(() => undefined);
+    trackedTempRoots.delete(session.rootDirectory);
+    if (claudeStreamSession === session) claudeStreamSession = undefined;
+    if (claudeStreamSessionPromise?.session === session) claudeStreamSessionPromise = undefined;
+  })();
+  return session.stopPromise;
+};
+
+const startClaudeStreamSession = async (agent, invocation, approvedServer, owner, key) => {
+  if (connectorShuttingDown) throw new ClaudeStreamUnavailableError('The connector is shutting down.');
+  if (process.env.NODE_ENV === 'test' && !testClaudeStreamFixture) {
+    throw new ClaudeStreamUnavailableError('Claude stream mode is disabled for one-shot fixtures.');
+  }
+
+  const { workingDirectory, runDirectory, homeDirectory } = await createIsolatedAgentDirectories(agent);
+  const environment = createAgentEnvironment(agent, invocation, homeDirectory);
+  let relayId;
+  let child;
+  const startedAt = monotonicMilliseconds();
+  try {
+    await provisionAgentCredentials(agent, environment, homeDirectory);
+    let extraArgs;
+    ({ extraArgs, relayId } = await prepareApprovedMcpForAgent(
+      agent,
+      approvedServer,
+      workingDirectory,
+      environment,
+    ));
+    if (testClaudeStreamFixture) {
+      environment.ALGOGLYPH_TEST_CLAUDE_STATE_FILE = process.env.ALGOGLYPH_TEST_CLAUDE_STATE_FILE || '';
+    }
+    const streamInvocation = testClaudeStreamFixture
+      ? {
+        command: process.execPath,
+        argsPrefix: [testClaudeStreamFixture],
+        resolvedPath: testClaudeStreamFixture,
+        kind: 'test-fixture',
+        pathEntries: [dirname(process.execPath)],
+      }
+      : invocation;
+    const streamArgs = [
+      ...agent.runArgs,
+      '--safe-mode',
+      '--input-format', 'stream-json',
+      '--output-format', 'stream-json',
+      '--verbose',
+      '--replay-user-messages',
+      ...extraArgs,
+    ];
+    child = spawn(streamInvocation.command, invocationArgs(streamInvocation, streamArgs), {
+      cwd: runDirectory,
+      env: environment,
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true,
+      detached: process.platform !== 'win32',
+    });
+  } catch (error) {
+    destroyMcpRelay(relayId);
+    await rm(workingDirectory, { recursive: true, force: true }).catch(() => undefined);
+    trackedTempRoots.delete(workingDirectory);
+    throw error;
+  }
+
+  const exitDeferred = createDeferred();
+  const session = {
+    key,
+    identity: claudeStreamIdentity(invocation),
+    owner,
+    approvedServerId: approvedServer?.id,
+    rootDirectory: workingDirectory,
+    runDirectory,
+    homeDirectory,
+    environment,
+    relayId,
+    child,
+    pid: child.pid,
+    startedAt,
+    initializedAt: undefined,
+    initializationMs: undefined,
+    stdoutBuffer: '',
+    stderr: '',
+    stderrBytes: 0,
+    activeMessage: undefined,
+    turnsCompleted: 0,
+    lastSessionId: undefined,
+    protocolError: undefined,
+    exited: false,
+    exitPromise: exitDeferred.promise,
+    resolveExit: exitDeferred.resolve,
+    stopPromise: undefined,
+  };
+  attachClaudeStreamProtocol(session);
+  console.error(`[${SERVICE_NAME}] Claude stream worker started (pid ${session.pid}).`);
+  return session;
+};
+
+const getClaudeStreamSession = async (approvedServer, owner) => {
+  const agent = AGENTS.find((candidate) => candidate.id === 'claude');
+  const invocation = agent && await resolveAgentInvocation(agent);
+  if (!agent || !invocation) throw new ClaudeStreamUnavailableError('The Claude executable is unavailable.');
+  const key = [owner, approvedServer?.id || 'none', claudeStreamIdentity(invocation)].join(':');
+  if (claudeStreamSession?.key === key && !claudeStreamSession.exited && !claudeStreamSession.stopping) {
+    return { session: claudeStreamSession, reused: true };
+  }
+  if (claudeStreamSessionPromise?.key === key) {
+    return { session: await claudeStreamSessionPromise.promise, reused: true };
+  }
+  if (claudeStreamSession) await stopClaudeStreamSession(claudeStreamSession);
+
+  const promise = startClaudeStreamSession(agent, invocation, approvedServer, owner, key);
+  claudeStreamSessionPromise = { key, promise, session: undefined };
+  try {
+    const session = await promise;
+    claudeStreamSession = session;
+    claudeStreamSessionPromise.session = session;
+    return { session, reused: false };
+  } finally {
+    if (claudeStreamSessionPromise?.promise === promise) claudeStreamSessionPromise = undefined;
+  }
+};
+
+const executeClaudeStreamMessage = async (
+  session,
+  content,
+  { cancellationPromise, isCancelled, timeoutMs = AGENT_RUN_TIMEOUT_MS },
+) => {
+  if (session.activeMessage) throw new ClaudeStreamUnavailableError('Claude is already processing a message.');
+  const completion = createDeferred();
+  const active = { completion, content };
+  session.activeMessage = active;
+  const startedAt = monotonicMilliseconds();
+  const timedOut = createDeferred();
+  const timer = setTimeout(() => timedOut.resolve(), timeoutMs);
+  timer.unref();
+  try {
+    writeClaudeStreamMessage(session, content);
+    const outcome = await Promise.race([
+      completion.promise.then((value) => ({ kind: 'completed', value })),
+      timedOut.promise.then(() => ({ kind: 'timeout' })),
+      cancellationPromise.then(() => ({ kind: 'cancelled' })),
+    ]);
+    if (outcome.kind === 'cancelled' || isCancelled()) {
+      await stopClaudeStreamSession(session);
+      throw new ClaudeStreamUnavailableError('The agent run was cancelled.');
+    }
+    if (outcome.kind === 'timeout') {
+      await stopClaudeStreamSession(session);
+      throw new ClaudeStreamUnavailableError(`The agent run timed out after ${timeoutMs / 1000}s.`);
+    }
+    return { ...outcome.value, durationMs: monotonicMilliseconds() - startedAt };
+  } finally {
+    clearTimeout(timer);
+    if (session.activeMessage === active) session.activeMessage = undefined;
+  }
+};
+
+const executeClaudeStreamTurn = async (session, prompt, cancellation) => {
+  let clearMs = 0;
+  if (session.turnsCompleted > 0) {
+    const previousSessionId = session.lastSessionId;
+    const cleared = await executeClaudeStreamMessage(session, '/clear', {
+      ...cancellation,
+      timeoutMs: 15_000,
+    });
+    if (!cleared.sessionId || cleared.sessionId === previousSessionId || cleared.output) {
+      await stopClaudeStreamSession(session);
+      throw new ClaudeStreamUnavailableError('Claude did not clear its previous request context.');
+    }
+    session.lastSessionId = cleared.sessionId;
+    clearMs = cleared.durationMs;
+  }
+  const result = await executeClaudeStreamMessage(session, prompt, cancellation);
+  if (!session.initializedAt) {
+    await stopClaudeStreamSession(session);
+    throw new ClaudeStreamUnavailableError('Claude did not initialize its stream protocol.');
+  }
+  if (session.lastSessionId && result.sessionId !== session.lastSessionId) {
+    await stopClaudeStreamSession(session);
+    throw new ClaudeStreamUnavailableError('Claude changed sessions during an active request.');
+  }
+  session.lastSessionId = result.sessionId;
+  session.turnsCompleted += 1;
+  return { output: result.output, clearMs, modelRequestMs: result.durationMs };
+};
+
+const streamPersistentClaudeRun = async (
+  request,
+  response,
+  prompt,
+  approvedServer,
+  secrets,
+  authorization,
+  releaseSlot,
+) => {
+  const requestStartedAt = monotonicMilliseconds();
+  let worker;
+  let reused;
+  try {
+    ({ session: worker, reused } = await getClaudeStreamSession(
+      approvedServer,
+      authorizationOwner(authorization),
+    ));
+  } catch {
+    return false;
+  }
+  const workerReadyAt = monotonicMilliseconds();
+
+  applySecurityHeaders(response);
+  response.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  let settled = false;
+  let cancelled = false;
+  const cancellation = createDeferred();
+  const send = (event, data) => {
+    if (!response.writableEnded && !response.destroyed) {
+      response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    }
+  };
+  const cancel = () => {
+    if (settled || cancelled) return;
+    cancelled = true;
+    cancellation.resolve();
+    void stopClaudeStreamSession(worker);
+  };
+  request.once('aborted', cancel);
+  response.once('close', cancel);
+
+  try {
+    const result = await executeClaudeStreamTurn(worker, prompt, {
+      isCancelled: () => cancelled,
+      cancellationPromise: cancellation.promise,
+    });
+    if (result.output) send('output', { stream: 'stdout', chunk: result.output });
+    if (DEV_TIMING_ENABLED) {
+      send('timing', {
+        stages: {
+          connector_request_to_worker_ready_ms: roundedMilliseconds(workerReadyAt - requestStartedAt),
+          claude_initialization_ms: roundedMilliseconds(reused ? 0 : worker.initializationMs),
+          claude_worker_reused: reused ? 1 : 0,
+          claude_process_pid: worker.pid,
+          claude_context_clear_ms: roundedMilliseconds(result.clearMs),
+          claude_model_request_ms: roundedMilliseconds(result.modelRequestMs),
+        },
+      });
+    }
+    send('exit', { code: 0 });
+  } catch (error) {
+    const detail = `${error instanceof Error ? error.message : error}\n${worker.stderr}`;
+    const message = cancelled
+      ? 'The agent run was cancelled.'
+      : /not logged in|please run \/login/i.test(detail)
+        ? 'Claude Code is not authenticated. Run `claude auth login` in a terminal, then try again.'
+        : redactError(error, secrets);
+    send('error', { message });
+    send('exit', { code: 1 });
+    await stopClaudeStreamSession(worker);
+  } finally {
+    settled = true;
+    releaseSlot();
+    response.end();
+  }
+  return true;
+};
+
 let antigravitySession;
 let antigravitySessionPromise;
 let antigravityPtyModulesPromise;
@@ -2911,6 +3350,19 @@ const streamAgentRun = async (request, response, body, authorization) => {
     if (handled) return;
   }
 
+  if (agent.id === 'claude') {
+    const handled = await streamPersistentClaudeRun(
+      request,
+      response,
+      prompt,
+      approvedServer,
+      secrets,
+      authorization,
+      releaseSlot,
+    );
+    if (handled) return;
+  }
+
   if (agent.id === 'antigravity' && (process.env.NODE_ENV !== 'test' || testAntigravityFixture)) {
     await streamPersistentAntigravityRun(
       request,
@@ -3032,9 +3484,11 @@ const streamAgentRun = async (request, response, body, authorization) => {
   let truncated = false;
   let cancelled = false;
   let outputBytes = 0;
+  let diagnosticStderrBytes = 0;
   let firstStdoutAt;
   let firstStderrAt;
   const outputChunks = { stdout: [], stderr: [] };
+  const diagnosticStderrChunks = [];
 
   const send = (event, data) => {
     if (response.writableEnded) return;
@@ -3067,6 +3521,11 @@ const streamAgentRun = async (request, response, body, authorization) => {
     if (slice.length > 0) {
       outputBytes += slice.length;
       const text = slice.toString('utf8');
+      if (streamName === 'stderr' && diagnosticStderrBytes < 8_192) {
+        const diagnosticSlice = slice.subarray(0, 8_192 - diagnosticStderrBytes);
+        diagnosticStderrBytes += diagnosticSlice.length;
+        diagnosticStderrChunks.push(diagnosticSlice);
+      }
       if (bufferedOutput) outputChunks[streamName].push(text);
       else send('output', { stream: streamName, chunk: text });
     }
@@ -3105,7 +3564,13 @@ const streamAgentRun = async (request, response, body, authorization) => {
     } else if (cancelled) {
       send('error', { message: 'The agent run was cancelled.' });
     } else if (code !== 0) {
-      send('error', { message: `The agent exited unsuccessfully (code ${code ?? 'unknown'}).` });
+      const diagnosticStderr = Buffer.concat(diagnosticStderrChunks).toString('utf8');
+      const message = /not logged in|please run \/login/i.test(diagnosticStderr)
+        ? 'Claude Code is not authenticated. Run `claude auth login` in a terminal, then try again.'
+        : /authentication[_ ]error|invalid[^\n]*api key|oauth[^\n]*(?:expired|invalid)/i.test(diagnosticStderr)
+          ? 'Claude Code authentication failed. Run `claude auth login` or verify ANTHROPIC_API_KEY, then try again.'
+          : `The agent exited unsuccessfully (code ${code ?? 'unknown'}).`;
+      send('error', { message });
     }
     if (DEV_TIMING_ENABLED) {
       let internalStages = {};
@@ -3316,6 +3781,7 @@ const shutDown = async () => {
   clearInterval(authSweepTimer);
   await Promise.allSettled([...activeChildren].map((entry) => terminateProcessTree(entry.child, true)));
   await stopCodexAppServerSession();
+  await stopClaudeStreamSession();
   await stopAntigravitySession();
   await Promise.allSettled([...trackedTempRoots].map(async (root) => {
     await rm(root, { recursive: true, force: true });
