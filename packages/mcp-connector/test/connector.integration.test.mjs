@@ -255,7 +255,7 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.3',
+      version: '0.2.4',
       protocolVersion: 2,
       requiresToken: true,
     });
@@ -1850,7 +1850,7 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
     }
   });
 
-  test('Antigravity exposes the macOS login Keychain inside its isolated home', {
+  test('macOS Antigravity uses isolated file auth without linking the login Keychain', {
     skip: process.platform !== 'darwin',
   }, async () => {
     const sourceHome = await mkdtemp(join(tmpdir(), 'algoglyph-antigravity-keychain-source-'));
@@ -1875,9 +1875,10 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
         'WARM_REQUEST_MACOS_KEYCHAIN',
       );
       assert.equal(run.status, 200);
-      assert.equal(run.output.credentialIsolation.macOsLoginKeychainPresent, true);
-      assert.equal(run.output.credentialIsolation.macOsLoginKeychainIsSymbolicLink, true);
-      assert.equal(run.output.credentialIsolation.macOsLoginKeychainMatchesFixture, true);
+      assert.equal(run.output.credentialIsolation.currentAuthTokenPresent, false);
+      assert.equal(run.output.credentialIsolation.fileStorageForced, true);
+      assert.equal(run.output.credentialIsolation.timezoneIsUtc, true);
+      assert.equal(run.output.credentialIsolation.macOsLoginKeychainPresent, false);
     } finally {
       await keychainConnector?.stop();
       await rm(sourceHome, { recursive: true, force: true });

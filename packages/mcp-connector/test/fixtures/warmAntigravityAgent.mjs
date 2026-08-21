@@ -130,6 +130,8 @@ const handlePrompt = (prompt) => {
       credentialIsolation: {
         currentAuthTokenPresent: typeof provisionedAuthToken === 'string',
         currentAuthTokenMatchesFixture: provisionedAuthToken === 'fixture-antigravity-oauth-token',
+        fileStorageForced: process.env.GEMINI_FORCE_FILE_STORAGE === 'true',
+        timezoneIsUtc: process.env.TZ === 'UTC',
         macOsLoginKeychainPresent: Boolean(macOsLoginKeychain),
         macOsLoginKeychainIsSymbolicLink: macOsLoginKeychain?.isSymbolicLink === true,
         macOsLoginKeychainMatchesFixture: macOsLoginKeychain?.contents === 'fixture-login-keychain',

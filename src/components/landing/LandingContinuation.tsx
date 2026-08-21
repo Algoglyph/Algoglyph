@@ -9,7 +9,7 @@ interface LandingContinuationProps {
 
 type CopyState = 'idle' | 'copied' | 'error';
 
-const CONNECTOR_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.2.3';
+const CONNECTOR_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.2.4';
 
 const WORKFLOWS = [
   {

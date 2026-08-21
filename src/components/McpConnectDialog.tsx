@@ -29,11 +29,11 @@ const inputClassName =
   'h-9 w-full rounded-md border border-hairline bg-canvas px-2.5 font-mono text-xs text-ink outline-none transition-colors placeholder:text-mute focus:border-ink';
 
 const connectorCommand = (): string => {
-  if (typeof window === 'undefined') return 'npx --yes @algoglyph/mcp-connector@0.2.3';
+  if (typeof window === 'undefined') return 'npx --yes @algoglyph/mcp-connector@0.2.4';
   const host = window.location.hostname;
   return host === 'localhost' || host === '127.0.0.1'
     ? 'npm run mcp:connector'
-    : 'npx --yes @algoglyph/mcp-connector@0.2.3';
+    : 'npx --yes @algoglyph/mcp-connector@0.2.4';
 };
 
 const errorMessage = (error: unknown): string => {

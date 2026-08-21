@@ -2,9 +2,15 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.3` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.4` / protocol v2. Running the release checks does not publish anything.
 
-## 0.2.3 cross-platform agent update
+## 0.2.4 macOS Antigravity credential fix
+
+- Prevents Antigravity from opening a `Keychain Not Found` dialog when the connector runs it with an isolated macOS home.
+- Uses Antigravity's copied file-backed token with UTC expiry handling on macOS; Windows retains its native credential-store behavior.
+- Keeps the repository command and public NPX package on the same connector runtime so fixes cannot drift between them.
+
+### 0.2.3 cross-platform agent update
 
 - Supports native and npm-installed Codex, Claude Code, and Antigravity executables on macOS and Windows.
 - Reuses owner-bound workers for all three agents while clearing request context between runs: ephemeral Codex threads, Claude stream-json `/clear`, and Antigravity PTY `/clear`.
@@ -35,7 +41,7 @@ This package provides `0.2.3` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.3
+npx --yes @algoglyph/mcp-connector@0.2.4
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
@@ -76,7 +82,7 @@ Antigravity uses the current isolated `.gemini/config/mcp_config.json` `serverUr
 - Pairing credentials are random, origin-bound, single-use, and expire after 90 seconds. Session tokens are random, capability-scoped, and kept in browser `sessionStorage`.
 - Request bodies, JSON structure, prompts, remote responses, MCP pagination, output, concurrency, and execution time are bounded. Unknown or dangerous request fields are rejected.
 - Browser data never chooses a command, executable, shell, argument vector, working directory, environment variable, or filesystem path. Processes are launched without a shell.
-- Agent file credentials are copied only from reviewed locations into private temporary homes. Source paths are checked for links/escape, copied files are private, and temporary trees are removed after use. On macOS, Antigravity's temporary profile links only its standard login-Keychain path to the user's current default Keychain so Security.framework can refresh OAuth credentials; Antigravity's `.gemini` MCP and permission configuration remains isolated.
+- Agent file credentials are copied only from reviewed locations into private temporary homes. Source paths are checked for links/escape, copied files are private, and temporary trees are removed after use. On macOS, Antigravity uses its file-backed token inside the private profile instead of linking the user's login Keychain; this avoids modal Keychain prompts while its `.gemini` MCP and permission configuration remains isolated. Windows continues using its native credential behavior.
 - Codex uses a connector-owned deny-root permission profile with command, app, web, hook, subagent, and plugin surfaces disabled. Tool-child processes inherit no credential environment; when private file credentials are available, duplicate API-key environment auth is removed from the Codex host too.
 - Errors and normal logs do not include prompts, pairing/session tokens, MCP bearer tokens, copied credentials, or generated content.
 

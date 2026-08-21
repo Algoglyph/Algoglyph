@@ -2,11 +2,11 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.3` implement protocol v2. No repository test or validation command publishes the package.
+The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.4` implement protocol v2. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
-Version 0.2.3 adds cross-platform Codex, Claude Code, and Antigravity executable discovery and owner-bound warm execution for all three agents. It preserves the 0.2.2 supply-chain packaging controls and the earlier deadline, transcript-boundary, monotonic-clock, process-cleanup, native PTY, browser-watchdog, and modular MCP SDK v2 hardening.
+Version 0.2.4 prevents macOS Antigravity from opening a `Keychain Not Found` dialog under the connector's isolated home by using its copied file-backed token with UTC expiry handling. It retains the 0.2.3 cross-platform Codex, Claude Code, and Antigravity execution pipeline, the 0.2.2 supply-chain packaging controls, and the earlier security and reliability hardening.
 
 ```text
 AlgoGlyph browser/app
@@ -25,7 +25,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.3
+npx --yes @algoglyph/mcp-connector@0.2.4
 ```
 
 Repository checkout:
@@ -78,6 +78,8 @@ The browser selects only a stable agent ID and supplies a bounded prompt. The co
 - Codex normally uses one owner-bound app-server stdio worker. Every request creates a fresh ephemeral thread with `approvalPolicy: never`, then unsubscribes it after completion; no conversational history is shared. The connector-owned deny-root profile still disables shell/unified-exec, apps, web search, hooks, subagents, remote plugins, and skill installation. If app-server compatibility fails before turn dispatch, the existing isolated `codex exec --ephemeral` adapter is used.
 - Claude Code runs in print mode with every built-in tool disabled, non-interactive `dontAsk` permission mode, and session persistence disabled. An explicitly attached MCP server enables only its exact fully qualified tool names for that run; the prompt arrives over stdin.
 - Antigravity runs sandboxed in output-only mode. One-shot execution disables slash commands; warm execution retains only the connector-owned reset command.
+
+On macOS, the connector copies Antigravity's file token into its private profile and forces the CLI's file-storage backend with UTC expiry handling. It does not link the user's login Keychain into a relocated `HOME`, which prevents `Keychain Not Found` dialogs during token refresh. Windows keeps its native credential-store behavior.
 
 Antigravity's connector-owned relay is written only inside its isolated home at `.gemini/config/mcp_config.json`, using the current `serverUrl` schema. Its isolated CLI settings allow exactly `mcp(algoglyph_approved/*)` when that relay is attached, so headless use works without granting global MCP, command, file, or browser permissions. The user's global Gemini/Antigravity MCP configuration and permissions are never read, merged, or modified. A narrowly identified Antigravity account-eligibility rejection may cause one retry only when no transcript event proves the prompt was accepted; other failures are never automatically resubmitted.
 

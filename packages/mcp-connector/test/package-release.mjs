@@ -14,8 +14,11 @@ const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const packageDirectory = path.resolve(testDirectory, '..');
 const repositoryRoot = path.resolve(packageDirectory, '..', '..');
 const runtimePath = path.join(packageDirectory, 'bin', 'algoglyph-mcp-connector.mjs');
+const packageBinShimPath = path.join(packageDirectory, 'bin', 'algoglyph-mcp-connector.js');
+const repositoryShimPath = path.join(repositoryRoot, 'scripts', 'algoglyph-mcp-connector.mjs');
 const browserTypesPath = path.join(repositoryRoot, 'src', 'lib', 'mcp', 'types.ts');
 const packagePath = path.join(packageDirectory, 'package.json');
+const repositoryPackagePath = path.join(repositoryRoot, 'package.json');
 const reviewLockPath = path.join(packageDirectory, 'package-lock.json');
 const installSmoke = process.argv.includes('--install-smoke');
 const EXPECTED_LOCKED_PRODUCTION_PACKAGES = 21;
@@ -387,8 +390,14 @@ const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIden
 
 const main = async () => {
   const manifest = parseJson(await readFile(packagePath, 'utf8'), 'package manifest');
+  const repositoryManifest = parseJson(
+    await readFile(repositoryPackagePath, 'utf8'),
+    'repository package manifest',
+  );
   const reviewLock = parseJson(await readFile(reviewLockPath, 'utf8'), 'source review lock');
   const runtimeSource = await readFile(runtimePath, 'utf8');
+  const packageBinShimSource = await readFile(packageBinShimPath, 'utf8');
+  const repositoryShimSource = await readFile(repositoryShimPath, 'utf8');
   const browserTypesSource = await readFile(browserTypesPath, 'utf8');
   const dryRun = parsePackResult((await runNpm([
     'pack',
@@ -401,7 +410,7 @@ const main = async () => {
   if (JSON.stringify(packedFiles) !== JSON.stringify(expectedFiles)) {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
-  if (manifest.version !== '0.2.3') fail(`expected release candidate 0.2.3, found ${manifest.version}`);
+  if (manifest.version !== '0.2.4') fail(`expected release candidate 0.2.4, found ${manifest.version}`);
   if (manifest.license !== 'Apache-2.0') fail(`expected Apache-2.0 license, found ${manifest.license}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
@@ -442,6 +451,15 @@ const main = async () => {
   if (manifest.repository?.directory !== 'packages/mcp-connector' || !manifest.bugs?.url) {
     fail('repository or bug-reporting metadata is incomplete');
   }
+  if (repositoryManifest.scripts?.['mcp:connector'] !== 'node scripts/algoglyph-mcp-connector.mjs') {
+    fail('repository mcp:connector script does not use the reviewed development shim');
+  }
+  if (!/^#!\/usr\/bin\/env node\s+await import\('\.\/algoglyph-mcp-connector\.mjs'\);\s*$/s.test(packageBinShimSource)) {
+    fail('NPX executable does not delegate directly to the reviewed connector runtime');
+  }
+  if (!/process\.env\.ALGOGLYPH_DEV_ORIGINS \|\|= '1';[\s\S]*?await import\('\.\.\/packages\/mcp-connector\/bin\/algoglyph-mcp-connector\.mjs'\);/.test(repositoryShimSource)) {
+    fail('repository command does not delegate to the same reviewed connector runtime');
+  }
 
   validateNoSecrets(await readReleaseSources());
 
@@ -468,6 +486,7 @@ const main = async () => {
     ['Codex unified-exec denial', /features\.unified_exec=false/],
     ['Codex deny-root permission profile', /filesystem = \{ ":root" = "deny" \}/],
     ['Codex empty tool-child environment', /\[shell_environment_policy\][\s\S]*?inherit = "none"/],
+    ['macOS Antigravity file-backed auth', /GEMINI_FORCE_FILE_STORAGE = 'true'[\s\S]*?environment\.TZ = 'UTC'/],
     ['awaitable warm shutdown', /if \(session\.stopPromise\) return session\.stopPromise/],
     ['bounded MCP transport close', /MCP_CLOSE_TIMEOUT_MS[\s\S]*?client\.close\(\)/],
     ['abort-bounded DNS resolution', /validateMcpDestination[\s\S]*?raceWithAbort/],
