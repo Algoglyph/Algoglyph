@@ -156,7 +156,7 @@ export const WorkspaceTour: React.FC = () => {
       target: '[data-tour="mcp"]',
       placement: 'bottom',
       layout: isMobile ? 'notes-only' : 'split',
-      shortcut: 'npm run mcp:connector',
+      shortcut: 'npx --yes @algoglyph/mcp-connector@0.2.5',
     },
     {
       eyebrow: 'Local-first files',
