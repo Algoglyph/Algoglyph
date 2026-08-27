@@ -338,7 +338,7 @@ const AppContent: React.FC = () => {
                   {showCanvas && (
                     <div
                       style={{ width: `${canvasWidth}%` }}
-                      className={`h-full overflow-hidden bg-canvas ${paneTransition} ph-no-capture`}
+                      className={`h-full overflow-hidden bg-canvas ${paneTransition}`}
                     >
                       <Canvas key={activeTabId} />
                     </div>
