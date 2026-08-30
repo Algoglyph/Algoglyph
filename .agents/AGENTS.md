@@ -17,6 +17,7 @@ This document provides comprehensive context, architectural guidelines, and tech
   - `Tiptap` v3 for rich-text Markdown notes editing with KaTeX LaTeX math support (`MathExtensions.tsx`) and embedded PDFs (`PdfEmbed.tsx`)
   - `CodeMirror` 6 + `Wandbox API` (`src/lib/wandbox.ts`) for multi-language code editing and remote execution (C++, Java, Python, Go, Rust, JavaScript)
   - `KaTeX` & `Highlight.js` for rendering math formulas and syntax-highlighted code blocks within blogs and notes
+  - Optional Firebase Google authentication on the web; identity never gates or synchronizes the local workspace
 
 ---
 
@@ -79,6 +80,11 @@ This document provides comprehensive context, architectural guidelines, and tech
      - Computer Networks & Protocols
      - Game Development & Graphics Engineering
    - Interactive node graphs and drawer detail views.
+
+9. **Optional Web Authentication (`AuthProvider.tsx` & `firebaseAuth.ts`)**
+   - The shared provider lazily loads the modular Firebase SDK after the initial app render and exposes Google sign-in state/actions to the landing and workspace account controls.
+   - Authentication is optional and identity-only. It never gates `/workspace`, uploads IndexedDB content, or identifies users to PostHog.
+   - Missing `VITE_FIREBASE_*` values and Electron disable authentication cleanly; there is no mock-user fallback.
 
 ---
 

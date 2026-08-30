@@ -53,8 +53,8 @@ Several modules talk through globals instead of props: `window.excalidrawAPI` (s
 ### Code runner (the only non-local-first feature)
 `CodeEditor.tsx` + `src/lib/wandbox.ts` send code to the public **Wandbox** API for remote compile/run; this is the only feature that needs the network. `src/config/languages.ts` maps each language to its Wandbox compiler (`wandboxLanguage` + optional `preferPattern` regex), its CodeMirror highlighting extension, and a starter template.
 
-### Auth (optional, mostly dormant)
-`src/lib/auth.ts` wraps Firebase Google sign-in but falls back to a **mock auth mode** when `VITE_FIREBASE_*` env vars are absent (the default). Storage/user keys still use the legacy `dsadelta-` prefix.
+### Auth (optional, web only)
+`src/components/AuthProvider.tsx` owns the shared identity state and lazily imports `src/lib/firebaseAuth.ts`, keeping the Firebase SDK out of the initial bundle. The landing header and workspace toolbar consume that provider through explicit account-control variants. Google sign-in is optional and identity-only: it never gates `/workspace`, uploads IndexedDB workspace data, or identifies users to PostHog. Missing `VITE_FIREBASE_*` configuration and Electron both disable the auth controls without mock users or workspace impact.
 
 ## Conventions
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`) with design tokens defined via `@theme` in `src/index.css` — use the semantic token classes (`text-ink`, `text-body`, `bg-canvas`, `bg-canvas-soft`, `border-hairline`, `text-link`, etc.) rather than raw hex. The token set follows a Vercel/Geist look; light + `:root.dark` variants exist. The landing page uses a **separate** token namespace (`[data-landing-theme]` → `--lp-*`).

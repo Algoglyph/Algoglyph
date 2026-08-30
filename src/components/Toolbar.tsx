@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { startWorkspaceTour } from '../lib/workspaceTour';
 import { LoadingSpinner } from './LoadingSpinner';
+import { WorkspaceAccountControl } from './AccountControls';
 
 export const Toolbar: React.FC = () => {
   // Subscribe reactively ONLY to layout changes and save states
@@ -295,7 +296,7 @@ ${JSON.stringify(data, null, 2)}
       </div>
 
       {/* Actions (Export, Import) */}
-      <div className="flex items-center gap-2 flex-1 basis-0 min-w-0 justify-end">
+      <div className="flex items-center gap-1.5 flex-1 basis-0 min-w-0 justify-end">
         {/* Hidden File Input for Import */}
         <input
           ref={fileInputRef}
@@ -330,7 +331,7 @@ ${JSON.stringify(data, null, 2)}
               }`}
             />
           </span>
-          <span className="hidden lg:inline font-mono text-[11px]">MCP</span>
+          <span className="hidden 2xl:inline font-mono text-[11px]">MCP</span>
         </button>
 
         <button
@@ -469,6 +470,9 @@ ${JSON.stringify(data, null, 2)}
             </>
           )}
         </div>
+
+        {/* Keep the account menu as the final action at the top-right edge. */}
+        <WorkspaceAccountControl />
       </div>
     </header>
   );

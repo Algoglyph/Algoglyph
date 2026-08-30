@@ -33,21 +33,21 @@ export const PrivacyPage: React.FC = () => {
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">1. Information We Collect</h2>
             <p>
-              When you use Algoglyph, we collect minimal information required to provide you with the best possible experience. We use PostHog for analytics to understand how you interact with our tools. This data is fully anonymized and respects your privacy.
+              When you use Algoglyph, we collect minimal information required to provide the service. We use PostHog for analytics to understand how visitors interact with our tools. If you choose to sign in with Google, Firebase Authentication processes your Google account identifier, display name, email address, and profile photo to maintain your session and show your account in the interface.
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">2. How We Use Your Data</h2>
             <p>
-              We use your data solely to improve the Algoglyph platform. We do not sell your personal data to third parties, nor do we share it with unauthorized entities. Your workspace data, such as code and canvas drawings, is stored locally in your browser's IndexedDB and is never transmitted to our servers without explicit synchronization.
+              We use your data solely to operate and improve the Algoglyph platform. We do not sell your personal data to third parties. Google account information is used only for optional authentication; it is not linked to PostHog profiles. Your workspace data, including notes, code, and canvas drawings, remains in your browser's IndexedDB and is not uploaded to Firebase when you sign in.
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">3. Third-Party Services</h2>
             <p>
-              We utilize certain third-party APIs (such as the Wandbox API for code compilation). Code that you run in the Sandbox Compiler is sent securely to these APIs to be executed and returned. Do not submit sensitive personal information or proprietary secrets through the code runner.
+              Optional Google sign-in is provided through Google and Firebase Authentication. We also use third-party APIs such as Wandbox for code compilation. Code that you run in the Sandbox Compiler is sent to Wandbox to be executed and returned. Do not submit sensitive personal information or proprietary secrets through the code runner.
             </p>
           </section>
 
@@ -66,7 +66,7 @@ export const PrivacyPage: React.FC = () => {
           </section>
           
           <div className="pt-8 border-t border-white/[0.04] text-[13px] text-white/40">
-            Last updated: June 2026
+            Last updated: August 2026
           </div>
         </div>
       </main>

@@ -43,3 +43,4 @@ CLAUDE.md
 penecho
 .codex
 .wrangler
+.env.local
