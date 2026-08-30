@@ -10,6 +10,7 @@ import './index.css'
 import App from './App.tsx'
 import { scrubMcpConnectionUrl } from './lib/mcp/bootstrap'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AuthProvider } from './components/AuthProvider'
 
 scrubMcpConnectionUrl()
 
@@ -46,7 +47,9 @@ createRoot(rootElement).render(
     <ErrorBoundary>
       <HelmetProvider>
         <PostHogProvider client={posthog}>
-          <App />
+          <AuthProvider>
+            <App />
+          </AuthProvider>
         </PostHogProvider>
       </HelmetProvider>
     </ErrorBoundary>

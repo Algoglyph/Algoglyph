@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { AsciiCodeSculpturesField } from './landing/AsciiCodeSculpturesField';
 import { LandingContinuation, LandingFooter } from './landing/LandingContinuation';
 import { LiquidGlassHeadline } from './landing/LiquidGlassHeadline';
+import { LandingAccountControl } from './AccountControls';
 
 interface LandingPageProps {
   onLaunch: () => void;
@@ -81,15 +82,18 @@ export const LandingPage: FC<LandingPageProps> = ({ onLaunch, onViewRoadmap }) =
           <a href="/about" className="whitespace-nowrap transition-colors hover:text-white">About</a>
         </nav>
 
-        <a
-          href="/workspace"
-          onClick={(event) => { event.preventDefault(); onLaunch(); }}
-          className="flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-[14.5px] font-semibold text-black transition-colors hover:bg-neutral-200"
-        >
-          <span className="hidden sm:inline">Launch Workspace</span>
-          <span className="sm:hidden">Launch</span>
-          <ArrowRight aria-hidden="true" size={13} strokeWidth={2.25} />
-        </a>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <LandingAccountControl />
+          <a
+            href="/workspace"
+            onClick={(event) => { event.preventDefault(); onLaunch(); }}
+            className="flex cursor-pointer items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-[14.5px] font-semibold text-black transition-colors hover:bg-neutral-200 sm:px-5"
+          >
+            <span className="hidden sm:inline">Launch Workspace</span>
+            <span className="sm:hidden">Launch</span>
+            <ArrowRight aria-hidden="true" size={13} strokeWidth={2.25} />
+          </a>
+        </div>
       </header>
 
       <main>

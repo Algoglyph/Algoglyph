@@ -60,12 +60,13 @@ It is a local-first desktop application designed for developers, students, and p
 - **Excalidraw**: High-performance canvas drawing engine.
 - **TipTap**: Extensible rich-text editor toolkit.
 - **Tailwind CSS**: Utility-first styling framework.
+- **Firebase Authentication**: Optional Google identity for the web app; workspace content remains local.
 
 ## Philosophy
 
 - **Local-first**: You own your data. Files are kept on your hard drive, not on third-party servers.
-- **No account required**: No sign-up flow, email forms, or onboarding prompts. The workspace is available instantly.
-- **No cloud dependency**: Does not require cloud connectivity, telemetry, or remote assets to function.
+- **No account required**: Optional Google sign-in never gates the workspace; anonymous use remains available instantly.
+- **No workspace cloud dependency**: Notes, canvas data, and code remain local even when a user signs in.
 - **No distractions**: A minimalist, utility-focused layout designed to keep you in flow.
 - **Fast and lightweight**: Debounced auto-saves and targeted React updates to ensure smooth operation on standard developer hardware.
 
@@ -88,6 +89,10 @@ npm install
 # Start the local development server
 npm run dev
 ```
+
+### Optional Google authentication
+
+Copy `.env.example` to `.env.local` and fill it with the web-app configuration from Firebase Console. Enable the Google provider in Firebase Authentication and authorize the domains used for development and deployment (`localhost`, `algoglyph.com`, and any preview domain that should support sign-in). Without these variables, the app continues to run anonymously and hides its account controls.
 
 ## Build Instructions
 
@@ -139,6 +144,5 @@ Scratchpad/
 - **Current issue**: The workspace generates typescript build cache files (`.tsbuildinfo`) and local configuration files, which can accidentally get committed if they are not explicitly listed in `.gitignore`.
 - **Why it matters**: Accidental commits of build cache files or developer environment files pollute the history, bloat the repository size, and cause unnecessary merge conflicts.
 - **Recommended fix**: Extend the `.gitignore` configuration to explicitly exclude all TypeScript caches, environment configurations, and build/compilation artifacts.
-
 
 
