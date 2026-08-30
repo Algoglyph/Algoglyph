@@ -85,6 +85,7 @@ This document provides comprehensive context, architectural guidelines, and tech
    - The shared provider lazily loads the modular Firebase SDK after the initial app render and exposes Google sign-in state/actions to the landing and workspace account controls.
    - Authentication is optional and identity-only. It never gates `/workspace`, uploads IndexedDB content, or identifies users to PostHog.
    - Missing `VITE_FIREBASE_*` values and Electron disable authentication cleanly; there is no mock-user fallback.
+   - The project-scoped `.mcp.json` registers pinned `firebase-tools@15.28.1 mcp --only auth` for Claude Code. It uses the Firebase CLI user's credentials after one-time project approval. Confirm the active Firebase project and target user before approving mutating tools such as `auth_update_user`, and keep additional Firebase feature groups disabled until the app uses them.
 
 ---
 
