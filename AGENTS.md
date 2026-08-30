@@ -56,6 +56,8 @@ Several modules talk through globals instead of props: `window.excalidrawAPI` (s
 ### Auth (optional, web only)
 `src/components/AuthProvider.tsx` owns the shared identity state and lazily imports `src/lib/firebaseAuth.ts`, keeping the Firebase SDK out of the initial bundle. The landing header and workspace toolbar consume that provider through explicit account-control variants. Google sign-in is optional and identity-only: it never gates `/workspace`, uploads IndexedDB workspace data, or identifies users to PostHog. Missing `VITE_FIREBASE_*` configuration and Electron both disable the auth controls without mock users or workspace impact.
 
+The project-scoped `.mcp.json` registers the official Firebase MCP server through pinned `firebase-tools@15.28.1` with `--only auth`. Claude Code must approve the project server once, and the server then uses the Firebase CLI user's credentials. Treat `auth_update_user` and other mutating Firebase tools as production changes: confirm the active project and exact user before approving them. Do not broaden the enabled feature groups unless the application starts using those Firebase services.
+
 ## Conventions
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`) with design tokens defined via `@theme` in `src/index.css` — use the semantic token classes (`text-ink`, `text-body`, `bg-canvas`, `bg-canvas-soft`, `border-hairline`, `text-link`, etc.) rather than raw hex. The token set follows a Vercel/Geist look; light + `:root.dark` variants exist. The landing page uses a **separate** token namespace (`[data-landing-theme]` → `--lp-*`).
 - New persisted store state must be initialized in `workspaceStore.ts`, included in `saveCurrentWorkspace`, and kept backward-compatible in `indexedDB.ts` migration.

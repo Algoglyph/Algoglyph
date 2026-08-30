@@ -94,6 +94,17 @@ npm run dev
 
 Copy `.env.example` to `.env.local` and fill it with the web-app configuration from Firebase Console. Enable the Google provider in Firebase Authentication and authorize the domains used for development and deployment (`localhost`, `algoglyph.com`, and any preview domain that should support sign-in). Without these variables, the app continues to run anonymously and hides its account controls.
 
+The `VITE_FIREBASE_*` values are Firebase web-app identifiers, not Admin SDK credentials. Never put a service-account key, OAuth client secret, or other server credential in a `VITE_*` variable. Keep the Firebase API key restricted to Firebase APIs and remove authorized domains that are no longer used.
+
+To show the AlgoGlyph name and icon on Google's sign-in and consent screens:
+
+1. Open the Firebase project's Google Cloud project, then go to **Google Auth Platform → Branding**.
+2. Set the app name to **AlgoGlyph**, upload `public/favicon.png` as the square app logo, and set the support email.
+3. Set the homepage to `https://algoglyph.com`, privacy policy to `https://algoglyph.com/privacy`, and terms to `https://algoglyph.com/terms`.
+4. Add and verify `algoglyph.com` as an authorized domain, choose the intended audience, then submit the branding for verification. Google does not display a custom production name/logo until brand verification is approved.
+
+Firebase uses the configured `VITE_FIREBASE_AUTH_DOMAIN` as the OAuth helper domain. If the Google flow still says it is continuing to a `*.firebaseapp.com` address, serve Firebase's `/__/auth/` helper on a verified custom domain (for example, `auth.algoglyph.com`), authorize `https://auth.algoglyph.com/__/auth/handler` for the OAuth client, and use that host as `VITE_FIREBASE_AUTH_DOMAIN`. Do not change this value until the custom helper domain or transparent proxy is live, or sign-in will fail.
+
 ## Build Instructions
 
 To build and package the application for desktop distribution:
@@ -144,5 +155,4 @@ Scratchpad/
 - **Current issue**: The workspace generates typescript build cache files (`.tsbuildinfo`) and local configuration files, which can accidentally get committed if they are not explicitly listed in `.gitignore`.
 - **Why it matters**: Accidental commits of build cache files or developer environment files pollute the history, bloat the repository size, and cause unnecessary merge conflicts.
 - **Recommended fix**: Extend the `.gitignore` configuration to explicitly exclude all TypeScript caches, environment configurations, and build/compilation artifacts.
-
 
