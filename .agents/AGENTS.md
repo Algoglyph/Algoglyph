@@ -12,12 +12,14 @@ This document provides comprehensive context, architectural guidelines, and tech
 - **State Management**: Zustand (`src/store/workspaceStore.ts`)
 - **Persistence**: IndexedDB (`src/db/indexedDB.ts`) with debounced auto-saving & structural cloning
 - **Routing, SEO & Analytics**: React Router v7 (`App.tsx`), PostHog (`posthog-js`), `SEO.tsx`, `seoRoutes.ts`, dynamic `sitemap.xml` generation, Google AdSense auto-ads integration
+- **Trusted web backend**: Firebase Cloud Functions + deny-by-default Firestore for billing, payment webhooks, entitlements, rate limits, connector grants, and audits
+- **Payments**: Hosted Stripe Checkout for international/USD plans and Razorpay Checkout for India/INR plans
 - **Core Component Integrations**:
   - `Excalidraw` for canvas drawing and architectural diagramming
   - `Tiptap` v3 for rich-text Markdown notes editing with KaTeX LaTeX math support (`MathExtensions.tsx`) and embedded PDFs (`PdfEmbed.tsx`)
   - `CodeMirror` 6 + `Wandbox API` (`src/lib/wandbox.ts`) for multi-language code editing and remote execution (C++, Java, Python, Go, Rust, JavaScript)
   - `KaTeX` & `Highlight.js` for rendering math formulas and syntax-highlighted code blocks within blogs and notes
-  - Optional Firebase Google authentication on the web; identity never gates or synchronizes the local workspace
+  - Optional Firebase Google authentication and App Check on the web; identity never gates or synchronizes the local workspace and is required only for paid MCP
 
 ---
 
@@ -82,10 +84,16 @@ This document provides comprehensive context, architectural guidelines, and tech
    - Interactive node graphs and drawer detail views.
 
 9. **Optional Web Authentication (`AuthProvider.tsx` & `firebaseAuth.ts`)**
-   - The shared provider lazily loads the modular Firebase SDK after the initial app render and exposes Google sign-in state/actions to the landing and workspace account controls.
-   - Authentication is optional and identity-only. It never gates `/workspace`, uploads IndexedDB content, or identifies users to PostHog.
+   - The shared provider lazily loads the modular Firebase SDK after the initial app render and exposes Google sign-in plus narrowly scoped ID-token/App Check retrieval.
+   - Authentication remains optional for `/workspace`; it is required only for billing and paid MCP. It never uploads IndexedDB content or identifies users to PostHog.
    - Missing `VITE_FIREBASE_*` values and Electron disable authentication cleanly; there is no mock-user fallback.
    - The project-scoped `.mcp.json` registers pinned `firebase-tools@15.28.1 mcp --only auth` for Claude Code. It uses the Firebase CLI user's credentials after one-time project approval. Confirm the active Firebase project and target user before approving mutating tools such as `auth_update_user`, and keep additional Firebase feature groups disabled until the app uses them.
+
+10. **Paid MCP Billing + Entitlements (`firebase-functions/`, `src/lib/billing/`, connector protocol v3)**
+   - Firebase Functions owns personal workspaces, server-defined monthly/annual plans, Stripe/Razorpay checkout, verified raw-body webhooks, canonical subscriptions, 72-hour failed-renewal grace, reconciliation, and monotonically versioned `mcpAccess` entitlements.
+   - Firestore rules deny all browser reads/writes. Frontend code may request status, checkout, cancellation, and a short-lived grant only with Firebase ID token + App Check; it never supplies prices/provider IDs or mutates entitlement state.
+   - The browser hashes its origin-bound local pairing credential before requesting a grant. The official connector redeems the raw single-use grant directly against the fixed production backend, binds it to origin/version/scopes, caps paid sessions at 30 minutes, and fails closed on backend outages. Browser origins cannot use `ALGOGLYPH_CONNECTOR_TOKEN`.
+   - Payment and connector audit records must not contain raw webhook bodies, grants, pairing credentials, bearer tokens, prompts, notes, canvas data, or code. Use separate Firebase/provider projects and credentials for development, staging, and production; follow `docs/billing-deployment.md`.
 
 ---
 
@@ -141,6 +149,8 @@ Writing and maintaining hundreds of deep technical articles in the project is dr
    - `npm run test:mcp`: Runs the MCP connector's Node integration/security baseline against an isolated temporary loopback connector.
    - `npm run test:mcp:package -- --install-smoke`: Packs the npm artifact, performs an isolated clean install and production audit, then exercises connector health and the native Antigravity PTY path.
    - `npm run lint:mcp`: Lints the MCP connector, browser client, and production install-command UI without coupling a package release to unrelated generated-content lint debt.
+   - `npm run test:billing`: Typechecks the Functions backend and runs provider-signature, event-normalization, input-manipulation, and entitlement-projection tests.
+   - `npm run test:firebase`: Runs Java-21 Firestore emulator coverage for deny-by-default rules, transactional event ordering/idempotency, grace recovery, terminal revocation, and connector grant binding/reuse/expiry.
    - `.github/workflows/publish-mcp.yml`: Manually publishes the verified connector from `main` with npm trusted publishing/OIDC after the npm package is configured to trust that exact workflow. Dependency installation and tests run without OIDC; only the minimal downstream publish job receives that permission.
    - `npm run test:diagrams`: Runs deterministic diagram layout, routing, and overlap regressions.
 

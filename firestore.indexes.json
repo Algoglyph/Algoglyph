@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "subscriptions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "provider", "order": "ASCENDING" },
+        { "fieldPath": "providerStatus", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "entitlements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mcpAccess", "order": "ASCENDING" },
+        { "fieldPath": "accessUntil", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

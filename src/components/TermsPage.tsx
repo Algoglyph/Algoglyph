@@ -40,7 +40,7 @@ export const TermsPage: React.FC = () => {
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">2. Description of Service</h2>
             <p>
-              Algoglyph provides an interactive, spatial workspace for learning and experimenting with computer science concepts. This includes a drawing canvas, notebook editor, and code compilation tools. We reserve the right to modify, suspend, or discontinue the Service at any time without notice.
+              Algoglyph provides an interactive, spatial workspace for learning and experimenting with computer science concepts. The local-first workspace remains available without a paid plan. Access through the official local MCP connector is a paid, web-only subscription feature in this release and is not supported in the Electron app. We reserve the right to modify, suspend, or discontinue the Service as permitted by applicable law.
             </p>
           </section>
 
@@ -52,21 +52,35 @@ export const TermsPage: React.FC = () => {
           </section>
 
           <section>
-            <h2 className="text-white text-xl font-semibold mb-3">4. Intellectual Property</h2>
+            <h2 className="text-white text-xl font-semibold mb-3">4. Subscriptions, Cancellation, and Payment Failures</h2>
+            <p>
+              Pro subscriptions are offered monthly or annually through Stripe for international/USD billing and Razorpay for India/INR billing. Prices and applicable taxes are shown in hosted checkout before purchase. A subscription renews automatically until you cancel. Self-service cancellation takes effect at the end of the paid billing period, so MCP access continues until that date. After a verified renewal failure, access may continue for a 72-hour recovery grace period. Access may be revoked immediately following a refund, payment dispute, fraud determination, security cancellation, or expiry of the paid or grace period.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-white text-xl font-semibold mb-3">5. Refunds</h2>
+            <p>
+              Except where required by applicable law or expressly stated at checkout, subscription charges are non-refundable and cancellation stops future renewal rather than reversing the current charge. If you believe a charge is duplicated or unauthorized, contact us promptly with the processor receipt so it can be investigated. Any approved refund revokes the corresponding paid MCP entitlement.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-white text-xl font-semibold mb-3">6. Intellectual Property</h2>
             <p>
               The code you write and the diagrams you draw remain your intellectual property. However, the Algoglyph platform itself, including its design, architecture, and source code, is the property of the Algoglyph team.
             </p>
           </section>
 
           <section>
-            <h2 className="text-white text-xl font-semibold mb-3">5. Disclaimer of Warranties</h2>
+            <h2 className="text-white text-xl font-semibold mb-3">7. Disclaimer of Warranties</h2>
             <p>
               The Service is provided "as is". Algoglyph makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties, including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property.
             </p>
           </section>
           
           <div className="pt-8 border-t border-white/[0.04] text-[13px] text-white/40">
-            Last updated: June 2026
+            Last updated: August 2026
           </div>
         </div>
       </main>

@@ -7,6 +7,8 @@ import {
   revokeMcpConnectorSession,
 } from './connectorClient';
 import type { McpPairedConnectorSnapshot } from './types';
+import { BillingRequestError } from '../billing/billingClient';
+import type { BillingApiTokens } from '../billing/types';
 import {
   readBrowserLoopbackPermission,
   requiresBrowserLoopbackPermission,
@@ -17,6 +19,26 @@ const BACKGROUND_RETRY_DELAYS_MS = [1_500, 3_000, 5_000, 8_000, 12_000, 20_000] 
 const CONNECTED_HEALTH_CHECK_INTERVAL_MS = 4_000;
 type BootstrapOutcome = 'ready' | 'retry' | 'terminal' | 'paused';
 let bootstrapInFlight: Promise<BootstrapOutcome> | null = null;
+type McpAuthorizationProvider = {
+  getIdToken: () => Promise<string>;
+  getAppCheckToken: () => Promise<string>;
+};
+let authorizationProvider: McpAuthorizationProvider | null = null;
+
+export const configureMcpAuthorizationProvider = (provider: McpAuthorizationProvider | null): void => {
+  authorizationProvider = provider;
+};
+
+const getBillingApiTokens = async (): Promise<BillingApiTokens> => {
+  if (!authorizationProvider) {
+    throw new BillingRequestError('Sign in with Google to connect MCP.', 401);
+  }
+  const [idToken, appCheckToken] = await Promise.all([
+    authorizationProvider.getIdToken(),
+    authorizationProvider.getAppCheckToken(),
+  ]);
+  return { idToken, appCheckToken };
+};
 
 const readParams = (source: string): URLSearchParams => new URLSearchParams(source.replace(/^#/, '').replace(/^\?/, ''));
 
@@ -107,7 +129,7 @@ const attemptMcpConnection = async (): Promise<BootstrapOutcome> => {
       }
     }
 
-    const paired = await pairMcpConnector(normalized);
+    const paired = await pairMcpConnector(normalized, await getBillingApiTokens());
     if (!adoptPairedSnapshot(normalized, paired)) {
       await revokeMcpConnectorSession(normalized, paired.session.sessionToken).catch(() => undefined);
       return 'paused';
@@ -117,6 +139,16 @@ const attemptMcpConnection = async (): Promise<BootstrapOutcome> => {
     const store = useMcpStore.getState();
     if (store.intentionalDisconnect) return 'paused';
     if (store.connectionState === 'ready' && store.connectorToken) return 'ready';
+    if (error instanceof BillingRequestError && error.status === 401) {
+      store.setConnectorToken(null);
+      store.setConnectionState('sign-in-required', null, null, error.message);
+      return 'terminal';
+    }
+    if ((error instanceof BillingRequestError || error instanceof McpConnectorRequestError) && error.status === 402) {
+      store.setConnectorToken(null);
+      store.setConnectionState('payment-required', null, null, error.message);
+      return 'terminal';
+    }
     if (isRetryableConnectionError(error)) {
       if (requiresBrowserLoopbackPermission(window.location.href, store.connectorEndpoint)) {
         const permission = await readBrowserLoopbackPermission(store.connectorEndpoint);

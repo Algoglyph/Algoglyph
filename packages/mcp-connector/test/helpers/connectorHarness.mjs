@@ -238,7 +238,67 @@ export const startConnectorHarness = async ({
   previewOrigins = '0',
 } = {}) => {
   const port = await reserveLoopbackPort();
+  const entitlementPort = await reserveLoopbackPort();
   const workingDirectory = await mkdtemp(join(tmpdir(), 'algoglyph-mcp-test-'));
+  const redeemedEntitlementGrants = new Set();
+  let entitlementGrantSequence = 0;
+  const nextEntitlementGrant = () => `test-entitlement-grant-${++entitlementGrantSequence}-${'x'.repeat(32)}`;
+  const entitlementServer = createHttpServer(async (request, response) => {
+    if (request.method !== 'POST' || request.url !== '/v1/connector/grants/redeem') {
+      response.writeHead(404, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: { status: 404, message: 'not found' } }));
+      return;
+    }
+    try {
+      const body = await readFixtureBody(request);
+      if (typeof body.entitlementGrant !== 'string'
+        || typeof body.pairingCredentialHash !== 'string'
+        || body.origin !== allowedOrigin
+        || body.connectorVersion !== '0.3.0'
+        || !Array.isArray(body.requestedScopes)) {
+        response.writeHead(403, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ error: { status: 403, message: 'binding mismatch' } }));
+        return;
+      }
+      if (body.entitlementGrant.startsWith('unpaid-')) {
+        response.writeHead(402, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ error: { status: 402, message: 'payment required' } }));
+        return;
+      }
+      if (body.entitlementGrant.startsWith('expired-')) {
+        response.writeHead(410, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ error: { status: 410, message: 'expired' } }));
+        return;
+      }
+      if (body.entitlementGrant.startsWith('binding-')) {
+        response.writeHead(403, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ error: { status: 403, message: 'binding mismatch' } }));
+        return;
+      }
+      if (body.entitlementGrant.startsWith('outage-')) {
+        response.writeHead(503, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ error: { status: 503, message: 'unavailable' } }));
+        return;
+      }
+      if (redeemedEntitlementGrants.has(body.entitlementGrant)) {
+        response.writeHead(401, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ error: { status: 401, message: 'already used' } }));
+        return;
+      }
+      redeemedEntitlementGrants.add(body.entitlementGrant);
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({
+        workspaceId: 'personal_test-user',
+        allowedScopes: body.requestedScopes,
+        entitlementExpiresAt: new Date(Date.now() + 30 * 60 * 1_000).toISOString(),
+        entitlementVersion: 7,
+      }));
+    } catch {
+      response.writeHead(400, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: { status: 400, message: 'bad request' } }));
+    }
+  });
+  await listenOnLoopback(entitlementServer, entitlementPort);
   const child = spawn(process.execPath, [CONNECTOR_ENTRY], {
     cwd: workingDirectory,
     env: {
@@ -250,6 +310,8 @@ export const startConnectorHarness = async ({
       ALGOGLYPH_ALLOWED_ORIGINS: '',
       ALGOGLYPH_DEV_ORIGINS: devOrigins,
       ALGOGLYPH_PREVIEW_ORIGINS: previewOrigins,
+      ALGOGLYPH_TEST_ENTITLEMENT_BACKEND_URL:
+        environment.ALGOGLYPH_TEST_ENTITLEMENT_BACKEND_URL || `http://127.0.0.1:${entitlementPort}`,
     },
     shell: false,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -261,6 +323,7 @@ export const startConnectorHarness = async ({
     startupOutput = await waitForReady(child);
   } catch (error) {
     child.kill('SIGKILL');
+    await closeServer(entitlementServer).catch(() => undefined);
     await rm(workingDirectory, { recursive: true, force: true });
     throw error;
   }
@@ -271,7 +334,7 @@ export const startConnectorHarness = async ({
     path,
     {
       method = 'GET',
-      origin = allowedOrigin,
+      origin,
       token,
       body,
       rawBody,
@@ -279,7 +342,8 @@ export const startConnectorHarness = async ({
     } = {},
   ) => {
     const headers = new Headers(extraHeaders);
-    if (origin !== null) headers.set('Origin', origin);
+    const resolvedOrigin = origin === undefined ? (token === masterToken ? null : allowedOrigin) : origin;
+    if (resolvedOrigin !== null) headers.set('Origin', resolvedOrigin);
     if (token) headers.set('Authorization', `Bearer ${token}`);
 
     let requestBody;
@@ -311,7 +375,10 @@ export const startConnectorHarness = async ({
     }
     const session = await request('v1/session', {
       method: 'POST',
-      body: { pairingToken: pairing.body.pairingToken },
+      body: {
+        pairingToken: pairing.body.pairingToken,
+        entitlementGrant: nextEntitlementGrant(),
+      },
     });
     if (session.status !== 200 || typeof session.body?.sessionToken !== 'string') {
       throw new Error(`Could not redeem a pairing credential: ${JSON.stringify(session.body)}`);
@@ -325,8 +392,19 @@ export const startConnectorHarness = async ({
       child.kill('SIGKILL');
       await waitForExit(child, STOP_TIMEOUT_MS);
     }
+    await closeServer(entitlementServer);
     await rm(workingDirectory, { recursive: true, force: true });
   };
 
-  return { allowedOrigin, child, endpoint, masterToken, pair, request, startupOutput, stop };
+  return {
+    allowedOrigin,
+    child,
+    endpoint,
+    masterToken,
+    nextEntitlementGrant,
+    pair,
+    request,
+    startupOutput,
+    stop,
+  };
 };

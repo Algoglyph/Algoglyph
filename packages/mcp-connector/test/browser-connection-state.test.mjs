@@ -43,7 +43,7 @@ const jsonResponse = (payload, status = 200) => new Response(JSON.stringify(payl
 before(async () => {
   originalFetch = globalThis.fetch;
   globalThis.window = {
-    location: { href: 'http://localhost:5173/workspace' },
+    location: { href: 'http://localhost:5173/workspace', origin: 'http://localhost:5173' },
     history: { replaceState: () => undefined },
     localStorage: createStorage(),
     sessionStorage: createStorage(),
@@ -61,8 +61,8 @@ before(async () => {
       return jsonResponse({
         service: 'algoglyph-local-connector',
         status: 'ready',
-        version: '0.2.6',
-        protocolVersion: 2,
+        version: '0.3.0',
+        protocolVersion: 3,
         requiresToken: true,
       });
     }
@@ -75,6 +75,12 @@ before(async () => {
         scopes: ['catalog:read', 'agent:run', 'session:revoke'],
       });
     }
+    if (path === '/v1/connector/grants') {
+      return jsonResponse({
+        entitlementGrant: `entitlement-grant-${pairingCount}`,
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      });
+    }
     if (path === '/v1/session') {
       const sessionToken = `session-${++nextSession}`;
       sessions.add(sessionToken);
@@ -84,6 +90,8 @@ before(async () => {
         expiresAt: new Date(Date.now() + 60_000).toISOString(),
         idleTimeoutSeconds: 60,
         scopes: ['catalog:read', 'agent:run', 'session:revoke'],
+        entitlementExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        entitlementVersion: 1,
       });
     }
     if (path === '/v1/session/revoke') {
@@ -113,6 +121,10 @@ before(async () => {
   const bootstrap = await vite.ssrLoadModule('/src/lib/mcp/bootstrap.ts');
   startConnectionManager = bootstrap.startMcpConnectionBootstrap;
   requestConnection = bootstrap.requestMcpConnection;
+  bootstrap.configureMcpAuthorizationProvider({
+    getIdToken: async () => 'firebase-id-token',
+    getAppCheckToken: async () => 'firebase-app-check-token',
+  });
   stopConnectionManager = startConnectionManager();
 });
 

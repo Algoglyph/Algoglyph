@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "dev": "replace-with-algoglyph-development-project-id",
+    "staging": "replace-with-algoglyph-staging-project-id",
+    "production": "replace-with-algoglyph-production-project-id"
+  }
+}

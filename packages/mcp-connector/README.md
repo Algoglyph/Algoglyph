@@ -2,7 +2,13 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.6` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.3.0` / protocol v3. Browser pairing requires a paid AlgoGlyph MCP entitlement. Running the release checks does not publish anything.
+
+## 0.3.0 paid connector authorization
+
+- Browser pairing now redeems an origin-bound, single-use entitlement grant directly with the fixed AlgoGlyph backend.
+- Paid sessions last no longer than 30 minutes and fail closed when entitlement verification is unavailable.
+- `ALGOGLYPH_CONNECTOR_TOKEN` remains available for explicit originless operator/test requests, but cannot authorize browser-origin requests.
 
 ## 0.2.6 macOS Antigravity launch fix
 
@@ -48,16 +54,18 @@ This package provides `0.2.6` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.6
+npx --yes @algoglyph/mcp-connector@0.3.0
 ```
 
-Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
+Keep the command running, sign in to the AlgoGlyph web app, and open MCP. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived local pairing credential, requests a paid entitlement grant, and sends both to the connector. The connector consumes that grant directly against the fixed AlgoGlyph backend before issuing a session. There is no connection link or token to copy. Electron paid pairing is unsupported in V1.
 
 The default port is part of automatic discovery. If `ALGOGLYPH_CONNECTOR_PORT` changes it, the same loopback URL and port must also be entered in AlgoGlyph's **MCP > Advanced** configuration. A custom port is not discovered automatically.
 
-## What protocol v2 provides
+## What protocol v3 provides
 
-- Automatic, origin-bound, single-use pairing followed by scoped sessions.
+- Paid, origin-bound, single-use grant redemption followed by scoped sessions lasting at most 30 minutes.
+- Direct fail-closed entitlement verification against the fixed AlgoGlyph backend; browsers cannot choose the verifier URL or use the operator bearer as a payment bypass.
+- Automatic, origin-bound, single-use local pairing and renewal while paid access remains valid.
 - Session expiry, inactivity expiry, revocation, bounded session counts, and endpoint rate limits.
 - Allowlisted local agents with fixed executable arguments, isolated temporary workspaces, minimal environments, bounded prompts/output, cancellation, and process-tree cleanup.
 - Streamable HTTP MCP inspection with SSE fallback, bounded pagination/results, DNS and redirect revalidation, and SSRF protections.

@@ -21,6 +21,7 @@ It is a local-first desktop application designed for developers, students, and p
 - **Search Palette**: One command-palette UI for finding text across your notes and canvas, then jumping straight to a match — switching tabs, revealing the right pane, and selecting the matched note text or canvas element automatically. `Ctrl/Cmd+F` scopes it to the current tab; `Ctrl/Cmd+Shift+F` (or the tab-bar search icon) searches every open tab.
 - **Local-First Architecture**: Your workspace data is saved entirely on your local machine using client-side storage.
 - **Offline Support**: Fully functional without internet connectivity, ensuring you can work from anywhere.
+- **Optional Pro MCP Connector**: Web users can subscribe through hosted Stripe or Razorpay checkout to pair the official local MCP connector. The free notes, canvas, code, and visualizer workspace is unchanged.
 - **Import / Export**: Save work as portable JSON files, export notes to Markdown, or save canvas sketches as images.
 - **Structure Templates**: Quickly drag, drop, and edit pre-built templates for common data structures and algorithm patterns.
 - **Fast Performance**: Optimized rendering ensures typing, drawing, and UI resizing remain responsive.
@@ -60,12 +61,13 @@ It is a local-first desktop application designed for developers, students, and p
 - **Excalidraw**: High-performance canvas drawing engine.
 - **TipTap**: Extensible rich-text editor toolkit.
 - **Tailwind CSS**: Utility-first styling framework.
-- **Firebase Authentication**: Optional Google identity for the web app; workspace content remains local.
+- **Firebase Authentication + App Check**: Optional web identity and protected billing requests; workspace content remains local.
+- **Firebase Functions + Firestore**: Trusted subscription, entitlement, webhook, and one-time connector-grant backend.
 
 ## Philosophy
 
 - **Local-first**: You own your data. Files are kept on your hard drive, not on third-party servers.
-- **No account required**: Optional Google sign-in never gates the workspace; anonymous use remains available instantly.
+- **No account required for the workspace**: Google sign-in is required only for billing and paid MCP access; anonymous local use remains available instantly.
 - **No workspace cloud dependency**: Notes, canvas data, and code remain local even when a user signs in.
 - **No distractions**: A minimalist, utility-focused layout designed to keep you in flow.
 - **Fast and lightweight**: Debounced auto-saves and targeted React updates to ensure smooth operation on standard developer hardware.
@@ -105,6 +107,19 @@ To show the AlgoGlyph name and icon on Google's sign-in and consent screens:
 
 Firebase uses the configured `VITE_FIREBASE_AUTH_DOMAIN` as the OAuth helper domain. If the Google flow still says it is continuing to a `*.firebaseapp.com` address, serve Firebase's `/__/auth/` helper on a verified custom domain (for example, `auth.algoglyph.com`), authorize `https://auth.algoglyph.com/__/auth/handler` for the OAuth client, and use that host as `VITE_FIREBASE_AUTH_DOMAIN`. Do not change this value until the custom helper domain or transparent proxy is live, or sign-in will fail.
 
+### Paid MCP billing backend
+
+The trusted backend lives in `firebase-functions/`; the frontend never accepts prices, changes entitlements, or treats checkout callbacks as payment proof. Stripe and Razorpay webhooks own canonical subscription transitions, while short-lived single-use grants let the official local connector redeem paid access directly with the fixed AlgoGlyph backend.
+
+See [docs/billing-deployment.md](docs/billing-deployment.md) for environment isolation, secrets, App Check, provider webhooks, staging acceptance, deployment, rollback, and support procedures. The evidence-based release verdict and remaining live-provider gates are tracked in [docs/billing-production-readiness.md](docs/billing-production-readiness.md). Useful local gates are:
+
+```bash
+npm run test:billing   # Functions typecheck and provider/entitlement unit tests
+npm run test:firebase  # Firestore rules and transactional billing/grant tests (Java 21+)
+npm run test:mcp       # Connector protocol/security integration suite
+npm run lint:mcp       # Browser + connector paid-access release surface
+```
+
 ## Build Instructions
 
 To build and package the application for desktop distribution:
@@ -120,6 +135,9 @@ This compiles the frontend assets and packages the Electron application into the
 
 ```
 Scratchpad/
+├── firebase-functions/    # Trusted billing, webhook, entitlement, and grant API
+├── firestore.rules        # Deny-by-default client data rules
+├── docs/                  # Deployment and operations runbooks
 ├── src/
 │   ├── assets/           # Media assets and desktop icons
 │   ├── components/       # Core UI and layout components
@@ -134,6 +152,7 @@ Scratchpad/
 │   │   └── NotificationToast.tsx # Custom system feedback notifications
 │   ├── config/           # Static configurations and structures
 │   ├── db/               # IndexedDB database wrappers
+│   ├── lib/billing/      # Authenticated browser billing client and wire types
 │   ├── store/            # Zustand global workspace store
 │   ├── index.css         # Styling and custom theme configuration
 │   ├── main.tsx          # Application entry point
@@ -155,4 +174,3 @@ Scratchpad/
 - **Current issue**: The workspace generates typescript build cache files (`.tsbuildinfo`) and local configuration files, which can accidentally get committed if they are not explicitly listed in `.gitignore`.
 - **Why it matters**: Accidental commits of build cache files or developer environment files pollute the history, bloat the repository size, and cause unnecessary merge conflicts.
 - **Recommended fix**: Extend the `.gitignore` configuration to explicitly exclude all TypeScript caches, environment configurations, and build/compilation artifacts.
-

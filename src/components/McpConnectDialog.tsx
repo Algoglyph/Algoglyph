@@ -3,8 +3,8 @@ import {
   ChevronDown,
   CircleAlert,
   Copy,
+  CreditCard,
   Cpu,
-  KeyRound,
   PlugZap,
   RefreshCw,
   Server,
@@ -21,8 +21,25 @@ import {
   testMcpServer,
 } from '../lib/mcp/connectorClient';
 import { MCP_CONNECTOR_USER_COMMAND, type McpServerTestResult } from '../lib/mcp/types';
-import { requestMcpConnection } from '../lib/mcp/bootstrap';
+import {
+  configureMcpAuthorizationProvider,
+  requestMcpConnection,
+} from '../lib/mcp/bootstrap';
+import {
+  BillingRequestError,
+  cancelBillingSubscription,
+  createBillingCheckout,
+  getBillingStatus as fetchBillingStatus,
+  openRazorpayCheckout,
+} from '../lib/billing/billingClient';
+import type {
+  BillingApiTokens,
+  BillingPlanKey,
+  BillingRegion,
+  BillingStatus,
+} from '../lib/billing/types';
 import { useMcpStore } from '../store/mcpStore';
+import { useAuth } from './authContext';
 import { LoadingSpinner } from './LoadingSpinner';
 
 const inputClassName =
@@ -30,6 +47,7 @@ const inputClassName =
 
 const errorMessage = (error: unknown): string => {
   if (error instanceof McpConnectorRequestError) return error.message;
+  if (error instanceof BillingRequestError) return error.message;
   return 'The connector request could not be completed.';
 };
 
@@ -50,6 +68,7 @@ const endpointHost = (endpoint: string): string => {
 };
 
 export const McpConnectDialog: React.FC = () => {
+  const auth = useAuth();
   const isOpen = useMcpStore((state) => state.mcpPanelOpen);
   const connectorEndpoint = useMcpStore((state) => state.connectorEndpoint);
   const connectionState = useMcpStore((state) => state.connectionState);
@@ -79,6 +98,15 @@ export const McpConnectDialog: React.FC = () => {
   const [serverResult, setServerResult] = useState<McpServerTestResult | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState(false);
+  const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
+  const [billingPlan, setBillingPlan] = useState<BillingPlanKey>('pro_monthly');
+  const [billingRegion, setBillingRegion] = useState<BillingRegion>('international');
+  const [billingPending, setBillingPending] = useState(false);
+  const [billingVerifying, setBillingVerifying] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URL(window.location.href).searchParams.get('billing') === 'success';
+  });
+  const [billingError, setBillingError] = useState<string | null>(null);
   const clearSessionOwnedUi = useCallback(() => {
     setServerToken('');
     setServerResult(null);
@@ -108,6 +136,115 @@ export const McpConnectDialog: React.FC = () => {
     setConnectorToken(state.connectorToken || '');
     clearSessionOwnedUi();
   }), [clearSessionOwnedUi]);
+
+  const getApiTokens = useCallback(async (): Promise<BillingApiTokens> => {
+    const [idToken, appCheckToken] = await Promise.all([
+      auth.actions.getIdToken(),
+      auth.actions.getAppCheckToken(),
+    ]);
+    return { idToken, appCheckToken };
+  }, [auth.actions]);
+
+  useEffect(() => {
+    if (auth.state.status === 'authenticated') {
+      configureMcpAuthorizationProvider({
+        getIdToken: auth.actions.getIdToken,
+        getAppCheckToken: auth.actions.getAppCheckToken,
+      });
+    } else {
+      configureMcpAuthorizationProvider(null);
+    }
+    return () => configureMcpAuthorizationProvider(null);
+  }, [auth.actions.getAppCheckToken, auth.actions.getIdToken, auth.state.status]);
+
+  const refreshBillingStatus = useCallback(async (): Promise<BillingStatus | null> => {
+    if (auth.state.status !== 'authenticated') {
+      setBillingStatus(null);
+      return null;
+    }
+    try {
+      const status = await fetchBillingStatus(await getApiTokens());
+      setBillingStatus(status);
+      setBillingError(null);
+      return status;
+    } catch (error) {
+      setBillingError(errorMessage(error));
+      return null;
+    }
+  }, [auth.state.status, getApiTokens]);
+
+  useEffect(() => {
+    if (!isOpen || auth.state.status !== 'authenticated') return;
+    const timer = window.setTimeout(() => void refreshBillingStatus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [auth.state.status, isOpen, refreshBillingStatus]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('billing') !== 'success') return;
+    url.searchParams.delete('billing');
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
+  useEffect(() => {
+    if (!billingVerifying || auth.state.status !== 'authenticated') return;
+    let cancelled = false;
+    const poll = async () => {
+      const status = await refreshBillingStatus();
+      if (cancelled || !status?.entitlement.mcpAccess) return;
+      setBillingVerifying(false);
+      configureMcpAuthorizationProvider({
+        getIdToken: auth.actions.getIdToken,
+        getAppCheckToken: auth.actions.getAppCheckToken,
+      });
+      void requestMcpConnection();
+    };
+    void poll();
+    const timer = window.setInterval(() => void poll(), 3_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [auth.actions.getAppCheckToken, auth.actions.getIdToken, auth.state.status, billingVerifying, refreshBillingStatus]);
+
+  const beginCheckout = async () => {
+    setBillingPending(true);
+    setBillingError(null);
+    try {
+      const result = await createBillingCheckout(await getApiTokens(), billingPlan, billingRegion);
+      if (result.provider === 'stripe') {
+        setBillingVerifying(true);
+        window.location.assign(result.checkoutUrl);
+      } else {
+        setBillingVerifying(false);
+        await openRazorpayCheckout(
+          result,
+          () => setBillingVerifying(true),
+          () => setBillingVerifying(false),
+        );
+      }
+    } catch (error) {
+      setBillingVerifying(false);
+      setBillingError(errorMessage(error));
+    } finally {
+      setBillingPending(false);
+    }
+  };
+
+  const cancelSubscription = async () => {
+    if (!window.confirm('Cancel renewal at the end of the current billing period?')) return;
+    setBillingPending(true);
+    setBillingError(null);
+    try {
+      await cancelBillingSubscription(await getApiTokens());
+      await refreshBillingStatus();
+    } catch (error) {
+      setBillingError(errorMessage(error));
+    } finally {
+      setBillingPending(false);
+    }
+  };
 
   const checkConnector = async () => {
     setConnectionState('checking');
@@ -155,11 +292,23 @@ export const McpConnectDialog: React.FC = () => {
     }
   };
 
-  const reconnectConnector = () => {
+  const reconnectConnector = async () => {
     setServerResult(null);
     setServerError(null);
+    setBillingError(null);
+    if (auth.state.status === 'unavailable') {
+      setBillingError('Paid MCP is available in the web app when Google sign-in is configured.');
+      return;
+    }
+    if (auth.state.status !== 'authenticated') {
+      await auth.actions.signInWithGoogle();
+    }
+    configureMcpAuthorizationProvider({
+      getIdToken: auth.actions.getIdToken,
+      getAppCheckToken: auth.actions.getAppCheckToken,
+    });
     setIntentionalDisconnect(false);
-    void requestMcpConnection();
+    await requestMcpConnection();
   };
 
   const copyCommand = async () => {
@@ -234,18 +383,28 @@ export const McpConnectDialog: React.FC = () => {
   if (!isOpen) return null;
 
   const isReady = connectionState === 'ready' && !intentionalDisconnect;
+  const isSignedIn = auth.state.status === 'authenticated';
+  const hasPaidMcpAccess = billingStatus?.entitlement.mcpAccess === true;
+  const needsUpgrade = isSignedIn && billingStatus !== null && !hasPaidMcpAccess;
   const isSearching = !intentionalDisconnect
     && (connectionState === 'searching' || connectionState === 'checking' || connectionState === 'pairing');
   const permissionRequired = connectionState === 'permission-required';
   const permissionDenied = connectionState === 'permission-denied';
   const connectionNeedsAttention = connectionState === 'error' || permissionDenied;
   const isMacOs = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
-  const showManualConnectionForm = advancedOpen || editingConnection || connectionState === 'needs-token';
+  const showManualConnectionForm = hasPaidMcpAccess
+    && (advancedOpen || editingConnection || connectionState === 'needs-token');
   const agents = connectorCatalog?.agents ?? [];
   const availableAgents = agents.filter((agent) => agent.available);
   const activeAgent = agents.find((agent) => agent.id === activeAgentId) || null;
 
-  const statusTitle = intentionalDisconnect
+  const statusTitle = !isSignedIn
+    ? 'Sign in to use MCP'
+    : billingVerifying
+      ? 'Verifying payment'
+      : needsUpgrade
+        ? 'Upgrade required for MCP'
+        : intentionalDisconnect
     ? 'Local Agent Disconnected'
     : isReady
     ? 'Local Agent Connected'
@@ -261,7 +420,13 @@ export const McpConnectDialog: React.FC = () => {
           ? 'Connection needs attention'
           : 'Looking for AlgoGlyph Connector...';
 
-  const statusDescription = intentionalDisconnect
+  const statusDescription = !isSignedIn
+    ? 'Your local workspace stays free. Google sign-in is required only for paid MCP access.'
+    : billingVerifying
+      ? 'Checkout is complete. Access will unlock after the payment provider confirms it to AlgoGlyph.'
+      : needsUpgrade
+        ? 'Choose a Pro subscription to authorize the official local connector.'
+        : intentionalDisconnect
     ? 'Disconnected by you. The local connector was left running and will reconnect only when you choose.'
     : isReady
     ? `Connected to ${endpointHost(connectorEndpoint)}${connectorHealth?.version ? ` / v${connectorHealth.version}` : ''}`
@@ -329,7 +494,129 @@ export const McpConnectDialog: React.FC = () => {
             {isSearching && <LoadingSpinner size={16} className="mt-0.5" />}
           </div>
 
-          {!isReady && (
+          {!isSignedIn && (
+            <section className="mt-5 rounded-md border border-hairline bg-canvas-soft/45 px-3 py-3" aria-label="MCP sign in">
+              <p className="text-xs font-medium text-ink">Continue with Google</p>
+              <p className="mt-1 text-[11px] leading-4 text-body">
+                Authentication is used for billing and MCP entitlement only. Notes, canvas data, and code remain on this device.
+              </p>
+              <button
+                type="button"
+                onClick={() => void reconnectConnector()}
+                disabled={auth.state.pending || auth.state.status === 'loading' || auth.state.status === 'unavailable'}
+                className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md bg-ink px-3 text-[11px] font-medium text-canvas disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {auth.state.pending ? <LoadingSpinner size={13} inverted /> : <CreditCard size={13} />}
+                {auth.state.pending ? 'Signing in' : 'Sign in for MCP'}
+              </button>
+            </section>
+          )}
+
+          {isSignedIn && (billingVerifying || needsUpgrade) && (
+            <section className="mt-5 rounded-md border border-hairline bg-canvas-soft/45 px-3 py-3" aria-label="MCP billing">
+              <div className="flex items-center gap-2">
+                <CreditCard size={14} className="text-body" aria-hidden="true" />
+                <p className="text-xs font-medium text-ink">
+                  {billingVerifying ? 'Payment pending verification' : 'AlgoGlyph Pro'}
+                </p>
+              </div>
+              {billingVerifying ? (
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-body">
+                  <LoadingSpinner size={14} />
+                  Waiting for a verified provider webhook. You can keep this window open.
+                </div>
+              ) : (
+                <>
+                  <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Billing interval">
+                    {(['pro_monthly', 'pro_annual'] as const).map((plan) => (
+                      <button
+                        key={plan}
+                        type="button"
+                        role="radio"
+                        aria-checked={billingPlan === plan}
+                        onClick={() => setBillingPlan(plan)}
+                        className={`rounded-md border px-3 py-2 text-left text-[11px] ${billingPlan === plan ? 'border-ink bg-canvas' : 'border-hairline text-body'}`}
+                      >
+                        <span className="block font-medium text-ink">{plan === 'pro_monthly' ? 'Monthly' : 'Annual'}</span>
+                        <span className="mt-0.5 block text-mute">{plan === 'pro_monthly' ? 'Billed each month' : 'Billed once a year'}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <label className="mt-3 grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-billing-region">
+                    Billing country / currency
+                    <select
+                      id="mcp-billing-region"
+                      value={billingRegion}
+                      onChange={(event) => setBillingRegion(event.target.value as BillingRegion)}
+                      className={inputClassName}
+                    >
+                      <option value="international">International · USD · Stripe</option>
+                      <option value="india">India · INR · Razorpay</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void beginCheckout()}
+                    disabled={billingPending}
+                    className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-medium text-canvas disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {billingPending ? <LoadingSpinner size={14} inverted /> : <CreditCard size={14} />}
+                    {billingPending ? 'Opening checkout' : 'Continue to secure checkout'}
+                  </button>
+                  <p className="mt-2 text-[10px] leading-4 text-mute">Card and payment details are collected by Stripe or Razorpay, not AlgoGlyph.</p>
+                </>
+              )}
+            </section>
+          )}
+
+          {isSignedIn && hasPaidMcpAccess && billingStatus && (
+            <section className="mt-5 rounded-md border border-hairline px-3 py-3" aria-label="Current MCP plan">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-ink">
+                    Pro {billingStatus.planKey === 'pro_annual' ? 'Annual' : 'Monthly'}
+                  </p>
+                  <p className="mt-1 text-[11px] text-body">
+                    {billingStatus.entitlement.status === 'grace'
+                      ? `Payment recovery grace ends ${billingStatus.entitlement.gracePeriodEnd ? new Date(billingStatus.entitlement.gracePeriodEnd).toLocaleDateString() : 'soon'}.`
+                      : billingStatus.entitlement.cancelAtPeriodEnd
+                        ? `Access ends ${billingStatus.entitlement.accessUntil ? new Date(billingStatus.entitlement.accessUntil).toLocaleDateString() : 'at period end'}.`
+                        : `Renews ${billingStatus.entitlement.currentPeriodEnd ? new Date(billingStatus.entitlement.currentPeriodEnd).toLocaleDateString() : 'after the current period'}.`}
+                  </p>
+                </div>
+                {!billingStatus.entitlement.cancelAtPeriodEnd && (
+                  <button
+                    type="button"
+                    onClick={() => void cancelSubscription()}
+                    disabled={billingPending}
+                    className="shrink-0 rounded-md border border-hairline px-2.5 py-1.5 text-[10px] text-body hover:text-ink disabled:opacity-50"
+                  >
+                    Cancel renewal
+                  </button>
+                )}
+              </div>
+              {billingStatus.entitlement.status === 'grace' && (
+                <p className="mt-2 rounded bg-canvas-soft px-2 py-1.5 text-[10px] leading-4 text-error">
+                  Renewal failed. Update payment with your provider before grace expires to keep MCP access.
+                </p>
+              )}
+            </section>
+          )}
+
+          {billingError && (
+            <p className="mt-3 rounded-md border border-error/30 bg-error/5 px-3 py-2 text-[11px] leading-4 text-error" role="alert">
+              {billingError}
+            </p>
+          )}
+
+          {isSignedIn && billingStatus === null && !billingError && !billingVerifying && (
+            <div className="mt-5 flex items-center gap-2 rounded-md border border-hairline px-3 py-3 text-[11px] text-body">
+              <LoadingSpinner size={14} />
+              Loading billing status…
+            </div>
+          )}
+
+          {hasPaidMcpAccess && !isReady && (
             <section className="mt-5 rounded-md border border-hairline bg-canvas-soft/45 px-3 py-3" aria-label="Start connector">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -424,7 +711,7 @@ export const McpConnectDialog: React.FC = () => {
             </section>
           )}
 
-          <div className="mt-5 border-t border-hairline pt-4">
+          {hasPaidMcpAccess && <div className="mt-5 border-t border-hairline pt-4">
             <button
               type="button"
               onClick={() => setAdvancedOpen((value) => !value)}
@@ -463,23 +750,6 @@ export const McpConnectDialog: React.FC = () => {
                     />
                   </label>
 
-                  <label className="grid gap-1.5 text-[11px] font-mono text-body" htmlFor="mcp-connector-token">
-                    Manual token / session
-                    <div className="relative">
-                      <KeyRound size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-mute" />
-                      <input
-                        id="mcp-connector-token"
-                        type="password"
-                        value={connectorToken}
-                        onChange={(event) => setConnectorToken(event.target.value)}
-                        className={`${inputClassName} pl-8`}
-                        placeholder="Fallback token"
-                        spellCheck={false}
-                        autoComplete="off"
-                      />
-                    </div>
-                  </label>
-
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
                     {isReady ? (
                       <button
@@ -491,7 +761,7 @@ export const McpConnectDialog: React.FC = () => {
                         Disconnect
                       </button>
                     ) : (
-                      <span className="text-[11px] leading-4 text-mute">Use this only if automatic pairing is unavailable.</span>
+                      <span className="text-[11px] leading-4 text-mute">Browser pairing always uses a paid, short-lived session.</span>
                     )}
                     <button
                       type="submit"
@@ -569,7 +839,7 @@ export const McpConnectDialog: React.FC = () => {
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {serverError && <p className="mt-3 border-l-2 border-error pl-3 text-xs leading-5 text-error">{serverError}</p>}
 

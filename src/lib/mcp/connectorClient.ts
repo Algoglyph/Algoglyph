@@ -14,6 +14,8 @@ import {
   type McpToolSummary,
 } from './types';
 import { useMcpStore } from '../../store/mcpStore';
+import { createConnectorGrant } from '../billing/billingClient';
+import type { BillingApiTokens } from '../billing/types';
 
 const REQUEST_TIMEOUT_MS = 8_000;
 const MCP_OPERATION_TIMEOUT_MS = 22_000;
@@ -256,11 +258,15 @@ const parseSession = (payload: unknown): McpConnectorSession => {
   const sessionToken = asTrimmedString(payload.sessionToken);
   const expiresAt = asTrimmedString(payload.expiresAt);
   const idleTimeoutSeconds = payload.idleTimeoutSeconds;
+  const entitlementExpiresAt = asTrimmedString(payload.entitlementExpiresAt);
+  const entitlementVersion = payload.entitlementVersion;
   const scopes = payload.scopes;
   if (
     !sessionToken ||
     payload.tokenType !== 'Bearer' ||
     !expiresAt ||
+    !entitlementExpiresAt ||
+    typeof entitlementVersion !== 'number' ||
     typeof idleTimeoutSeconds !== 'number' ||
     !Array.isArray(scopes)
   ) {
@@ -272,6 +278,8 @@ const parseSession = (payload: unknown): McpConnectorSession => {
     expiresAt,
     idleTimeoutSeconds,
     scopes: scopes.filter(isMcpSessionScope),
+    entitlementExpiresAt,
+    entitlementVersion,
   };
 };
 
@@ -350,27 +358,47 @@ export const createMcpPairingCredential = async (
 export const redeemMcpPairingCredential = async (
   endpoint: string,
   pairingToken: string,
+  entitlementGrant: string,
 ): Promise<McpConnectorSession> =>
-  parseSession(await requestJson(endpoint, 'v1/session', undefined, { pairingToken }));
+  parseSession(await requestJson(endpoint, 'v1/session', undefined, { pairingToken, entitlementGrant }));
 
 export const pairMcpConnectorWithCredential = async (
   endpoint: string,
   pairingToken: string,
+  entitlementGrant: string,
 ): Promise<McpPairedConnectorSnapshot> => {
   const normalized = normalizeConnectorEndpoint(endpoint);
   const health = await inspectMcpConnectorHealth(normalized);
-  const session = await redeemMcpPairingCredential(normalized, pairingToken);
+  const session = await redeemMcpPairingCredential(normalized, pairingToken, entitlementGrant);
   const catalog = parseCatalog(await requestJson(normalized, 'v1/catalog', session.sessionToken));
   return { health, catalog, session };
 };
 
 export const pairMcpConnector = async (
   endpoint: string,
+  tokens: BillingApiTokens,
 ): Promise<McpPairedConnectorSnapshot> => {
   const normalized = normalizeConnectorEndpoint(endpoint);
   const health = await inspectMcpConnectorHealth(normalized);
   const pairing = await createMcpPairingCredential(normalized);
-  const session = await redeemMcpPairingCredential(normalized, pairing.pairingToken);
+  if (typeof window === 'undefined') {
+    throw new McpConnectorRequestError('Paid connector pairing is available only in the web app.');
+  }
+  const pairingCredentialHash = Array.from(
+    new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pairing.pairingToken))),
+    (byte) => byte.toString(16).padStart(2, '0'),
+  ).join('');
+  const grant = await createConnectorGrant(tokens, {
+    pairingCredentialHash,
+    origin: window.location.origin,
+    connectorVersion: health.version,
+    requestedScopes: pairing.scopes,
+  });
+  const session = await redeemMcpPairingCredential(
+    normalized,
+    pairing.pairingToken,
+    grant.entitlementGrant,
+  );
   const catalog = parseCatalog(await requestJson(normalized, 'v1/catalog', session.sessionToken));
   return { health, catalog, session };
 };

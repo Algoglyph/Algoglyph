@@ -20,6 +20,8 @@ export interface AuthActions {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
+  getIdToken: () => Promise<string>;
+  getAppCheckToken: () => Promise<string>;
 }
 
 export interface AuthContextValue {

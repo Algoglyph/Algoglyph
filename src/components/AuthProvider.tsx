@@ -21,9 +21,17 @@ const firebaseConfig: FirebaseAuthConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
+  appCheckSiteKey: import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY ?? '',
 };
 
-const missingFirebaseKeys = Object.entries(firebaseConfig)
+const missingFirebaseKeys = Object.entries({
+  apiKey: firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId,
+})
   .filter(([, value]) => value.trim().length === 0)
   .map(([key]) => key);
 const isFirebaseConfigured = missingFirebaseKeys.length === 0;
@@ -144,11 +152,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [runAuthAction]);
 
   const clearError = useCallback(() => setError(null), []);
+  const getIdToken = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client) throw new Error('Google sign-in is unavailable.');
+    return client.getIdToken();
+  }, []);
+  const getAppCheckToken = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client) throw new Error('Google sign-in is unavailable.');
+    return client.getAppCheckToken();
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
     state: { status, user, pending, error },
-    actions: { signInWithGoogle, signOut, clearError },
-  }), [status, user, pending, error, signInWithGoogle, signOut, clearError]);
+    actions: { signInWithGoogle, signOut, clearError, getIdToken, getAppCheckToken },
+  }), [status, user, pending, error, signInWithGoogle, signOut, clearError, getIdToken, getAppCheckToken]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 };

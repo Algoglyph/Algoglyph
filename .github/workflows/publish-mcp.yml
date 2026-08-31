@@ -33,6 +33,12 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
+      - name: Use Java 21 for Firebase emulator gates
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Pin the release npm client
         run: npm install --global --ignore-scripts npm@11.19.0
 
@@ -44,6 +50,15 @@ jobs:
 
       - name: Install the reviewed dependency tree
         run: npm ci
+
+      - name: Install the trusted billing backend
+        run: npm ci --prefix firebase-functions
+
+      - name: Verify billing logic and Firestore security
+        run: |
+          npm run test:billing
+          npm run test:firebase
+          npm run lint:billing
 
       - name: Run MCP integration and security tests
         run: npm run test:mcp

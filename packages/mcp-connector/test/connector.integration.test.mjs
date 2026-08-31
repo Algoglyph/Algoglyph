@@ -259,8 +259,8 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.deepEqual(response.body, {
       service: 'algoglyph-local-connector',
       status: 'ready',
-      version: '0.2.6',
-      protocolVersion: 2,
+      version: '0.3.0',
+      protocolVersion: 3,
       requiresToken: true,
     });
     assert.equal(JSON.stringify(response.body).includes(connector.masterToken), false);
@@ -358,7 +358,10 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
 
     const firstRedemption = await connector.request('v1/session', {
       method: 'POST',
-      body: { pairingToken: pairingResponse.body.pairingToken },
+      body: {
+        pairingToken: pairingResponse.body.pairingToken,
+        entitlementGrant: connector.nextEntitlementGrant(),
+      },
     });
     assert.equal(firstRedemption.status, 200);
     assert.match(firstRedemption.body.sessionToken, /^[A-Za-z0-9_-]{40,}$/);
@@ -371,6 +374,56 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       body: { pairingToken: pairingResponse.body.pairingToken },
     });
     assert.equal(secondRedemption.status, 401);
+  });
+
+  test('paid entitlement grants fail closed when missing, unpaid, expired, reused, misbound, or unavailable', async () => {
+    const paidConnector = await startConnectorHarness({
+      environment: {
+        ALGOGLYPH_TEST_PAIRING_ISSUE_RATE_LIMIT: '20',
+        ALGOGLYPH_TEST_PAIRING_REDEEM_RATE_LIMIT: '20',
+      },
+    });
+    try {
+      const createPairing = async () => paidConnector.request('v1/pairings', { method: 'POST', body: {} });
+      const redeem = async (pairingToken, entitlementGrant) => paidConnector.request('v1/session', {
+        method: 'POST',
+        body: { pairingToken, ...(entitlementGrant ? { entitlementGrant } : {}) },
+      });
+
+      const missing = await createPairing();
+      assert.equal((await redeem(missing.body.pairingToken, undefined)).status, 402);
+
+      const unpaid = await createPairing();
+      const unpaidResponse = await redeem(unpaid.body.pairingToken, `unpaid-${'x'.repeat(40)}`);
+      assert.equal(unpaidResponse.status, 402);
+      assert.match(unpaidResponse.body.error.message, /paid .* subscription/i);
+
+      const expired = await createPairing();
+      assert.equal((await redeem(expired.body.pairingToken, `expired-${'x'.repeat(40)}`)).status, 410);
+
+      const first = await createPairing();
+      const sharedGrant = paidConnector.nextEntitlementGrant();
+      assert.equal((await redeem(first.body.pairingToken, sharedGrant)).status, 200);
+      const reused = await createPairing();
+      assert.equal((await redeem(reused.body.pairingToken, sharedGrant)).status, 401);
+
+      const misbound = await createPairing();
+      assert.equal((await redeem(misbound.body.pairingToken, `binding-${'x'.repeat(40)}`)).status, 403);
+
+      const unavailable = await createPairing();
+      assert.equal((await redeem(unavailable.body.pairingToken, `outage-${'x'.repeat(40)}`)).status, 503);
+    } finally {
+      await paidConnector.stop();
+    }
+  });
+
+  test('the operator token cannot bypass paid sessions from a browser origin', async () => {
+    const response = await connector.request('v1/catalog', {
+      token: connector.masterToken,
+      origin: connector.allowedOrigin,
+    });
+    assert.equal(response.status, 403);
+    assert.match(response.body.error.message, /operator token cannot authorize browser/i);
   });
 
   test('sessions enforce absolute and idle expiration', async () => {
@@ -418,7 +471,6 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
   test('session scopes are enforced and always retain revocation authority', async () => {
     const pairing = await connector.request('v1/pairings', {
       method: 'POST',
-      token: connector.masterToken,
       body: { scopes: ['catalog:read'] },
     });
     assert.equal(pairing.status, 200);
@@ -426,7 +478,10 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
 
     const session = await connector.request('v1/session', {
       method: 'POST',
-      body: { pairingToken: pairing.body.pairingToken },
+      body: {
+        pairingToken: pairing.body.pairingToken,
+        entitlementGrant: connector.nextEntitlementGrant(),
+      },
     });
     assert.equal(session.status, 200);
 
@@ -1187,13 +1242,11 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       for (let index = 0; index < 2; index += 1) {
         issued.push(await limitedConnector.request('v1/pairings', {
           method: 'POST',
-          token: limitedConnector.masterToken,
           body: {},
         }));
       }
       const issueLimited = await limitedConnector.request('v1/pairings', {
         method: 'POST',
-        token: limitedConnector.masterToken,
         body: {},
       });
       assert.equal(issueLimited.status, 429);
@@ -1202,7 +1255,10 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
       for (const pairing of issued) {
         const redeemed = await limitedConnector.request('v1/session', {
           method: 'POST',
-          body: { pairingToken: pairing.body.pairingToken },
+          body: {
+            pairingToken: pairing.body.pairingToken,
+            entitlementGrant: limitedConnector.nextEntitlementGrant(),
+          },
         });
         assert.equal(redeemed.status, 200);
       }
@@ -1365,7 +1421,10 @@ describe('connector adversarial regression coverage', { concurrency: false }, ()
 
     const session = await connector.request('v1/session', {
       method: 'POST',
-      body: { pairingToken: pairing.body.pairingToken },
+      body: {
+        pairingToken: pairing.body.pairingToken,
+        entitlementGrant: connector.nextEntitlementGrant(),
+      },
     });
     assert.equal(session.status, 200);
 
@@ -2297,7 +2356,7 @@ describe('security remediation contract', () => {
     assert.match(clientSource, /ended without a terminal event/);
     assert.match(clientSource, /useMcpStore\.getState\(\)\.failAgentRun/);
     assert.match(dialogSource, /useMcpStore\.getState\(\)\.connectorToken/);
-    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.2\.6'/);
+    assert.match(mcpTypesSource, /MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph\/mcp-connector@0\.3\.0'/);
     assert.match(dialogSource, /MCP_CONNECTOR_USER_COMMAND/);
     assert.doesNotMatch(dialogSource, /npm run mcp:connector/);
     assert.doesNotMatch(dialogSource, /pairMcpConnector/);

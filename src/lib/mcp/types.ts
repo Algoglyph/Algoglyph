@@ -1,12 +1,15 @@
 export const DEFAULT_MCP_CONNECTOR_ENDPOINT = 'http://127.0.0.1:4319';
 export const MCP_CONNECTOR_STORAGE_KEY = 'algoglyph-mcp-connector-v1';
-export const MCP_CONNECTOR_PROTOCOL_VERSION = 2 as const;
-export const MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.2.6';
+export const MCP_CONNECTOR_PROTOCOL_VERSION = 3 as const;
+export const MCP_CONNECTOR_USER_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.3.0';
 
 export type McpConnectionState =
   | 'idle'
   | 'permission-required'
   | 'permission-denied'
+  | 'sign-in-required'
+  | 'payment-required'
+  | 'payment-pending'
   | 'searching'
   | 'checking'
   | 'pairing'
@@ -99,6 +102,8 @@ export interface McpConnectorSession {
   expiresAt: string;
   idleTimeoutSeconds: number;
   scopes: McpSessionScope[];
+  entitlementExpiresAt: string;
+  entitlementVersion: number;
 }
 
 export interface McpPairedConnectorSnapshot extends McpConnectorSnapshot {

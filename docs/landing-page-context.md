@@ -55,7 +55,7 @@ MCP connector content:
 
 - Label: `Connect local agents`
 - Runtime: `Node 20+`
-- Command: `npx --yes @algoglyph/mcp-connector@0.2.6`
+- Command: `npx --yes @algoglyph/mcp-connector@0.3.0`
 - Connection note: `Auto-pairs with Algoglyph on 127.0.0.1:4319`
 - Clipboard states: `Copy` and `Copied`
 

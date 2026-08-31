@@ -13,8 +13,8 @@ import { Agent as UndiciAgent } from 'undici';
 import { invocationArgs, invocationPath, resolveCliInvocations } from './cli-runtime.mjs';
 
 const SERVICE_NAME = 'algoglyph-local-connector';
-const CONNECTOR_VERSION = '0.2.6';
-const CONNECTOR_PROTOCOL_VERSION = 2;
+const CONNECTOR_VERSION = '0.3.0';
+const CONNECTOR_PROTOCOL_VERSION = 3;
 const DEFAULT_PORT = 4319;
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_JSON_RESPONSE_BYTES = 1024 * 1024;
@@ -38,7 +38,7 @@ const MAX_AGENT_OUTPUT_BYTES = 256 * 1024;
 const MAX_PROMPT_BYTES = 32 * 1024;
 const MAX_CONCURRENT_AGENT_RUNS = 1;
 const MAX_CONCURRENT_MCP_OPERATIONS = 2;
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 30 * 60 * 1000;
 const SESSION_IDLE_TTL_MS = 30 * 60 * 1000;
 const MAX_SESSIONS = 8;
 const APPROVED_MCP_TTL_MS = 30 * 60 * 1000;
@@ -67,6 +67,7 @@ const DEVELOPMENT_ORIGINS = [
   'http://127.0.0.1:5173',
 ];
 const PREVIEW_ORIGINS = ['https://algoglyph.pages.dev'];
+const PRODUCTION_ENTITLEMENT_BACKEND_URL = 'https://api.algoglyph.com';
 
 const CODEX_SECURITY_CONFIG_ARGS = [
   '-c', 'approval_policy="never"',
@@ -256,6 +257,19 @@ if (configuredToken && Buffer.byteLength(configuredToken, 'utf8') < 32) {
   throw new Error('ALGOGLYPH_CONNECTOR_TOKEN must be at least 32 bytes long and unpredictable.');
 }
 const connectorToken = configuredToken || randomBytes(24).toString('base64url');
+const entitlementBackendUrl = (() => {
+  const candidate = process.env.NODE_ENV === 'test'
+    ? process.env.ALGOGLYPH_TEST_ENTITLEMENT_BACKEND_URL?.trim()
+    : PRODUCTION_ENTITLEMENT_BACKEND_URL;
+  const url = new URL(candidate || PRODUCTION_ENTITLEMENT_BACKEND_URL);
+  if (process.env.NODE_ENV !== 'test' && url.protocol !== 'https:') {
+    throw new Error('The entitlement backend must use HTTPS.');
+  }
+  if (url.username || url.password || url.search || url.hash) {
+    throw new Error('The entitlement backend URL must not contain credentials, a query, or a fragment.');
+  }
+  return url.origin;
+})();
 
 const pairingCredentials = new Map();
 const sessions = new Map();
@@ -542,6 +556,30 @@ const writeJson = (response, status, body) => {
   response.end(payload);
 };
 
+const readBoundedFetchText = async (response, maximumBytes) => {
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > maximumBytes) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error('Response exceeded the size limit.');
+  }
+  if (!response.body) return '';
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maximumBytes) throw new Error('Response exceeded the size limit.');
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total).toString('utf8');
+};
+
 const requestOrigin = (request) => {
   const origin = request.headers.origin;
   return typeof origin === 'string' ? origin : undefined;
@@ -614,7 +652,12 @@ const isMasterToken = (token) => constantTimeEquals(token, connectorToken);
 
 const requireAuthorization = (request, requiredScope) => {
   const token = bearerToken(request);
-  if (isMasterToken(token)) return { kind: 'master' };
+  if (isMasterToken(token)) {
+    if (requestOrigin(request)) {
+      throw new ConnectorError(403, 'The operator token cannot authorize browser-origin requests.');
+    }
+    return { kind: 'master' };
+  }
 
   pruneSessions();
   const session = token ? sessions.get(token) : undefined;
@@ -632,7 +675,73 @@ const requireAuthorization = (request, requiredScope) => {
   return { kind: 'session', session, token };
 };
 
-const redeemPairingCredential = (body, origin) => {
+const redeemEntitlementGrant = async (pairingToken, pairing, entitlementGrant, origin) => {
+  const grant = optionalToken(entitlementGrant, 'Entitlement grant');
+  if (!grant) throw new ConnectorError(402, 'A paid AlgoGlyph MCP subscription is required.');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8_000);
+  timer.unref();
+  let response;
+  try {
+    response = await fetch(`${entitlementBackendUrl}/v1/connector/grants/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entitlementGrant: grant,
+        pairingCredentialHash: createHash('sha256').update(pairingToken).digest('hex'),
+        origin,
+        connectorVersion: CONNECTOR_VERSION,
+        requestedScopes: pairing.scopes,
+      }),
+      redirect: 'error',
+      signal: controller.signal,
+    });
+  } catch {
+    throw new ConnectorError(503, 'Paid MCP authorization is temporarily unavailable.');
+  } finally {
+    clearTimeout(timer);
+  }
+
+  let payload;
+  try {
+    const text = await readBoundedFetchText(response, 64 * 1024);
+    payload = text ? JSON.parse(text) : {};
+  } catch {
+    throw new ConnectorError(503, 'Paid MCP authorization returned an invalid response.');
+  }
+  if (!response.ok) {
+    if (response.status === 402) {
+      throw new ConnectorError(402, 'A paid AlgoGlyph MCP subscription is required.');
+    }
+    if ([401, 403, 410].includes(response.status)) {
+      throw new ConnectorError(response.status, 'The entitlement grant is invalid, expired, or incorrectly bound.');
+    }
+    throw new ConnectorError(503, 'Paid MCP authorization is temporarily unavailable.');
+  }
+  if (!isRecord(payload)
+    || !Array.isArray(payload.allowedScopes)
+    || typeof payload.entitlementExpiresAt !== 'string'
+    || typeof payload.workspaceId !== 'string') {
+    throw new ConnectorError(503, 'Paid MCP authorization returned incomplete data.');
+  }
+  const allowedScopes = payload.allowedScopes;
+  if (allowedScopes.length === 0
+    || allowedScopes.some((scope) => !SESSION_SCOPES.includes(scope) || !pairing.scopes.includes(scope))) {
+    throw new ConnectorError(503, 'Paid MCP authorization returned invalid scopes.');
+  }
+  const entitlementExpiresAt = Date.parse(payload.entitlementExpiresAt);
+  if (!Number.isFinite(entitlementExpiresAt) || entitlementExpiresAt <= Date.now()) {
+    throw new ConnectorError(402, 'The paid MCP entitlement has expired.');
+  }
+  return {
+    allowedScopes,
+    entitlementExpiresAt,
+    entitlementVersion: Number.isSafeInteger(payload.entitlementVersion) ? payload.entitlementVersion : 0,
+    workspaceId: payload.workspaceId,
+  };
+};
+
+const redeemPairingCredential = async (body, origin) => {
   const token = optionalToken(body.pairingToken, 'Pairing credential');
   const pairing = token ? pairingCredentials.get(token) : null;
 
@@ -650,6 +759,8 @@ const redeemPairingCredential = (body, origin) => {
   pairing.used = true;
   pairingCredentials.delete(token);
 
+  const entitlement = await redeemEntitlementGrant(token, pairing, body.entitlementGrant, origin);
+
   prunePairings();
   pruneSessions();
   if (sessions.size >= maxSessions) {
@@ -661,14 +772,18 @@ const redeemPairingCredential = (body, origin) => {
 
   const now = Date.now();
   const nowMonotonic = monotonicMilliseconds();
+  const absoluteTtlMs = Math.min(sessionTtlMs, entitlement.entitlementExpiresAt - now);
   const sessionToken = createSecret();
   const session = {
     createdAt: now,
-    expiresAt: now + sessionTtlMs,
-    expiresAtMonotonic: nowMonotonic + sessionTtlMs,
+    expiresAt: now + absoluteTtlMs,
+    expiresAtMonotonic: nowMonotonic + absoluteTtlMs,
     lastUsedAtMonotonic: nowMonotonic,
     origin,
-    scopes: new Set(pairing.scopes),
+    scopes: new Set(entitlement.allowedScopes),
+    entitlementExpiresAt: entitlement.entitlementExpiresAt,
+    entitlementVersion: entitlement.entitlementVersion,
+    workspaceId: entitlement.workspaceId,
   };
   sessions.set(sessionToken, session);
   return { session, sessionToken };
@@ -3643,14 +3758,16 @@ const handleRequest = async (request, response) => {
     const origin = requireTrustedBrowserOrigin(request);
     consumeRateLimit(pairingRedeemAttempts, requestRateKey(request), pairingRedeemRateLimit, 'pairing requests');
     const body = await readJsonBody(request);
-    assertAllowedKeys(body, ['pairingToken']);
-    const { session, sessionToken } = redeemPairingCredential(body, origin);
+    assertAllowedKeys(body, ['pairingToken', 'entitlementGrant']);
+    const { session, sessionToken } = await redeemPairingCredential(body, origin);
     writeJson(response, 200, {
       sessionToken,
       tokenType: 'Bearer',
       expiresAt: new Date(session.expiresAt).toISOString(),
       idleTimeoutSeconds: Math.floor(sessionIdleTtlMs / 1000),
       scopes: [...session.scopes],
+      entitlementExpiresAt: new Date(session.entitlementExpiresAt).toISOString(),
+      entitlementVersion: session.entitlementVersion,
     });
     return;
   }

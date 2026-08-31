@@ -3,7 +3,8 @@
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { createServer } from 'node:net';
+import { createServer as createHttpServer } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -145,7 +146,7 @@ const extractRequiredMatch = (source, expression, label) => {
 };
 
 const reservePort = async () => {
-  const server = createServer();
+  const server = createNetServer();
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
@@ -207,6 +208,7 @@ const stopChild = async (child) => {
 const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIdentities) => {
   const temporaryDirectory = await mkdtemp(path.join(tmpdir(), 'algoglyph-mcp-release-'));
   let child = null;
+  let entitlementServer = null;
   try {
     const packed = parsePackResult((await runNpm([
       'pack',
@@ -297,6 +299,23 @@ const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIden
     await access(installedEntry);
 
     const port = await reservePort();
+    const entitlementPort = await reservePort();
+    entitlementServer = createHttpServer((request, response) => {
+      const chunks = [];
+      request.on('data', (chunk) => chunks.push(chunk));
+      request.on('end', () => {
+        const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({
+          workspaceId: 'personal_release-smoke',
+          allowedScopes: body.requestedScopes,
+          entitlementExpiresAt: new Date(Date.now() + 30 * 60 * 1_000).toISOString(),
+          entitlementVersion: 1,
+        }));
+      });
+    });
+    entitlementServer.listen(entitlementPort, '127.0.0.1');
+    await once(entitlementServer, 'listening');
     let childOutput = '';
     child = spawn(
       process.platform === 'win32' ? process.execPath : installedShim,
@@ -319,6 +338,7 @@ const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIden
         NODE_ENV: 'test',
         ALGOGLYPH_CONNECTOR_PORT: String(port),
         ALGOGLYPH_CONNECTOR_TOKEN: 'release-smoke-token-is-local-ephemeral-and-at-least-32-bytes-long',
+        ALGOGLYPH_TEST_ENTITLEMENT_BACKEND_URL: `http://127.0.0.1:${entitlementPort}`,
         ALGOGLYPH_TEST_ANTIGRAVITY_FIXTURE: path.join(
           testDirectory,
           'fixtures',
@@ -360,7 +380,10 @@ const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIden
       return payload;
     };
     const pairing = await jsonRequest('v1/pairings', {});
-    const session = await jsonRequest('v1/session', { pairingToken: pairing.pairingToken });
+    const session = await jsonRequest('v1/session', {
+      pairingToken: pairing.pairingToken,
+      entitlementGrant: `release-smoke-grant-${'x'.repeat(32)}`,
+    });
     const antigravityResponse = await fetch(`http://127.0.0.1:${port}/v1/agents/run`, {
       method: 'POST',
       headers: {
@@ -384,6 +407,9 @@ const runInstallSmoke = async (manifest, protocolVersion, reviewedDependencyIden
     }
   } finally {
     if (child) await stopChild(child);
+    if (entitlementServer) {
+      await new Promise((resolve) => entitlementServer.close(() => resolve()));
+    }
     await rm(temporaryDirectory, { force: true, maxRetries: 3, recursive: true });
   }
 };
@@ -410,7 +436,7 @@ const main = async () => {
   if (JSON.stringify(packedFiles) !== JSON.stringify(expectedFiles)) {
     fail(`unexpected tarball inventory: ${packedFiles.join(', ')}`);
   }
-  if (manifest.version !== '0.2.6') fail(`expected release candidate 0.2.6, found ${manifest.version}`);
+  if (manifest.version !== '0.3.0') fail(`expected release candidate 0.3.0, found ${manifest.version}`);
   if (manifest.license !== 'Apache-2.0') fail(`expected Apache-2.0 license, found ${manifest.license}`);
   if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
@@ -501,7 +527,7 @@ const main = async () => {
     if (!expression.test(runtimeSource)) fail(`missing security invariant: ${label}`);
   }
   if (runtimeProtocol !== browserProtocol) fail('browser and runtime protocol versions differ');
-  if (runtimeProtocol !== 2) fail(`release candidate must implement protocol v2, found v${runtimeProtocol}`);
+  if (runtimeProtocol !== 3) fail(`release candidate must implement protocol v3, found v${runtimeProtocol}`);
 
   if (installSmoke) {
     await runInstallSmoke(

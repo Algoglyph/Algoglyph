@@ -2,18 +2,23 @@
 
 ## Release and compatibility status
 
-The browser workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.2.6` implement protocol v2. No repository test or validation command publishes the package.
+The web workspace, repository connector, and npm package `@algoglyph/mcp-connector@0.3.0` implement protocol v3. Browser pairing requires a verified paid MCP entitlement. Electron paid pairing is unsupported in V1. No repository test or validation command publishes the package.
 
 The browser and connector exchange a numeric protocol version in `/health` and fail closed on a mismatch. Package release validation also requires the package version, runtime version, browser protocol, and connector protocol to agree.
 
-Version 0.2.6 starts Antigravity only for an authorized request and restores the normal one-shot Agy profile on macOS. It includes the 0.2.5 production CLI-discovery fix, the 0.2.3 cross-platform Codex, Claude Code, and Antigravity execution pipeline, the 0.2.2 supply-chain packaging controls, and the earlier security and reliability hardening.
+Version 0.3.0 adds direct backend redemption of short-lived paid entitlement grants while retaining the 0.2.6 Antigravity lifecycle fix, production CLI discovery, cross-platform agent pipeline, supply-chain controls, and earlier security hardening.
 
 ```text
 AlgoGlyph browser/app
         |
-        | exact-origin CORS + scoped bearer session
+        | Firebase ID token + App Check
+        v
+AlgoGlyph billing backend -- verified entitlement + single-use bound grant
+        |
+        | exact-origin CORS + local pairing credential + entitlement grant
         v
 127.0.0.1 connector
+        |-- direct grant redemption --> fixed https://api.algoglyph.com
         |-- fixed local agent adapters --> isolated Codex / Claude / Antigravity run
         `-- approved HTTPS/loopback URL --> one explicitly selected MCP server
 ```
@@ -25,7 +30,7 @@ The connector is a same-user loopback service. It must never be bound to or forw
 Public package:
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.6
+npx --yes @algoglyph/mcp-connector@0.3.0
 ```
 
 Repository checkout:
@@ -43,17 +48,19 @@ Automatic discovery checks only the default endpoint. If `ALGOGLYPH_CONNECTOR_PO
 ### Pairing sequence
 
 1. For a public web origin without an existing grant, the user chooses **Connect MCP** and approves the browser's Local Network access prompt.
-2. The browser requests `/health` and verifies service identity and protocol v2.
+2. The browser requests `/health` and verifies service identity and protocol v3.
 3. A trusted browser origin requests a one-time credential with `POST /v1/pairings`.
 4. The connector binds the credential to that exact origin, requested capability scopes, and a 90-second expiry.
-5. The same origin redeems it once at `POST /v1/session`.
-6. The credential is destroyed and the returned session token is stored only in that tab's `sessionStorage`.
-7. Authenticated requests carry `Authorization: Bearer <session token>` and are checked for the required endpoint scope.
-8. Disconnect uses `POST /v1/session/revoke`, clears browser state, terminates owned work, and destroys owned MCP approvals/warm state.
+5. The signed-in browser hashes that credential and asks the AlgoGlyph backend for a grant using Firebase ID token + App Check. The backend verifies active/grace `mcpAccess` and binds the random 90-second grant to the credential hash, workspace, origin, connector version, and scopes.
+6. The browser sends the raw pairing credential and raw grant once to `POST /v1/session`; neither is stored in browser persistent storage.
+7. The connector redeems the grant directly against the fixed AlgoGlyph backend. Atomic redemption consumes it and returns allowed scopes plus entitlement expiry.
+8. The local credential is destroyed and the paid session token is stored only in that tab's `sessionStorage`.
+9. Authenticated requests carry `Authorization: Bearer <session token>` and are checked for the required endpoint scope.
+10. Disconnect uses `POST /v1/session/revoke`, clears browser state, terminates owned work, and destroys owned MCP approvals/warm state.
 
-Pairing issuance and redemption are separately rate-limited. Credentials are random, single-use, origin-bound, time-limited, and never valid as normal operation tokens. Sessions have an absolute eight-hour lifetime, a 30-minute inactivity timeout, a bounded process-wide count, least-recently-used eviction, and explicit revocation. Expiry/eviction uses the same cleanup path as manual revocation.
+Pairing issuance, grant creation, grant redemption, and session redemption are separately rate-limited. Credentials and grants are random, single-use, origin-bound, time-limited, and never valid as normal operation tokens. Paid sessions last at most 30 minutes and never beyond entitlement expiry; renewal repeats the paid grant flow and fails closed if the backend is unavailable. Sessions retain bounded counts, least-recently-used eviction, explicit revocation, and the same cleanup path for expiry/eviction.
 
-`ALGOGLYPH_CONNECTOR_TOKEN` is an advanced manual fallback, not part of automatic pairing. It must contain at least 32 bytes of unpredictable secret material and is never printed.
+`ALGOGLYPH_CONNECTOR_TOKEN` is an advanced originless operator/test credential, not part of browser pairing. It must contain at least 32 bytes of unpredictable secret material, is never printed, and is rejected whenever a browser `Origin` is present.
 
 ## Origin, Host, and browser controls
 
@@ -156,7 +163,7 @@ The HTTP server applies header count/size, headers timeout, request timeout, kee
 | --- | --- | --- |
 | `GET /health`, `GET /v1/health` | Public loopback discovery | Fixed service/version/protocol/availability data only. |
 | `POST /v1/pairings` | Trusted browser origin | Rate-limited one-time credential issuance. |
-| `POST /v1/session` | Matching origin + one-time credential | Rate-limited single redemption. |
+| `POST /v1/session` | Matching origin + one-time credential + paid entitlement grant | Connector redeems the bound grant directly; rate-limited single redemption. |
 | `GET /v1/catalog` | Bearer | `catalog:read`; fixed version probes only. |
 | `POST /v1/mcp/test` | Bearer | `mcp:test`; guarded endpoint inspection and approval. |
 | `POST /v1/mcp/invoke` | Bearer | `mcp:invoke`; exact approved tool plus confirmation. |
@@ -173,7 +180,7 @@ Agent runs stream by default. `outputMode: "buffered"` is an additive option tha
 | `ALGOGLYPH_DEV_ORIGINS` | off | Value `1` enables only the two enumerated localhost development origins. |
 | `ALGOGLYPH_PREVIEW_ORIGINS` | off | Value `1` explicitly trusts the public `https://algoglyph.pages.dev` preview origin. |
 | `ALGOGLYPH_ALLOWED_ORIGINS` | empty | Explicitly delegates browser access to additional exact origins. |
-| `ALGOGLYPH_CONNECTOR_TOKEN` | random in-memory fallback | Optional manual bearer; minimum 32 bytes, never printed. |
+| `ALGOGLYPH_CONNECTOR_TOKEN` | random in-memory fallback | Optional originless operator bearer; minimum 32 bytes, never printed, and never accepted from a browser origin. |
 
 Test-only environment overrides are accepted only when `NODE_ENV=test`; production ignores them.
 
@@ -191,7 +198,7 @@ The release candidate pins its seven direct runtime dependencies exactly:
 
 The package requires Node `>=20.18.1`, matching the reviewed `undici` engine floor. `node-pty` is the only direct native-code dependency and is used for the warm Antigravity terminal. Its reviewed install step selects the platform artifact included in the package and falls back to `node-gyp` compilation when necessary. The AlgoGlyph package manifest contains no lifecycle scripts.
 
-The audited 21-package production tree is fixed in a source-only `packages/mcp-connector/package-lock.json`, down from 98 packages with the monolithic MCP SDK. npm excludes that review lock from the published dependency package, avoiding Socket's high-severity shrinkwrap heuristic. Release validation rejects a lock that is missing or out of sync, requires every reviewed dependency to have npm-registry integrity metadata, compares a clean packed install with the reviewed package identities, and audits the installed artifact. Integration coverage also connects the modular v2 relay to a legacy v1 MCP client and upstream server.
+The audited 21-package production tree is fixed in a source-only `packages/mcp-connector/package-lock.json`, down from 98 packages with the monolithic MCP SDK. npm excludes that review lock from the published dependency package, avoiding Socket's high-severity shrinkwrap heuristic. Release validation rejects a lock that is missing or out of sync, requires every reviewed dependency to have npm-registry integrity metadata, compares a clean packed install with the reviewed package identities, and audits the installed artifact. Integration coverage also connects the protocol-v3 connector's modular MCP relay to a legacy v1 MCP client and upstream server.
 
 Only these files may enter the tarball:
 

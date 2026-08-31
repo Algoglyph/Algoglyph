@@ -33,33 +33,40 @@ export const PrivacyPage: React.FC = () => {
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">1. Information We Collect</h2>
             <p>
-              When you use Algoglyph, we collect minimal information required to provide the service. We use PostHog for analytics to understand how visitors interact with our tools. If you choose to sign in with Google, Firebase Authentication processes your Google account identifier, display name, email address, and profile photo to maintain your session and show your account in the interface.
+              When you use Algoglyph, we collect minimal information required to provide the service. We use PostHog for analytics to understand how visitors interact with our tools. If you choose to sign in with Google or purchase MCP access, Firebase processes your Google account identifier, display name, email address, profile photo, personal workspace membership, subscription status, and MCP entitlement records.
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">2. How We Use Your Data</h2>
             <p>
-              We use your data solely to operate and improve the Algoglyph platform. We do not sell your personal data to third parties. Google account information is used only for optional authentication; it is not linked to PostHog profiles. Your workspace data, including notes, code, and canvas drawings, remains in your browser's IndexedDB and is not uploaded to Firebase when you sign in.
+              We use your data solely to operate and improve the Algoglyph platform, administer subscriptions, prevent payment and connector abuse, and authorize paid MCP sessions. We do not sell your personal data to third parties. Google account information is not linked to PostHog profiles. Your workspace content—including notes, code, and canvas drawings—remains in your browser's IndexedDB and is not uploaded to Firebase when you sign in or subscribe.
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-3">3. Third-Party Services</h2>
             <p>
-              Optional Google sign-in is provided through Google and Firebase Authentication. We also use third-party APIs such as Wandbox for code compilation. Code that you run in the Sandbox Compiler is sent to Wandbox to be executed and returned. Do not submit sensitive personal information or proprietary secrets through the code runner.
+              Optional Google sign-in and server-owned subscription records use Google Firebase. Stripe processes international/USD subscription checkout, and Razorpay processes India/INR subscription checkout. Those processors receive payment and transaction information under their own privacy terms; Algoglyph does not receive complete card details. We also use Wandbox for code compilation. Code that you run in the Sandbox Compiler is sent to Wandbox to be executed and returned. Do not submit sensitive personal information or proprietary secrets through the code runner.
             </p>
           </section>
 
           <section>
-            <h2 className="text-white text-xl font-semibold mb-3">4. Security</h2>
+            <h2 className="text-white text-xl font-semibold mb-3">4. Billing and Connector Records</h2>
+            <p>
+              We retain provider customer and subscription identifiers, verified payment-event identifiers, entitlement status, short-lived connector-grant hashes, and security audit records. Raw connector grants are not stored. These records do not include your notes, canvas, code, prompts, complete card number, or card security code.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-white text-xl font-semibold mb-3">5. Security</h2>
             <p>
               We implement industry-standard security measures to protect your data. Since Algoglyph primarily operates as a client-side sandbox, the vast majority of your data never leaves your device.
             </p>
           </section>
 
           <section>
-            <h2 className="text-white text-xl font-semibold mb-3">5. Contact Us</h2>
+            <h2 className="text-white text-xl font-semibold mb-3">6. Contact Us</h2>
             <p>
               If you have any questions regarding this Privacy Policy, please contact us via the form on our home page.
             </p>

@@ -11,6 +11,9 @@ npm run dev            # Vite dev server on http://localhost:5173 (web app)
 npm run build          # tsc -b (typecheck) then vite build → dist/
 npm run test:mcp       # MCP connector integration/security baseline
 npm run lint:mcp       # MCP connector, browser client, and install-command UI lint
+npm run build:functions # Typecheck the Firebase billing backend
+npm run test:billing   # Billing/provider unit tests
+npm run test:firebase  # Firestore rules + transactional backend tests (Java 21+)
 npm run test:diagrams  # Deterministic diagram layout and overlap regressions
 npm run preview        # serve the built dist/ locally (verify a production build)
 npm run lint           # eslint . (flat config in eslint.config.js)
@@ -19,7 +22,7 @@ npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg
 ```
 
 - **Running the desktop app in dev requires two processes**: `main.cjs` loads `http://localhost:5173` when not packaged, so run `npm run dev` first, then `npm run electron` in a second shell. The packaged build instead loads `dist/index.html`. The dev URL in `main.cjs` is **hardcoded to 5173** even though `vite.config.ts` honors a `PORT` env var — so don't override `PORT`, or Electron will point at the wrong (empty) port.
-- **Testing is focused rather than repository-wide.** `npm run test:mcp` uses Node's built-in test runner against a real temporary loopback connector process; `npm run test:mcp:package -- --install-smoke` verifies the packed package, dependency signatures/audit, clean install, health, and native PTY; `npm run lint:mcp` checks the release surface; `npm run test:diagrams` checks deterministic layout/overlap regressions. General verification still includes `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build. Production MCP publishing is gated by `.github/workflows/publish-mcp.yml` after configuring npm trusted publishing for that exact workflow; only its minimal post-verification job receives OIDC publish authority.
+- **Testing is focused rather than repository-wide.** `npm run test:mcp` uses Node's built-in test runner against a real temporary loopback connector process; `npm run test:mcp:package -- --install-smoke` verifies the packed package, dependency signatures/audit, clean install, health, and native PTY; `npm run lint:mcp` checks the release surface. Billing changes also require `npm run test:billing` and the Java-21-backed `npm run test:firebase` emulator gate. `npm run test:diagrams` checks deterministic layout/overlap regressions. General verification still includes `npm run lint` plus the typecheck that `npm run build` performs (`tsc -b`). `tsconfig.app.json` enables `noUnusedLocals`/`noUnusedParameters`, so unused code fails the build. Production MCP publishing is gated by `.github/workflows/publish-mcp.yml` after configuring npm trusted publishing for that exact workflow; only its minimal post-verification job receives OIDC publish authority.
 - `vite.config.ts` sets `base: './'` (relative asset paths) so the same build works under Electron's `file://`.
 - **`build/icon.png` is a committed *source* asset, not generated output** — it's the electron-builder app icon (`package.json` → `build.{win,mac}.icon`). The generated outputs are `dist/` (web bundle) and `release/` (packaged installers); only those are gitignored. Don't delete or gitignore `build/`.
 
@@ -53,8 +56,10 @@ Several modules talk through globals instead of props: `window.excalidrawAPI` (s
 ### Code runner (the only non-local-first feature)
 `CodeEditor.tsx` + `src/lib/wandbox.ts` send code to the public **Wandbox** API for remote compile/run; this is the only feature that needs the network. `src/config/languages.ts` maps each language to its Wandbox compiler (`wandboxLanguage` + optional `preferPattern` regex), its CodeMirror highlighting extension, and a starter template.
 
-### Auth (optional, web only)
-`src/components/AuthProvider.tsx` owns the shared identity state and lazily imports `src/lib/firebaseAuth.ts`, keeping the Firebase SDK out of the initial bundle. The landing header and workspace toolbar consume that provider through explicit account-control variants. Google sign-in is optional and identity-only: it never gates `/workspace`, uploads IndexedDB workspace data, or identifies users to PostHog. Missing `VITE_FIREBASE_*` configuration and Electron both disable the auth controls without mock users or workspace impact.
+### Auth + paid MCP (optional, web only)
+`src/components/AuthProvider.tsx` owns shared identity and narrowly scoped ID-token/App Check retrieval while lazily loading `src/lib/firebaseAuth.ts`. Google sign-in never gates `/workspace`, uploads IndexedDB workspace data, or identifies users to PostHog; it is required only when a user opens paid MCP. Missing Firebase configuration and Electron disable auth/billing without affecting the local workspace.
+
+`firebase-functions/` is the trusted boundary for personal billing workspaces, Stripe/Razorpay hosted checkout, raw-body webhook verification, canonical subscriptions, 72-hour renewal grace, entitlements, and single-use connector grants. Firestore client rules deny every direct read/write. `src/lib/billing/` is only a typed authenticated API client; never place prices, provider secrets, payment truth, or entitlement mutation in the browser. The official connector is protocol v3: it redeems an origin/pairing/version/scope-bound grant directly against the fixed production backend, creates sessions for at most 30 minutes, rejects the operator token on browser-origin requests, and fails closed on entitlement outages. Keep workspace content and prompts out of Firebase and billing logs. Deployment and incident procedures live in `docs/billing-deployment.md`.
 
 The project-scoped `.mcp.json` registers the official Firebase MCP server through pinned `firebase-tools@15.28.1` with `--only auth`. Claude Code must approve the project server once, and the server then uses the Firebase CLI user's credentials. Treat `auth_update_user` and other mutating Firebase tools as production changes: confirm the active project and exact user before approving them. Do not broaden the enabled feature groups unless the application starts using those Firebase services.
 
