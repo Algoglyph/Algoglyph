@@ -8,8 +8,14 @@ interface LandingContinuationProps {
 }
 
 type CopyState = 'idle' | 'copied' | 'error';
+type InstallPlatform = 'macos' | 'windows';
 
 const CONNECTOR_COMMAND = 'npx --yes @algoglyph/mcp-connector@0.2.6';
+
+const INSTALL_PLATFORMS: Record<InstallPlatform, { label: string; terminal: string; prompt: string }> = {
+  macos: { label: 'macOS', terminal: 'Terminal', prompt: '$' },
+  windows: { label: 'Windows', terminal: 'PowerShell', prompt: '>' },
+};
 
 const WORKFLOWS = [
   {
@@ -356,6 +362,7 @@ function AizawaAttractorVisual() {
 
 function InstallConnector() {
   const [copyState, setCopyState] = useState<CopyState>('idle');
+  const [platform, setPlatform] = useState<InstallPlatform>('macos');
   const resetTimer = useRef<number | null>(null);
 
   useEffect(
@@ -380,65 +387,104 @@ function InstallConnector() {
 
   const CopyIcon = copyState === 'copied' ? Check : copyState === 'error' ? AlertTriangle : Copy;
   const copyLabel = copyState === 'copied' ? 'Copied' : copyState === 'error' ? 'Select command' : 'Copy command';
+  const activePlatform = INSTALL_PLATFORMS[platform];
+
+  const steps = [
+    {
+      label: 'Install the prerequisites',
+      detail: 'Node.js 20.18.1+ with npm/npx, plus one installed and signed-in CLI: Codex, Claude Code, or Antigravity.',
+    },
+    { label: 'Run the command' },
+    { label: 'Keep the terminal open' },
+    { label: 'Open Ask AI in your workspace' },
+  ] as const;
 
   return (
-    <section className="bg-[#050708] px-5 pb-10 pt-14 text-white sm:px-12 sm:pb-12 sm:pt-20">
-      <div className="mx-auto max-w-[1320px]">
-        <h2 className="text-[clamp(1.8rem,3vw,2.7rem)] font-semibold tracking-[-0.035em]">
-          Quick start
+    <section className="bg-[#050708] px-5 py-[clamp(3.25rem,6vw,6rem)] text-white sm:px-10 lg:px-14">
+      <div className="mx-auto max-w-[1180px]">
+        <h2
+          className="text-[clamp(2.25rem,4vw,4.25rem)] font-normal leading-none tracking-[0.01em] text-[#f4f7f8]"
+          style={{ fontFamily: '"Landing Virgil", cursive' }}
+        >
+          Quick start MCP
         </h2>
 
-        <div className="mt-7 border border-white/14 bg-[#0a0c0d]">
-          <div className="border-b border-white/12 px-4 py-6 sm:px-6 sm:py-7">
-            <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-white/56">
-              Before you start
-            </span>
-            <div className="mt-5 grid gap-5 sm:grid-cols-3 sm:gap-7">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-hero-cyan)]">01 / Runtime</p>
-                <p className="mt-2 text-sm leading-6 text-white/72">Node.js 20.18.1 or newer, with npm/npx.</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-hero-cyan)]">02 / Choose one CLI</p>
-                <p className="mt-2 text-sm leading-6 text-white/72">Codex CLI, Antigravity CLI, or Claude Code. You do not need all three.</p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--lp-hero-cyan)]">03 / Authenticate</p>
-                <p className="mt-2 text-sm leading-6 text-white/72">Sign in to that CLI, or configure one of its supported API keys, before using Ask AI.</p>
-              </div>
-            </div>
-            <p className="mt-5 font-mono text-[11px] leading-5 text-white/44">
-              Supported setup: Windows or macOS.
-            </p>
-          </div>
+        <div
+          className="mt-[clamp(2.5rem,4.5vw,4.5rem)] flex border-b border-white/12"
+          role="tablist"
+          aria-label="Choose your operating system"
+        >
+          {(Object.entries(INSTALL_PLATFORMS) as [InstallPlatform, (typeof INSTALL_PLATFORMS)[InstallPlatform]][]).map(([key, item]) => (
+            <button
+              key={key}
+              id={`quick-start-tab-${key}`}
+              type="button"
+              role="tab"
+              aria-controls="quick-start-command"
+              aria-selected={platform === key}
+              onClick={() => setPlatform(key)}
+              className={`relative min-h-10 cursor-pointer px-0 pr-9 font-mono text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--lp-hero-cyan)] sm:text-[11px] ${
+                platform === key ? 'text-white' : 'text-white/30 hover:text-white/64'
+              }`}
+            >
+              {item.label}
+              {platform === key && <span aria-hidden="true" className="absolute inset-x-0 -bottom-px h-px bg-white" />}
+            </button>
+          ))}
+        </div>
 
-          <div className="flex min-h-14 items-center justify-between gap-6 border-b border-white/12 px-4 sm:px-6">
-            <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-white/56">
-              MCP connector
+        <div
+          id="quick-start-command"
+          role="tabpanel"
+          aria-labelledby={`quick-start-tab-${platform}`}
+          className="mt-5 max-w-[920px] overflow-hidden rounded-[26px] border border-white/12 bg-[#07090a] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_18px_60px_rgba(0,0,0,0.22)]"
+        >
+          <div className="flex min-h-[46px] items-center justify-between gap-5 border-b border-white/10 bg-white/[0.008] px-4 sm:px-5">
+            <span className="font-mono text-[9px] font-medium uppercase tracking-[0.19em] text-white/34 sm:text-[10px]">
+              <span aria-hidden="true" className="mr-3 text-white/48">&gt;_</span>
+              {activePlatform.terminal}
             </span>
             <button
               type="button"
               onClick={copyCommand}
-              className="group inline-flex min-h-11 cursor-pointer items-center gap-3 font-mono text-[11px] font-medium text-white/64 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] active:text-[var(--lp-hero-cyan)]"
+              aria-label={copyLabel}
+              className="group inline-flex size-9 cursor-pointer items-center justify-center text-white/34 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] active:text-[var(--lp-hero-cyan)]"
             >
-              <span aria-live="polite">{copyLabel}</span>
-              <CopyIcon aria-hidden="true" size={16} strokeWidth={1.7} />
+              <CopyIcon aria-hidden="true" size={17} strokeWidth={1.6} />
             </button>
           </div>
 
-          <div className="px-4 py-7 sm:px-7 sm:py-9">
-            <p className="font-mono text-[12px] italic text-white/48 sm:text-[14px]">
-              # Start the local bridge between AlgoGlyph and your AI CLI
-            </p>
-            <code className="mt-5 block overflow-x-auto whitespace-nowrap font-mono text-[clamp(1rem,2.35vw,1.75rem)] font-medium tracking-[-0.025em] text-white">
-              <span className="mr-3 text-[var(--lp-hero-cyan)]">$</span>
+          <div className="flex min-h-[84px] items-center px-5 py-5 sm:min-h-[92px] sm:px-7">
+            <code className="block max-w-full overflow-x-auto whitespace-nowrap font-mono text-[clamp(0.8125rem,1.35vw,1.125rem)] font-medium tracking-[-0.025em] text-white/76">
+              <span className="mr-3 text-white/32">{activePlatform.prompt}</span>
               {CONNECTOR_COMMAND}
             </code>
-            <p className="mt-5 max-w-3xl text-sm leading-6 text-white/56">
-              Keep this terminal command running. AlgoGlyph detects the loopback connector automatically and uses it to communicate with your installed local AI CLI.
-            </p>
+            <span className="sr-only" aria-live="polite">{copyState === 'idle' ? '' : copyLabel}</span>
           </div>
         </div>
+
+        <ol className="mt-10 border-t border-white/12">
+          {steps.map((step, index) => (
+            <li
+              key={step.label}
+              className="grid min-h-[64px] grid-cols-[2.75rem_1fr] items-center gap-3 border-b border-white/12 py-3.5 sm:grid-cols-[3.25rem_1fr] sm:gap-5"
+            >
+              <span className="font-mono text-[9px] tracking-[0.18em] text-white/24 sm:text-[10px]">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <div className="flex flex-col gap-1.5 lg:flex-row lg:items-baseline lg:gap-6">
+                <span className="font-mono text-[9px] font-medium uppercase tracking-[0.22em] text-white/62 sm:text-[10px]">
+                  {step.label}
+                </span>
+                {'detail' in step && (
+                  <span className="max-w-3xl text-[11px] leading-[1.55] text-white/38 sm:text-[12px]">
+                    {step.detail}
+                  </span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
