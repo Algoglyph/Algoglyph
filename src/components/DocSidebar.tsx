@@ -8,9 +8,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { javascript } from '@codemirror/lang-javascript';
 import { vscodeDark, vscodeLight } from '../config/editorTheme';
-import { BLOG_POSTS } from '../config/blogData';
-
-import { ROADMAP_ZONES } from '../config/roadmapData';
+import { ACTIVE_BLOG_POSTS as BLOG_POSTS, ACTIVE_ROADMAP_ZONES as ROADMAP_ZONES } from '../config/activeContent';
 
 const getNestedRoadmapUrl = (slug: string) => {
   const clean = slug.toLowerCase();

@@ -4,10 +4,9 @@ import type { DSAStructure } from '../config/dsaStructures';
 import { Search, CornerDownLeft, Info } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { insertStructureIntoCanvas } from '../lib/insertStructure';
-import { BLOG_POSTS } from '../config/blogData';
+import { ACTIVE_BLOG_POSTS as BLOG_POSTS, ACTIVE_ROADMAP_ZONES as ROADMAP_ZONES } from '../config/activeContent';
 import { ALGORITHMS } from '../config/algorithms';
 
-import { ROADMAP_ZONES } from '../config/roadmapData';
 
 const getNestedRoadmapUrl = (slug: string) => {
   const clean = slug.toLowerCase();

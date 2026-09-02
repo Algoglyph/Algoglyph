@@ -86,18 +86,19 @@ This document provides comprehensive context, architectural guidelines, and tech
 
 The application contains an extensive technical blog catalog integrated directly into the Roadmap interface:
 
-1. **Blog Data Storage**:
-   - `src/config/blogData.ts`: Core `BlogPost` interface and primary article catalog (`BLOG_POSTS`) covering Data Structures, Algorithms, Systems, Databases, Networks, OS, System Design, Software Engineering, and Theoretical CS.
-   - `src/config/deBlogData.ts`: Dictionary (`deBlogData: Record<string, string>`) storing Data Engineering, Distributed Systems, Message Brokers, CDC, Consensus (Raft/Paxos), and Backend articles.
-   - `src/config/mlBlogData.ts`: Dictionary (`ML_BLOG_DATA: Record<string, string>`) storing Machine Learning, Deep Learning, Transformers, LLM RAG/Fine-Tuning, Quantization, and MLOps articles.
-   - `src/config/roadmapData.ts`: Connects every subtopic in the roadmap to its designated `blogSlug`, `visualizerId`, code snippet, and difficulty rating.
-   - **Illustration Assets** (`illustrationData.ts`, `deIllustrationData.ts`, `mlIllustrationData.ts`, `topicIllustrationData.ts`): Inline SVG visual diagrams mapped to topics for rich rendering.
+1. **Canonical article bodies**:
+   - Canonical long-form articles are separate Markdown files under `content/<topic>/<public-slug>.md`, with no nested topic/subtopic folders. DSA uses `content/dsa/`; topics not yet migrated retain their roadmap-zone folder. `src/config/contentScope.json` is the reversible live-content allowlist shared by the UI and SEO/build scripts; `src/config/activeContent.ts` filters the current website without deleting the complete catalogs.
+   - `scripts/auditArticleInventory.mjs` reports the full roadmap article inventory against the populated canonical Markdown corpus. Its strict mode is the final-corpus gate.
+   - `scripts/generateArticleIndex.mjs` validates those one-level sources and generates `src/generated/articleContent.ts`. The generated module is derived build input, never an editorial source.
+   - `src/config/blogData.ts` retains the existing `BlogPost` metadata catalog and overlays each matching post with its canonical Markdown by public slug. Do not embed duplicate bodies in this file.
+   - `src/config/deBlogData.ts` and `src/config/mlBlogData.ts` remain separate legacy catalogs for content not yet part of the canonical 26-article corpus.
+   - `src/config/roadmapData.ts` connects roadmap subtopics to stable public `blogSlug` values, visualizers, snippets, and difficulty metadata. Physical topic folders do not change public URLs.
+   - Primary article visuals are mapped deterministically from the public slug under `public/images/dsa/`, with the existing format fallback where applicable. Inline explanatory SVGs remain inside their canonical Markdown files.
 
-2. **BlogPost Data Contract**:
-   - `slug`: Unique identifier string (e.g. `arrays`, `de-message-tools`, `kmp-algorithm`).
-   - `title` & `tagline`: Article title and summary subtitle.
-   - `markdown`: In-depth technical Markdown text containing LaTeX math equations (`$$...$$` or `$...$`), inline SVG architecture diagrams, hardware cache locality insights, comparative C++/Python implementations, concept check Q&A, and LeetCode practice problems.
-   - `category`, `readTime`, `lastUpdated`, `prerequisites`, `related`, `nextTopic`, `prevTopic`, `practiceProblems`, `visualizerId`.
+2. **Canonical article contract**:
+   - Each source has one H1 and the eight subject-specific semantic H2 stages documented in `docs/article-authoring.md`.
+   - Markdown uses `$...$` and `$$...$$` for KaTeX, renderer-safe code-fence labels, and safe inline SVG only.
+   - The eight-stage structure must organize real topic-specific material; never manufacture filler, copy a shared template body, or add placeholder sections.
 
 3. **Blog Reader & Markdown Rendering Engine (`RoadmapPage.tsx`)**:
    - `articleMarkdownToHtml` parses Markdown strings into formatted HTML:
@@ -108,26 +109,17 @@ The application contains an extensive technical blog catalog integrated directly
 
 ---
 
-## 4. Mechanisms Used to Write, Generate & Manage Blogs
+## 4. Writing, Generating & Validating Canonical Articles
 
-Writing and maintaining hundreds of deep technical articles in the project is driven by an automated Python and Node.js scripting pipeline:
+The canonical workflow is intentionally direct:
 
-1. **Structured Content Generation**:
-   - Python generation scripts (`.scratch_gen.py`, `generate_json.py`, `generate_json_correct.py`, `make_json.py`, `save_batch_V.py`) construct structured Markdown articles containing LaTeX math, inline SVGs, code implementations, hardware analysis, and concept check questions.
-   - Output files are generated into JSON batch structures (`scratch/batch_*.json`, `articles.json`, `extracted_articles.json`, `scratch/system_design_batch*.py`).
+1. Create or edit exactly one source at `content/<topic>/<public-slug>.md` using `docs/article-authoring.md`; DSA articles belong directly in `content/dsa/`.
+2. Preserve topic-specific substance and normalize only genuine structure, Markdown, LaTeX, code, trace, or visual defects. Do not use the retired JSON batch/extraction/injection pipeline.
+3. Run `npm run content:index` to regenerate `src/generated/articleContent.ts` from Markdown.
+4. Run `npm run content:inventory`, `npm run test:content`, `npm run build`, and `npm run test:seo`. The content validator checks source uniqueness, headings, KaTeX, fenced languages, SVG safety, deterministic images, metadata, roadmap routes, generated-index freshness, one-level folder structure, and sitemap inclusion.
 
-2. **Batch Integration & Injection Pipeline**:
-   - `integrate_batch.py` & `integrate_scratch.py`: Python scripts that read JSON batch files, safely escape string literals (e.g., backticks `\`` and template strings `${}`), and dynamically replace empty slot placeholders (`'de-xxx': ''`) in `deBlogData.ts` with complete raw Markdown template literals.
-   - `add_backend_batch1_entries.cjs` & `add_backend_batch2_entries.cjs`: Node.js scripts that dynamically register new backend and game development blog entries into `blogData.ts` and `roadmapData.ts`.
-   - `inject_batch2.cjs`, `inject_phase1.cjs`, `inject_phase2.cjs`: Node.js scripts for bulk appending article objects into `blogData.ts`.
-   - `update_deBlogData.py`, `update_de_blog_data.py`, `update_AB.py`, `update_batch_m.py`: Python helper utilities for maintaining synchronization across dictionary entries.
+Production discovery and SEO remain handled by the existing tools:
 
-3. **Backtick Fixers & Code Block Cleaners**:
-   - `fix_backticks.py` & `fix_backticks_new.py`: Python cleanup tools that inspect TypeScript configuration files, repair corrupted Markdown code fences, escape inner backticks, and ensure valid JS/TS template literal syntax.
-   - `fix_blogs.cjs`: Node.js utility for formatting code snippets and escaping special characters.
-
-4. **Auditing & Verification Tools**:
-   - `check_articles.py`, `check_code.py`, `check_backend_status.cjs`, `find_missing_blogs.cjs`: Audit scripts that verify that every roadmap concept maps to a valid non-empty blog slug, ensure syntax highlighting blocks compile without syntax errors, and flag missing articles.
    - `scripts/generateSitemap.js`: Generates `public/sitemap.xml` from canonical public routes and finished roadmap content, with source-derived modification dates.
    - `scripts/generateStaticSeoPages.mjs`: Emits per-route HTML metadata, H1/intro content, breadcrumbs, internal links, and JSON-LD for direct deep-route requests.
    - `npm run test:seo`: Validates sitemap uniqueness, static route coverage, canonicals, JSON-LD, H1s, robots discovery, and internal route links.
@@ -146,4 +138,4 @@ Writing and maintaining hundreds of deep technical articles in the project is dr
 - **Excalidraw Integration**: Treat Excalidraw as an externally managed canvas. When updating drawings programmatically, call `updateScene` rather than triggering React state updates on the Excalidraw component.
 - **Styling Standards**: Use Tailwind CSS v4 utility classes combined with custom CSS design tokens defined in `src/index.css`.
 - **Search System**: Keep search indexing updated in `src/components/SearchPalette.tsx` whenever adding new user data forms or documentation modules.
-- **Blog Content Maintenance**: When adding or updating blog posts in `blogData.ts`, `deBlogData.ts`, or `mlBlogData.ts`, ensure template literal backticks are properly escaped (`\``) and run `check_articles.py` / `check_code.py` to confirm slug mapping and syntax highlighting validity.
+- **Canonical Article Maintenance**: Edit canonical long-form bodies only under `content/<topic>/<public-slug>.md`, regenerate with `npm run content:index`, audit all-topic coverage with `npm run content:inventory` and DSA coverage with `npm run content:inventory:dsa`, then validate with `npm run test:content` plus `npm run test:seo`. Never edit `src/generated/articleContent.ts` directly or duplicate canonical bodies in `blogData.ts`.

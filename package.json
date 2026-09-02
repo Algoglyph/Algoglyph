@@ -5,7 +5,15 @@
   "type": "module",
   "main": "main.cjs",
   "scripts": {
+    "predev": "npm run content:index",
     "dev": "vite",
+    "content:inventory": "node scripts/auditArticleInventory.mjs",
+    "content:inventory:strict": "node scripts/auditArticleInventory.mjs --strict",
+    "content:inventory:dsa": "node scripts/auditDsaInventory.mjs",
+    "content:inventory:dsa:strict": "node scripts/auditDsaInventory.mjs --strict",
+    "content:index": "node scripts/generateArticleIndex.mjs",
+    "test:content": "node scripts/validateContentSystem.mjs",
+    "test:content:code": "node scripts/validateDsaCodeExamples.mjs",
     "mcp:connector": "node scripts/algoglyph-mcp-connector.mjs",
     "test:mcp": "node --test --test-concurrency=1 packages/mcp-connector/test/connector.integration.test.mjs",
     "test:mcp:ui": "node --test packages/mcp-connector/test/browser-connection-state.test.mjs",
@@ -22,7 +30,7 @@
     "electron:build": "ELECTRON_BUILD=1 npm run build && electron-builder",
     "library:catalog": "node scripts/generateLibraryCatalog.mjs",
     "seo:sitemap": "node scripts/generateSitemap.js",
-    "prebuild": "node scripts/generateLibraryCatalog.mjs && node scripts/generateSitemap.js"
+    "prebuild": "npm run content:index && node scripts/generateLibraryCatalog.mjs && node scripts/generateSitemap.js"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",

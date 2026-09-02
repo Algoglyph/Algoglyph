@@ -1,7 +1,6 @@
-import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
-import { ROADMAP_ZONES } from '../config/roadmapData';
 import type { Concept, RoadmapZone, Subtopic, Topic } from '../config/roadmapData';
+import { ACTIVE_BLOG_POSTS as BLOG_POSTS, ACTIVE_ROADMAP_ZONES as ROADMAP_ZONES } from '../config/activeContent';
 import { SITE_IDENTITY } from '../config/siteIdentity';
 
 export const SITE_URL = SITE_IDENTITY.url;
@@ -179,4 +178,3 @@ export const buildWebsiteSchema = () => ({
   url: SITE_URL,
   publisher: { '@id': `${SITE_URL}/#organization` },
 });
-

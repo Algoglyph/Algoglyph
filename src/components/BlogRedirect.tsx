@@ -1,5 +1,5 @@
 import { Navigate, useParams } from 'react-router-dom';
-import { ROADMAP_ZONES } from '../config/roadmapData';
+import { ACTIVE_ROADMAP_ZONES as ROADMAP_ZONES } from '../config/activeContent';
 
 export function BlogRedirect() {
   const { slug } = useParams();
@@ -18,4 +18,3 @@ export function BlogRedirect() {
 
   return <Navigate to="/roadmap" replace />;
 }
-

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { ROADMAP_ZONES } from '../config/roadmapData';
+import { ACTIVE_ROADMAP_ZONES as ROADMAP_ZONES } from '../config/activeContent';
 
 interface RoadmapConvergenceProps {
   roadmapProgress: Record<string, 'Not Started' | 'In Progress' | 'Completed'>;

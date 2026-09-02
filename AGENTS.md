@@ -12,6 +12,8 @@ npm run build          # tsc -b (typecheck) then vite build → dist/
 npm run test:mcp       # MCP connector integration/security baseline
 npm run lint:mcp       # MCP connector, browser client, and install-command UI lint
 npm run test:diagrams  # Deterministic diagram layout and overlap regressions
+npm run content:inventory # Report roadmap article inventory vs canonical Markdown coverage
+npm run test:content   # Canonical article, Markdown/LaTeX/SVG, route, image, and sitemap checks
 npm run preview        # serve the built dist/ locally (verify a production build)
 npm run lint           # eslint . (flat config in eslint.config.js)
 npm run electron       # launch Electron against a RUNNING dev server (see below)
@@ -36,6 +38,8 @@ npm run electron:build # npm run build + electron-builder → release/ (nsis/dmg
 
 ### Public discovery surfaces
 Public routes include the landing page, `/about`, `/workspace`, the `/roadmap` hierarchy, privacy, terms, and the 404 page. Canonical brand facts live in `src/config/siteIdentity.ts`; reusable route metadata/schema lives in `src/components/SEO.tsx`. `scripts/generateSitemap.js` submits only canonical finished resources, while `scripts/generateStaticSeoPages.mjs` emits route-specific crawlable HTML after the Vite build (unfinished syllabus entries remain reachable but `noindex`). Run `npm run test:seo` after changing routing, public content, metadata, sitemap logic, or static generation.
+
+Canonical long-form article bodies live only in `content/<topic>/<public-slug>.md`, with no nested topic/subtopic folders. DSA uses `content/dsa/`; topics not yet migrated retain their roadmap-zone folder. `src/config/contentScope.json` is the reversible live-content allowlist shared by the UI and SEO/build scripts; `src/config/activeContent.ts` applies it without deleting the full roadmap or article catalogs. `scripts/generateArticleIndex.mjs` builds the derived `src/generated/articleContent.ts` module consumed by `src/config/blogData.ts`; article metadata and stable public roadmap routes remain owned by the existing TypeScript catalogs. Never edit the generated module or reintroduce independent article-body copies in JSON/TypeScript. Use `npm run content:inventory` for the full roadmap and `npm run content:inventory:dsa` for the normalized DSA corpus. See `docs/article-authoring.md`, run `npm run content:index` after editing articles, and run `npm run test:content` plus `npm run test:seo` after content, route, image, or metadata changes.
 
 ### Cross-component coordination via `window` globals
 Several modules talk through globals instead of props: `window.excalidrawAPI` (set by `Canvas.tsx`, used by structure insertion + search), `window.notesEditor` (TipTap instance, used by search), `window.useWorkspaceStore`, and `window.goToLanding`. The `SearchPalette` drives both of these to jump to and highlight matches across tabs.

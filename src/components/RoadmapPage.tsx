@@ -9,10 +9,9 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
-import { ROADMAP_ZONES } from '../config/roadmapData';
 import type { Concept, RoadmapZone, Topic } from '../config/roadmapData';
-import { BLOG_POSTS } from '../config/blogData';
 import type { BlogPost } from '../config/blogData';
+import { ACTIVE_BLOG_POSTS as BLOG_POSTS, ACTIVE_ROADMAP_ZONES as ROADMAP_ZONES, getActiveArticleImage } from '../config/activeContent';
 import { ML_BLOG_DATA } from '../config/mlBlogData';
 import { deBlogData } from '../config/deBlogData';
 import { getArticleRouteBySlug, getBreadcrumbs, getRelatedArticleRoutes } from '../lib/seoRoutes';
@@ -61,6 +60,7 @@ const renderInlineMarkdown = (text: string): string => {
   // 3. Render bold, images, and links
   let html = parsedText
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
     .replace(/!\[([^\]]*)\]\(([^)]+?)(#light|#dark)?\)/g, (_, alt, src, themeHash) => {
       let classes = 'my-6 max-w-full rounded-lg border border-[var(--rm-border)] shadow-md mx-auto';
       if (themeHash === '#light') {
@@ -245,7 +245,7 @@ const articleMarkdownToHtml = (markdown: string): string => {
         tableRows = [];
       }
       const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
-      if (cells.every(c => c.startsWith('-'))) {
+      if (cells.every(c => /^:?-+:?$/.test(c))) {
         continue; // skip the separator line |---|---|
       }
       tableRows.push(cells);
@@ -490,6 +490,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     return ROADMAP_ZONES.find((z) => z.id === activeModuleId) || null;
   }, [activeModuleId]);
 
+  useEffect(() => {
+    if (activeModuleId && !activeModule) navigate('/roadmap', { replace: true });
+  }, [activeModule, activeModuleId, navigate]);
+
   const activeCoreTopic = useMemo(() => {
     if (!activeModule || !activeCoreTopicId) return null;
     return activeModule.topics.find((t) => t.id === activeCoreTopicId) || null;
@@ -503,6 +507,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
   // Read blog post matching slug
   const activePost = useMemo(() => {
     if (!selectedBlogSlug) return null;
+    if (activeModuleId && !activeModule) return null;
     const clean = selectedBlogSlug.toLowerCase();
     
     // Look up in pre-generated list
@@ -537,9 +542,10 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
     // Default dynamic guide if no match in structured curriculum either
     const formattedTitle = clean.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     return getFallbackBlogPost(clean, formattedTitle, 'Computer Science');
-  }, [selectedBlogSlug]);
+  }, [activeModule, activeModuleId, selectedBlogSlug]);
 
   const seoBreadcrumbs = getBreadcrumbs(location.pathname);
+  const isActiveRoadmapPath = !activeModuleId || Boolean(activeModule);
   const hasStandaloneArticle = selectedBlogSlug
     ? BLOG_POSTS.some((post) => post.slug === selectedBlogSlug && isFinishedArticle(post))
       || Boolean(deBlogData[selectedBlogSlug])
@@ -1481,7 +1487,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({ onBack, onLaunch }) =>
         title={seoTitle}
         description={seoDescription}
         type={selectedBlogSlug ? 'article' : 'website'}
-        index={hasStandaloneArticle}
+        image={selectedBlogSlug && activePost ? getActiveArticleImage(activePost.slug) : undefined}
+        imageAlt={selectedBlogSlug && activePost ? `${activePost.title} visual explanation` : undefined}
+        index={hasStandaloneArticle && isActiveRoadmapPath}
         breadcrumbs={seoBreadcrumbs}
         datePublished={selectedBlogSlug && activePost ? toIsoMonth(activePost.lastUpdated) : undefined}
         dateModified={selectedBlogSlug && activePost ? toIsoMonth(activePost.lastUpdated) : undefined}

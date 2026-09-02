@@ -6,11 +6,13 @@ const roadmapShellPath = 'dist/roadmap.html';
 if (!fs.existsSync(roadmapShellPath)) throw new Error('Build dist/roadmap.html before generating static SEO pages.');
 
 const read = (file) => fs.readFileSync(file, 'utf8');
+const contentScope = JSON.parse(read('src/config/contentScope.json'));
+const activeRoadmapZoneIds = new Set(contentScope.activeRoadmapZoneIds);
 const roadmapSource = read('src/config/roadmapData.ts');
 let evaluableRoadmap = roadmapSource.substring(roadmapSource.indexOf('export const ROADMAP_ZONES'));
 evaluableRoadmap = evaluableRoadmap.replace(/:\s*RoadmapZone\[\]/g, '');
 evaluableRoadmap = evaluableRoadmap.replace('export const ROADMAP_ZONES', 'const ROADMAP_ZONES');
-const zones = new Function(`${evaluableRoadmap}\nreturn ROADMAP_ZONES;`)();
+const allZones = new Function(`${evaluableRoadmap}\nreturn ROADMAP_ZONES;`)();
 
 const evaluateAssignedValue = (source, marker) => {
   const start = source.indexOf(marker);
@@ -20,7 +22,37 @@ const evaluateAssignedValue = (source, marker) => {
   return new Function(`return (${source.slice(equals + 1, end)})`)();
 };
 
-const posts = evaluateAssignedValue(read('src/config/blogData.ts'), 'export const BLOG_POSTS') || [];
+const articleSource = read('src/config/blogData.ts');
+const postsStart = articleSource.indexOf('export const BLOG_POSTS');
+const postsArrayStart = articleSource.indexOf('[', articleSource.indexOf('=', postsStart));
+const postsArrayEnd = articleSource.lastIndexOf('];');
+const rawPosts = new Function(`return (${articleSource.slice(postsArrayStart, postsArrayEnd + 1)})`)();
+const canonicalSource = read('src/generated/articleContent.ts');
+const canonicalArrayStart = canonicalSource.indexOf('[', canonicalSource.indexOf('export const CANONICAL_ARTICLES'));
+const canonicalArrayEnd = canonicalSource.lastIndexOf('];');
+const canonicalArticles = new Function(`return (${canonicalSource.slice(canonicalArrayStart, canonicalArrayEnd + 1)})`)()
+  .filter((article) => contentScope.activeContentTopics.includes(article.topic));
+const canonicalBySlug = new Map(canonicalArticles.map((article) => [article.slug, article]));
+const zones = allZones
+  .filter((zone) => activeRoadmapZoneIds.has(zone.id))
+  .map((zone) => ({
+    ...zone,
+    topics: zone.topics
+      .map((topic) => ({
+        ...topic,
+        concepts: topic.concepts
+          .map((concept) => ({
+            ...concept,
+            subtopics: concept.subtopics.filter((subtopic) => canonicalBySlug.has(subtopic.blogSlug)),
+          }))
+          .filter((concept) => concept.subtopics.length > 0),
+      }))
+      .filter((topic) => topic.concepts.length > 0),
+  }));
+const posts = rawPosts.map((post) => {
+  const canonical = canonicalBySlug.get(post.slug);
+  return canonical ? { ...post, markdown: canonical.markdown } : post;
+});
 const mlOverrides = evaluateAssignedValue(read('src/config/mlBlogData.ts'), 'export const ML_BLOG_DATA') || {};
 const deMarkdown = evaluateAssignedValue(read('src/config/deBlogData.ts'), 'export const deBlogData') || {};
 const postsBySlug = new Map();
@@ -69,8 +101,9 @@ const renderLinks = (items) => items.length
   ? `<h2>Explore related topics</h2><ul>${items.map((item) => `<li><a href="${escapeHtml(item.path)}">${escapeHtml(item.name)}</a></li>`).join('')}</ul>`
   : '';
 
-const makePage = ({ routePath, canonicalPath = routePath, title, description, breadcrumbs, children = [], article = false, intro = '', index = true }) => {
+const makePage = ({ routePath, canonicalPath = routePath, title, description, breadcrumbs, children = [], article = false, intro = '', index = true, image, imageAlt }) => {
   const canonical = `${SITE_URL}${canonicalPath}`;
+  const imageUrl = image ? (image.startsWith('http') ? image : `${SITE_URL}${image}`) : undefined;
   const fullTitle = article ? `${title} | AlgoGlyph Computer Science Roadmap` : `${title} | AlgoGlyph Computer Science Roadmap`;
   const cleanDescription = plainText(description).slice(0, 220);
   const breadcrumbSchema = {
@@ -93,6 +126,7 @@ const makePage = ({ routePath, canonicalPath = routePath, title, description, br
     isPartOf: { '@id': `${SITE_URL}/#website` },
     author: article ? { '@id': `${SITE_URL}/#organization` } : undefined,
     publisher: article ? { '@id': `${SITE_URL}/#organization` } : undefined,
+    primaryImageOfPage: imageUrl ? { '@type': 'ImageObject', url: imageUrl, caption: imageAlt || title } : undefined,
   };
   const schemas = JSON.stringify([breadcrumbSchema, pageSchema]).replace(/</g, '\\u003c');
   const crumbHtml = breadcrumbs.map((item, index) => (
@@ -110,10 +144,18 @@ const makePage = ({ routePath, canonicalPath = routePath, title, description, br
   );
   html = replaceOrInsert(html, /<link\s+rel="canonical"[^>]*>/i, `<link rel="canonical" href="${canonical}" />`);
   html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:url"[^>]*>/i, `<meta property="og:url" content="${canonical}" />`);
+  html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:type"[^>]*>/i, `<meta property="og:type" content="${article ? 'article' : 'website'}" />`);
   html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:title"[^>]*>/i, `<meta property="og:title" content="${escapeHtml(fullTitle)}" />`);
   html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:description"[^>]*>/i, `<meta property="og:description" content="${escapeHtml(cleanDescription)}" />`);
   html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?name="twitter:title"[^>]*>/i, `<meta name="twitter:title" content="${escapeHtml(fullTitle)}" />`);
   html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?name="twitter:description"[^>]*>/i, `<meta name="twitter:description" content="${escapeHtml(cleanDescription)}" />`);
+  if (image) {
+    html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:image"[^>]*>/i, `<meta property="og:image" content="${escapeHtml(imageUrl)}" />`);
+    html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:image:secure_url"[^>]*>/i, `<meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />`);
+    html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?property="og:image:alt"[^>]*>/i, `<meta property="og:image:alt" content="${escapeHtml(imageAlt || title)}" />`);
+    html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?name="twitter:image"[^>]*>/i, `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />`);
+    html = replaceOrInsert(html, /<meta\s+(?:data-rh="true"\s+)?name="twitter:image:alt"[^>]*>/i, `<meta name="twitter:image:alt" content="${escapeHtml(imageAlt || title)}" />`);
+  }
   html = html.replace('</head>', `    <script type="application/ld+json">${schemas}</script>\n  </head>`);
   html = html.replace('<div id="root"></div>', `<div id="root">${fallback}</div>`);
   return html;
@@ -173,6 +215,7 @@ for (const zone of zones) {
         const post = isFinishedArticle(candidatePost) ? candidatePost : undefined;
         const override = mlOverrides[subtopic.blogSlug];
         const markdown = deMarkdown[subtopic.blogSlug];
+        const canonicalArticle = canonicalBySlug.get(subtopic.blogSlug);
         const title = post?.title || override?.title || subtopic.name;
         const description = post?.tagline || override?.tagline || firstMarkdownParagraph(markdown) || `Learn ${subtopic.name} with definitions, mechanics, and connected computer science context.`;
         const intro = firstMarkdownParagraph(post?.markdown)
@@ -187,6 +230,8 @@ for (const zone of zones) {
           description,
           intro,
           article: true,
+          image: canonicalArticle?.image,
+          imageAlt: canonicalArticle ? `${title} visual explanation` : undefined,
           index: isIndexable,
           breadcrumbs: [{ name: 'Home', path: '/' }, { name: 'Roadmap', path: '/roadmap' }, { name: zone.name, path: zonePath }, { name: topic.name, path: topicPath }, { name: concept.name, path: conceptPath }, { name: title, path: articlePath }],
           children: [{ name: concept.name, path: conceptPath }, { name: topic.name, path: topicPath }],
