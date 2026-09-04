@@ -21,14 +21,36 @@ const firebaseConfig: FirebaseAuthConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
   appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
+  appCheckSiteKey: import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY ?? '',
 };
 
-const missingFirebaseKeys = Object.entries(firebaseConfig)
+const missingFirebaseKeys = Object.entries({
+  apiKey: firebaseConfig.apiKey,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId,
+})
   .filter(([, value]) => value.trim().length === 0)
   .map(([key]) => key);
 const isFirebaseConfigured = missingFirebaseKeys.length === 0;
 const isElectron = typeof navigator !== 'undefined' && /electron/i.test(navigator.userAgent);
 const canUseFirebaseAuth = typeof window !== 'undefined' && !isElectron && isFirebaseConfigured;
+const firebaseVariableByKey: Record<string, string> = {
+  apiKey: 'VITE_FIREBASE_API_KEY',
+  authDomain: 'VITE_FIREBASE_AUTH_DOMAIN',
+  projectId: 'VITE_FIREBASE_PROJECT_ID',
+  storageBucket: 'VITE_FIREBASE_STORAGE_BUCKET',
+  messagingSenderId: 'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  appId: 'VITE_FIREBASE_APP_ID',
+};
+const missingFirebaseVariables = missingFirebaseKeys.map((key) => firebaseVariableByKey[key] ?? key);
+const unavailableReason = isElectron
+  ? 'Cloud accounts and billing are available in the web app; the desktop workspace remains local-first.'
+  : !isFirebaseConfigured
+    ? `Authentication is not configured. Missing: ${missingFirebaseVariables.join(', ')}.`
+    : null;
 
 if (import.meta.env.DEV && !isElectron && !isFirebaseConfigured) {
   console.warn(
@@ -143,12 +165,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [runAuthAction]);
 
+  const reauthenticateWithGoogle = useCallback(async (): Promise<boolean> => {
+    const client = clientRef.current;
+    if (!client || pendingRef.current) return false;
+    pendingRef.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      const nextUser = await client.reauthenticateWithGoogle();
+      setUser(toAuthUser(nextUser));
+      setStatus('authenticated');
+      return true;
+    } catch (authError) {
+      setError(getAuthErrorMessage(authError));
+      return false;
+    } finally {
+      pendingRef.current = false;
+      setPending(false);
+    }
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
+  const getIdToken = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client) throw new Error('Google sign-in is unavailable.');
+    return client.getIdToken();
+  }, []);
+  const getAppCheckToken = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client) throw new Error('Google sign-in is unavailable.');
+    return client.getAppCheckToken();
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => ({
-    state: { status, user, pending, error },
-    actions: { signInWithGoogle, signOut, clearError },
-  }), [status, user, pending, error, signInWithGoogle, signOut, clearError]);
+    state: {
+      status,
+      user,
+      pending,
+      error,
+      unavailableReason,
+      missingConfiguration: missingFirebaseVariables,
+    },
+    actions: {
+      signInWithGoogle,
+      signOut,
+      reauthenticateWithGoogle,
+      clearError,
+      getIdToken,
+      getAppCheckToken,
+    },
+  }), [status, user, pending, error, signInWithGoogle, signOut, reauthenticateWithGoogle, clearError, getIdToken, getAppCheckToken]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 };

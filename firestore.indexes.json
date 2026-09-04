@@ -13,7 +13,7 @@
       "collectionGroup": "entitlements",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "mcpAccess", "order": "ASCENDING" },
+        { "fieldPath": "managedAgentAccess", "order": "ASCENDING" },
         { "fieldPath": "accessUntil", "order": "ASCENDING" }
       ]
     }

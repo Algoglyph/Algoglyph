@@ -18,6 +18,7 @@ This document provides comprehensive context, architectural guidelines, and tech
   - `CodeMirror` 6 + `Wandbox API` (`src/lib/wandbox.ts`) for multi-language code editing and remote execution (C++, Java, Python, Go, Rust, JavaScript)
   - `KaTeX` & `Highlight.js` for rendering math formulas and syntax-highlighted code blocks within blogs and notes
   - Optional Firebase Google authentication on the web; identity never gates or synchronizes the local workspace
+  - Firebase Functions billing for Stripe/Razorpay hosted checkout and server-owned individual/organization `managedAgentAccess`; the local MCP connector remains free
 
 ---
 
@@ -49,6 +50,8 @@ This document provides comprehensive context, architectural guidelines, and tech
      - `Ctrl+T`: Create new tab
      - `Ctrl+K`: Toggle Command Palette (`CommandPalette.tsx`)
      - `Ctrl+F`: Open global Search Palette (`SearchPalette.tsx`)
+
+   Billing is exposed through the existing landing/workspace account controls. The browser sends Firebase ID and App Check tokens to the configured Functions API, but only verified provider callbacks/webhooks may change subscriptions or entitlements. Any hosted managed-agent execution must call the backend `canUseManagedAgent` policy; MCP pairing and local agent runs are subscription-independent. Stripe/Razorpay secrets stay in Functions secret storage, and BillDesk is intentionally unavailable until an official merchant integration contract is supplied.
 
 4. **Drawing Canvas (`Canvas.tsx` & `StructuresPanel.tsx`)**
    - Wraps Excalidraw.

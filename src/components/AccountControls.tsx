@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LogIn, X } from 'lucide-react';
+import { CreditCard, LogOut, UserRoundPlus, X } from 'lucide-react';
 import { SITE_IDENTITY } from '../config/siteIdentity';
 import { useAuth } from './authContext';
+import { BillingDialog } from './BillingDialog';
 
 type AccountSurface = 'landing' | 'workspace';
+
+const hasBillingReturnState = () => {
+  if (typeof window === 'undefined') return false;
+  const value = new URL(window.location.href).searchParams.get('billing');
+  return value === 'success' || value === 'cancelled';
+};
 
 const getUserInitial = (displayName: string | null, email: string | null) => {
   const source = displayName?.trim() || email?.trim() || '?';
@@ -53,6 +60,7 @@ const AccountMenu = ({ surface }: { surface: AccountSurface }) => {
     actions: { signOut, clearError },
   } = useAuth();
   const [open, setOpen] = useState(false);
+  const [billingOpen, setBillingOpen] = useState(hasBillingReturnState);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -79,15 +87,18 @@ const AccountMenu = ({ surface }: { surface: AccountSurface }) => {
   if (!user) return null;
 
   const triggerClassName = surface === 'landing'
-    ? 'flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[var(--lp-border-strong)] bg-[var(--lp-fill-subtle)] text-sm font-semibold text-[var(--lp-text)] transition-colors hover:bg-[var(--lp-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)]'
-    : 'flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-hairline bg-canvas-soft text-[11px] font-semibold text-ink transition-colors hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
+    ? 'flex h-9 w-9 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-[var(--lp-border-strong)] bg-[var(--lp-fill-subtle)] text-sm font-semibold text-[var(--lp-text)] transition-colors hover:bg-[var(--lp-fill-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)]'
+    : 'flex h-7 w-7 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-hairline bg-canvas-soft text-[11px] font-semibold text-ink transition-colors hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
   const menuClassName = surface === 'landing'
     ? 'absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-[var(--lp-border-strong)] bg-[var(--lp-surface)] p-1.5 text-[var(--lp-text)] shadow-[var(--lp-shadow-heavy)]'
     : 'absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-hairline bg-canvas p-1.5 text-ink shadow-[var(--shadow-soft)]';
   const secondaryTextClassName = surface === 'landing' ? 'text-[var(--lp-text-3)]' : 'text-mute';
   const signOutClassName = surface === 'landing'
-    ? 'mt-1 flex w-full items-center rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] disabled:cursor-not-allowed disabled:opacity-50'
-    : 'mt-1 flex w-full items-center rounded-lg px-2.5 py-2 text-left text-xs font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50';
+    ? 'mt-1 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] disabled:cursor-not-allowed disabled:opacity-50'
+    : 'mt-1 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50';
+  const billingClassName = surface === 'landing'
+    ? 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)]'
+    : 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink';
   const safePhotoURL = getSafePhotoUrl(user.photoURL);
 
   return (
@@ -127,17 +138,31 @@ const AccountMenu = ({ surface }: { surface: AccountSurface }) => {
           <button
             type="button"
             role="menuitem"
+            className={billingClassName}
+            onClick={() => {
+              setOpen(false);
+              setBillingOpen(true);
+            }}
+          >
+            <CreditCard aria-hidden="true" size={14} />
+            Managed agent &amp; billing
+          </button>
+          <button
+            type="button"
+            role="menuitem"
             disabled={pending}
             className={signOutClassName}
             onClick={() => {
               void signOut().then(() => setOpen(false));
             }}
           >
+            <LogOut aria-hidden="true" size={14} />
             {pending ? 'Signing out…' : 'Sign out'}
           </button>
         </div>
       ) : null}
       <AuthError surface={surface} />
+      {billingOpen ? <BillingDialog surface={surface} onClose={() => setBillingOpen(false)} /> : null}
     </div>
   );
 };
@@ -150,7 +175,7 @@ const SignInDialog = ({
   onClose: () => void;
 }) => {
   const {
-    state: { pending, error },
+    state: { status, pending, error, unavailableReason, missingConfiguration },
     actions: { signInWithGoogle },
   } = useAuth();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -200,11 +225,12 @@ const SignInDialog = ({
     ? 'absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--lp-text-3)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)]'
     : 'absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full text-mute transition-colors hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
   const primaryButtonClassName = isLanding
-    ? 'mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--lp-text)] px-4 text-sm font-semibold text-[var(--lp-surface)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-surface)] disabled:cursor-not-allowed disabled:opacity-50'
-    : 'mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50';
+    ? 'mt-5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--lp-text)] px-4 text-sm font-semibold text-[var(--lp-surface)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--lp-surface)] disabled:cursor-not-allowed disabled:opacity-50'
+    : 'mt-5 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-ink px-4 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-50';
   const secondaryButtonClassName = isLanding
-    ? 'mt-2 inline-flex h-10 w-full items-center justify-center rounded-xl text-sm font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)]'
-    : 'mt-2 inline-flex h-10 w-full items-center justify-center rounded-xl text-sm font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
+    ? 'mt-2 inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-xl text-sm font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)]'
+    : 'mt-2 inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-xl text-sm font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
+  const isUnavailable = status === 'unavailable';
 
   return createPortal(
     <div
@@ -250,13 +276,21 @@ const SignInDialog = ({
         </div>
 
         <h2 id={titleId} className="mt-6 text-xl font-semibold tracking-tight">
-          Sign in to {SITE_IDENTITY.name}
+          {isUnavailable ? 'Account setup required' : `Sign in to ${SITE_IDENTITY.name}`}
         </h2>
         <p id={descriptionId} className={`mt-2 text-sm leading-6 ${mutedTextClassName}`}>
-          Use your Google account for your AlgoGlyph identity. Your notes, code, and canvas stay on this device.
+          {isUnavailable
+            ? unavailableReason || 'Authentication is temporarily unavailable.'
+            : 'Use your Google account for your AlgoGlyph identity. Your notes, code, and canvas stay on this device.'}
         </p>
 
-        {error ? (
+        {isUnavailable && missingConfiguration.length > 0 ? (
+          <code className={`mt-4 block whitespace-pre-wrap break-words rounded-lg border border-current/10 p-3 text-[11px] leading-5 ${mutedTextClassName}`}>
+            {missingConfiguration.join('\n')}
+          </code>
+        ) : null}
+
+        {!isUnavailable && error ? (
           <p
             role="alert"
             className={isLanding
@@ -267,16 +301,18 @@ const SignInDialog = ({
           </p>
         ) : null}
 
-        <button
-          ref={primaryActionRef}
-          type="button"
-          disabled={pending}
-          className={primaryButtonClassName}
-          onClick={() => void signInWithGoogle()}
-        >
-          <LogIn aria-hidden="true" size={16} />
-          {pending ? 'Opening Google sign-in…' : 'Continue with Google'}
-        </button>
+        {!isUnavailable ? (
+          <button
+            ref={primaryActionRef}
+            type="button"
+            disabled={pending}
+            className={primaryButtonClassName}
+            onClick={() => void signInWithGoogle()}
+          >
+            <UserRoundPlus aria-hidden="true" size={16} />
+            {pending ? 'Opening Google sign-in…' : 'Continue with Google'}
+          </button>
+        ) : null}
         <button type="button" className={secondaryButtonClassName} onClick={onClose}>
           Continue without signing in
         </button>
@@ -296,14 +332,14 @@ const SignInDialog = ({
 
 const SignInControl = ({ surface }: { surface: AccountSurface }) => {
   const {
-    state: { pending },
+    state: { status, pending, unavailableReason },
     actions: { clearError },
   } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const className = surface === 'landing'
-    ? 'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] sm:w-auto sm:px-3'
-    : 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-body transition-colors hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
+    ? 'inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lp-hero-cyan)] sm:w-auto sm:px-3'
+    : 'inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-body transition-colors hover:bg-canvas-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link';
 
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
@@ -321,15 +357,15 @@ const SignInControl = ({ surface }: { surface: AccountSurface }) => {
           clearError();
           setDialogOpen(true);
         }}
-        aria-label={`Sign in to ${SITE_IDENTITY.name}`}
+        aria-label={status === 'unavailable' ? 'Account setup required' : `Sign in to ${SITE_IDENTITY.name}`}
         aria-haspopup="dialog"
         aria-expanded={dialogOpen}
-        title={`Sign in to ${SITE_IDENTITY.name}`}
+        title={status === 'unavailable' ? unavailableReason || 'Account setup required' : `Sign in to ${SITE_IDENTITY.name}`}
       >
-        <LogIn aria-hidden="true" size={surface === 'landing' ? 15 : 14} />
+        <UserRoundPlus aria-hidden="true" size={surface === 'landing' ? 15 : 14} />
         {surface === 'landing' ? (
           <span className="hidden text-sm font-medium sm:inline">
-            Sign in
+            {status === 'unavailable' ? 'Account setup' : 'Sign in'}
           </span>
         ) : null}
       </button>
@@ -343,7 +379,6 @@ export const LandingAccountControl = () => {
     state: { status },
   } = useAuth();
 
-  if (status === 'unavailable') return null;
   if (status === 'loading') return <LoadingPlaceholder surface="landing" />;
   if (status === 'authenticated') return <AccountMenu surface="landing" />;
   return <SignInControl surface="landing" />;
@@ -354,7 +389,6 @@ export const WorkspaceAccountControl = () => {
     state: { status },
   } = useAuth();
 
-  if (status === 'unavailable') return null;
   if (status === 'loading') return <LoadingPlaceholder surface="workspace" />;
   if (status === 'authenticated') return <AccountMenu surface="workspace" />;
   return <SignInControl surface="workspace" />;

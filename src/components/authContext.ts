@@ -14,12 +14,17 @@ export interface AuthState {
   user: AuthUser | null;
   pending: boolean;
   error: string | null;
+  unavailableReason: string | null;
+  missingConfiguration: string[];
 }
 
 export interface AuthActions {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  reauthenticateWithGoogle: () => Promise<boolean>;
   clearError: () => void;
+  getIdToken: () => Promise<string>;
+  getAppCheckToken: () => Promise<string>;
 }
 
 export interface AuthContextValue {

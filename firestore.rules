@@ -2,7 +2,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Billing, entitlement, grant, and audit records are server-owned. The
+    // Billing, entitlement, organization, membership, and audit records are server-owned. The
     // Admin SDK uses IAM and bypasses these client rules.
     match /{document=**} {
       allow read, write: if false;

@@ -19,15 +19,17 @@ import { useIsMobile } from '../hooks/useIsMobile';
 import { getAlgorithm } from '../config/algorithms';
 import { getFrames, CUSTOM_INPUT_ALGORITHMS, supportsRegenerate } from '../lib/algorithmFrames';
 import { FrameRenderer } from './visualizers/Visualizers';
+import { AlgorithmHUD } from './visualizers/AlgorithmHUD';
 import { ALGORITHM_SNIPPETS } from '../config/algorithmSnippets';
 import CodeMirror from '@uiw/react-codemirror';
 import { cpp } from '@codemirror/lang-cpp';
 import { vscodeDark, vscodeLight } from '../config/editorTheme';
+import { clampFrameIndex, moveFrameIndex, playbackDelay } from '../lib/visualizerPlayback';
 
 // ── Compound primitives (Vercel composition pattern) ────────
 // Kept as discrete pieces so the node shell stays declarative and a future
 // node type can recompose Header / Body / Controls without prop explosion.
-const NODE_W = 344;
+const NODE_W = 380;
 
 interface VisNodeProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -152,12 +154,11 @@ const VisualizerNodeImpl: React.FC<{
 
   // Playback timer — local state only, so siblings never re-render while this runs.
   useEffect(() => {
-    if (!playing) return;
-    if (atEnd) {
-      setPlaying(false);
-      return;
-    }
-    const t = setTimeout(() => setIndex((i) => Math.min(i + 1, frames.length - 1)), SPEEDS[speedIdx].ms);
+    if (!playing || atEnd) return;
+    const t = setTimeout(() => {
+      setIndex((i) => moveFrameIndex(i, 1, frames.length));
+      if (index >= frames.length - 2) setPlaying(false);
+    }, playbackDelay(speedIdx));
     return () => clearTimeout(t);
   }, [playing, index, atEnd, frames.length, speedIdx]);
 
@@ -171,11 +172,11 @@ const VisualizerNodeImpl: React.FC<{
   };
   const stepBack = () => {
     setPlaying(false);
-    setIndex((i) => Math.max(0, i - 1));
+    setIndex((i) => moveFrameIndex(i, -1, frames.length));
   };
   const stepFwd = () => {
     setPlaying(false);
-    setIndex((i) => Math.min(frames.length - 1, i + 1));
+    setIndex((i) => moveFrameIndex(i, 1, frames.length));
   };
   const reset = () => {
     setPlaying(false);
@@ -339,18 +340,26 @@ const VisualizerNodeImpl: React.FC<{
           <div className={`rounded-lg ring-1 ${isDark ? 'bg-black/30 ring-white/5' : 'bg-white/50 ring-black/5'}`}>
             {frame && <FrameRenderer frame={frame} isDragging={isDragging} />}
           </div>
-          {/* Caption + progress */}
+          <AlgorithmHUD meta={frame?.meta} />
+
+          {/* Caption + seekable timeline */}
           <div className="mt-2 px-1">
-            <p className={`h-8 text-[11px] leading-tight ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>{frame?.caption}</p>
+            <p aria-live="polite" className={`min-h-8 text-[11px] leading-tight ${isDark ? 'text-zinc-300' : 'text-zinc-600'}`}>{frame?.caption}</p>
             <div className="mt-1 flex items-center gap-2">
-              <div className={`h-1 flex-1 overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-zinc-200'}`}>
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-[width] duration-200"
-                  style={{ width: `${((index + 1) / frames.length) * 100}%` }}
-                />
-              </div>
+              <input
+                aria-label="Algorithm timeline"
+                type="range"
+                min={0}
+                max={Math.max(0, frames.length - 1)}
+                value={index}
+                onChange={(event) => {
+                  setPlaying(false);
+                  setIndex(clampFrameIndex(Number(event.target.value), frames.length));
+                }}
+                className="h-1 flex-1 cursor-pointer accent-emerald-500"
+              />
               <span className={`font-mono text-[9px] tabular-nums ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                {index + 1}/{frames.length}
+                op {index + 1}/{frames.length}
               </span>
             </div>
           </div>
@@ -401,6 +410,7 @@ const VisualizerNodeImpl: React.FC<{
 export const VisualizerNode = React.memo(VisualizerNodeImpl);
 
 // Re-export the compound primitives for composition elsewhere if needed.
+// eslint-disable-next-line react-refresh/only-export-components -- compound members are React components
 export const VisNode = Object.assign(VisNodeRoot, {
   Header: VisHeader,
   Body: VisBody,

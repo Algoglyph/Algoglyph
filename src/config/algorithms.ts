@@ -47,7 +47,7 @@ export const ALGORITHMS: AlgorithmDef[] = [
   { id: 'sliding-window', name: 'Sliding Window', category: 'Pointers & Sliding Window', blurb: 'Slide a window to maintain subset invariants.', complexity: 'O(n)' },
 
   // ── Recursion & Backtracking ────────────────────────────
-  { id: 'recursion', name: 'Recursion', category: 'Recursion & Backtracking', blurb: 'Solve problems by calling functions recursively.', complexity: 'O(2ⁿ)' },
+  { id: 'recursion', name: 'Recursion', category: 'Recursion & Backtracking', blurb: 'Trace factorial calls and returns through the call stack.', complexity: 'O(n)' },
   { id: 'recursion-tree', name: 'Recursion Tree', category: 'Recursion & Backtracking', blurb: 'Visualize call hierarchy and stack branching.', complexity: 'O(bᵈ)' },
   { id: 'backtracking', name: 'Backtracking', category: 'Recursion & Backtracking', blurb: 'Recursively search and discard paths that violate constraints.', complexity: 'O(n!)' },
   { id: 'subsets', name: 'Subsets', category: 'Recursion & Backtracking', blurb: 'Generate the power set of a set.', complexity: 'O(2ⁿ)' },

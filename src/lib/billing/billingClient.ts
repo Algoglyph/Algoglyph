@@ -4,12 +4,30 @@ import type {
   BillingPlanKey,
   BillingRegion,
   BillingStatus,
-  ConnectorGrantRequest,
-  ConnectorGrantResult,
+  BillingWorkspacesResult,
+  ManagedAgentAuthorization,
+  RazorpayCheckoutCallback,
 } from './types';
 
-const BILLING_API_URL = (import.meta.env.VITE_BILLING_API_URL || 'https://api.algoglyph.com').replace(/\/$/, '');
+const configuredBillingApiUrl = (import.meta.env.VITE_BILLING_API_URL || '').trim().replace(/\/$/, '');
 const MAX_RESPONSE_BYTES = 256 * 1024;
+
+export const getBillingConfigurationError = (): string | null => {
+  if (!configuredBillingApiUrl) return 'Billing is not configured. Set VITE_BILLING_API_URL for this environment.';
+  try {
+    const url = new URL(configuredBillingApiUrl);
+    const localDevelopment = import.meta.env.DEV && ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+    if (url.protocol !== 'https:' && !(localDevelopment && url.protocol === 'http:')) {
+      return 'VITE_BILLING_API_URL must use HTTPS (local development may use a loopback HTTP URL).';
+    }
+    if (url.username || url.password || url.search || url.hash) {
+      return 'VITE_BILLING_API_URL must be a clean API origin without credentials, query parameters, or fragments.';
+    }
+    return null;
+  } catch {
+    return 'VITE_BILLING_API_URL is not a valid URL.';
+  }
+};
 
 export class BillingRequestError extends Error {
   readonly status: number | undefined;
@@ -48,6 +66,8 @@ const requestBillingApi = async <T>(
   tokens: BillingApiTokens,
   init: RequestInit = {},
 ): Promise<T> => {
+  const configurationError = getBillingConfigurationError();
+  if (configurationError) throw new BillingRequestError(configurationError, 503);
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   headers.set('Authorization', `Bearer ${tokens.idToken}`);
@@ -56,7 +76,7 @@ const requestBillingApi = async <T>(
 
   let response: Response;
   try {
-    response = await fetch(`${BILLING_API_URL}/${path.replace(/^\//, '')}`, {
+    response = await fetch(`${configuredBillingApiUrl}/${path.replace(/^\//, '')}`, {
       ...init,
       headers,
       credentials: 'omit',
@@ -69,41 +89,65 @@ const requestBillingApi = async <T>(
   const payload = await readJson(response);
   if (!response.ok) {
     throw new BillingRequestError(
-      messageFrom(payload, response.status === 402 ? 'Upgrade to AlgoGlyph Pro to use MCP.' : 'The billing request failed.'),
+      messageFrom(payload, response.status === 402 ? 'An active managed-agent subscription is required.' : 'The billing request failed.'),
       response.status,
     );
   }
   return payload as T;
 };
 
-export const getBillingStatus = (tokens: BillingApiTokens): Promise<BillingStatus> =>
-  requestBillingApi<BillingStatus>('v1/billing/status', tokens);
+const organizationPayload = (organizationId?: string): { organizationId?: string } => (
+  organizationId ? { organizationId } : {}
+);
+
+export const getBillingWorkspaces = (tokens: BillingApiTokens): Promise<BillingWorkspacesResult> =>
+  requestBillingApi<BillingWorkspacesResult>('v1/billing/workspaces', tokens);
+
+export const getBillingStatus = (
+  tokens: BillingApiTokens,
+  organizationId?: string,
+): Promise<BillingStatus> => {
+  const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : '';
+  return requestBillingApi<BillingStatus>(`v1/billing/status${query}`, tokens);
+};
 
 export const createBillingCheckout = (
   tokens: BillingApiTokens,
   planKey: BillingPlanKey,
   billingRegion: BillingRegion,
+  organizationId?: string,
 ): Promise<BillingCheckoutResult> => requestBillingApi<BillingCheckoutResult>(
   'v1/billing/checkout',
   tokens,
-  { method: 'POST', body: JSON.stringify({ planKey, billingRegion }) },
+  { method: 'POST', body: JSON.stringify({ planKey, billingRegion, ...organizationPayload(organizationId) }) },
 );
 
 export const cancelBillingSubscription = (
   tokens: BillingApiTokens,
+  organizationId?: string,
 ): Promise<{ cancelAtPeriodEnd: true }> => requestBillingApi(
   'v1/billing/cancel',
   tokens,
-  { method: 'POST', body: '{}' },
+  { method: 'POST', body: JSON.stringify(organizationPayload(organizationId)) },
 );
 
-export const createConnectorGrant = (
+export const verifyRazorpayCheckout = (
   tokens: BillingApiTokens,
-  request: ConnectorGrantRequest,
-): Promise<ConnectorGrantResult> => requestBillingApi(
-  'v1/connector/grants',
+  callback: RazorpayCheckoutCallback,
+  organizationId?: string,
+): Promise<{ verified: true; entitlementPending: true }> => requestBillingApi(
+  'v1/billing/razorpay/verify',
   tokens,
-  { method: 'POST', body: JSON.stringify(request) },
+  { method: 'POST', body: JSON.stringify({ ...callback, ...organizationPayload(organizationId) }) },
+);
+
+export const authorizeManagedAgent = (
+  tokens: BillingApiTokens,
+  workspaceId: string,
+): Promise<ManagedAgentAuthorization> => requestBillingApi(
+  'v1/managed-agent/authorize',
+  tokens,
+  { method: 'POST', body: JSON.stringify({ workspaceId }) },
 );
 
 interface RazorpayConstructor {
@@ -139,7 +183,7 @@ const loadRazorpay = async (): Promise<RazorpayConstructor> => {
 
 export const openRazorpayCheckout = async (
   result: Extract<BillingCheckoutResult, { provider: 'razorpay' }>,
-  onComplete: () => void,
+  onComplete: (callback: RazorpayCheckoutCallback) => void,
   onDismiss: () => void,
 ): Promise<void> => {
   const Razorpay = await loadRazorpay();
@@ -149,9 +193,18 @@ export const openRazorpayCheckout = async (
     subscription_id: result.razorpay.subscriptionId,
     name: result.razorpay.name,
     description: result.razorpay.description,
-    handler: () => {
+    handler: (response: Record<string, unknown>) => {
       completed = true;
-      onComplete();
+      const paymentId = typeof response.razorpay_payment_id === 'string' ? response.razorpay_payment_id : '';
+      const subscriptionId = typeof response.razorpay_subscription_id === 'string'
+        ? response.razorpay_subscription_id
+        : '';
+      const signature = typeof response.razorpay_signature === 'string' ? response.razorpay_signature : '';
+      if (!paymentId || !subscriptionId || !signature) {
+        onDismiss();
+        return;
+      }
+      onComplete({ paymentId, subscriptionId, signature });
     },
     modal: { ondismiss: () => { if (!completed) onDismiss(); } },
     theme: { color: '#111111' },

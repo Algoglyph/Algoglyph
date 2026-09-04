@@ -7,10 +7,17 @@ import {
   indexedDBLocalPersistence,
   initializeAuth,
   onAuthStateChanged,
+  reauthenticateWithPopup,
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
 import type { Auth, User } from 'firebase/auth';
+import {
+  getToken as getAppCheckToken,
+  initializeAppCheck,
+  ReCaptchaEnterpriseProvider,
+} from 'firebase/app-check';
+import type { AppCheck } from 'firebase/app-check';
 
 export interface FirebaseAuthConfig {
   apiKey: string;
@@ -19,6 +26,7 @@ export interface FirebaseAuthConfig {
   storageBucket: string;
   messagingSenderId: string;
   appId: string;
+  appCheckSiteKey?: string;
 }
 
 export interface FirebaseAuthUser {
@@ -35,9 +43,16 @@ export interface FirebaseAuthClient {
   ) => () => void;
   signInWithGoogle: () => Promise<FirebaseAuthUser>;
   signOut: () => Promise<void>;
+  reauthenticateWithGoogle: () => Promise<FirebaseAuthUser>;
+  getIdToken: () => Promise<string>;
+  getAppCheckToken: () => Promise<string>;
 }
 
 let authInstance: Auth | null = null;
+const appCheckGlobal = globalThis as typeof globalThis & {
+  __algoglyphAppCheck?: AppCheck;
+};
+let appCheckInstance: AppCheck | null = appCheckGlobal.__algoglyphAppCheck ?? null;
 
 const toAuthUser = (user: User): FirebaseAuthUser => ({
   uid: user.uid,
@@ -66,6 +81,13 @@ const getOrCreateAuth = (config: FirebaseAuthConfig): Auth => {
 export const createFirebaseAuthClient = (config: FirebaseAuthConfig): FirebaseAuthClient => {
   const auth = getOrCreateAuth(config);
   const googleProvider = new GoogleAuthProvider();
+  if (config.appCheckSiteKey && !appCheckInstance) {
+    appCheckInstance = initializeAppCheck(auth.app, {
+      provider: new ReCaptchaEnterpriseProvider(config.appCheckSiteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+    appCheckGlobal.__algoglyphAppCheck = appCheckInstance;
+  }
 
   return {
     subscribe: (onUserChanged, onError) => onAuthStateChanged(
@@ -82,5 +104,26 @@ export const createFirebaseAuthClient = (config: FirebaseAuthConfig): FirebaseAu
       return toAuthUser(credential.user);
     },
     signOut: () => signOut(auth),
+    reauthenticateWithGoogle: async () => {
+      if (!auth.currentUser) throw new Error('Sign in before confirming this account change.');
+      const credential = await reauthenticateWithPopup(
+        auth.currentUser,
+        googleProvider,
+        browserPopupRedirectResolver,
+      );
+      await credential.user.getIdToken(true);
+      return toAuthUser(credential.user);
+    },
+    getIdToken: async () => {
+      if (!auth.currentUser) throw new Error('Sign in before making an authenticated API request.');
+      return auth.currentUser.getIdToken();
+    },
+    getAppCheckToken: async () => {
+      if (!appCheckInstance) {
+        if (import.meta.env.DEV) return 'firebase-emulator-app-check';
+        throw new Error('Firebase App Check is not configured.');
+      }
+      return (await getAppCheckToken(appCheckInstance)).token;
+    },
   };
 };

@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   FieldPath,
   FieldValue,
@@ -9,24 +9,22 @@ import {
 import type {
   BillingProvider,
   EntitlementStatus,
-  McpScope,
   NormalizedProviderEvent,
   PlanDefinition,
   PlanKey,
 } from './model.js';
-import {
-  CONNECTOR_GRANT_TTL_MS,
-  isMcpScope,
-  projectEntitlement,
-} from './model.js';
-import { HttpError, sha256 } from './security.js';
+import { projectEntitlement } from './model.js';
+import { HttpError, requirePersonalWorkspaceAccess, sha256 } from './security.js';
 import type { AuthenticatedPrincipal } from './security.js';
 import type { CheckoutResult, ProviderSubscriptionSnapshot } from './providers.js';
 
 export interface WorkspaceWire {
   id: string;
   name: string;
-  role: 'owner';
+  kind: 'individual' | 'organization';
+  role: 'owner' | 'billing_admin' | 'member';
+  organizationId?: string;
+  canManageBilling: boolean;
 }
 
 export interface BillingStatusWire {
@@ -35,7 +33,7 @@ export interface BillingStatusWire {
   provider: BillingProvider | null;
   providerStatus: string | null;
   entitlement: {
-    mcpAccess: boolean;
+    managedAgentAccess: boolean;
     status: EntitlementStatus;
     currentPeriodEnd: string | null;
     gracePeriodEnd: string | null;
@@ -45,23 +43,9 @@ export interface BillingStatusWire {
   };
 }
 
-export interface ConnectorGrantInput {
-  pairingCredentialHash: string;
-  origin: string;
-  connectorVersion: string;
-  requestedScopes: McpScope[];
-}
-
-export interface ConnectorGrantResult {
-  entitlementGrant: string;
-  expiresAt: string;
-}
-
-export interface RedeemGrantInput extends ConnectorGrantInput {
-  entitlementGrant: string;
-}
-
 const personalWorkspaceId = (uid: string): string => `personal_${uid}`;
+const organizationWorkspaceId = (organizationId: string): string => `organization_${organizationId}`;
+const ORGANIZATION_ID_PATTERN = /^[A-Za-z0-9_-]{6,80}$/;
 
 const timestampToIso = (value: unknown): string | null =>
   value instanceof Timestamp ? value.toDate().toISOString() : null;
@@ -84,6 +68,7 @@ export const ensurePersonalWorkspace = async (
 ): Promise<WorkspaceWire> => {
   const db = getFirestore();
   const workspaceId = personalWorkspaceId(principal.uid);
+  requirePersonalWorkspaceAccess(principal, workspaceId);
   const workspaceRef = db.collection('workspaces').doc(workspaceId);
   const memberRef = db.collection('workspaceMembers').doc(`${workspaceId}_${principal.uid}`);
 
@@ -92,6 +77,15 @@ export const ensurePersonalWorkspace = async (
       transaction.get(workspaceRef),
       transaction.get(memberRef),
     ]);
+    if (workspace.exists && workspace.data()?.ownerUid !== principal.uid) {
+      throw new HttpError(403, 'Workspace access denied.');
+    }
+    if (member.exists
+      && (member.data()?.uid !== principal.uid
+        || member.data()?.workspaceId !== workspaceId
+        || member.data()?.role !== 'owner')) {
+      throw new HttpError(403, 'Workspace membership is invalid.');
+    }
     if (!workspace.exists) {
       transaction.create(workspaceRef, {
         ownerUid: principal.uid,
@@ -114,15 +108,95 @@ export const ensurePersonalWorkspace = async (
   return {
     id: workspaceId,
     name: String(workspace.data()?.displayName ?? 'Personal workspace'),
+    kind: 'individual',
     role: 'owner',
+    canManageBilling: true,
   };
+};
+
+const resolveOrganizationWorkspace = async (
+  principal: AuthenticatedPrincipal,
+  organizationId: string,
+  requireBillingManager = false,
+): Promise<WorkspaceWire> => {
+  if (!ORGANIZATION_ID_PATTERN.test(organizationId)) throw new HttpError(400, 'Invalid organization identifier.');
+  const db = getFirestore();
+  const workspaceId = organizationWorkspaceId(organizationId);
+  const organizationRef = db.collection('organizations').doc(organizationId);
+  const organizationMemberRef = db.collection('organizationMembers').doc(`${organizationId}_${principal.uid}`);
+  const workspaceRef = db.collection('workspaces').doc(workspaceId);
+  const workspaceMemberRef = db.collection('workspaceMembers').doc(`${workspaceId}_${principal.uid}`);
+  const [organization, organizationMember, workspace, workspaceMember] = await Promise.all([
+    organizationRef.get(),
+    organizationMemberRef.get(),
+    workspaceRef.get(),
+    workspaceMemberRef.get(),
+  ]);
+  const organizationData = organization.data();
+  const membership = organizationMember.data();
+  const role = membership?.role;
+  const validRole = role === 'owner' || role === 'billing_admin' || role === 'member';
+  if (!organization.exists
+    || organizationData?.status !== 'active'
+    || !organizationMember.exists
+    || membership?.organizationId !== organizationId
+    || membership?.uid !== principal.uid
+    || membership?.status !== 'active'
+    || !validRole) {
+    throw new HttpError(403, 'Organization access denied.');
+  }
+  const canManageBilling = role === 'owner' || role === 'billing_admin';
+  if (requireBillingManager && !canManageBilling) throw new HttpError(403, 'Organization billing access denied.');
+  if (!workspace.exists || workspace.data()?.organizationId !== organizationId) {
+    throw new HttpError(403, 'Organization workspace is invalid.');
+  }
+  if (!workspaceMember.exists || workspaceMember.data()?.workspaceId !== workspaceId
+    || workspaceMember.data()?.uid !== principal.uid
+    || workspaceMember.data()?.status !== 'active') {
+    throw new HttpError(403, 'Workspace membership is invalid.');
+  }
+  return {
+    id: workspaceId,
+    name: String(organizationData?.name ?? 'Organization'),
+    kind: 'organization',
+    role,
+    organizationId,
+    canManageBilling,
+  };
+};
+
+const resolveBillingWorkspace = async (
+  principal: AuthenticatedPrincipal,
+  organizationId?: string,
+  requireBillingManager = false,
+): Promise<WorkspaceWire> => organizationId
+  ? resolveOrganizationWorkspace(principal, organizationId, requireBillingManager)
+  : ensurePersonalWorkspace(principal);
+
+export const listBillingWorkspaces = async (principal: AuthenticatedPrincipal): Promise<WorkspaceWire[]> => {
+  const db = getFirestore();
+  const personal = await ensurePersonalWorkspace(principal);
+  const memberships = await db.collection('organizationMembers').where('uid', '==', principal.uid).limit(100).get();
+  const organizationIds = memberships.docs.flatMap((document) => {
+    const data = document.data();
+    return data.status === 'active' && typeof data.organizationId === 'string' ? [data.organizationId] : [];
+  });
+  const organizations = await Promise.all(organizationIds.map(async (organizationId) => {
+    try {
+      return await resolveOrganizationWorkspace(principal, organizationId);
+    } catch {
+      return null;
+    }
+  }));
+  return [personal, ...organizations.filter((workspace): workspace is WorkspaceWire => workspace !== null)];
 };
 
 export const getBillingStatus = async (
   principal: AuthenticatedPrincipal,
+  organizationId?: string,
 ): Promise<BillingStatusWire> => {
   const db = getFirestore();
-  const workspace = await ensurePersonalWorkspace(principal);
+  const workspace = await resolveBillingWorkspace(principal, organizationId);
   const [subscription, entitlement] = await Promise.all([
     db.collection('subscriptions').doc(workspace.id).get(),
     db.collection('entitlements').doc(workspace.id).get(),
@@ -131,7 +205,7 @@ export const getBillingStatus = async (
   const entitlementData = entitlement.data();
   const accessUntil = entitlementData?.accessUntil;
   const accessIsCurrent = accessUntil instanceof Timestamp && accessUntil.toMillis() > Date.now();
-  const storedAccess = entitlementData?.mcpAccess === true;
+  const storedAccess = entitlementData?.managedAgentAccess === true;
 
   return {
     workspace,
@@ -141,7 +215,7 @@ export const getBillingStatus = async (
       : null,
     providerStatus: typeof subscriptionData?.providerStatus === 'string' ? subscriptionData.providerStatus : null,
     entitlement: {
-      mcpAccess: storedAccess && accessIsCurrent,
+      managedAgentAccess: storedAccess && accessIsCurrent,
       status: typeof entitlementData?.status === 'string' ? entitlementData.status as EntitlementStatus : 'locked',
       currentPeriodEnd: timestampToIso(entitlementData?.currentPeriodEnd),
       gracePeriodEnd: timestampToIso(entitlementData?.gracePeriodEnd),
@@ -155,9 +229,10 @@ export const getBillingStatus = async (
 export const reserveCheckout = async (
   principal: AuthenticatedPrincipal,
   plan: PlanDefinition,
+  organizationId?: string,
 ): Promise<{ workspace: WorkspaceWire; attemptId: string; existingCustomerId?: string }> => {
   const db = getFirestore();
-  const workspace = await ensurePersonalWorkspace(principal);
+  const workspace = await resolveBillingWorkspace(principal, organizationId, true);
   const subscriptionRef = db.collection('subscriptions').doc(workspace.id);
   const entitlementRef = db.collection('entitlements').doc(workspace.id);
   const customerRef = db.collection('billingCustomers').doc(`${workspace.id}_${plan.provider}`);
@@ -171,7 +246,7 @@ export const reserveCheckout = async (
     ]);
     const current = subscription.data();
     const accessUntil = entitlement.data()?.accessUntil;
-    const activeAccess = entitlement.data()?.mcpAccess === true
+    const activeAccess = entitlement.data()?.managedAgentAccess === true
       && accessUntil instanceof Timestamp
       && accessUntil.toMillis() > Date.now();
     const pendingUntil = current?.checkoutPendingUntil;
@@ -181,7 +256,10 @@ export const reserveCheckout = async (
     }
     transaction.set(subscriptionRef, {
       workspaceId: workspace.id,
-      ownerUid: principal.uid,
+      billingSubjectType: workspace.kind,
+      billingSubjectId: workspace.id,
+      purchaserUid: principal.uid,
+      ...(workspace.kind === 'individual' ? { ownerUid: principal.uid } : { organizationId: workspace.organizationId }),
       provider: plan.provider,
       planKey: plan.key,
       providerStatus: 'checkout_pending',
@@ -206,11 +284,14 @@ export const reserveCheckout = async (
 
 export const completeCheckout = async (
   principal: AuthenticatedPrincipal,
-  workspaceId: string,
+  workspace: WorkspaceWire,
   attemptId: string,
   plan: PlanDefinition,
   result: CheckoutResult,
 ): Promise<void> => {
+  if (result.provider !== plan.provider) throw new HttpError(500, 'Billing provider mismatch.');
+  await resolveBillingWorkspace(principal, workspace.organizationId, true);
+  const workspaceId = workspace.id;
   const db = getFirestore();
   const subscriptionRef = db.collection('subscriptions').doc(workspaceId);
   await db.runTransaction(async (transaction) => {
@@ -230,6 +311,7 @@ export const completeCheckout = async (
       providerStatus: 'payment_verification_pending',
       ...(result.providerSubscriptionId ? { providerSubscriptionId: result.providerSubscriptionId } : {}),
       ...(result.providerCustomerId ? { providerCustomerId: result.providerCustomerId } : {}),
+      ...(result.providerCheckoutId ? { providerCheckoutId: result.providerCheckoutId } : {}),
       checkoutPendingUntil: Timestamp.fromMillis(Date.now() + 60 * 60 * 1_000),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
@@ -251,6 +333,61 @@ export const completeCheckout = async (
   });
 };
 
+export const subscriptionForRazorpayVerification = async (
+  principal: AuthenticatedPrincipal,
+  suppliedSubscriptionId: string,
+  organizationId?: string,
+): Promise<{ workspaceId: string; planKey: PlanKey; providerSubscriptionId: string }> => {
+  const workspace = await resolveBillingWorkspace(principal, organizationId, true);
+  const snapshot = await getFirestore().collection('subscriptions').doc(workspace.id).get();
+  const data = snapshot.data();
+  if (data?.provider !== 'razorpay'
+    || typeof data.providerSubscriptionId !== 'string'
+    || data.providerSubscriptionId !== suppliedSubscriptionId
+    || data.billingSubjectId !== workspace.id
+    || (data.planKey !== 'pro_monthly' && data.planKey !== 'pro_annual')) {
+    throw new HttpError(403, 'Payment verification does not match this account checkout.');
+  }
+  return {
+    workspaceId: workspace.id,
+    planKey: data.planKey,
+    providerSubscriptionId: data.providerSubscriptionId,
+  };
+};
+
+export const recordRazorpayCheckoutVerification = async (
+  principal: AuthenticatedPrincipal,
+  workspaceId: string,
+  providerSubscriptionId: string,
+  paymentId: string,
+  paymentStatus: string,
+  amount: number,
+  currency: string,
+): Promise<void> => {
+  const db = getFirestore();
+  const subscriptionRef = db.collection('subscriptions').doc(workspaceId);
+  await db.runTransaction(async (transaction) => {
+    const subscription = await transaction.get(subscriptionRef);
+    const data = subscription.data();
+    if (data?.provider !== 'razorpay'
+      || data?.providerSubscriptionId !== providerSubscriptionId) {
+      throw new HttpError(403, 'Payment verification does not match this account checkout.');
+    }
+    transaction.set(subscriptionRef, {
+      callbackVerifiedAt: FieldValue.serverTimestamp(),
+      callbackPaymentIdHash: sha256(paymentId),
+      callbackPaymentStatus: paymentStatus,
+      callbackAmount: amount,
+      callbackCurrency: currency,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    transaction.create(db.collection('auditLogs').doc(), audit(
+      'billing.razorpay_callback_verified', workspaceId, principal.uid,
+      { providerSubscriptionIdHash: sha256(providerSubscriptionId), paymentStatus, amount, currency },
+    ));
+  });
+};
+
 export const releaseCheckout = async (workspaceId: string, attemptId: string): Promise<void> => {
   const db = getFirestore();
   const ref = db.collection('subscriptions').doc(workspaceId);
@@ -267,12 +404,14 @@ export const releaseCheckout = async (workspaceId: string, attemptId: string): P
 
 export const subscriptionForCancellation = async (
   principal: AuthenticatedPrincipal,
+  organizationId?: string,
 ): Promise<{ workspaceId: string; provider: BillingProvider; providerSubscriptionId: string }> => {
-  const workspace = await ensurePersonalWorkspace(principal);
+  const workspace = await resolveBillingWorkspace(principal, organizationId, true);
   const snapshot = await getFirestore().collection('subscriptions').doc(workspace.id).get();
   const data = snapshot.data();
   if ((data?.provider !== 'stripe' && data?.provider !== 'razorpay')
-    || typeof data.providerSubscriptionId !== 'string') {
+    || typeof data.providerSubscriptionId !== 'string'
+    || data.billingSubjectId !== workspace.id) {
     throw new HttpError(409, 'There is no cancellable subscription for this workspace.');
   }
   return {
@@ -302,12 +441,34 @@ const shouldApplyProviderEvent = (
   event: NormalizedProviderEvent,
 ): boolean => {
   if (event.transition === 'revoke') return true;
+  if (event.transition === 'recover') {
+    const prior = current?.lastProviderEventAt;
+    return current?.terminalRevocationReason === 'dispute'
+      && current.provider === event.provider
+      && current.providerSubscriptionId === event.providerSubscriptionId
+      && (!(prior instanceof Timestamp) || event.occurredAtMs >= prior.toMillis());
+  }
   const terminallyRevokedSameSubscription = current?.terminalRevocationAt instanceof Timestamp
     && current.provider === event.provider
     && current.providerSubscriptionId === event.providerSubscriptionId;
   if (terminallyRevokedSameSubscription) return false;
   const prior = current?.lastProviderEventAt;
   return !(prior instanceof Timestamp) || event.occurredAtMs >= prior.toMillis();
+};
+
+const isProviderEventBound = (current: DocumentData | undefined, event: NormalizedProviderEvent): boolean => {
+  if (!current || current.provider !== event.provider) return false;
+  if (typeof current.planKey === 'string' && event.planKey && current.planKey !== event.planKey) return false;
+  if (typeof current.providerCustomerId === 'string'
+    && event.providerCustomerId
+    && current.providerCustomerId !== event.providerCustomerId) return false;
+  if (current.providerSubscriptionId === event.providerSubscriptionId) return true;
+  return event.provider === 'stripe'
+    && event.eventType === 'checkout.session.completed'
+    && typeof current.providerCheckoutId === 'string'
+    && current.providerCheckoutId === event.providerCheckoutId
+    && typeof current.providerCustomerId === 'string'
+    && current.providerCustomerId === event.providerCustomerId;
 };
 
 export const applyProviderEvent = async (
@@ -353,12 +514,24 @@ export const applyProviderEvent = async (
     ]);
     if (eventSnapshot.data()?.processingStatus === 'processed') return 'duplicate';
     const current = subscription.data();
+    if (!isProviderEventBound(current, event)) {
+      transaction.set(eventRef, {
+        processingStatus: 'processed',
+        outcome: 'unbound_event',
+        processedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      transaction.create(db.collection('auditLogs').doc(), audit(
+        'billing.unbound_provider_event', event.workspaceId, 'webhook',
+        { provider: event.provider, eventType: event.eventType },
+      ));
+      return 'conflict';
+    }
     const currentProvider = current?.provider;
     const currentAccessUntil = entitlement.data()?.accessUntil;
     const activeDifferentProvider = currentProvider
       && currentProvider !== event.provider
       && current?.providerSubscriptionId
-      && entitlement.data()?.mcpAccess === true
+      && entitlement.data()?.managedAgentAccess === true
       && currentAccessUntil instanceof Timestamp
       && currentAccessUntil.toMillis() > Date.now();
     if (activeDifferentProvider) {
@@ -388,7 +561,20 @@ export const applyProviderEvent = async (
       currentPeriodEndMs: event.currentPeriodEndMs
         ?? (current?.currentPeriodEnd instanceof Timestamp ? current.currentPeriodEnd.toMillis() : undefined),
     };
-    const projection = projectEntitlement(effectiveEvent, Date.now());
+    const priorAccessUntil = entitlement.data()?.accessUntil;
+    const priorEntitlementStatus = entitlement.data()?.status;
+    const hadActivatedSubscription = current?.hasActivated === true
+      || (
+        entitlement.data()?.managedAgentAccess === true
+        && ['active', 'canceled'].includes(priorEntitlementStatus)
+      )
+      || (
+        entitlement.data()?.managedAgentAccess === true
+        && priorEntitlementStatus === 'grace'
+        && priorAccessUntil instanceof Timestamp
+        && priorAccessUntil.toMillis() > Date.now()
+      );
+    const projection = projectEntitlement(effectiveEvent, Date.now(), hadActivatedSubscription);
     const existingGraceEnd = entitlement.data()?.gracePeriodEnd;
     if (projection.status === 'grace' && existingGraceEnd instanceof Timestamp) {
       projection.gracePeriodEndMs = existingGraceEnd.toMillis();
@@ -409,6 +595,9 @@ export const applyProviderEvent = async (
         : {}),
       lastProviderEventAt: Timestamp.fromMillis(event.occurredAtMs),
       lastProviderEventId: event.eventId,
+      hasActivated: current?.hasActivated === true
+        || event.transition === 'activate'
+        || event.transition === 'renewed',
       terminalRevocationAt: event.transition === 'revoke'
         ? Timestamp.fromMillis(event.occurredAtMs)
         : FieldValue.delete(),
@@ -421,7 +610,7 @@ export const applyProviderEvent = async (
     }, { merge: true });
     transaction.set(entitlementRef, {
       workspaceId: event.workspaceId,
-      mcpAccess: projection.mcpAccess,
+      managedAgentAccess: projection.managedAgentAccess,
       status: projection.status,
       sourceSubscription: subscriptionRef.path,
       sourceProvider: event.provider,
@@ -454,96 +643,57 @@ export const applyProviderEvent = async (
   });
 };
 
-export const createConnectorGrant = async (
-  principal: AuthenticatedPrincipal,
-  input: ConnectorGrantInput,
-): Promise<ConnectorGrantResult> => {
-  const db = getFirestore();
-  const workspace = await ensurePersonalWorkspace(principal);
-  const rawGrant = randomBytes(32).toString('base64url');
-  const grantHash = sha256(rawGrant);
-  const expiresAtMs = Date.now() + CONNECTOR_GRANT_TTL_MS;
-  const entitlementRef = db.collection('entitlements').doc(workspace.id);
-  const grantRef = db.collection('connectorGrants').doc(grantHash);
-
-  await db.runTransaction(async (transaction) => {
-    const entitlement = await transaction.get(entitlementRef);
-    const accessUntil = entitlement.data()?.accessUntil;
-    if (entitlement.data()?.mcpAccess !== true
-      || !(accessUntil instanceof Timestamp)
-      || accessUntil.toMillis() <= Date.now()) {
-      throw new HttpError(402, 'A paid MCP entitlement is required.');
-    }
-    transaction.create(grantRef, {
-      grantHash,
-      workspaceId: workspace.id,
-      ownerUid: principal.uid,
-      pairingCredentialHash: input.pairingCredentialHash,
-      origin: input.origin,
-      connectorVersion: input.connectorVersion,
-      requestedScopes: input.requestedScopes,
-      entitlementVersion: Number(entitlement.data()?.version ?? 0),
-      entitlementExpiresAt: accessUntil,
-      expiresAt: Timestamp.fromMillis(expiresAtMs),
-      consumedAt: null,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    transaction.create(db.collection('auditLogs').doc(), audit(
-      'connector.grant_created', workspace.id, principal.uid,
-      { connectorVersion: input.connectorVersion, scopes: input.requestedScopes },
-    ));
-  });
-
-  return { entitlementGrant: rawGrant, expiresAt: new Date(expiresAtMs).toISOString() };
+const currentManagedAgentEntitlement = (data: DocumentData | undefined): boolean => {
+  const accessUntil = data?.accessUntil;
+  return data?.managedAgentAccess === true
+    && accessUntil instanceof Timestamp
+    && accessUntil.toMillis() > Date.now();
 };
 
-export const redeemConnectorGrant = async (
-  input: RedeemGrantInput,
-): Promise<{ workspaceId: string; allowedScopes: McpScope[]; entitlementExpiresAt: string; entitlementVersion: number }> => {
+export const canUseManagedAgent = async (
+  principal: AuthenticatedPrincipal,
+  workspaceId: string,
+): Promise<{
+  managedAgentAccess: true;
+  source: 'individual' | 'organization';
+  subjectId: string;
+  accessUntil: string;
+}> => {
   const db = getFirestore();
-  const grantHash = sha256(input.entitlementGrant);
-  const grantRef = db.collection('connectorGrants').doc(grantHash);
+  let organizationId: string | undefined;
+  if (workspaceId === personalWorkspaceId(principal.uid)) {
+    await ensurePersonalWorkspace(principal);
+  } else if (workspaceId.startsWith('organization_')) {
+    organizationId = workspaceId.slice('organization_'.length);
+    const organizationWorkspace = await resolveOrganizationWorkspace(principal, organizationId);
+    if (organizationWorkspace.id !== workspaceId) throw new HttpError(403, 'Workspace access denied.');
+  } else {
+    throw new HttpError(403, 'Workspace access denied.');
+  }
 
-  return db.runTransaction(async (transaction) => {
-    const grant = await transaction.get(grantRef);
-    const data = grant.data();
-    if (!grant.exists || !data || data.consumedAt) throw new HttpError(401, 'The connector grant is invalid or already used.');
-    if (!(data.expiresAt instanceof Timestamp) || data.expiresAt.toMillis() <= Date.now()) {
-      throw new HttpError(410, 'The connector grant has expired.');
-    }
-    const requestedScopes = Array.isArray(data.requestedScopes)
-      ? data.requestedScopes.filter(isMcpScope)
-      : [];
-    const bindingsMatch = data.pairingCredentialHash === input.pairingCredentialHash
-      && data.origin === input.origin
-      && data.connectorVersion === input.connectorVersion
-      && JSON.stringify(requestedScopes) === JSON.stringify(input.requestedScopes);
-    if (!bindingsMatch) throw new HttpError(403, 'The connector grant binding does not match.');
-
-    const entitlementRef = db.collection('entitlements').doc(String(data.workspaceId));
-    const entitlement = await transaction.get(entitlementRef);
-    const accessUntil = entitlement.data()?.accessUntil;
-    if (entitlement.data()?.mcpAccess !== true
-      || !(accessUntil instanceof Timestamp)
-      || accessUntil.toMillis() <= Date.now()) {
-      throw new HttpError(402, 'A paid MCP entitlement is required.');
-    }
-    const version = Number(entitlement.data()?.version ?? 0);
-    transaction.set(grantRef, {
-      consumedAt: FieldValue.serverTimestamp(),
-      consumedEntitlementVersion: version,
-    }, { merge: true });
-    transaction.create(db.collection('auditLogs').doc(), audit(
-      'connector.paid_session_authorized', String(data.workspaceId), 'connector',
-      { connectorVersion: input.connectorVersion, scopes: requestedScopes, entitlementVersion: version },
-    ));
+  const individualSubjectId = personalWorkspaceId(principal.uid);
+  const individual = await db.collection('entitlements').doc(individualSubjectId).get();
+  if (currentManagedAgentEntitlement(individual.data())) {
     return {
-      workspaceId: String(data.workspaceId),
-      allowedScopes: requestedScopes,
-      entitlementExpiresAt: accessUntil.toDate().toISOString(),
-      entitlementVersion: version,
+      managedAgentAccess: true,
+      source: 'individual',
+      subjectId: individualSubjectId,
+      accessUntil: timestampToIso(individual.data()?.accessUntil) as string,
     };
-  });
+  }
+  if (organizationId) {
+    const organizationSubjectId = organizationWorkspaceId(organizationId);
+    const organization = await db.collection('entitlements').doc(organizationSubjectId).get();
+    if (currentManagedAgentEntitlement(organization.data())) {
+      return {
+        managedAgentAccess: true,
+        source: 'organization',
+        subjectId: organizationSubjectId,
+        accessUntil: timestampToIso(organization.data()?.accessUntil) as string,
+      };
+    }
+  }
+  throw new HttpError(402, 'An active managed-agent subscription is required.');
 };
 
 export const listReconciliationCandidates = async (): Promise<Array<{
@@ -606,7 +756,7 @@ export const expireElapsedEntitlements = async (): Promise<number> => {
   const db = getFirestore();
   const now = Timestamp.now();
   const snapshot = await db.collection('entitlements')
-    .where('mcpAccess', '==', true)
+    .where('managedAgentAccess', '==', true)
     .where('accessUntil', '<=', now)
     .limit(250)
     .get();
@@ -614,7 +764,7 @@ export const expireElapsedEntitlements = async (): Promise<number> => {
   const batch = db.batch();
   for (const document of snapshot.docs) {
     batch.set(document.ref, {
-      mcpAccess: false,
+      managedAgentAccess: false,
       status: 'locked',
       revocationReason: 'expired',
       version: Number(document.data().version ?? 0) + 1,

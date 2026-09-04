@@ -4,10 +4,8 @@ import { defineSecret, defineString } from 'firebase-functions/params';
 import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import {
-  isMcpScope,
   isPlanKey,
   type BillingProvider,
-  type McpScope,
   type PlanDefinition,
 } from './model.js';
 import {
@@ -19,6 +17,8 @@ import {
   normalizeRazorpayEventWithLookup,
   normalizeStripeEventWithLookup,
   verifyRazorpayWebhook,
+  verifyRazorpayCheckoutSignature,
+  verifyRazorpayCheckoutWithProvider,
   verifyStripeWebhook,
   type ProviderSecrets,
 } from './providers.js';
@@ -31,23 +31,29 @@ import {
   redactError,
   requestIp,
   requireAppCheck,
+  requireBillingAuthorization,
+  requireConfiguredBrowserUrl,
   requireFirebaseUser,
+  requireJsonContentType,
+  requireRequestBodyWithin,
   sha256,
 } from './security.js';
 import {
   applyProviderEvent,
   applyReconciliationSnapshot,
+  canUseManagedAgent,
   completeCheckout,
-  createConnectorGrant,
   ensurePersonalWorkspace,
   expireElapsedEntitlements,
   getBillingStatus,
+  listBillingWorkspaces,
   listReconciliationCandidates,
   markCancellationRequested,
-  redeemConnectorGrant,
   releaseCheckout,
   reserveCheckout,
+  recordRazorpayCheckoutVerification,
   subscriptionForCancellation,
+  subscriptionForRazorpayVerification,
 } from './services.js';
 
 initializeApp();
@@ -62,12 +68,8 @@ const stripeMonthlyPrice = defineString('STRIPE_PRO_MONTHLY_PRICE_ID');
 const stripeAnnualPrice = defineString('STRIPE_PRO_ANNUAL_PRICE_ID');
 const razorpayMonthlyPlan = defineString('RAZORPAY_PRO_MONTHLY_PLAN_ID');
 const razorpayAnnualPlan = defineString('RAZORPAY_PRO_ANNUAL_PLAN_ID');
-const checkoutSuccessUrl = defineString('CHECKOUT_SUCCESS_URL', {
-  default: 'https://algoglyph.com/workspace?billing=success',
-});
-const checkoutCancelUrl = defineString('CHECKOUT_CANCEL_URL', {
-  default: 'https://algoglyph.com/workspace?billing=cancelled',
-});
+const checkoutSuccessUrl = defineString('CHECKOUT_SUCCESS_URL');
+const checkoutCancelUrl = defineString('CHECKOUT_CANCEL_URL');
 
 const configuredSecrets = (): ProviderSecrets => ({
   stripeSecretKey: stripeSecretKey.value(),
@@ -102,37 +104,27 @@ const resolvePlan = (planKey: unknown, billingRegion: unknown): PlanDefinition =
 
 const browserPaths = new Set([
   '/v1/workspace',
+  '/v1/billing/workspaces',
   '/v1/billing/status',
   '/v1/billing/checkout',
   '/v1/billing/cancel',
-  '/v1/connector/grants',
+  '/v1/billing/razorpay/verify',
+  '/v1/managed-agent/authorize',
 ]);
+const webhookPaths = new Set(['/v1/webhooks/stripe', '/v1/webhooks/razorpay']);
+const MAX_BROWSER_REQUEST_BYTES = 32 * 1024;
+const MAX_WEBHOOK_REQUEST_BYTES = 1024 * 1024;
 
 const json = (response: { status(code: number): { json(body: unknown): void } }, status: number, body: unknown): void => {
   response.status(status).json(body);
 };
 
-const validateGrantInput = (body: Record<string, unknown>, expectedOrigin?: string) => {
-  assertExactKeys(body, ['pairingCredentialHash', 'origin', 'connectorVersion', 'requestedScopes', 'entitlementGrant']);
-  const pairingCredentialHash = typeof body.pairingCredentialHash === 'string' ? body.pairingCredentialHash : '';
-  const origin = typeof body.origin === 'string' ? body.origin : '';
-  const connectorVersion = typeof body.connectorVersion === 'string' ? body.connectorVersion : '';
-  if (!/^[a-f0-9]{64}$/.test(pairingCredentialHash)) throw new HttpError(400, 'Invalid pairing credential binding.');
-  try {
-    if (new URL(origin).origin !== origin) throw new Error('not an origin');
-  } catch {
-    throw new HttpError(400, 'Invalid connector origin.');
+const optionalOrganizationId = (value: unknown): string | undefined => {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{6,80}$/.test(value)) {
+    throw new HttpError(400, 'Invalid organization identifier.');
   }
-  if (expectedOrigin && origin !== expectedOrigin) throw new HttpError(403, 'Connector origin does not match this request.');
-  if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?$/.test(connectorVersion)) {
-    throw new HttpError(400, 'Invalid connector version.');
-  }
-  if (!Array.isArray(body.requestedScopes) || body.requestedScopes.length === 0 || body.requestedScopes.length > 5) {
-    throw new HttpError(400, 'At least one supported connector scope is required.');
-  }
-  const requestedScopes = [...new Set(body.requestedScopes)];
-  if (!requestedScopes.every(isMcpScope)) throw new HttpError(400, 'Unsupported connector scope.');
-  return { pairingCredentialHash, origin, connectorVersion, requestedScopes: requestedScopes as McpScope[] };
+  return value;
 };
 
 export const api = onRequest({
@@ -160,7 +152,17 @@ export const api = onRequest({
         response.status(204).end();
         return;
       }
+      requireRequestBodyWithin(request, MAX_BROWSER_REQUEST_BYTES);
+      assertExactKeys(
+        request.query as Record<string, unknown>,
+        path === '/v1/billing/status' ? ['organizationId'] : [],
+      );
+      if (request.method === 'POST') requireJsonContentType(request);
       await requireAppCheck(request);
+    }
+    if (webhookPaths.has(path)) {
+      assertExactKeys(request.query as Record<string, unknown>, []);
+      requireRequestBodyWithin(request, MAX_WEBHOOK_REQUEST_BYTES);
     }
 
     if (request.method === 'GET' && path === '/v1/workspace') {
@@ -172,30 +174,42 @@ export const api = onRequest({
 
     if (request.method === 'GET' && path === '/v1/billing/status') {
       const principal = await requireFirebaseUser(request);
-      const workspaceId = `personal_${principal.uid}`;
+      requireBillingAuthorization(principal);
+      const organizationId = optionalOrganizationId(request.query.organizationId);
+      const workspaceId = organizationId ? `organization_${organizationId}` : `personal_${principal.uid}`;
       await enforceRateLimit(
         'billing_status',
         [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
         60,
         60,
       );
-      json(response, 200, await getBillingStatus(principal));
+      json(response, 200, await getBillingStatus(principal, organizationId));
+      return;
+    }
+
+    if (request.method === 'GET' && path === '/v1/billing/workspaces') {
+      const principal = await requireFirebaseUser(request);
+      requireBillingAuthorization(principal);
+      await enforceRateLimit('billing_workspaces', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 30, 60);
+      json(response, 200, { workspaces: await listBillingWorkspaces(principal) });
       return;
     }
 
     if (request.method === 'POST' && path === '/v1/billing/checkout') {
       const principal = await requireFirebaseUser(request);
+      requireBillingAuthorization(principal);
       const body = assertJsonObject(request.body);
-      assertExactKeys(body, ['planKey', 'billingRegion']);
+      assertExactKeys(body, ['planKey', 'billingRegion', 'organizationId']);
       const plan = resolvePlan(body.planKey, body.billingRegion);
-      const workspaceId = `personal_${principal.uid}`;
+      const organizationId = optionalOrganizationId(body.organizationId);
+      const workspaceId = organizationId ? `organization_${organizationId}` : `personal_${principal.uid}`;
       await enforceRateLimit(
         'billing_checkout',
         [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
         5,
         15 * 60,
       );
-      const reservation = await reserveCheckout(principal, plan);
+      const reservation = await reserveCheckout(principal, plan, organizationId);
       try {
         const result = await createHostedCheckout({
           workspaceId: reservation.workspace.id,
@@ -203,11 +217,17 @@ export const api = onRequest({
           email: principal.email,
           displayName: principal.displayName,
           plan,
-          successUrl: checkoutSuccessUrl.value(),
-          cancelUrl: checkoutCancelUrl.value(),
+          successUrl: requireConfiguredBrowserUrl(
+            requireConfigured(checkoutSuccessUrl.value(), 'CHECKOUT_SUCCESS_URL'),
+            'CHECKOUT_SUCCESS_URL',
+          ),
+          cancelUrl: requireConfiguredBrowserUrl(
+            requireConfigured(checkoutCancelUrl.value(), 'CHECKOUT_CANCEL_URL'),
+            'CHECKOUT_CANCEL_URL',
+          ),
           existingCustomerId: reservation.existingCustomerId,
         }, configuredSecrets());
-        await completeCheckout(principal, reservation.workspace.id, reservation.attemptId, plan, result);
+        await completeCheckout(principal, reservation.workspace, reservation.attemptId, plan, result);
         json(response, 200, result);
       } catch (error) {
         await releaseCheckout(reservation.workspace.id, reservation.attemptId);
@@ -218,9 +238,11 @@ export const api = onRequest({
 
     if (request.method === 'POST' && path === '/v1/billing/cancel') {
       const principal = await requireFirebaseUser(request);
+      requireBillingAuthorization(principal, { recentAuthentication: true });
       const body = assertJsonObject(request.body);
-      assertExactKeys(body, []);
-      const subscription = await subscriptionForCancellation(principal);
+      assertExactKeys(body, ['organizationId']);
+      const organizationId = optionalOrganizationId(body.organizationId);
+      const subscription = await subscriptionForCancellation(principal, organizationId);
       await enforceRateLimit(
         'billing_cancel',
         [`uid:${principal.uid}`, `workspace:${subscription.workspaceId}`, `ip:${requestIp(request)}`],
@@ -237,30 +259,68 @@ export const api = onRequest({
       return;
     }
 
-    if (request.method === 'POST' && path === '/v1/connector/grants') {
+    if (request.method === 'POST' && path === '/v1/billing/razorpay/verify') {
       const principal = await requireFirebaseUser(request);
+      requireBillingAuthorization(principal);
       const body = assertJsonObject(request.body);
-      const origin = request.header('origin');
-      if (!origin) throw new HttpError(403, 'Origin is required.');
-      const input = validateGrantInput(body, origin);
-      const workspaceId = `personal_${principal.uid}`;
+      assertExactKeys(body, ['paymentId', 'subscriptionId', 'signature', 'organizationId']);
+      const organizationId = optionalOrganizationId(body.organizationId);
+      const paymentId = typeof body.paymentId === 'string' ? body.paymentId.trim() : '';
+      const subscriptionId = typeof body.subscriptionId === 'string' ? body.subscriptionId.trim() : '';
+      const signature = typeof body.signature === 'string' ? body.signature.trim() : '';
+      if (!/^pay_[A-Za-z0-9]{8,48}$/.test(paymentId)
+        || !/^sub_[A-Za-z0-9]{8,48}$/.test(subscriptionId)
+        || !/^[a-f0-9]{64}$/i.test(signature)) {
+        throw new HttpError(400, 'Invalid Razorpay verification payload.');
+      }
+      const workspaceId = organizationId ? `organization_${organizationId}` : `personal_${principal.uid}`;
       await enforceRateLimit(
-        'connector_grant',
+        'razorpay_callback_verify',
         [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
         10,
-        60,
+        15 * 60,
       );
-      json(response, 200, await createConnectorGrant(principal, input));
+      const subscription = await subscriptionForRazorpayVerification(principal, subscriptionId, organizationId);
+      const secrets = configuredSecrets();
+      if (!verifyRazorpayCheckoutSignature(paymentId, subscriptionId, signature, secrets.razorpayKeySecret)) {
+        throw new HttpError(400, 'Invalid Razorpay payment signature.');
+      }
+      const plan = resolvePlan(subscription.planKey, 'india');
+      const verified = await verifyRazorpayCheckoutWithProvider(
+        paymentId,
+        subscription.providerSubscriptionId,
+        plan.providerPriceId,
+        secrets,
+      );
+      await recordRazorpayCheckoutVerification(
+        principal,
+        subscription.workspaceId,
+        subscription.providerSubscriptionId,
+        paymentId,
+        verified.paymentStatus,
+        verified.amount,
+        verified.currency,
+      );
+      json(response, 200, { verified: true, entitlementPending: true });
       return;
     }
 
-    if (request.method === 'POST' && path === '/v1/connector/grants/redeem') {
+    if (request.method === 'POST' && path === '/v1/managed-agent/authorize') {
+      const principal = await requireFirebaseUser(request);
+      requireBillingAuthorization(principal);
       const body = assertJsonObject(request.body);
-      const input = validateGrantInput(body);
-      const entitlementGrant = typeof body.entitlementGrant === 'string' ? body.entitlementGrant : '';
-      if (!/^[A-Za-z0-9_-]{40,64}$/.test(entitlementGrant)) throw new HttpError(401, 'Invalid connector grant.');
-      await enforceRateLimit('connector_redeem', [`ip:${requestIp(request)}`], 30, 60);
-      json(response, 200, await redeemConnectorGrant({ ...input, entitlementGrant }));
+      assertExactKeys(body, ['workspaceId']);
+      const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId : '';
+      if (!workspaceId || workspaceId.length > 200 || workspaceId.includes('/')) {
+        throw new HttpError(400, 'Invalid workspace identifier.');
+      }
+      await enforceRateLimit(
+        'managed_agent_authorize',
+        [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
+        30,
+        60,
+      );
+      json(response, 200, await canUseManagedAgent(principal, workspaceId));
       return;
     }
 
@@ -293,9 +353,13 @@ export const api = onRequest({
         json(response, 200, { received: true, outcome: 'ignored' });
         return;
       }
+      const eventId = request.header('x-razorpay-event-id');
+      if (!eventId || !/^[A-Za-z0-9_-]{8,200}$/.test(eventId)) {
+        throw new HttpError(400, 'A valid Razorpay event identifier is required.');
+      }
       const event = await normalizeRazorpayEventWithLookup(
         payload,
-        request.header('x-razorpay-event-id'),
+        eventId,
         secrets,
       );
       if (!event) throw new Error('A supported Razorpay event could not be resolved to a subscription.');
@@ -304,7 +368,7 @@ export const api = onRequest({
       return;
     }
 
-    if ([...browserPaths, '/v1/connector/grants/redeem', '/v1/webhooks/stripe', '/v1/webhooks/razorpay'].includes(path)) {
+    if ([...browserPaths, ...webhookPaths].includes(path)) {
       throw new HttpError(405, 'Method not allowed.');
     }
     throw new HttpError(404, 'Not found.');

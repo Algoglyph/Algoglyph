@@ -45,7 +45,7 @@ const getArrayColor = (state: ArrayCellState, isDark: boolean): string => {
 const ArrayBars: React.FC<{ frame: ArrayFrame, isDragging?: boolean }> = ({ frame, isDragging }) => {
   const theme = useWorkspaceStore((state) => state.theme);
   const isDark = theme === 'dark';
-  const max = Math.max(1, ...frame.cells.map((c) => c.v));
+  const maxMagnitude = Math.max(1, ...frame.cells.map((c) => Math.abs(c.v)));
   
   return (
     <div className="flex h-[170px] items-end justify-center gap-[6px] px-1">
@@ -59,7 +59,8 @@ const ArrayBars: React.FC<{ frame: ArrayFrame, isDragging?: boolean }> = ({ fram
             layout={!isDragging}
             transition={spring}
             className="relative flex flex-1 flex-col items-center justify-end"
-            style={{ maxWidth: 34 }}
+            style={{ maxWidth: 34, opacity: frame.eliminated?.includes(i) ? 0.22 : 1 }}
+            aria-label={`Index ${i}, value ${cell.v}, state ${state}`}
           >
             {label && (
               <span
@@ -73,9 +74,10 @@ const ArrayBars: React.FC<{ frame: ArrayFrame, isDragging?: boolean }> = ({ fram
               layout={!isDragging}
               transition={spring}
               className="w-full rounded-t-[3px]"
-              animate={{ backgroundColor: color, height: `${(cell.v / max) * 130 + 14}px` }}
+              animate={{ backgroundColor: color, height: `${(Math.abs(cell.v) / maxMagnitude) * 116 + 14}px` }}
             />
             <span className={`mt-1 text-[9px] font-mono tabular-nums ${isDark ? 'text-zinc-400' : 'text-zinc-500'}`}>{cell.v}</span>
+            <span className={`text-[7px] font-mono tabular-nums ${isDark ? 'text-zinc-700' : 'text-zinc-400'}`}>{i}</span>
           </motion.div>
         );
       })}
@@ -301,6 +303,7 @@ const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
               <td className={`pr-1.5 text-right whitespace-nowrap ${isDark ? 'text-zinc-500' : 'text-zinc-400'}`}>{rowLabels[r]}</td>
               {row.map((val, c) => {
                 const isCursor = cursor && cursor.r === r && cursor.c === c;
+                const isDependency = frame.dependencies?.some((cell) => cell.r === r && cell.c === c);
                 return (
                   <td key={c} className="p-[1px]">
                     <div
@@ -308,8 +311,10 @@ const DPTable: React.FC<{ frame: DPFrame }> = ({ frame }) => {
                       style={{
                         width: 22,
                         height: 18,
-                        background: isCursor 
+                        background: isCursor
                           ? '#3291ff' 
+                          : isDependency
+                            ? (isDark ? 'rgba(245,166,35,0.25)' : '#fef3c7')
                           : val === null 
                             ? 'transparent' 
                             : (isDark ? '#27272a' : '#f4f4f5'),

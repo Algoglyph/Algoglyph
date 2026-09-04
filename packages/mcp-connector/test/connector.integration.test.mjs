@@ -373,6 +373,20 @@ describe('connector HTTP security baseline', { concurrency: false }, () => {
     assert.equal(secondRedemption.status, 401);
   });
 
+  test('MCP pairing and catalog access require no subscription for free, paid, or organization users', async () => {
+    const subscriptionAgnosticConnector = await startConnectorHarness();
+    try {
+      for (const userContext of ['free user', 'individual subscriber', 'organization member']) {
+        const { session } = await subscriptionAgnosticConnector.pair();
+        const catalog = await subscriptionAgnosticConnector.request('v1/catalog', { token: session.sessionToken });
+        assert.equal(catalog.status, 200, `${userContext} should retain free MCP access`);
+        assert.ok(Array.isArray(catalog.body.agents));
+      }
+    } finally {
+      await subscriptionAgnosticConnector.stop();
+    }
+  });
+
   test('sessions enforce absolute and idle expiration', async () => {
     const absoluteConnector = await startConnectorHarness({
       environment: {
@@ -2268,6 +2282,7 @@ describe('security remediation contract', () => {
     const connectorSource = await readFile(`${REPO_ROOT}/packages/mcp-connector/bin/algoglyph-mcp-connector.mjs`, 'utf8');
     const clientSource = await readFile(`${REPO_ROOT}/src/lib/mcp/connectorClient.ts`, 'utf8');
     const dialogSource = await readFile(`${REPO_ROOT}/src/components/McpConnectDialog.tsx`, 'utf8');
+    const billingDialogSource = await readFile(`${REPO_ROOT}/src/components/BillingDialog.tsx`, 'utf8');
     const bootstrapSource = await readFile(`${REPO_ROOT}/src/lib/mcp/bootstrap.ts`, 'utf8');
     const storeSource = await readFile(`${REPO_ROOT}/src/store/mcpStore.ts`, 'utf8');
     const mcpTypesSource = await readFile(`${REPO_ROOT}/src/lib/mcp/types.ts`, 'utf8');
@@ -2301,6 +2316,10 @@ describe('security remediation contract', () => {
     assert.match(dialogSource, /MCP_CONNECTOR_USER_COMMAND/);
     assert.doesNotMatch(dialogSource, /npm run mcp:connector/);
     assert.doesNotMatch(dialogSource, /pairMcpConnector/);
+    assert.doesNotMatch(connectorSource, /managedAgentAccess|billing entitlement|subscription required/i);
+    assert.doesNotMatch(clientSource, /managedAgentAccess|billing entitlement|subscription required/i);
+    assert.doesNotMatch(billingDialogSource, /upgrade to (?:use )?MCP|requestMcpConnection/i);
+    assert.match(billingDialogSource, /local MCP connector is free for everyone/i);
     assert.match(storeSource, /MCP_INTENTIONAL_DISCONNECT_KEY/);
     assert.match(dialogSource, /setIntentionalDisconnect\(true\)/);
     assert.match(dialogSource, /setIntentionalDisconnect\(false\)/);

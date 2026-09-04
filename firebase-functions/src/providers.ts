@@ -29,6 +29,7 @@ export interface CheckoutResult {
   provider: BillingProvider;
   providerSubscriptionId?: string;
   providerCustomerId?: string;
+  providerCheckoutId?: string;
   checkoutUrl?: string;
   razorpay?: {
     keyId: string;
@@ -196,7 +197,9 @@ export const createHostedCheckout = async (
     });
     const checkoutUrl = stringValue(checkout.url);
     if (!checkoutUrl) throw new Error('Stripe did not return a Checkout URL.');
-    return { provider: 'stripe', providerCustomerId: customerId, checkoutUrl };
+    const providerCheckoutId = stringValue(checkout.id);
+    if (!providerCheckoutId) throw new Error('Stripe did not return a Checkout identifier.');
+    return { provider: 'stripe', providerCustomerId: customerId, providerCheckoutId, checkoutUrl };
   }
 
   const totalCount = context.plan.interval === 'month' ? 120 : 10;
@@ -222,8 +225,10 @@ export const createHostedCheckout = async (
     razorpay: {
       keyId: secrets.razorpayKeyId,
       subscriptionId,
-      name: 'AlgoGlyph Pro',
-      description: context.plan.interval === 'month' ? 'AlgoGlyph Pro monthly' : 'AlgoGlyph Pro annual',
+      name: 'AlgoGlyph Managed Agent',
+      description: context.plan.interval === 'month'
+        ? 'AlgoGlyph managed agent monthly access'
+        : 'AlgoGlyph managed agent annual access',
     },
   };
 };
@@ -246,14 +251,64 @@ export const cancelProviderSubscription = async (
   });
 };
 
+export const verifyRazorpayCheckoutSignature = (
+  paymentId: string,
+  subscriptionId: string,
+  suppliedSignature: string,
+  secret: string,
+): boolean => {
+  if (!paymentId || !subscriptionId || !suppliedSignature || !secret) return false;
+  const expected = createHmac('sha256', secret).update(`${paymentId}|${subscriptionId}`).digest('hex');
+  return safeEqual(expected, suppliedSignature);
+};
+
+export const verifyRazorpayCheckoutWithProvider = async (
+  paymentId: string,
+  expectedSubscriptionId: string,
+  expectedPlanId: string,
+  secrets: ProviderSecrets,
+): Promise<{ paymentStatus: string; amount: number; currency: string }> => {
+  const [payment, subscription, plan] = await Promise.all([
+    razorpayRequest(`payments/${encodeURIComponent(paymentId)}`, secrets),
+    razorpayRequest(`subscriptions/${encodeURIComponent(expectedSubscriptionId)}`, secrets),
+    razorpayRequest(`plans/${encodeURIComponent(expectedPlanId)}`, secrets),
+  ]);
+  const planItem = objectAt(plan, 'item');
+  const paymentStatus = stringValue(payment.status);
+  const amount = numberValue(payment.amount);
+  const currency = stringValue(payment.currency);
+  const expectedAmount = numberValue(planItem?.amount) ?? numberValue(planItem?.unit_amount);
+  const expectedCurrency = stringValue(planItem?.currency);
+  if (stringValue(payment.id) !== paymentId
+    || stringValue(payment.subscription_id) !== expectedSubscriptionId
+    || stringValue(subscription.id) !== expectedSubscriptionId
+    || stringValue(subscription.plan_id) !== expectedPlanId
+    || (paymentStatus !== 'authorized' && paymentStatus !== 'captured')
+    || amount === undefined
+    || expectedAmount === undefined
+    || amount !== expectedAmount
+    || !currency
+    || !expectedCurrency
+    || currency !== expectedCurrency) {
+    throw new Error('Razorpay checkout verification did not match the server-created subscription.');
+  }
+  return { paymentStatus, amount, currency };
+};
+
 const stripeTransition = (
   eventType: string,
   status: string,
   cancelAtPeriodEnd: boolean,
   cancellationReason?: string,
+  disputeStatus?: string,
 ): Pick<NormalizedProviderEvent, 'transition' | 'revocationReason'> => {
   if (eventType === 'radar.early_fraud_warning.created') return { transition: 'revoke', revocationReason: 'fraud' };
   if (eventType === 'charge.dispute.created') return { transition: 'revoke', revocationReason: 'dispute' };
+  if (eventType === 'charge.dispute.closed') {
+    return disputeStatus === 'won' || disputeStatus === 'warning_closed'
+      ? { transition: 'recover' }
+      : { transition: 'revoke', revocationReason: 'dispute' };
+  }
   if (eventType === 'charge.refunded') return { transition: 'revoke', revocationReason: 'refund' };
   if ((eventType === 'refund.created' || eventType === 'refund.updated') && status === 'succeeded') {
     return { transition: 'revoke', revocationReason: 'refund' };
@@ -302,6 +357,7 @@ export const normalizeStripeEvent = (payload: unknown): NormalizedProviderEvent 
   const cancellationDetails = objectAt(object, 'cancellation_details')
     ?? objectAt(subscriptionObject, 'cancellation_details');
   const cancellationReason = stringValue(cancellationDetails?.reason);
+  const disputeStatus = object.object === 'dispute' ? stringValue(object.status) : undefined;
   const subscriptionItems = objectAt(subscriptionObject, 'items') ?? objectAt(object, 'items');
   const firstSubscriptionItem = firstRecordAt(subscriptionItems, 'data');
   const periodEndSeconds = numberValue(subscriptionObject?.current_period_end)
@@ -318,12 +374,13 @@ export const normalizeStripeEvent = (payload: unknown): NormalizedProviderEvent 
     occurredAtMs: eventCreatedSeconds * 1_000,
     workspaceId,
     providerSubscriptionId,
+    providerCheckoutId: object.object === 'checkout.session' ? stringValue(object.id) : undefined,
     providerCustomerId: stringValue(object.customer) ?? stringValue(subscriptionObject?.customer),
     planKey: isPlanKey(planKeyValue) ? planKeyValue : undefined,
     providerStatus: status,
     currentPeriodEndMs: periodEndSeconds ? periodEndSeconds * 1_000 : undefined,
     cancelAtPeriodEnd,
-    ...stripeTransition(eventType, status, cancelAtPeriodEnd, cancellationReason),
+    ...stripeTransition(eventType, status, cancelAtPeriodEnd, cancellationReason, disputeStatus),
   };
 };
 
@@ -337,6 +394,7 @@ const STRIPE_BILLING_EVENTS = new Set([
   'invoice.payment_failed',
   'charge.refunded',
   'charge.dispute.created',
+  'charge.dispute.closed',
   'refund.created',
   'refund.updated',
   'radar.early_fraud_warning.created',
@@ -395,9 +453,16 @@ export const normalizeStripeEventWithLookup = async (
 
 const razorpayTransition = (
   eventType: string,
+  disputeStatus?: string,
 ): Pick<NormalizedProviderEvent, 'transition' | 'revocationReason'> => {
   if (/refund\.(?:processed|created)/.test(eventType)) return { transition: 'revoke', revocationReason: 'refund' };
-  if (/dispute\.(?:created|won|lost)/.test(eventType)) return { transition: 'revoke', revocationReason: 'dispute' };
+  if (eventType === 'payment.dispute.won'
+    || (eventType === 'payment.dispute.closed' && disputeStatus === 'won')) return { transition: 'recover' };
+  if (eventType === 'payment.dispute.created'
+    || eventType === 'payment.dispute.lost'
+    || (eventType === 'payment.dispute.closed' && disputeStatus !== 'won')) {
+    return { transition: 'revoke', revocationReason: 'dispute' };
+  }
   if (eventType === 'subscription.charged' || eventType === 'subscription.activated' || eventType === 'subscription.resumed') {
     return { transition: eventType === 'subscription.charged' ? 'renewed' : 'activate' };
   }
@@ -445,7 +510,7 @@ export const normalizeRazorpayEvent = (
     ?? numberValue(payment?.created_at)
     ?? Math.floor(Date.now() / 1_000);
   const planKeyValue = stringValue(notes?.planKey);
-  const transition = razorpayTransition(eventType);
+  const transition = razorpayTransition(eventType, stringValue(dispute?.status));
 
   return {
     provider: 'razorpay',
@@ -466,7 +531,7 @@ export const normalizeRazorpayEvent = (
 const isSupportedRazorpayEventType = (eventType: string): boolean =>
   eventType.startsWith('subscription.')
   || eventType === 'payment.failed'
-  || /^(?:refund\.(?:processed|created)|dispute\.(?:created|won|lost))$/.test(eventType);
+  || /^(?:refund\.(?:processed|created)|payment\.dispute\.(?:created|won|lost|closed))$/.test(eventType);
 
 export const isSupportedRazorpayBillingEvent = (payload: unknown): boolean => {
   const event = asRecord(payload);

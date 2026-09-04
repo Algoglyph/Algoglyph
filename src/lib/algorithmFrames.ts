@@ -2,6 +2,24 @@
 //
 // Each algorithm turns a sample input into an ordered list of immutable frames.
 import { getAlgorithm } from '../config/algorithms';
+import { generateAlgorithmTrace } from './algorithmTraceGenerators';
+
+export interface TraceMeta {
+  operation: string;
+  phase: string;
+  why: string;
+  invariant?: string;
+  state?: Record<string, string | number>;
+  collections?: Array<{ label: string; values: Array<string | number> }>;
+  metrics?: Record<string, number>;
+  important?: boolean;
+  invalid?: string;
+}
+
+interface FrameBase {
+  caption: string;
+  meta?: TraceMeta;
+}
 
 // A frame is a complete visual snapshot; the node component just walks the list
 // with its playback controls. Frames are tagged by `type` so a single
@@ -26,11 +44,11 @@ export interface ArrayCell {
   v: number;
 }
 
-export interface ArrayFrame {
+export interface ArrayFrame extends FrameBase {
   type: 'array';
   cells: ArrayCell[];
   states: ArrayCellState[];
-  caption: string;
+  eliminated?: number[];
 }
 
 // ── Graph (BFS / DFS / Dijkstra / Topological) ──────────────
@@ -50,41 +68,38 @@ export interface GraphFrameEdge {
   weight?: number;
   state: GraphEdgeState;
 }
-export interface GraphFrame {
+export interface GraphFrame extends FrameBase {
   type: 'graph';
   directed: boolean;
   nodes: GraphFrameNode[];
   edges: GraphFrameEdge[];
-  caption: string;
 }
 
 // ── Grid (N-Queens) ─────────────────────────────────────────
-export interface GridFrame {
+export interface GridFrame extends FrameBase {
   type: 'grid';
   n: number;
   queens: number[]; // queens[row] = col, or -1
   trying: { r: number; c: number } | null;
   conflict: boolean;
   solved: boolean;
-  caption: string;
 }
 
 // ── DP table (Knapsack) ─────────────────────────────────────
-export interface DPFrame {
+export interface DPFrame extends FrameBase {
   type: 'dp';
   table: (number | null)[][];
   cursor: { r: number; c: number } | null;
   rowLabels: string[];
   colLabels: string[];
-  caption: string;
+  dependencies?: Array<{ r: number; c: number }>;
 }
 
 // ── Union-Find ──────────────────────────────────────────────
-export interface UFFrame {
+export interface UFFrame extends FrameBase {
   type: 'uf';
   parent: number[];
   highlight: number[];
-  caption: string;
 }
 
 export type Frame = ArrayFrame | GraphFrame | GridFrame | DPFrame | UFFrame;
@@ -222,25 +237,18 @@ function mergeSort(custom?: number[]): ArrayFrame[] {
     const left = cells.slice(lo, mid + 1);
     const right = cells.slice(mid + 1, hi + 1);
     let li = 0,
-      ri = 0,
-      k = lo;
+      ri = 0;
+    const merged: ArrayCell[] = [];
     frames.push(arrFrame(cells, `Merge [${lo}…${mid}] + [${mid + 1}…${hi}]`, windowMarks(lo, hi)));
     while (li < left.length && ri < right.length) {
-      if (left[li].v <= right[ri].v) cells[k] = left[li++];
-      else cells[k] = right[ri++];
-      frames.push(arrFrame(cells, `Place ${cells[k].v}`, windowMarks(lo, hi, { [k]: 'active' })));
-      k++;
+      frames.push(arrFrame(cells, `Compare ${left[li].v} and ${right[ri].v}`, windowMarks(lo, hi, { [lo + li]: 'compare', [mid + 1 + ri]: 'compare' })));
+      if (left[li].v <= right[ri].v) merged.push(left[li++]);
+      else merged.push(right[ri++]);
     }
-    while (li < left.length) {
-      cells[k] = left[li++];
-      frames.push(arrFrame(cells, `Place ${cells[k].v}`, windowMarks(lo, hi, { [k]: 'active' })));
-      k++;
-    }
-    while (ri < right.length) {
-      cells[k] = right[ri++];
-      frames.push(arrFrame(cells, `Place ${cells[k].v}`, windowMarks(lo, hi, { [k]: 'active' })));
-      k++;
-    }
+    while (li < left.length) merged.push(left[li++]);
+    while (ri < right.length) merged.push(right[ri++]);
+    cells.splice(lo, merged.length, ...merged);
+    frames.push(arrFrame(cells, `Merged [${lo}…${hi}] → ${merged.map((cell) => cell.v).join(', ')}`, windowMarks(lo, hi)));
   };
 
   const sort = (lo: number, hi: number) => {
@@ -290,6 +298,12 @@ function binarySearch(custom?: number[]): ArrayFrame[] {
 function twoPointers(custom?: number[]): ArrayFrame[] {
   const vals = custom && custom.length > 0 ? [...custom].sort((a, b) => a - b) : randomArray(8, 2, 30).sort((a, b) => a - b);
   const cells = toCells(vals);
+  if (cells.length < 2) {
+    return [
+      arrFrame(cells, 'Initialize pair-sum search'),
+      arrFrame(cells, 'Two pointers requires at least two values'),
+    ];
+  }
   // Guarantee a solvable target from two distinct elements.
   const target = cells[1].v + cells[cells.length - 2].v;
   const frames: ArrayFrame[] = [arrFrame(cells, `Find a pair summing to ${target}`)];
@@ -316,8 +330,9 @@ function twoPointers(custom?: number[]): ArrayFrame[] {
 // ── Sliding Window (max sum of size k) ──────────────────────
 function slidingWindow(custom?: number[]): ArrayFrame[] {
   const cells = toCells(custom && custom.length > 0 ? custom : randomArray(9, 1, 20));
-  const k = 3;
+  const k = Math.min(3, cells.length);
   const frames: ArrayFrame[] = [];
+  if (k === 0) return [arrFrame(cells, 'Sliding window requires at least one value')];
   const winMarks = (start: number, extra: Partial<Record<number, ArrayCellState>> = {}) => {
     const m: Partial<Record<number, ArrayCellState>> = {};
     for (let i = start; i < start + k; i++) m[i] = 'window';
@@ -389,12 +404,14 @@ function snapshotGraph(
   nodeState: Record<string, GraphNodeState>,
   edgeState: Record<string, GraphEdgeState>,
   badges: Record<string, string>,
-  caption: string
+  caption: string,
+  meta?: TraceMeta,
 ): GraphFrame {
   return {
     type: 'graph',
     directed: spec.directed,
     caption,
+    meta,
     nodes: spec.nodes.map((n) => ({
       id: n.id,
       x: n.x,
@@ -425,11 +442,21 @@ function bfs(): GraphFrame[] {
   const queue: string[] = [start];
   const seen = new Set<string>([start]);
   nodeState[start] = 'frontier';
-  frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Enqueue ${start}`));
+  const order: string[] = [];
+  frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Enqueue ${start}`, {
+    operation: 'ENQUEUE', phase: 'Initialize BFS', why: 'The source is discovered first and enters the FIFO frontier.',
+    state: { current: start }, collections: [{ label: 'queue', values: [...queue] }],
+    invariant: 'The queue contains discovered vertices that have not been fully processed.', important: true,
+  }));
   while (queue.length) {
     const u = queue.shift()!;
+    order.push(u);
     nodeState[u] = 'current';
-    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Visit ${u}`));
+    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Visit ${u}`, {
+      operation: 'DEQUEUE', phase: 'Process frontier', why: 'FIFO order visits vertices by nondecreasing distance from the source.',
+      state: { current: u, discovered: seen.size }, collections: [{ label: 'queue', values: [...queue] }, { label: 'visit order', values: [...order] }],
+      invariant: 'Every queued vertex is discovered but not fully processed.', important: true,
+    }));
     for (const { to: v } of adj[u].sort((a, b) => a.to.localeCompare(b.to))) {
       if (!seen.has(v)) {
         seen.add(v);
@@ -437,12 +464,19 @@ function bfs(): GraphFrame[] {
         nodeState[v] = 'frontier';
         const ek = edgeKey(spec, u, v);
         if (ek) edgeState[`${ek.from}-${ek.to}`] = 'tree';
-        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Discover ${v} from ${u}`));
+        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Discover ${v} from ${u}`, {
+          operation: 'DISCOVER', phase: 'Scan neighbors', why: 'An unseen neighbor is marked immediately and appended to the queue.',
+          state: { from: u, to: v }, collections: [{ label: 'queue', values: [...queue] }, { label: 'visit order', values: [...order] }],
+          invariant: 'Marking on enqueue prevents duplicate frontier entries.', important: true,
+        }));
       }
     }
     nodeState[u] = 'visited';
   }
-  frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Traversal complete ✓'));
+  frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Traversal complete ✓', {
+    operation: 'COMPLETE', phase: 'Done', why: 'The frontier is empty, so every reachable vertex has been processed.',
+    collections: [{ label: 'visit order', values: order }], invariant: 'All and only vertices reachable from A were visited.', important: true,
+  }));
   return frames;
 }
 
@@ -453,27 +487,45 @@ function dfs(): GraphFrame[] {
   const edgeState: Record<string, GraphEdgeState> = {};
   const frames: GraphFrame[] = [];
   const seen = new Set<string>();
+  const stack: string[] = [];
   const visit = (u: string, parent: string | null) => {
     seen.add(u);
+    stack.push(u);
     nodeState[u] = 'current';
     if (parent) {
       const ek = edgeKey(spec, parent, u);
       if (ek) edgeState[`${ek.from}-${ek.to}`] = 'tree';
     }
-    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Visit ${u}`));
+    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Visit ${u}`, {
+      operation: 'PUSH FRAME', phase: 'DFS descend', why: 'The recursive call makes this vertex the active stack frame.',
+      state: { current: u, depth: stack.length - 1 }, collections: [{ label: 'call stack', values: [...stack] }],
+      invariant: 'The stack is the current simple DFS path.', important: true,
+    }));
     for (const { to: v } of adj[u].sort((a, b) => a.to.localeCompare(b.to))) {
       if (!seen.has(v)) {
         nodeState[u] = 'frontier';
         visit(v, u);
         nodeState[u] = 'current';
-        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Backtrack to ${u}`));
+        frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Backtrack to ${u}`, {
+          operation: 'BACKTRACK', phase: 'DFS unwind', why: 'The child has no remaining unvisited neighbor, so control returns to its parent.',
+          state: { current: u, depth: stack.length - 1 }, collections: [{ label: 'call stack', values: [...stack] }],
+          invariant: 'Every finished child subtree has been completely explored.', important: true,
+        }));
       }
     }
     nodeState[u] = 'visited';
-    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Finish ${u}`));
+    frames.push(snapshotGraph(spec, nodeState, edgeState, {}, `Finish ${u}`, {
+      operation: 'POP FRAME', phase: 'DFS finish', why: 'All outgoing adjacency entries have been examined.',
+      state: { current: u, depth: stack.length - 1 }, collections: [{ label: 'call stack', values: [...stack] }],
+      invariant: 'A finished vertex will never be entered again.', important: true,
+    }));
+    stack.pop();
   };
   visit('A', null);
-  frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Traversal complete ✓'));
+  frames.push(snapshotGraph(spec, nodeState, edgeState, {}, 'Traversal complete ✓', {
+    operation: 'COMPLETE', phase: 'Done', why: 'The initial call returned after exhausting every reachable branch.',
+    state: { visited: seen.size }, collections: [{ label: 'call stack', values: [] }], important: true,
+  }));
   return frames;
 }
 
@@ -505,6 +557,7 @@ function dijkstra(): GraphFrame[] {
   const adj = adjacency(spec);
   const dist: Record<string, number> = {};
   const done: Record<string, boolean> = {};
+  const predecessor: Record<string, string> = {};
   spec.nodes.forEach((n) => (dist[n.id] = Infinity));
   const start = 'A';
   dist[start] = 0;
@@ -519,7 +572,16 @@ function dijkstra(): GraphFrame[] {
     spec.nodes.forEach((n) => (s[n.id] = done[n.id] ? 'visited' : 'idle'));
     return s;
   };
-  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), `Source ${start}, dist=0`));
+  const frontier = () => spec.nodes.filter((node) => !done[node.id] && Number.isFinite(dist[node.id])).sort((a, b) => dist[a.id] - dist[b.id]).map((node) => `${node.id}:${dist[node.id]}`);
+  const treeEdges = () => Object.fromEntries(Object.entries(predecessor).map(([node, parent]) => {
+    const edge = edgeKey(spec, parent, node);
+    return edge ? [`${edge.from}-${edge.to}`, 'tree'] : ['', 'idle'];
+  })) as Record<string, GraphEdgeState>;
+  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), `Source ${start}, dist=0`, {
+    operation: 'INITIALIZE', phase: 'Shortest paths', why: 'The source-to-source distance is zero; all others begin at infinity.',
+    state: { source: start }, collections: [{ label: 'priority frontier', values: frontier() }],
+    invariant: 'Every tentative distance is an upper bound on the true shortest distance.', important: true,
+  }));
   for (let iter = 0; iter < spec.nodes.length; iter++) {
     let u: string | null = null;
     let best = Infinity;
@@ -533,7 +595,11 @@ function dijkstra(): GraphFrame[] {
     done[u] = true;
     const cur = nodeState();
     cur[u] = 'current';
-    frames.push(snapshotGraph(spec, cur, {}, badges(), `Settle ${u} (dist ${dist[u]})`));
+    frames.push(snapshotGraph(spec, cur, treeEdges(), badges(), `Settle ${u} (dist ${dist[u]})`, {
+      operation: 'EXTRACT MIN', phase: 'Settle vertex', why: 'With non-negative edges, the minimum tentative distance cannot be improved later.',
+      state: { current: u, distance: dist[u] }, collections: [{ label: 'priority frontier', values: frontier() }, { label: 'predecessors', values: Object.entries(predecessor).map(([node, parent]) => `${node}←${parent}`) }],
+      invariant: 'Every settled vertex has its final shortest-path distance.', important: true,
+    }));
     for (const { to: v, weight } of adj[u]) {
       if (done[v]) continue;
       const nd = dist[u] + weight;
@@ -541,19 +607,33 @@ function dijkstra(): GraphFrame[] {
       const ek = edgeKey(spec, u, v);
       if (ek) es[`${ek.from}-${ek.to}`] = 'active';
       if (nd < dist[v]) {
+        const previous = dist[v];
         dist[v] = nd;
+        predecessor[v] = u;
         const cur2 = nodeState();
         cur2[u] = 'current';
         cur2[v] = 'frontier';
-        frames.push(snapshotGraph(spec, cur2, es, badges(), `Relax ${u}→${v}: ${nd}`));
+        frames.push(snapshotGraph(spec, cur2, { ...treeEdges(), ...es }, badges(), `Relax ${u}→${v}: ${nd}`, {
+          operation: 'RELAX', phase: 'Scan outgoing edges', why: 'The route through the settled vertex improves the neighbor’s tentative distance.',
+          state: { from: u, to: v, previous: Number.isFinite(previous) ? previous : '∞', candidate: nd }, collections: [{ label: 'priority frontier', values: frontier() }, { label: 'predecessors', values: Object.entries(predecessor).map(([node, parent]) => `${node}←${parent}`) }],
+          invariant: 'Tentative distances equal the best discovered source paths.', important: true,
+        }));
       } else {
         const cur2 = nodeState();
         cur2[u] = 'current';
-        frames.push(snapshotGraph(spec, cur2, es, badges(), `${u}→${v}: ${nd} ≥ ${dist[v]}, keep`));
+        frames.push(snapshotGraph(spec, cur2, { ...treeEdges(), ...es }, badges(), `${u}→${v}: ${nd} ≥ ${dist[v]}, keep`, {
+          operation: 'REJECT RELAXATION', phase: 'Scan outgoing edges', why: 'The candidate route is not shorter than the known route.',
+          state: { from: u, to: v, current: dist[v], candidate: nd }, collections: [{ label: 'priority frontier', values: frontier() }],
+          invariant: 'Rejecting a non-improving edge cannot remove an optimal path.',
+        }));
       }
     }
   }
-  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), 'Shortest paths found ✓'));
+  frames.push(snapshotGraph(spec, nodeState(), treeEdges(), badges(), 'Shortest paths found ✓', {
+    operation: 'COMPLETE', phase: 'Done', why: 'No unsettled reachable vertex remains.',
+    collections: [{ label: 'predecessors', values: Object.entries(predecessor).map(([node, parent]) => `${node}←${parent}`) }],
+    invariant: 'All displayed distances are final shortest-path distances from A.', important: true,
+  }));
   return frames;
 }
 
@@ -600,21 +680,37 @@ function topologicalSort(): GraphFrame[] {
     if (current) s[current] = 'current';
     return s;
   };
-  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), 'In-degrees computed'));
+  const readyNodes = () => spec.nodes.filter((node) => !removed[node.id] && indeg[node.id] === 0).map((node) => node.id);
+  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), 'In-degrees computed', {
+    operation: 'INITIALIZE QUEUE', phase: 'Kahn topological sort', why: 'Only zero-indegree vertices can be output without violating a dependency.',
+    collections: [{ label: 'zero-indegree queue', values: readyNodes() }], invariant: 'Every queued vertex currently has no unprocessed predecessor.', important: true,
+  }));
   while (order.length < spec.nodes.length) {
     const ready = spec.nodes.find((n) => !removed[n.id] && indeg[n.id] === 0);
     if (!ready) break;
     removed[ready.id] = true;
     order.push(ready.id);
-    frames.push(snapshotGraph(spec, nodeState(ready.id), {}, badges(), `Output ${ready.id}  →  [${order.join(' ')}]`));
+    frames.push(snapshotGraph(spec, nodeState(ready.id), {}, badges(), `Output ${ready.id}  →  [${order.join(' ')}]`, {
+      operation: 'DEQUEUE', phase: 'Emit order', why: 'This vertex has no remaining incoming dependency.',
+      state: { current: ready.id, outputLength: order.length }, collections: [{ label: 'order', values: [...order] }, { label: 'zero-indegree queue', values: readyNodes() }],
+      invariant: 'Every emitted edge points from an earlier output vertex to a later one.', important: true,
+    }));
     spec.edges
       .filter((e) => e.from === ready.id)
       .forEach((e) => {
         indeg[e.to] -= 1;
       });
-    frames.push(snapshotGraph(spec, nodeState(), {}, badges(), `Decrement neighbours of ${ready.id}`));
+    frames.push(snapshotGraph(spec, nodeState(), {}, badges(), `Decrement neighbours of ${ready.id}`, {
+      operation: 'REMOVE OUTGOING EDGES', phase: 'Update indegrees', why: 'Deleting the emitted vertex satisfies one dependency of each successor.',
+      state: { removed: ready.id }, collections: [{ label: 'zero-indegree queue', values: readyNodes() }, { label: 'order', values: [...order] }],
+      invariant: 'Each badge equals the number of incoming edges from unprocessed vertices.', important: true,
+    }));
   }
-  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), `Order: ${order.join(' → ')} ✓`));
+  frames.push(snapshotGraph(spec, nodeState(), {}, badges(), `Order: ${order.join(' → ')} ✓`, {
+    operation: order.length === spec.nodes.length ? 'COMPLETE' : 'CYCLE DETECTED', phase: 'Done',
+    why: order.length === spec.nodes.length ? 'Every vertex was emitted exactly once.' : 'Vertices remain but none has zero indegree.',
+    state: { emitted: order.length, vertices: spec.nodes.length }, collections: [{ label: 'order', values: order }], important: true,
+  }));
   return frames;
 }
 
@@ -1456,33 +1552,30 @@ function generateDynamicFrames(id: string, category: string, custom?: number[]):
   return frames;
 }
 
-function expandFrames(frames: Frame[]): Frame[] {
-  if (frames.length >= 20) return frames;
-
-  const expanded: Frame[] = [];
-  const minTarget = 20;
-  const factor = Math.ceil(minTarget / frames.length);
-
-  // Hold each step for a few extra ticks so short sequences play smoothly.
-  // Duplicates keep the original caption (no decoration), so the displayed text
-  // always matches the real step — the old code appended "(hold Ns)" onto an
-  // already-appended caption, which piled up endlessly (e.g. on radix sort).
-  for (let i = 0; i < frames.length; i++) {
-    expanded.push(frames[i]);
-    if (i < frames.length - 1) {
-      for (let f = 1; f < factor && expanded.length < minTarget; f++) {
-        expanded.push(JSON.parse(JSON.stringify(frames[i])) as Frame);
-      }
-    }
-  }
-
-  // If still short, hold the final frame unchanged until we reach the target.
-  const last = frames[frames.length - 1];
-  while (expanded.length < minTarget && last) {
-    expanded.push(JSON.parse(JSON.stringify(last)) as Frame);
-  }
-
-  return expanded;
+function decorateFrames(algorithmId: string, frames: Frame[]): Frame[] {
+  return frames.map((frame, index) => {
+    if (frame.meta) return frame;
+    const text = frame.caption.toLowerCase();
+    let operation = 'OBSERVE';
+    if (text.includes('compare') || text.includes('check') || text.includes('is ')) operation = 'COMPARE';
+    else if (text.includes('swap')) operation = 'SWAP';
+    else if (text.includes('relax')) operation = 'RELAX';
+    else if (text.includes('visit') || text.includes('discover')) operation = 'VISIT';
+    else if (text.includes('backtrack')) operation = 'BACKTRACK';
+    else if (text.includes('place') || text.includes('insert')) operation = 'PLACE';
+    else if (text.includes('found') || text.includes('solution')) operation = 'FOUND';
+    else if (text.includes('complete') || text.startsWith('sorted') || text.includes('sorted ✓')) operation = 'COMPLETE';
+    return {
+      ...frame,
+      meta: {
+        operation,
+        phase: index === 0 ? 'Initialize' : index === frames.length - 1 ? 'Complete' : 'Execute',
+        why: frame.caption,
+        state: { algorithm: algorithmId, step: index, totalSteps: frames.length - 1 },
+        important: operation === 'FOUND' || operation === 'COMPLETE',
+      },
+    };
+  });
 }
 
 /** Which algorithm IDs support custom array input. */
@@ -1522,15 +1615,16 @@ export function getFrames(algorithmId: string, customInput?: string): Frame[] {
     custom = customInput
       .split(/[,\s]+/)
       .map((s) => Number(s.trim()))
-      .filter((n) => !isNaN(n) && isFinite(n));
+      .filter((n) => !isNaN(n) && isFinite(n))
+      .slice(0, 32);
     if (custom.length === 0) custom = undefined;
   }
 
+  let result = generateAlgorithmTrace(algorithmId, custom) ?? [];
   const gen = GENERATORS[algorithmId];
-  let result: Frame[] = [];
-  if (gen) {
+  if (result.length === 0 && gen) {
     result = gen(custom);
-  } else {
+  } else if (result.length === 0) {
     const algo = getAlgorithm(algorithmId);
     if (algo) {
       result = generateDynamicFrames(algo.id, algo.category, custom);
@@ -1538,7 +1632,7 @@ export function getFrames(algorithmId: string, customInput?: string): Frame[] {
   }
 
   if (result.length > 0) {
-    return expandFrames(result);
+    return decorateFrames(algorithmId, result);
   }
 
   return [

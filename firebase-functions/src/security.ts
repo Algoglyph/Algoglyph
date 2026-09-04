@@ -63,7 +63,7 @@ export const requireAppCheck = async (
   }
 };
 
-const allowedOrigins = (): Set<string> => new Set(
+export const allowedOrigins = (): Set<string> => new Set(
   (process.env.ALLOWED_WEB_ORIGINS ?? 'https://algoglyph.com')
     .split(',')
     .map((origin) => origin.trim())
@@ -77,6 +77,57 @@ const allowedOrigins = (): Set<string> => new Set(
     })
     .filter(Boolean),
 );
+
+export const requireVerifiedEmail = (principal: AuthenticatedPrincipal): void => {
+  if (!principal.email || principal.token.email_verified !== true) {
+    throw new HttpError(403, 'A verified email address is required for billing and managed-agent access.');
+  }
+};
+
+export const requireRecentAuthentication = (
+  principal: AuthenticatedPrincipal,
+  maximumAgeSeconds = 10 * 60,
+  nowSeconds = Math.floor(Date.now() / 1_000),
+): void => {
+  const authenticatedAt = principal.token.auth_time;
+  if (typeof authenticatedAt !== 'number'
+    || !Number.isFinite(authenticatedAt)
+    || authenticatedAt > nowSeconds + 60
+    || nowSeconds - authenticatedAt > maximumAgeSeconds) {
+    throw new HttpError(401, 'Recent authentication required.');
+  }
+};
+
+export const requireBillingAuthorization = (
+  principal: AuthenticatedPrincipal,
+  options: { recentAuthentication?: boolean } = {},
+): void => {
+  requireVerifiedEmail(principal);
+  if (options.recentAuthentication) requireRecentAuthentication(principal);
+};
+
+export const requirePersonalWorkspaceAccess = (principal: AuthenticatedPrincipal, workspaceId: string): void => {
+  if (workspaceId !== `personal_${principal.uid}`) throw new HttpError(403, 'Workspace access denied.');
+};
+
+export const requireConfiguredBrowserUrl = (value: string, name: string): string => {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new HttpError(503, `${name} is not configured with a valid URL.`);
+  }
+  const emulatorHttp = process.env.FUNCTIONS_EMULATOR === 'true'
+    && parsed.protocol === 'http:'
+    && ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+  if (parsed.protocol !== 'https:' && !emulatorHttp) {
+    throw new HttpError(503, `${name} must use HTTPS outside the local emulator.`);
+  }
+  if (parsed.username || parsed.password || parsed.hash || !allowedOrigins().has(parsed.origin)) {
+    throw new HttpError(503, `${name} must use an explicitly allowed web origin.`);
+  }
+  return parsed.toString();
+};
 
 export const applyBrowserCors = (request: Request, response: {
   setHeader(name: string, value: string): void;
@@ -102,6 +153,16 @@ export const assertExactKeys = (body: Record<string, unknown>, allowedKeys: read
   for (const key of Object.keys(body)) {
     if (!allowed.has(key)) throw new HttpError(400, `Unsupported request field: ${key}.`);
   }
+};
+
+export const requireRequestBodyWithin = (request: Request, maximumBytes: number): void => {
+  const bodyBytes = Buffer.isBuffer(request.rawBody) ? request.rawBody.byteLength : 0;
+  if (bodyBytes > maximumBytes) throw new HttpError(413, 'Request body is too large.');
+};
+
+export const requireJsonContentType = (request: Request): void => {
+  const contentType = request.header('content-type')?.split(';', 1)[0]?.trim().toLowerCase();
+  if (contentType !== 'application/json') throw new HttpError(415, 'Content-Type must be application/json.');
 };
 
 export const requestIp = (request: Request): string => request.ip || 'unknown';
