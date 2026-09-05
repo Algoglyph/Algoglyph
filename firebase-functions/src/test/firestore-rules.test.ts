@@ -5,10 +5,11 @@ import { deleteApp, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore as getAdminFirestore, Timestamp } from 'firebase-admin/firestore';
 import {
   assertFails,
+  assertSucceeds,
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import type { NormalizedProviderEvent } from '../model.js';
 import { HttpError, type AuthenticatedPrincipal } from '../security.js';
 import {
@@ -18,6 +19,15 @@ import {
   recordRazorpayCheckoutVerification,
   reserveCheckout,
 } from '../services.js';
+import {
+  acceptWorkspaceInvite,
+  createMcpAccessToken,
+  createWorkspaceInvite,
+  inspectWorkspaceInvite,
+  requireMcpAccessToken,
+  revokeWorkspaceInvite,
+} from '../workspaces.js';
+import { handleMcpRequest } from '../mcp.js';
 
 let environment: RulesTestEnvironment;
 let adminApp: App;
@@ -32,7 +42,20 @@ before(async () => {
   });
 });
 
-beforeEach(async () => environment.clearFirestore());
+beforeEach(async () => {
+  await environment.clearFirestore();
+  await Promise.all([
+    getAdminFirestore().collection('workspaces').doc('ws_personal_1').set({
+      name: 'Personal canvas', ownerId: 'user_1', organizationId: null, status: 'active',
+    }),
+    getAdminFirestore().collection('workspaceMembers').doc('ws_personal_1_user_1').set({
+      workspaceId: 'ws_personal_1', uid: 'user_1', role: 'owner', status: 'active',
+    }),
+    getAdminFirestore().collection('workspaces').doc('ws_personal_1').collection('canvases').doc('canvas_main_1').set({
+      workspaceId: 'ws_personal_1', name: 'Main canvas', createdBy: 'user_1', status: 'active',
+    }),
+  ]);
+});
 
 after(async () => {
   await environment?.cleanup();
@@ -61,6 +84,155 @@ test('authenticated browser clients cannot read or mutate server-owned billing r
   assert.ok(true);
 });
 
+const elementRecord = (uid: string, id: string, version: number, versionNonce: number, isDeleted = false) => ({
+  workspaceId: 'ws_personal_1',
+  canvasId: 'canvas_main_1',
+  elementId: id,
+  element: { id, type: 'rectangle', version, versionNonce, isDeleted, x: version * 10, y: 0 },
+  version,
+  versionNonce,
+  isDeleted,
+  updatedBy: uid,
+  updatedAt: serverTimestamp(),
+});
+
+test('workspace members can collaborate while non-members cannot read, write, or delete element records', async () => {
+  const member = environment.authenticatedContext('user_1').firestore();
+  const outsider = environment.authenticatedContext('user_2').firestore();
+  const workspace = doc(member, 'workspaces', 'ws_personal_1');
+  const element = doc(member, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_a');
+  await assertSucceeds(getDoc(workspace));
+  await assertSucceeds(setDoc(element, elementRecord('user_1', 'element_a', 1, 10)));
+  await assertFails(getDoc(doc(outsider, 'workspaces', 'ws_personal_1')));
+  await assertFails(setDoc(
+    doc(outsider, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_b'),
+    elementRecord('user_2', 'element_b', 1, 11),
+  ));
+  await assertFails(deleteDoc(element));
+});
+
+test('two members receive incremental updates and unrelated concurrent edits do not overwrite each other', async () => {
+  await getAdminFirestore().collection('workspaceMembers').doc('ws_personal_1_user_2').set({
+    workspaceId: 'ws_personal_1', uid: 'user_2', role: 'member', status: 'active',
+  });
+  const a = environment.authenticatedContext('user_1').firestore();
+  const b = environment.authenticatedContext('user_2').firestore();
+  const elementsA = collection(a, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements');
+  const receivedByB = new Promise<number>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Realtime listener timed out.')), 5_000);
+    const unsubscribe = onSnapshot(
+      collection(b, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements'),
+      (snapshot) => {
+        if (snapshot.size < 2) return;
+        clearTimeout(timeout); unsubscribe(); resolve(snapshot.size);
+      }, reject,
+    );
+  });
+  await Promise.all([
+    setDoc(doc(elementsA, 'element_a'), elementRecord('user_1', 'element_a', 1, 101)),
+    setDoc(doc(b, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_b'), elementRecord('user_2', 'element_b', 1, 102)),
+  ]);
+  assert.equal(await receivedByB, 2);
+  assert.equal((await getDocs(elementsA)).size, 2);
+});
+
+test('a reconnecting member receives the current converged element state', async () => {
+  await getAdminFirestore().collection('workspaceMembers').doc('ws_personal_1_user_2').set({
+    workspaceId: 'ws_personal_1', uid: 'user_2', role: 'member', status: 'active',
+  });
+  const writer = environment.authenticatedContext('user_1').firestore();
+  await Promise.all([
+    setDoc(
+      doc(writer, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_a'),
+      elementRecord('user_1', 'element_a', 2, 31),
+    ),
+    setDoc(
+      doc(writer, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_b'),
+      elementRecord('user_1', 'element_b', 3, 32, true),
+    ),
+  ]);
+  const reconnected = environment.authenticatedContext('user_2').firestore();
+  const current = await getDocs(collection(
+    reconnected, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements',
+  ));
+  assert.equal(current.size, 2);
+  assert.equal(current.docs.find((item) => item.id === 'element_b')?.data().isDeleted, true);
+});
+
+test('element clocks reject stale and duplicate writes, while higher-version tombstones converge', async () => {
+  const client = environment.authenticatedContext('user_1').firestore();
+  const element = doc(client, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_a');
+  await assertSucceeds(setDoc(element, elementRecord('user_1', 'element_a', 2, 20)));
+  await assertSucceeds(setDoc(element, elementRecord('user_1', 'element_a', 2, 10)));
+  await assertFails(setDoc(element, elementRecord('user_1', 'element_a', 1, 999)));
+  await assertFails(setDoc(element, elementRecord('user_1', 'element_a', 2, 20)));
+  await assertSucceeds(setDoc(element, elementRecord('user_1', 'element_a', 3, 1, true)));
+  assert.equal((await getDoc(element)).data()?.isDeleted, true);
+});
+
+test('invite tokens are hashed, expirable, revocable, single-use membership grants', async () => {
+  const owner = principal('user_1');
+  const invite = await createWorkspaceInvite(owner, 'ws_personal_1', 'member', 24, 'https://algoglyph.example');
+  const token = new URL(invite.inviteUrl).pathname.split('/').at(-1)!;
+  const stored = await getAdminFirestore().collection('workspaceInvites').doc(invite.id).get();
+  assert.equal(stored.data()?.tokenHash, invite.id);
+  assert.equal(JSON.stringify(stored.data()).includes(token), false);
+  assert.equal((await inspectWorkspaceInvite(principal('user_2'), token)).workspaceId, 'ws_personal_1');
+  assert.deepEqual(await acceptWorkspaceInvite(principal('user_2'), token), { workspaceId: 'ws_personal_1', membershipCreated: true });
+  await assert.rejects(acceptWorkspaceInvite(principal('user_3'), token), (error: unknown) => error instanceof HttpError && error.status === 410);
+  await assert.rejects(inspectWorkspaceInvite(principal('user_3'), 'not-a-token'), (error: unknown) => error instanceof HttpError && error.status === 404);
+
+  const revoked = await createWorkspaceInvite(owner, 'ws_personal_1', 'viewer', 24, 'https://algoglyph.example');
+  await revokeWorkspaceInvite(owner, 'ws_personal_1', revoked.id);
+  await assert.rejects(inspectWorkspaceInvite(principal('user_2'), new URL(revoked.inviteUrl).pathname.split('/').at(-1)!), (error: unknown) => error instanceof HttpError && error.status === 410);
+
+  const expired = await createWorkspaceInvite(owner, 'ws_personal_1', 'member', 1, 'https://algoglyph.example');
+  await getAdminFirestore().collection('workspaceInvites').doc(expired.id).update({ expiresAt: Timestamp.fromMillis(Date.now() - 1) });
+  await assert.rejects(inspectWorkspaceInvite(principal('user_2'), new URL(expired.inviteUrl).pathname.split('/').at(-1)!), (error: unknown) => error instanceof HttpError && error.status === 410);
+});
+
+test('free MCP access is workspace-scoped and independent of managed-agent entitlement', async () => {
+  const issued = await createMcpAccessToken(principal('user_1'), 'ws_personal_1', 'Test agent');
+  await getAdminFirestore().collection('entitlements').doc('user_user_1').set({
+    managedAgentAccess: false, status: 'locked', accessUntil: Timestamp.fromMillis(Date.now() - 1),
+  });
+  const mcpPrincipal = await requireMcpAccessToken(`Bearer ${issued.token}`);
+  assert.equal(mcpPrincipal.workspaceId, 'ws_personal_1');
+  const listed = await handleMcpRequest(mcpPrincipal, { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'algoglyph_canvas_list', arguments: {} } });
+  assert.match(JSON.stringify(listed), /canvas_main_1/);
+  const updated = await handleMcpRequest(mcpPrincipal, {
+    jsonrpc: '2.0', id: 2, method: 'tools/call', params: {
+      name: 'algoglyph_canvas_upsert_elements',
+      arguments: { canvasId: 'canvas_main_1', elements: [{ id: 'mcp_element', type: 'rectangle', index: 'a0', x: 0, y: 0, version: 1, versionNonce: 9, isDeleted: false }] },
+    },
+  });
+  assert.match(JSON.stringify(updated), /"applied":1/);
+  const readBack = await handleMcpRequest(mcpPrincipal, {
+    jsonrpc: '2.0', id: 3, method: 'tools/call', params: {
+      name: 'algoglyph_canvas_get', arguments: { canvasId: 'canvas_main_1' },
+    },
+  });
+  assert.match(JSON.stringify(readBack), /mcp_element/);
+  await getAdminFirestore().collection('workspaceMembers').doc('ws_personal_1_user_2').set({
+    workspaceId: 'ws_personal_1', uid: 'user_2', role: 'viewer', status: 'active',
+  });
+  const viewerToken = await createMcpAccessToken(principal('user_2'), 'ws_personal_1', 'Read-only agent');
+  const viewerPrincipal = await requireMcpAccessToken(`Bearer ${viewerToken.token}`);
+  assert.equal(viewerPrincipal.scopes.includes('canvas:write'), false);
+  await assert.rejects(
+    handleMcpRequest(viewerPrincipal, {
+      jsonrpc: '2.0', id: 4, method: 'tools/call', params: {
+        name: 'algoglyph_canvas_upsert_elements',
+        arguments: { canvasId: 'canvas_main_1', elements: [{ id: 'forbidden', version: 1, versionNonce: 1 }] },
+      },
+    }),
+    (error: unknown) => error instanceof HttpError && error.status === 403,
+  );
+  await assert.rejects(requireMcpAccessToken('Bearer ag_mcp_invalid'), (error: unknown) => error instanceof HttpError && error.status === 401);
+  await getAdminFirestore().collection('workspaceMembers').doc('ws_personal_1_user_1').update({ status: 'revoked' });
+  await assert.rejects(requireMcpAccessToken(`Bearer ${issued.token}`), (error: unknown) => error instanceof HttpError && error.status === 403);
+});
+
 const providerEvent = (
   eventId: string,
   occurredAtMs: number,
@@ -70,7 +242,7 @@ const providerEvent = (
   eventId,
   eventType: 'customer.subscription.updated',
   occurredAtMs,
-  workspaceId: 'personal_user_1',
+  billingSubjectId: 'user_user_1',
   providerSubscriptionId: 'sub_1',
   providerCustomerId: 'cus_1',
   planKey: 'pro_monthly',
@@ -83,8 +255,8 @@ const providerEvent = (
 
 test('verified provider events grant managed-agent access, remain idempotent, recover grace, and keep revocations locked', async () => {
   const baseTime = Date.now() - 10_000;
-  await getAdminFirestore().collection('subscriptions').doc('personal_user_1').set({
-    workspaceId: 'personal_user_1',
+  await getAdminFirestore().collection('subscriptions').doc('user_user_1').set({
+    workspaceId: 'user_user_1',
     ownerUid: 'user_1',
     provider: 'stripe',
     providerSubscriptionId: 'sub_1',
@@ -106,7 +278,7 @@ test('verified provider events grant managed-agent access, remain idempotent, re
     providerStatus: 'past_due',
     transition: 'renewal_failed',
   }), 'hash_failure'), 'processed');
-  let entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  let entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.status, 'grace');
   assert.equal(entitlement?.managedAgentAccess, true);
 
@@ -114,7 +286,7 @@ test('verified provider events grant managed-agent access, remain idempotent, re
     eventType: 'invoice.paid',
     transition: 'renewed',
   }), 'hash_recovered'), 'processed');
-  entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.status, 'active');
 
   assert.equal(await applyProviderEvent(providerEvent('evt_refund', baseTime - 2_000, {
@@ -124,17 +296,17 @@ test('verified provider events grant managed-agent access, remain idempotent, re
     revocationReason: 'refund',
   }), 'hash_refund'), 'processed');
   assert.equal(await applyProviderEvent(providerEvent('evt_late_activation', baseTime + 3_000), 'hash_late'), 'stale');
-  entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, false);
   assert.equal(entitlement?.revocationReason, 'refund');
 
   assert.equal(await applyProviderEvent(providerEvent('evt_unbound_subscription', baseTime + 4_000, {
     providerSubscriptionId: 'sub_2',
   }), 'hash_unbound_subscription'), 'conflict');
-  entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, false);
 
-  await getAdminFirestore().collection('subscriptions').doc('personal_user_1').set({
+  await getAdminFirestore().collection('subscriptions').doc('user_user_1').set({
     providerSubscriptionId: 'sub_2',
     terminalRevocationAt: null,
     terminalRevocationReason: null,
@@ -142,16 +314,16 @@ test('verified provider events grant managed-agent access, remain idempotent, re
   assert.equal(await applyProviderEvent(providerEvent('evt_new_subscription', baseTime + 5_000, {
     providerSubscriptionId: 'sub_2',
   }), 'hash_new_subscription'), 'processed');
-  entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, true);
   assert.equal(entitlement?.status, 'active');
 });
 
 test('an initial failed payment does not grant managed-agent access', async () => {
   const now = Date.now();
-  await getAdminFirestore().collection('subscriptions').doc('personal_user_1').set({
-    workspaceId: 'personal_user_1',
-    billingSubjectId: 'personal_user_1',
+  await getAdminFirestore().collection('subscriptions').doc('user_user_1').set({
+    workspaceId: 'user_user_1',
+    billingSubjectId: 'user_user_1',
     purchaserUid: 'user_1',
     provider: 'stripe',
     providerSubscriptionId: 'sub_1',
@@ -163,16 +335,16 @@ test('an initial failed payment does not grant managed-agent access', async () =
     providerStatus: 'past_due',
     transition: 'renewal_failed',
   }), 'hash_initial_failure'), 'processed');
-  const entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  const entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, false);
   assert.equal(entitlement?.status, 'locked');
 });
 
 test('an activated subscription receives grace when renewal failure arrives after period expiry', async () => {
   const now = Date.now();
-  await getAdminFirestore().collection('subscriptions').doc('personal_user_1').set({
-    workspaceId: 'personal_user_1',
-    billingSubjectId: 'personal_user_1',
+  await getAdminFirestore().collection('subscriptions').doc('user_user_1').set({
+    workspaceId: 'user_user_1',
+    billingSubjectId: 'user_user_1',
     purchaserUid: 'user_1',
     provider: 'stripe',
     providerSubscriptionId: 'sub_1',
@@ -180,8 +352,8 @@ test('an activated subscription receives grace when renewal failure arrives afte
     providerStatus: 'active',
     hasActivated: true,
   });
-  await getAdminFirestore().collection('entitlements').doc('personal_user_1').set({
-    workspaceId: 'personal_user_1',
+  await getAdminFirestore().collection('entitlements').doc('user_user_1').set({
+    workspaceId: 'user_user_1',
     managedAgentAccess: false,
     status: 'locked',
     accessUntil: Timestamp.fromMillis(now - 1_000),
@@ -194,7 +366,7 @@ test('an activated subscription receives grace when renewal failure arrives afte
     transition: 'renewal_failed',
   }), 'hash_late_renewal_failure'), 'processed');
 
-  const entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  const entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, true);
   assert.equal(entitlement?.status, 'grace');
   assert.ok(entitlement?.accessUntil instanceof Timestamp);
@@ -203,9 +375,9 @@ test('an activated subscription receives grace when renewal failure arrives afte
 
 test('a won dispute can recover its own revocation but cannot undo a refund revocation', async () => {
   const now = Date.now();
-  await getAdminFirestore().collection('subscriptions').doc('personal_user_1').set({
-    workspaceId: 'personal_user_1',
-    billingSubjectId: 'personal_user_1',
+  await getAdminFirestore().collection('subscriptions').doc('user_user_1').set({
+    workspaceId: 'user_user_1',
+    billingSubjectId: 'user_user_1',
     purchaserUid: 'user_1',
     provider: 'stripe',
     providerSubscriptionId: 'sub_1',
@@ -222,7 +394,7 @@ test('a won dispute can recover its own revocation but cannot undo a refund revo
     eventType: 'charge.dispute.closed',
     transition: 'recover',
   }), 'hash_dispute_won'), 'processed');
-  let entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  let entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, true);
 
   assert.equal(await applyProviderEvent(providerEvent('evt_refund_after_recovery', now + 2_000, {
@@ -234,7 +406,7 @@ test('a won dispute can recover its own revocation but cannot undo a refund revo
     eventType: 'charge.dispute.closed',
     transition: 'recover',
   }), 'hash_unrelated_dispute_won'), 'stale');
-  entitlement = (await getAdminFirestore().collection('entitlements').doc('personal_user_1').get()).data();
+  entitlement = (await getAdminFirestore().collection('entitlements').doc('user_user_1').get()).data();
   assert.equal(entitlement?.managedAgentAccess, false);
   assert.equal(entitlement?.revocationReason, 'refund');
 });
@@ -256,31 +428,31 @@ const activeEntitlement = () => ({
 test('managed-agent authorization denies free and expired individual users and ignores legacy MCP flags', async () => {
   const user = principal('user_1');
   await assert.rejects(
-    canUseManagedAgent(user, 'personal_user_1'),
+    canUseManagedAgent(user, 'ws_personal_1'),
     (error: unknown) => error instanceof HttpError && error.status === 402,
   );
-  await getAdminFirestore().collection('entitlements').doc('personal_user_1').set({
+  await getAdminFirestore().collection('entitlements').doc('user_user_1').set({
     status: 'active',
     mcpAccess: true,
     accessUntil: Timestamp.fromMillis(Date.now() + 60 * 60 * 1_000),
   });
   await assert.rejects(
-    canUseManagedAgent(user, 'personal_user_1'),
+    canUseManagedAgent(user, 'ws_personal_1'),
     (error: unknown) => error instanceof HttpError && error.status === 402,
   );
-  await getAdminFirestore().collection('entitlements').doc('personal_user_1').set({
+  await getAdminFirestore().collection('entitlements').doc('user_user_1').set({
     ...activeEntitlement(),
     accessUntil: Timestamp.fromMillis(Date.now() - 1),
   });
   await assert.rejects(
-    canUseManagedAgent(user, 'personal_user_1'),
+    canUseManagedAgent(user, 'ws_personal_1'),
     (error: unknown) => error instanceof HttpError && error.status === 402,
   );
 });
 
 test('managed-agent authorization allows a current individual subscription', async () => {
-  await getAdminFirestore().collection('entitlements').doc('personal_user_1').set(activeEntitlement());
-  const authorization = await canUseManagedAgent(principal('user_1'), 'personal_user_1');
+  await getAdminFirestore().collection('entitlements').doc('user_user_1').set(activeEntitlement());
+  const authorization = await canUseManagedAgent(principal('user_1'), 'ws_personal_1');
   assert.equal(authorization.managedAgentAccess, true);
   assert.equal(authorization.source, 'individual');
 });
@@ -292,9 +464,9 @@ const seedOrganization = async (memberStatus: 'active' | 'revoked' = 'active') =
     db.collection('organizationMembers').doc('org_123456_user_1').set({
       organizationId: 'org_123456', uid: 'user_1', role: 'member', status: memberStatus,
     }),
-    db.collection('workspaces').doc('organization_org_123456').set({ organizationId: 'org_123456' }),
-    db.collection('workspaceMembers').doc('organization_org_123456_user_1').set({
-      workspaceId: 'organization_org_123456', uid: 'user_1', role: 'member', status: memberStatus,
+    db.collection('workspaces').doc('ws_org_123456').set({ name: 'Org workspace', ownerId: 'org-owner', organizationId: 'org_123456', status: 'active' }),
+    db.collection('workspaceMembers').doc('ws_org_123456_user_1').set({
+      workspaceId: 'ws_org_123456', uid: 'user_1', role: 'member', status: memberStatus,
     }),
   ]);
 };
@@ -303,20 +475,20 @@ test('managed-agent organization authorization requires active membership and an
   const user = principal('user_1');
   await seedOrganization();
   await assert.rejects(
-    canUseManagedAgent(user, 'organization_org_123456'),
+    canUseManagedAgent(user, 'ws_org_123456'),
     (error: unknown) => error instanceof HttpError && error.status === 402,
   );
   await getAdminFirestore().collection('entitlements').doc('organization_org_123456').set(activeEntitlement());
-  const authorization = await canUseManagedAgent(user, 'organization_org_123456');
+  const authorization = await canUseManagedAgent(user, 'ws_org_123456');
   assert.equal(authorization.source, 'organization');
 
   await assert.rejects(
-    canUseManagedAgent(principal('outsider'), 'organization_org_123456'),
+    canUseManagedAgent(principal('outsider'), 'ws_org_123456'),
     (error: unknown) => error instanceof HttpError && error.status === 403,
   );
   await getAdminFirestore().collection('organizationMembers').doc('org_123456_user_1').update({ status: 'revoked' });
   await assert.rejects(
-    canUseManagedAgent(user, 'organization_org_123456'),
+    canUseManagedAgent(user, 'ws_org_123456'),
     (error: unknown) => error instanceof HttpError && error.status === 403,
   );
 });
@@ -332,8 +504,8 @@ test('only organization owners and billing admins can start organization checkou
   );
   await getAdminFirestore().collection('organizationMembers').doc('org_123456_user_1').update({ role: 'billing_admin' });
   const reservation = await reserveCheckout(principal('user_1'), plan, 'org_123456');
-  assert.equal(reservation.workspace.kind, 'organization');
-  assert.equal(reservation.workspace.canManageBilling, true);
+  assert.equal(reservation.subject.kind, 'organization');
+  assert.equal(reservation.subject.canManageBilling, true);
 });
 
 test('revoked organization entitlement disables managed-agent access', async () => {
@@ -342,7 +514,7 @@ test('revoked organization entitlement disables managed-agent access', async () 
     ...activeEntitlement(), managedAgentAccess: false, status: 'locked',
   });
   await assert.rejects(
-    canUseManagedAgent(principal('user_1'), 'organization_org_123456'),
+    canUseManagedAgent(principal('user_1'), 'ws_org_123456'),
     (error: unknown) => error instanceof HttpError && error.status === 402,
   );
 });
@@ -354,34 +526,36 @@ test('a verified Razorpay browser callback records evidence but does not grant m
     displayName: 'User',
     token: { uid: 'user_1' },
   } as unknown as AuthenticatedPrincipal;
-  await getAdminFirestore().collection('subscriptions').doc('personal_user_1').set({
-    workspaceId: 'personal_user_1',
-    billingSubjectId: 'personal_user_1',
+  await getAdminFirestore().collection('subscriptions').doc('user_user_1').set({
+    workspaceId: 'user_user_1',
+    billingSubjectId: 'user_user_1',
     provider: 'razorpay',
     providerSubscriptionId: 'sub_12345678',
   });
   await recordRazorpayCheckoutVerification(
-    principal, 'personal_user_1', 'sub_12345678', 'pay_12345678', 'captured', 100, 'INR',
+    principal, 'user_user_1', 'sub_12345678', 'pay_12345678', 'captured', 100, 'INR',
   );
   await assert.rejects(
-    canUseManagedAgent(principal, 'personal_user_1'),
+    canUseManagedAgent(principal, 'ws_personal_1'),
     (error: unknown) => error instanceof HttpError && error.status === 402,
   );
 });
 
-test('a UID cannot adopt another owner record at its personal workspace path', async () => {
+test('a UID cannot access another workspace merely by changing the workspace ID', async () => {
   const principal = {
     uid: 'user_1',
     email: 'user@example.com',
     displayName: 'User',
     token: { uid: 'user_1' },
   } as unknown as AuthenticatedPrincipal;
-  await getAdminFirestore().collection('workspaces').doc('personal_user_1').set({
-    ownerUid: 'user_2',
-    displayName: 'Other owner workspace',
+  await getAdminFirestore().collection('workspaces').doc('ws_other_1').set({
+    name: 'Other workspace', ownerId: 'user_2', organizationId: null, status: 'active',
+  });
+  await getAdminFirestore().collection('workspaceMembers').doc('ws_other_1_user_2').set({
+    workspaceId: 'ws_other_1', uid: 'user_2', role: 'owner', status: 'active',
   });
   await assert.rejects(
-    canUseManagedAgent(principal, 'personal_user_1'),
+    canUseManagedAgent(principal, 'ws_other_1'),
     (error: unknown) => error instanceof HttpError && error.status === 403,
   );
 });
@@ -397,10 +571,10 @@ test('reconciliation advances its document cursor and wraps after the final subs
       provider: 'razorpay',
       providerSubscriptionId: 'sub_b',
     }),
-    db.collection('billingJobs').doc('reconciliation').set({ cursorWorkspaceId: 'workspace_a' }),
+    db.collection('billingJobs').doc('reconciliation').set({ cursorBillingSubjectId: 'workspace_a' }),
   ]);
   const tail = await listReconciliationCandidates();
-  assert.deepEqual(tail.map((candidate) => candidate.workspaceId), ['workspace_b']);
+  assert.deepEqual(tail.map((candidate) => candidate.billingSubjectId), ['workspace_b']);
   const wrapped = await listReconciliationCandidates();
-  assert.deepEqual(wrapped.map((candidate) => candidate.workspaceId), ['workspace_a', 'workspace_b']);
+  assert.deepEqual(wrapped.map((candidate) => candidate.billingSubjectId), ['workspace_a', 'workspace_b']);
 });

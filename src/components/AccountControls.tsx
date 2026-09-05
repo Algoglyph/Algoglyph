@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CreditCard, LogOut, UserRoundPlus, X } from 'lucide-react';
+import { CreditCard, LogIn, LogOut, Users, X } from 'lucide-react';
 import { SITE_IDENTITY } from '../config/siteIdentity';
 import { useAuth } from './authContext';
 import { BillingDialog } from './BillingDialog';
@@ -97,8 +97,8 @@ const AccountMenu = ({ surface }: { surface: AccountSurface }) => {
     ? 'mt-1 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)] disabled:cursor-not-allowed disabled:opacity-50'
     : 'mt-1 flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50';
   const billingClassName = surface === 'landing'
-    ? 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)]'
-    : 'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink';
+    ? 'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--lp-text-2)] transition-colors hover:bg-[var(--lp-fill-hover)] hover:text-[var(--lp-text)]'
+    : 'flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-body transition-colors hover:bg-canvas-soft hover:text-ink';
   const safePhotoURL = getSafePhotoUrl(user.photoURL);
 
   return (
@@ -135,6 +135,18 @@ const AccountMenu = ({ surface }: { surface: AccountSurface }) => {
             <p className="truncate text-sm font-medium">{user.displayName || 'Google account'}</p>
             {user.email ? <p className={`mt-0.5 truncate text-xs ${secondaryTextClassName}`}>{user.email}</p> : null}
           </div>
+          <button
+            type="button"
+            role="menuitem"
+            className={billingClassName}
+            onClick={() => {
+              setOpen(false);
+              window.location.assign('/workspaces');
+            }}
+          >
+            <Users aria-hidden="true" size={14} />
+            Collaborative workspaces
+          </button>
           <button
             type="button"
             role="menuitem"
@@ -309,7 +321,7 @@ const SignInDialog = ({
             className={primaryButtonClassName}
             onClick={() => void signInWithGoogle()}
           >
-            <UserRoundPlus aria-hidden="true" size={16} />
+            <LogIn aria-hidden="true" size={16} />
             {pending ? 'Opening Google sign-in…' : 'Continue with Google'}
           </button>
         ) : null}
@@ -362,7 +374,7 @@ const SignInControl = ({ surface }: { surface: AccountSurface }) => {
         aria-expanded={dialogOpen}
         title={status === 'unavailable' ? unavailableReason || 'Account setup required' : `Sign in to ${SITE_IDENTITY.name}`}
       >
-        <UserRoundPlus aria-hidden="true" size={surface === 'landing' ? 15 : 14} />
+        <LogIn aria-hidden="true" size={surface === 'landing' ? 15 : 14} />
         {surface === 'landing' ? (
           <span className="hidden text-sm font-medium sm:inline">
             {status === 'unavailable' ? 'Account setup' : 'Sign in'}

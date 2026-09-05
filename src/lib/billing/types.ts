@@ -3,21 +3,21 @@ export type BillingRegion = 'india' | 'international';
 export type BillingProvider = 'razorpay' | 'stripe';
 export type EntitlementStatus = 'pending' | 'active' | 'grace' | 'canceled' | 'locked';
 
-export interface BillingWorkspace {
+export interface BillingSubject {
   id: string;
   name: string;
   kind: 'individual' | 'organization';
-  role: 'owner' | 'billing_admin' | 'member';
+  role: 'owner' | 'admin' | 'billing_admin' | 'member';
   organizationId?: string;
   canManageBilling: boolean;
 }
 
-export interface BillingWorkspacesResult {
-  workspaces: BillingWorkspace[];
+export interface BillingSubjectsResult {
+  subjects: BillingSubject[];
 }
 
 export interface BillingStatus {
-  workspace: BillingWorkspace;
+  subject: BillingSubject;
   planKey: BillingPlanKey | null;
   provider: BillingProvider | null;
   providerStatus: string | null;
@@ -67,4 +67,9 @@ export interface ManagedAgentAuthorization {
   source: 'individual' | 'organization';
   subjectId: string;
   accessUntil: string;
+}
+
+export interface ManagedAgentResult {
+  output: string;
+  authorization: ManagedAgentAuthorization;
 }

@@ -30,6 +30,10 @@ const NotificationToast = lazy(() => import('./components/NotificationToast').th
 const MobileNav = lazy(() => import('./components/MobileNav').then((m) => ({ default: m.MobileNav })));
 const McpConnectDialog = lazy(() => import('./components/McpConnectDialog').then((m) => ({ default: m.McpConnectDialog })));
 const WorkspaceTour = lazy(() => import('./components/WorkspaceTour').then((m) => ({ default: m.WorkspaceTour })));
+const CloudWorkspacesPage = lazy(() => import('./components/CloudWorkspacesPage').then((m) => ({ default: m.CloudWorkspacesPage })));
+const CloudCanvasPage = lazy(() => import('./components/CloudCanvasPage').then((m) => ({ default: m.CloudCanvasPage })));
+const CloudWorkspaceEntryPage = lazy(() => import('./components/CloudCanvasPage').then((m) => ({ default: m.CloudWorkspaceEntryPage })));
+const InvitePage = lazy(() => import('./components/InvitePage').then((m) => ({ default: m.InvitePage })));
 
 
 type View = 'landing' | 'roadmap' | 'workspace' | 'about' | 'privacy' | 'terms' | 'blog' | 'not-found';
@@ -367,6 +371,10 @@ const AppContent: React.FC = () => {
             </div>
           }
         />
+        <Route path="/workspaces" element={<Suspense fallback={<FullScreenLoader />}><CloudWorkspacesPage /></Suspense>} />
+        <Route path="/workspace/:workspaceId" element={<Suspense fallback={<FullScreenLoader />}><CloudWorkspaceEntryPage /></Suspense>} />
+        <Route path="/workspace/:workspaceId/canvas/:canvasId" element={<Suspense fallback={<FullScreenLoader />}><CloudCanvasPage /></Suspense>} />
+        <Route path="/invite/:token" element={<Suspense fallback={<FullScreenLoader />}><InvitePage /></Suspense>} />
         <Route
           path="/roadmap/*"
           element={

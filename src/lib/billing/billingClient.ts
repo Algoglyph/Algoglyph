@@ -4,28 +4,29 @@ import type {
   BillingPlanKey,
   BillingRegion,
   BillingStatus,
-  BillingWorkspacesResult,
+  BillingSubjectsResult,
+  ManagedAgentResult,
   ManagedAgentAuthorization,
   RazorpayCheckoutCallback,
 } from './types';
 
-const configuredBillingApiUrl = (import.meta.env.VITE_BILLING_API_URL || '').trim().replace(/\/$/, '');
+const configuredBillingApiUrl = (import.meta.env.VITE_ALGOGLYPH_API_URL || import.meta.env.VITE_BILLING_API_URL || '').trim().replace(/\/$/, '');
 const MAX_RESPONSE_BYTES = 256 * 1024;
 
 export const getBillingConfigurationError = (): string | null => {
-  if (!configuredBillingApiUrl) return 'Billing is not configured. Set VITE_BILLING_API_URL for this environment.';
+  if (!configuredBillingApiUrl) return 'Billing is not configured. Set VITE_ALGOGLYPH_API_URL for this environment.';
   try {
     const url = new URL(configuredBillingApiUrl);
     const localDevelopment = import.meta.env.DEV && ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
     if (url.protocol !== 'https:' && !(localDevelopment && url.protocol === 'http:')) {
-      return 'VITE_BILLING_API_URL must use HTTPS (local development may use a loopback HTTP URL).';
+      return 'VITE_ALGOGLYPH_API_URL must use HTTPS (local development may use a loopback HTTP URL).';
     }
     if (url.username || url.password || url.search || url.hash) {
-      return 'VITE_BILLING_API_URL must be a clean API origin without credentials, query parameters, or fragments.';
+      return 'VITE_ALGOGLYPH_API_URL must be a clean API origin without credentials, query parameters, or fragments.';
     }
     return null;
   } catch {
-    return 'VITE_BILLING_API_URL is not a valid URL.';
+    return 'VITE_ALGOGLYPH_API_URL is not a valid URL.';
   }
 };
 
@@ -100,8 +101,8 @@ const organizationPayload = (organizationId?: string): { organizationId?: string
   organizationId ? { organizationId } : {}
 );
 
-export const getBillingWorkspaces = (tokens: BillingApiTokens): Promise<BillingWorkspacesResult> =>
-  requestBillingApi<BillingWorkspacesResult>('v1/billing/workspaces', tokens);
+export const getBillingSubjects = (tokens: BillingApiTokens): Promise<BillingSubjectsResult> =>
+  requestBillingApi<BillingSubjectsResult>('v1/billing/subjects', tokens);
 
 export const getBillingStatus = (
   tokens: BillingApiTokens,
@@ -148,6 +149,17 @@ export const authorizeManagedAgent = (
   'v1/managed-agent/authorize',
   tokens,
   { method: 'POST', body: JSON.stringify({ workspaceId }) },
+);
+
+export const runManagedAgent = (
+  tokens: BillingApiTokens,
+  workspaceId: string,
+  canvasId: string,
+  prompt: string,
+): Promise<ManagedAgentResult> => requestBillingApi(
+  'v1/managed-agent/run',
+  tokens,
+  { method: 'POST', body: JSON.stringify({ workspaceId, canvasId, prompt }) },
 );
 
 interface RazorpayConstructor {

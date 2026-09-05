@@ -79,6 +79,20 @@ export class CanvasAiError extends Error {
   }
 }
 
+export const parseCanvasAgentOutput = async (
+  output: string,
+  userRequest: string,
+): Promise<CanvasResponse> => {
+  try {
+    const catalog = await loadLibraryCatalog().catch(() => [] as LibraryCatalogEntry[]);
+    const extracted = extractJsonObject(output);
+    const matched = applyLibraryMatches(extracted, userRequest, catalog);
+    return await hydrateLibrarySkeletons(parseCanvasResponse(matched));
+  } catch (error) {
+    throw new CanvasAiError(error instanceof Error ? `Could not read the response: ${error.message}` : 'Could not read the response.');
+  }
+};
+
 /**
  * Run one canvas generation end to end: read the current canvas as context,
  * prompt the connector's `claude` agent, and parse the streamed JSON into

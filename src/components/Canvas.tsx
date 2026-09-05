@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import { Excalidraw, convertToExcalidrawElements, reconcileElements } from '@excalidraw/excalidraw';
 import { Sparkles } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useMcpStore } from '../store/mcpStore';
 import { StructuresPanel } from './StructuresPanel';
 import { LoadingSpinner } from './LoadingSpinner';
 import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
-import { generateCanvasResponse, insertCanvasSkeletons, CanvasAiError } from '../lib/ai/diagram';
+import { buildCanvasPrompt, generateCanvasResponse, insertCanvasSkeletons, CanvasAiError, parseCanvasAgentOutput } from '../lib/ai/diagram';
 import { serializeCanvasForNotes } from '../lib/ai/notes';
 import { beginCanvasPerfTrace, finishCanvasPerfTrace } from '../lib/ai/devTiming';
 import type { CanvasPlacementAnchor } from '../lib/ai/canvasPlacement';
+import { connectCanvasCollaboration, type CollaboratorPresence } from '../lib/workspaces/canvasCollaboration';
+import { authorizeManagedAgent, runManagedAgent } from '../lib/billing/billingClient';
+import { useAuth } from './authContext';
 import '@excalidraw/excalidraw/index.css';
 
 /**
@@ -63,7 +66,16 @@ function readCanvasPrompt(elements: readonly any[], appState: any): CanvasPrompt
   return canvasPrompt([texts[0]]);
 }
 
-export const Canvas: React.FC = () => {
+interface CanvasProps {
+  collaboration?: {
+    workspaceId: string;
+    canvasId: string;
+    user: { uid: string; displayName: string | null; photoURL: string | null };
+  };
+}
+
+export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
+  const auth = useAuth();
   // Select only loading, import counters, and save methods reactively.
   // DO NOT select elements, appState, or tool state to keep the component render-independent.
   const isLoading = useWorkspaceStore((state) => state.isLoading);
@@ -75,10 +87,34 @@ export const Canvas: React.FC = () => {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [localLastImportTime, setLocalLastImportTime] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const collaborationRef = useRef<ReturnType<typeof connectCanvasCollaboration> | null>(null);
+  const [collaborators, setCollaborators] = useState<CollaboratorPresence[]>([]);
 
   // AI-native diagram generation: read the prompt off the canvas → generate.
   const [aiBusy, setAiBusy] = useState(false);
+  const [managedBusy, setManagedBusy] = useState(false);
+  const [managedAccess, setManagedAccess] = useState<{ workspaceId: string; status: 'allowed' | 'locked' } | null>(null);
   const aiAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!collaboration || auth.state.status !== 'authenticated') return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
+        await authorizeManagedAgent({ idToken, appCheckToken }, collaboration.workspaceId);
+        if (!cancelled) setManagedAccess({ workspaceId: collaboration.workspaceId, status: 'allowed' });
+      } catch {
+        if (!cancelled) setManagedAccess({ workspaceId: collaboration.workspaceId, status: 'locked' });
+      }
+    };
+    void check();
+    window.addEventListener('focus', check);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', check);
+    };
+  }, [auth.actions, auth.state.status, collaboration]);
 
   useEffect(() => {
     if (!excalidrawAPI || new URLSearchParams(window.location.search).get('algoglyphPerf') !== '1') return;
@@ -159,6 +195,35 @@ export const Canvas: React.FC = () => {
     }
   }, []);
 
+  const runHostedCanvasAi = useCallback(async () => {
+    const api = (window as any).excalidrawAPI;
+    if (!api || !collaboration || managedBusy) return;
+    const notify = useWorkspaceStore.getState().showNotification;
+    const sceneElements = api.getSceneElements();
+    const prompt = readCanvasPrompt(sceneElements, api.getAppState());
+    if (!prompt) {
+      notify('Type your request as text on the canvas, then use Managed agent.', 'info');
+      return;
+    }
+    setManagedBusy(true);
+    try {
+      const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
+      const result = await runManagedAgent(
+        { idToken, appCheckToken },
+        collaboration.workspaceId,
+        collaboration.canvasId,
+        buildCanvasPrompt(prompt.text, serializeCanvasForNotes(sceneElements)),
+      );
+      const response = await parseCanvasAgentOutput(result.output, prompt.text);
+      const added = insertCanvasSkeletons(response.skeletons, undefined, prompt.anchor);
+      notify(`Managed agent added ${added} elements.`, 'success');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Managed agent failed.', 'error');
+    } finally {
+      setManagedBusy(false);
+    }
+  }, [auth.actions, collaboration, managedBusy]);
+
   // ⌘/Ctrl + Enter runs the canvas AI, except while typing in the notes editor.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -181,9 +246,9 @@ export const Canvas: React.FC = () => {
 
   if (!isLoading && !hasLoadedInitialData.current) {
     const state = useWorkspaceStore.getState();
-    initialElements.current = state.canvasElements || [];
-    initialAppState.current = state.canvasAppState || {};
-    initialFiles.current = state.canvasFiles || {};
+    initialElements.current = collaboration ? [] : (state.canvasElements || []);
+    initialAppState.current = collaboration ? {} : (state.canvasAppState || {});
+    initialFiles.current = collaboration ? {} : (state.canvasFiles || {});
     hasLoadedInitialData.current = true;
   }
 
@@ -207,6 +272,28 @@ export const Canvas: React.FC = () => {
       excalidrawAPI.updateScene({ appState: { theme } });
     }
   }, [excalidrawAPI, theme]);
+
+  useEffect(() => {
+    if (!excalidrawAPI || !collaboration) return;
+    const notify = useWorkspaceStore.getState().showNotification;
+    collaborationRef.current = connectCanvasCollaboration({
+      ...collaboration,
+      onElements: (remoteElements) => {
+        const merged = reconcileElements(
+          excalidrawAPI.getSceneElementsIncludingDeleted(),
+          remoteElements as Parameters<typeof reconcileElements>[1],
+          excalidrawAPI.getAppState(),
+        );
+        excalidrawAPI.updateScene({ elements: merged, commitToHistory: false });
+      },
+      onPresence: setCollaborators,
+      onError: (message) => notify(message, 'error'),
+    });
+    return () => {
+      collaborationRef.current?.dispose();
+      collaborationRef.current = null;
+    };
+  }, [collaboration, excalidrawAPI]);
 
   const UIOptions = useMemo(() => {
     return {
@@ -337,7 +424,8 @@ export const Canvas: React.FC = () => {
       }
     }
 
-    updateCanvas([...elements], appState, files);
+    if (collaboration) collaborationRef.current?.publish(elements);
+    else updateCanvas([...elements], appState, files);
   };
 
   // Handle Drag & Drop Insertion onto the canvas
@@ -426,6 +514,10 @@ export const Canvas: React.FC = () => {
     );
   }
 
+  const currentManagedAccess = managedAccess && managedAccess.workspaceId === collaboration?.workspaceId
+    ? managedAccess.status
+    : 'checking';
+
   return (
     <div data-tour="canvas" className="h-full w-full bg-canvas flex relative">
       {/* Custom DSA Structures sidebar canvas-soft */}
@@ -438,6 +530,16 @@ export const Canvas: React.FC = () => {
         onDrop={handleDrop}
         className="flex-1 h-full relative canvas-no-selection"
       >
+        {collaboration && collaborators.length > 0 ? (
+          <div className="absolute right-4 top-4 z-20 flex items-center gap-1 rounded-full border border-hairline bg-canvas/90 px-2 py-1 shadow-sm backdrop-blur" aria-label="Active collaborators">
+            {collaborators.slice(0, 4).map((person) => (
+              <span key={person.uid} title={person.displayName || 'Collaborator'} className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-canvas-soft text-[10px] font-semibold text-ink">
+                {person.photoURL ? <img src={person.photoURL} alt="" className="h-full w-full object-cover" /> : (person.displayName || '?').slice(0, 1).toUpperCase()}
+              </span>
+            ))}
+            <span className="ml-1 text-[10px] text-mute">{collaborators.length} online</span>
+          </div>
+        ) : null}
         <Excalidraw
           excalidrawAPI={(api) => {
             setExcalidrawAPI(api);
@@ -460,6 +562,20 @@ export const Canvas: React.FC = () => {
           {aiBusy ? <LoadingSpinner size={14} /> : <Sparkles size={14} />}
           {aiBusy ? 'Generating…' : 'Ask AI'}
         </button>
+        {collaboration ? (
+          <button
+            type="button"
+            disabled={managedBusy || currentManagedAccess !== 'allowed'}
+            onClick={() => void runHostedCanvasAi()}
+            className="absolute bottom-4 right-28 z-20 inline-flex h-9 cursor-pointer items-center gap-2 rounded-full bg-ink px-3.5 text-xs font-medium text-canvas shadow-[var(--shadow-modal)] disabled:cursor-wait disabled:opacity-60"
+            title={currentManagedAccess === 'allowed'
+              ? 'Paid AlgoGlyph-hosted agent; authorization is checked by the backend for every run'
+              : 'Managed agent is locked. Open Plan & billing to subscribe.'}
+          >
+            {managedBusy ? <LoadingSpinner size={14} inverted /> : <Sparkles size={14} />}
+            {managedBusy ? 'Running…' : currentManagedAccess === 'checking' ? 'Checking plan…' : currentManagedAccess === 'allowed' ? 'Managed agent' : 'Managed agent · locked'}
+          </button>
+        ) : null}
       </div>
     </div>
   );

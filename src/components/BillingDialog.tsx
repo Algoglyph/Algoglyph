@@ -6,7 +6,7 @@ import {
   cancelBillingSubscription,
   createBillingCheckout,
   getBillingStatus,
-  getBillingWorkspaces,
+  getBillingSubjects,
   getBillingConfigurationError,
   openRazorpayCheckout,
   verifyRazorpayCheckout,
@@ -16,7 +16,7 @@ import type {
   BillingPlanKey,
   BillingRegion,
   BillingStatus,
-  BillingWorkspace,
+  BillingSubject,
 } from '../lib/billing/types';
 import { useAuth } from './authContext';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -61,8 +61,8 @@ export const BillingDialog = ({
   const descriptionId = useId();
   const [returnState] = useState<BillingReturnState>(readBillingReturnState);
   const [status, setStatus] = useState<BillingStatus | null>(null);
-  const [workspaces, setWorkspaces] = useState<BillingWorkspace[]>([]);
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<BillingSubject[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [plan, setPlan] = useState<BillingPlanKey>('pro_monthly');
   const [region, setRegion] = useState<BillingRegion>('international');
   const [loading, setLoading] = useState(true);
@@ -83,9 +83,9 @@ export const BillingDialog = ({
   }, [getAppCheckToken, getIdToken]);
 
   const refreshStatus = useCallback(async (): Promise<BillingStatus | null> => {
-    const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
+    const selectedSubject = subjects.find((subject) => subject.id === selectedSubjectId);
     try {
-      const nextStatus = await getBillingStatus(await getApiTokens(), selectedWorkspace?.organizationId);
+      const nextStatus = await getBillingStatus(await getApiTokens(), selectedSubject?.organizationId);
       setStatus(nextStatus);
       setError(null);
       return nextStatus;
@@ -95,7 +95,7 @@ export const BillingDialog = ({
     } finally {
       setLoading(false);
     }
-  }, [getApiTokens, selectedWorkspaceId, workspaces]);
+  }, [getApiTokens, selectedSubjectId, subjects]);
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -138,14 +138,14 @@ export const BillingDialog = ({
     const load = async () => {
       try {
         const tokens = await getApiTokens();
-        const result = await getBillingWorkspaces(tokens);
+        const result = await getBillingSubjects(tokens);
         if (cancelled) return;
-        setWorkspaces(result.workspaces);
-        const rememberedId = window.sessionStorage.getItem('algoglyph-billing-workspace-id');
-        const selected = result.workspaces.find((workspace) => workspace.id === rememberedId)
-          ?? result.workspaces[0];
-        if (!selected) throw new BillingRequestError('No billing workspace is available.');
-        setSelectedWorkspaceId(selected.id);
+        setSubjects(result.subjects);
+        const rememberedId = window.sessionStorage.getItem('algoglyph-billing-subject-id');
+        const selected = result.subjects.find((subject) => subject.id === rememberedId)
+          ?? result.subjects[0];
+        if (!selected) throw new BillingRequestError('No billing account is available.');
+        setSelectedSubjectId(selected.id);
         const nextStatus = await getBillingStatus(tokens, selected.organizationId);
         if (!cancelled) {
           setStatus(nextStatus);
@@ -162,10 +162,10 @@ export const BillingDialog = ({
   }, [getApiTokens]);
 
   useEffect(() => {
-    if (!selectedWorkspaceId) return;
+    if (!selectedSubjectId) return;
     const timer = window.setTimeout(() => void refreshStatus(), 0);
     return () => window.clearTimeout(timer);
-  }, [refreshStatus, selectedWorkspaceId]);
+  }, [refreshStatus, selectedSubjectId]);
 
   useEffect(() => {
     if (!verifying) return;
@@ -195,14 +195,14 @@ export const BillingDialog = ({
     setError(null);
     setNotice(null);
     try {
-      const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
-      if (!selectedWorkspace) throw new BillingRequestError('Choose a billing workspace first.');
-      window.sessionStorage.setItem('algoglyph-billing-workspace-id', selectedWorkspace.id);
+      const selectedSubject = subjects.find((subject) => subject.id === selectedSubjectId);
+      if (!selectedSubject) throw new BillingRequestError('Choose a billing account first.');
+      window.sessionStorage.setItem('algoglyph-billing-subject-id', selectedSubject.id);
       const checkout = await createBillingCheckout(
         await getApiTokens(),
         plan,
         region,
-        selectedWorkspace.organizationId,
+        selectedSubject.organizationId,
       );
       if (checkout.provider === 'stripe') {
         window.location.assign(checkout.checkoutUrl);
@@ -214,7 +214,7 @@ export const BillingDialog = ({
           void (async () => {
             setPending(true);
             try {
-              await verifyRazorpayCheckout(await getApiTokens(), callback, selectedWorkspace.organizationId);
+              await verifyRazorpayCheckout(await getApiTokens(), callback, selectedSubject.organizationId);
               setVerifying(true);
               setNotice('Payment details verified. Waiting for the provider webhook to activate your plan…');
             } catch (requestError) {
@@ -240,8 +240,8 @@ export const BillingDialog = ({
     setNotice(null);
     setNeedsRecentAuthentication(false);
     try {
-      const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
-      await cancelBillingSubscription(await getApiTokens(), selectedWorkspace?.organizationId);
+      const selectedSubject = subjects.find((subject) => subject.id === selectedSubjectId);
+      await cancelBillingSubscription(await getApiTokens(), selectedSubject?.organizationId);
       await refreshStatus();
       setNotice('Renewal is cancelled. Access remains available through the current period.');
     } catch (requestError) {
@@ -268,7 +268,7 @@ export const BillingDialog = ({
     ? 'bg-[var(--lp-text)] text-[var(--lp-surface)] focus-visible:ring-[var(--lp-hero-cyan)]'
     : 'bg-ink text-canvas focus-visible:ring-link';
   const hasAccess = status?.entitlement.managedAgentAccess === true;
-  const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
+  const selectedSubject = subjects.find((subject) => subject.id === selectedSubjectId);
   const configurationError = getBillingConfigurationError();
   const renewalDate = formatDate(status?.entitlement.currentPeriodEnd ?? null);
   const accessEndDate = formatDate(status?.entitlement.accessUntil ?? null);
@@ -350,23 +350,23 @@ export const BillingDialog = ({
           </p>
         ) : (
           <>
-            {workspaces.length > 1 ? (
-              <label className={`mt-6 grid gap-1.5 text-xs ${mutedClassName}`} htmlFor="account-billing-workspace">
+            {subjects.length > 1 ? (
+              <label className={`mt-6 grid gap-1.5 text-xs ${mutedClassName}`} htmlFor="account-billing-subject">
                 Subscription for
                 <select
-                  id="account-billing-workspace"
-                  value={selectedWorkspaceId ?? ''}
+                  id="account-billing-subject"
+                  value={selectedSubjectId ?? ''}
                   disabled={pending || verifying}
                   onChange={(event) => {
                     setLoading(true);
-                    setSelectedWorkspaceId(event.target.value);
-                    window.sessionStorage.setItem('algoglyph-billing-workspace-id', event.target.value);
+                    setSelectedSubjectId(event.target.value);
+                    window.sessionStorage.setItem('algoglyph-billing-subject-id', event.target.value);
                   }}
                   className={`h-10 rounded-lg border px-3 text-xs outline-none ${subtleClassName}`}
                 >
-                  {workspaces.map((workspace) => (
-                    <option key={workspace.id} value={workspace.id}>
-                      {workspace.kind === 'organization' ? `${workspace.name} · organization` : workspace.name}
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
+                      {subject.kind === 'organization' ? `${subject.name} · organization` : subject.name}
                     </option>
                   ))}
                 </select>
@@ -398,7 +398,7 @@ export const BillingDialog = ({
                 {status.entitlement.status === 'grace' ? 'Grace' : 'Active'}
               </span>
             </div>
-            {!status.entitlement.cancelAtPeriodEnd && selectedWorkspace?.canManageBilling ? (
+            {!status.entitlement.cancelAtPeriodEnd && selectedSubject?.canManageBilling ? (
               <button
                 type="button"
                 disabled={pending}
@@ -409,7 +409,7 @@ export const BillingDialog = ({
               </button>
             ) : null}
           </section>
-            ) : selectedWorkspace?.canManageBilling ? (
+            ) : selectedSubject?.canManageBilling ? (
           <section className="mt-6" aria-label="Subscribe to the AlgoGlyph managed agent">
             <p className="text-sm font-semibold">Subscribe to the managed agent</p>
             <p className={`mt-1 text-xs leading-5 ${mutedClassName}`}>

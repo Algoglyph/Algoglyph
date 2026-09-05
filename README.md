@@ -19,7 +19,10 @@ It is a local-first desktop application designed for developers, students, and p
 - **Workspace Tabs**: Keep multiple scratchpads open in one window. Each tab holds its own notes, canvas, and code, with double-click rename and one-click close.
 - **Code Runner**: A LeetCode-style code editor (the **Code** view) with syntax highlighting, a language picker, stdin, and a Run button that compiles and runs your code via the public Wandbox API — C++, C, Python, Java, JavaScript, TypeScript, Go, and Rust. (This view requires internet, since execution happens on a remote runner.)
 - **Search Palette**: One command-palette UI for finding text across your notes and canvas, then jumping straight to a match — switching tabs, revealing the right pane, and selecting the matched note text or canvas element automatically. `Ctrl/Cmd+F` scopes it to the current tab; `Ctrl/Cmd+Shift+F` (or the tab-bar search icon) searches every open tab.
-- **Local-First Architecture**: Your workspace data is saved entirely on your local machine using client-side storage.
+- **Local-First Architecture**: The default `/workspace` and desktop app remain entirely client-side and require no account.
+- **Collaborative Cloud Canvases**: Authenticated users can create or join membership-scoped cloud workspaces and edit the same canvas in real time.
+- **Free Bring-Your-Own Agent**: Local connector MCP and workspace-scoped cloud MCP do not require a subscription.
+- **Optional Managed Agent**: Individuals or organizations can subscribe to the hosted agent without changing MCP or workspace membership rights.
 - **Offline Support**: Fully functional without internet connectivity, ensuring you can work from anywhere.
 - **Import / Export**: Save work as portable JSON files, export notes to Markdown, or save canvas sketches as images.
 - **Structure Templates**: Quickly drag, drop, and edit pre-built templates for common data structures and algorithm patterns.
@@ -60,13 +63,13 @@ It is a local-first desktop application designed for developers, students, and p
 - **Excalidraw**: High-performance canvas drawing engine.
 - **TipTap**: Extensible rich-text editor toolkit.
 - **Tailwind CSS**: Utility-first styling framework.
-- **Firebase Authentication**: Optional Google identity for the web app; workspace content remains local.
+- **Firebase Authentication + Firestore**: Optional Google identity for cloud membership and element-level collaborative canvases; the default local workspace stays local.
 
 ## Philosophy
 
 - **Local-first**: You own your data. Files are kept on your hard drive, not on third-party servers.
 - **No account required**: Optional Google sign-in never gates the workspace; anonymous use remains available instantly.
-- **No workspace cloud dependency**: Notes, canvas data, and code remain local even when a user signs in.
+- **No workspace cloud dependency**: Local notes, canvas data, and code stay local unless the user explicitly opens a collaborative cloud workspace.
 - **No distractions**: A minimalist, utility-focused layout designed to keep you in flow.
 - **Fast and lightweight**: Debounced auto-saves and targeted React updates to ensure smooth operation on standard developer hardware.
 
@@ -155,4 +158,3 @@ Scratchpad/
 - **Current issue**: The workspace generates typescript build cache files (`.tsbuildinfo`) and local configuration files, which can accidentally get committed if they are not explicitly listed in `.gitignore`.
 - **Why it matters**: Accidental commits of build cache files or developer environment files pollute the history, bloat the repository size, and cause unnecessary merge conflicts.
 - **Recommended fix**: Extend the `.gitignore` configuration to explicitly exclude all TypeScript caches, environment configurations, and build/compilation artifacts.
-

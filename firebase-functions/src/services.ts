@@ -14,21 +14,27 @@ import type {
   PlanKey,
 } from './model.js';
 import { projectEntitlement } from './model.js';
-import { HttpError, requirePersonalWorkspaceAccess, sha256 } from './security.js';
+import { HttpError, sha256 } from './security.js';
 import type { AuthenticatedPrincipal } from './security.js';
 import type { CheckoutResult, ProviderSubscriptionSnapshot } from './providers.js';
+import {
+  listOrganizations,
+  requireOrganizationAccess,
+  requireWorkspaceAccess,
+  upsertIdentity,
+} from './workspaces.js';
 
-export interface WorkspaceWire {
+export interface BillingSubjectWire {
   id: string;
   name: string;
   kind: 'individual' | 'organization';
-  role: 'owner' | 'billing_admin' | 'member';
+  role: 'owner' | 'admin' | 'billing_admin' | 'member';
   organizationId?: string;
   canManageBilling: boolean;
 }
 
 export interface BillingStatusWire {
-  workspace: WorkspaceWire;
+  subject: BillingSubjectWire;
   planKey: PlanKey | null;
   provider: BillingProvider | null;
   providerStatus: string | null;
@@ -43,121 +49,52 @@ export interface BillingStatusWire {
   };
 }
 
-const personalWorkspaceId = (uid: string): string => `personal_${uid}`;
-const organizationWorkspaceId = (organizationId: string): string => `organization_${organizationId}`;
-const ORGANIZATION_ID_PATTERN = /^[A-Za-z0-9_-]{6,80}$/;
+export const personalBillingSubjectId = (uid: string): string => `user_${uid}`;
+export const organizationBillingSubjectId = (organizationId: string): string => `organization_${organizationId}`;
 
 const timestampToIso = (value: unknown): string | null =>
   value instanceof Timestamp ? value.toDate().toISOString() : null;
 
 const audit = (
   action: string,
-  workspaceId: string,
+  billingSubjectId: string,
   actor: string,
   metadata: Record<string, unknown> = {},
 ): DocumentData => ({
   action,
-  workspaceId,
+  billingSubjectId,
   actor,
   metadata,
   createdAt: FieldValue.serverTimestamp(),
 });
 
-export const ensurePersonalWorkspace = async (
+export const ensurePersonalBillingSubject = async (
   principal: AuthenticatedPrincipal,
-): Promise<WorkspaceWire> => {
-  const db = getFirestore();
-  const workspaceId = personalWorkspaceId(principal.uid);
-  requirePersonalWorkspaceAccess(principal, workspaceId);
-  const workspaceRef = db.collection('workspaces').doc(workspaceId);
-  const memberRef = db.collection('workspaceMembers').doc(`${workspaceId}_${principal.uid}`);
-
-  await db.runTransaction(async (transaction) => {
-    const [workspace, member] = await Promise.all([
-      transaction.get(workspaceRef),
-      transaction.get(memberRef),
-    ]);
-    if (workspace.exists && workspace.data()?.ownerUid !== principal.uid) {
-      throw new HttpError(403, 'Workspace access denied.');
-    }
-    if (member.exists
-      && (member.data()?.uid !== principal.uid
-        || member.data()?.workspaceId !== workspaceId
-        || member.data()?.role !== 'owner')) {
-      throw new HttpError(403, 'Workspace membership is invalid.');
-    }
-    if (!workspace.exists) {
-      transaction.create(workspaceRef, {
-        ownerUid: principal.uid,
-        displayName: principal.displayName ? `${principal.displayName}'s workspace` : 'Personal workspace',
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-    }
-    if (!member.exists) {
-      transaction.create(memberRef, {
-        workspaceId,
-        uid: principal.uid,
-        role: 'owner',
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    }
-  });
-
-  const workspace = await workspaceRef.get();
+): Promise<BillingSubjectWire> => {
+  await upsertIdentity(principal);
   return {
-    id: workspaceId,
-    name: String(workspace.data()?.displayName ?? 'Personal workspace'),
+    id: personalBillingSubjectId(principal.uid),
+    name: principal.displayName ? `${principal.displayName}'s account` : 'Personal account',
     kind: 'individual',
     role: 'owner',
     canManageBilling: true,
   };
 };
 
-const resolveOrganizationWorkspace = async (
+const resolveOrganizationBillingSubject = async (
   principal: AuthenticatedPrincipal,
   organizationId: string,
   requireBillingManager = false,
-): Promise<WorkspaceWire> => {
-  if (!ORGANIZATION_ID_PATTERN.test(organizationId)) throw new HttpError(400, 'Invalid organization identifier.');
-  const db = getFirestore();
-  const workspaceId = organizationWorkspaceId(organizationId);
-  const organizationRef = db.collection('organizations').doc(organizationId);
-  const organizationMemberRef = db.collection('organizationMembers').doc(`${organizationId}_${principal.uid}`);
-  const workspaceRef = db.collection('workspaces').doc(workspaceId);
-  const workspaceMemberRef = db.collection('workspaceMembers').doc(`${workspaceId}_${principal.uid}`);
-  const [organization, organizationMember, workspace, workspaceMember] = await Promise.all([
-    organizationRef.get(),
-    organizationMemberRef.get(),
-    workspaceRef.get(),
-    workspaceMemberRef.get(),
-  ]);
-  const organizationData = organization.data();
-  const membership = organizationMember.data();
-  const role = membership?.role;
-  const validRole = role === 'owner' || role === 'billing_admin' || role === 'member';
-  if (!organization.exists
-    || organizationData?.status !== 'active'
-    || !organizationMember.exists
-    || membership?.organizationId !== organizationId
-    || membership?.uid !== principal.uid
-    || membership?.status !== 'active'
-    || !validRole) {
-    throw new HttpError(403, 'Organization access denied.');
-  }
+): Promise<BillingSubjectWire> => {
+  const { organization, role } = await requireOrganizationAccess(
+    principal,
+    organizationId,
+    { billing: requireBillingManager },
+  );
   const canManageBilling = role === 'owner' || role === 'billing_admin';
-  if (requireBillingManager && !canManageBilling) throw new HttpError(403, 'Organization billing access denied.');
-  if (!workspace.exists || workspace.data()?.organizationId !== organizationId) {
-    throw new HttpError(403, 'Organization workspace is invalid.');
-  }
-  if (!workspaceMember.exists || workspaceMember.data()?.workspaceId !== workspaceId
-    || workspaceMember.data()?.uid !== principal.uid
-    || workspaceMember.data()?.status !== 'active') {
-    throw new HttpError(403, 'Workspace membership is invalid.');
-  }
   return {
-    id: workspaceId,
-    name: String(organizationData?.name ?? 'Organization'),
+    id: organizationBillingSubjectId(organizationId),
+    name: String(organization.name ?? 'Organization'),
     kind: 'organization',
     role,
     organizationId,
@@ -165,30 +102,25 @@ const resolveOrganizationWorkspace = async (
   };
 };
 
-const resolveBillingWorkspace = async (
+const resolveBillingSubject = async (
   principal: AuthenticatedPrincipal,
   organizationId?: string,
   requireBillingManager = false,
-): Promise<WorkspaceWire> => organizationId
-  ? resolveOrganizationWorkspace(principal, organizationId, requireBillingManager)
-  : ensurePersonalWorkspace(principal);
+): Promise<BillingSubjectWire> => organizationId
+  ? resolveOrganizationBillingSubject(principal, organizationId, requireBillingManager)
+  : ensurePersonalBillingSubject(principal);
 
-export const listBillingWorkspaces = async (principal: AuthenticatedPrincipal): Promise<WorkspaceWire[]> => {
-  const db = getFirestore();
-  const personal = await ensurePersonalWorkspace(principal);
-  const memberships = await db.collection('organizationMembers').where('uid', '==', principal.uid).limit(100).get();
-  const organizationIds = memberships.docs.flatMap((document) => {
-    const data = document.data();
-    return data.status === 'active' && typeof data.organizationId === 'string' ? [data.organizationId] : [];
-  });
-  const organizations = await Promise.all(organizationIds.map(async (organizationId) => {
-    try {
-      return await resolveOrganizationWorkspace(principal, organizationId);
-    } catch {
-      return null;
-    }
-  }));
-  return [personal, ...organizations.filter((workspace): workspace is WorkspaceWire => workspace !== null)];
+export const listBillingSubjects = async (principal: AuthenticatedPrincipal): Promise<BillingSubjectWire[]> => {
+  const personal = await ensurePersonalBillingSubject(principal);
+  const organizations = await listOrganizations(principal);
+  return [personal, ...organizations.map((organization) => ({
+    id: organizationBillingSubjectId(organization.id),
+    name: organization.name,
+    kind: 'organization' as const,
+    role: organization.role,
+    organizationId: organization.id,
+    canManageBilling: organization.role === 'owner' || organization.role === 'billing_admin',
+  }))];
 };
 
 export const getBillingStatus = async (
@@ -196,10 +128,10 @@ export const getBillingStatus = async (
   organizationId?: string,
 ): Promise<BillingStatusWire> => {
   const db = getFirestore();
-  const workspace = await resolveBillingWorkspace(principal, organizationId);
+  const subject = await resolveBillingSubject(principal, organizationId);
   const [subscription, entitlement] = await Promise.all([
-    db.collection('subscriptions').doc(workspace.id).get(),
-    db.collection('entitlements').doc(workspace.id).get(),
+    db.collection('subscriptions').doc(subject.id).get(),
+    db.collection('entitlements').doc(subject.id).get(),
   ]);
   const subscriptionData = subscription.data();
   const entitlementData = entitlement.data();
@@ -208,7 +140,7 @@ export const getBillingStatus = async (
   const storedAccess = entitlementData?.managedAgentAccess === true;
 
   return {
-    workspace,
+    subject,
     planKey: typeof subscriptionData?.planKey === 'string' ? subscriptionData.planKey as PlanKey : null,
     provider: subscriptionData?.provider === 'stripe' || subscriptionData?.provider === 'razorpay'
       ? subscriptionData.provider
@@ -230,12 +162,12 @@ export const reserveCheckout = async (
   principal: AuthenticatedPrincipal,
   plan: PlanDefinition,
   organizationId?: string,
-): Promise<{ workspace: WorkspaceWire; attemptId: string; existingCustomerId?: string }> => {
+): Promise<{ subject: BillingSubjectWire; attemptId: string; existingCustomerId?: string }> => {
   const db = getFirestore();
-  const workspace = await resolveBillingWorkspace(principal, organizationId, true);
-  const subscriptionRef = db.collection('subscriptions').doc(workspace.id);
-  const entitlementRef = db.collection('entitlements').doc(workspace.id);
-  const customerRef = db.collection('billingCustomers').doc(`${workspace.id}_${plan.provider}`);
+  const subject = await resolveBillingSubject(principal, organizationId, true);
+  const subscriptionRef = db.collection('subscriptions').doc(subject.id);
+  const entitlementRef = db.collection('entitlements').doc(subject.id);
+  const customerRef = db.collection('billingCustomers').doc(`${subject.id}_${plan.provider}`);
   const attemptId = randomUUID();
 
   const existingCustomerId = await db.runTransaction(async (transaction) => {
@@ -252,14 +184,13 @@ export const reserveCheckout = async (
     const pendingUntil = current?.checkoutPendingUntil;
     const checkoutPending = pendingUntil instanceof Timestamp && pendingUntil.toMillis() > Date.now();
     if (activeAccess || checkoutPending) {
-      throw new HttpError(409, 'This workspace already has an active or pending subscription.');
+      throw new HttpError(409, 'This billing subject already has an active or pending subscription.');
     }
     transaction.set(subscriptionRef, {
-      workspaceId: workspace.id,
-      billingSubjectType: workspace.kind,
-      billingSubjectId: workspace.id,
+      billingSubjectType: subject.kind,
+      billingSubjectId: subject.id,
       purchaserUid: principal.uid,
-      ...(workspace.kind === 'individual' ? { ownerUid: principal.uid } : { organizationId: workspace.organizationId }),
+      ...(subject.kind === 'individual' ? { ownerUid: principal.uid } : { organizationId: subject.organizationId }),
       provider: plan.provider,
       planKey: plan.key,
       providerStatus: 'checkout_pending',
@@ -270,7 +201,7 @@ export const reserveCheckout = async (
     }, { merge: true });
     transaction.create(db.collection('auditLogs').doc(), audit(
       'billing.checkout_reserved',
-      workspace.id,
+      subject.id,
       principal.uid,
       { planKey: plan.key, provider: plan.provider, attemptId },
     ));
@@ -279,24 +210,24 @@ export const reserveCheckout = async (
       : undefined;
   });
 
-  return { workspace, attemptId, existingCustomerId };
+  return { subject, attemptId, existingCustomerId };
 };
 
 export const completeCheckout = async (
   principal: AuthenticatedPrincipal,
-  workspace: WorkspaceWire,
+  subject: BillingSubjectWire,
   attemptId: string,
   plan: PlanDefinition,
   result: CheckoutResult,
 ): Promise<void> => {
   if (result.provider !== plan.provider) throw new HttpError(500, 'Billing provider mismatch.');
-  await resolveBillingWorkspace(principal, workspace.organizationId, true);
-  const workspaceId = workspace.id;
+  await resolveBillingSubject(principal, subject.organizationId, true);
+  const billingSubjectId = subject.id;
   const db = getFirestore();
-  const subscriptionRef = db.collection('subscriptions').doc(workspaceId);
+  const subscriptionRef = db.collection('subscriptions').doc(billingSubjectId);
   await db.runTransaction(async (transaction) => {
     const customerRef = result.providerCustomerId
-      ? db.collection('billingCustomers').doc(`${workspaceId}_${result.provider}`)
+      ? db.collection('billingCustomers').doc(`${billingSubjectId}_${result.provider}`)
       : null;
     const [subscription, customer] = await Promise.all([
       transaction.get(subscriptionRef),
@@ -317,7 +248,7 @@ export const completeCheckout = async (
     }, { merge: true });
     if (result.providerCustomerId && customerRef) {
       transaction.set(customerRef, {
-        workspaceId,
+        billingSubjectId,
         provider: result.provider,
         providerCustomerId: result.providerCustomerId,
         updatedAt: FieldValue.serverTimestamp(),
@@ -326,7 +257,7 @@ export const completeCheckout = async (
     }
     transaction.create(db.collection('auditLogs').doc(), audit(
       'billing.checkout_created',
-      workspaceId,
+      billingSubjectId,
       principal.uid,
       { planKey: plan.key, provider: result.provider, attemptId },
     ));
@@ -337,19 +268,19 @@ export const subscriptionForRazorpayVerification = async (
   principal: AuthenticatedPrincipal,
   suppliedSubscriptionId: string,
   organizationId?: string,
-): Promise<{ workspaceId: string; planKey: PlanKey; providerSubscriptionId: string }> => {
-  const workspace = await resolveBillingWorkspace(principal, organizationId, true);
-  const snapshot = await getFirestore().collection('subscriptions').doc(workspace.id).get();
+): Promise<{ billingSubjectId: string; planKey: PlanKey; providerSubscriptionId: string }> => {
+  const subject = await resolveBillingSubject(principal, organizationId, true);
+  const snapshot = await getFirestore().collection('subscriptions').doc(subject.id).get();
   const data = snapshot.data();
   if (data?.provider !== 'razorpay'
     || typeof data.providerSubscriptionId !== 'string'
     || data.providerSubscriptionId !== suppliedSubscriptionId
-    || data.billingSubjectId !== workspace.id
+    || data.billingSubjectId !== subject.id
     || (data.planKey !== 'pro_monthly' && data.planKey !== 'pro_annual')) {
     throw new HttpError(403, 'Payment verification does not match this account checkout.');
   }
   return {
-    workspaceId: workspace.id,
+    billingSubjectId: subject.id,
     planKey: data.planKey,
     providerSubscriptionId: data.providerSubscriptionId,
   };
@@ -357,7 +288,7 @@ export const subscriptionForRazorpayVerification = async (
 
 export const recordRazorpayCheckoutVerification = async (
   principal: AuthenticatedPrincipal,
-  workspaceId: string,
+  billingSubjectId: string,
   providerSubscriptionId: string,
   paymentId: string,
   paymentStatus: string,
@@ -365,7 +296,7 @@ export const recordRazorpayCheckoutVerification = async (
   currency: string,
 ): Promise<void> => {
   const db = getFirestore();
-  const subscriptionRef = db.collection('subscriptions').doc(workspaceId);
+  const subscriptionRef = db.collection('subscriptions').doc(billingSubjectId);
   await db.runTransaction(async (transaction) => {
     const subscription = await transaction.get(subscriptionRef);
     const data = subscription.data();
@@ -382,15 +313,15 @@ export const recordRazorpayCheckoutVerification = async (
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     transaction.create(db.collection('auditLogs').doc(), audit(
-      'billing.razorpay_callback_verified', workspaceId, principal.uid,
+      'billing.razorpay_callback_verified', billingSubjectId, principal.uid,
       { providerSubscriptionIdHash: sha256(providerSubscriptionId), paymentStatus, amount, currency },
     ));
   });
 };
 
-export const releaseCheckout = async (workspaceId: string, attemptId: string): Promise<void> => {
+export const releaseCheckout = async (billingSubjectId: string, attemptId: string): Promise<void> => {
   const db = getFirestore();
-  const ref = db.collection('subscriptions').doc(workspaceId);
+  const ref = db.collection('subscriptions').doc(billingSubjectId);
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     if (snapshot.data()?.checkoutAttemptId !== attemptId) return;
@@ -405,17 +336,17 @@ export const releaseCheckout = async (workspaceId: string, attemptId: string): P
 export const subscriptionForCancellation = async (
   principal: AuthenticatedPrincipal,
   organizationId?: string,
-): Promise<{ workspaceId: string; provider: BillingProvider; providerSubscriptionId: string }> => {
-  const workspace = await resolveBillingWorkspace(principal, organizationId, true);
-  const snapshot = await getFirestore().collection('subscriptions').doc(workspace.id).get();
+): Promise<{ billingSubjectId: string; provider: BillingProvider; providerSubscriptionId: string }> => {
+  const subject = await resolveBillingSubject(principal, organizationId, true);
+  const snapshot = await getFirestore().collection('subscriptions').doc(subject.id).get();
   const data = snapshot.data();
   if ((data?.provider !== 'stripe' && data?.provider !== 'razorpay')
     || typeof data.providerSubscriptionId !== 'string'
-    || data.billingSubjectId !== workspace.id) {
-    throw new HttpError(409, 'There is no cancellable subscription for this workspace.');
+    || data.billingSubjectId !== subject.id) {
+    throw new HttpError(409, 'There is no cancellable subscription for this billing subject.');
   }
   return {
-    workspaceId: workspace.id,
+    billingSubjectId: subject.id,
     provider: data.provider,
     providerSubscriptionId: data.providerSubscriptionId,
   };
@@ -423,16 +354,16 @@ export const subscriptionForCancellation = async (
 
 export const markCancellationRequested = async (
   principal: AuthenticatedPrincipal,
-  workspaceId: string,
+  billingSubjectId: string,
 ): Promise<void> => {
   const db = getFirestore();
   await Promise.all([
-    db.collection('subscriptions').doc(workspaceId).set({
+    db.collection('subscriptions').doc(billingSubjectId).set({
       cancelAtPeriodEnd: true,
       cancellationRequestedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true }),
-    db.collection('auditLogs').add(audit('billing.cancellation_requested', workspaceId, principal.uid)),
+    db.collection('auditLogs').add(audit('billing.cancellation_requested', billingSubjectId, principal.uid)),
   ]);
 };
 
@@ -481,7 +412,7 @@ export const applyProviderEvent = async (
     const snapshot = await transaction.get(eventRef);
     if (snapshot.exists && snapshot.data()?.rawPayloadHash !== rawPayloadHash) {
       transaction.create(db.collection('auditLogs').doc(), audit(
-        'billing.event_payload_conflict', event.workspaceId, 'webhook',
+        'billing.event_payload_conflict', event.billingSubjectId, 'webhook',
         { provider: event.provider, eventType: event.eventType, providerEventIdHash: sha256(event.eventId) },
       ));
       return 'conflict' as const;
@@ -492,7 +423,7 @@ export const applyProviderEvent = async (
         provider: event.provider,
         providerEventId: event.eventId,
         eventType: event.eventType,
-        workspaceId: event.workspaceId,
+        billingSubjectId: event.billingSubjectId,
         providerSubscriptionId: event.providerSubscriptionId,
         occurredAt: Timestamp.fromMillis(event.occurredAtMs),
         rawPayloadHash,
@@ -505,8 +436,8 @@ export const applyProviderEvent = async (
   if (intake !== 'process') return intake;
 
   return db.runTransaction(async (transaction) => {
-    const subscriptionRef = db.collection('subscriptions').doc(event.workspaceId);
-    const entitlementRef = db.collection('entitlements').doc(event.workspaceId);
+    const subscriptionRef = db.collection('subscriptions').doc(event.billingSubjectId);
+    const entitlementRef = db.collection('entitlements').doc(event.billingSubjectId);
     const [eventSnapshot, subscription, entitlement] = await Promise.all([
       transaction.get(eventRef),
       transaction.get(subscriptionRef),
@@ -521,7 +452,7 @@ export const applyProviderEvent = async (
         processedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
       transaction.create(db.collection('auditLogs').doc(), audit(
-        'billing.unbound_provider_event', event.workspaceId, 'webhook',
+        'billing.unbound_provider_event', event.billingSubjectId, 'webhook',
         { provider: event.provider, eventType: event.eventType },
       ));
       return 'conflict';
@@ -541,7 +472,7 @@ export const applyProviderEvent = async (
         processedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
       transaction.create(db.collection('auditLogs').doc(), audit(
-        'billing.provider_conflict', event.workspaceId, 'webhook',
+        'billing.provider_conflict', event.billingSubjectId, 'webhook',
         { provider: event.provider, eventType: event.eventType },
       ));
       return 'conflict';
@@ -583,7 +514,7 @@ export const applyProviderEvent = async (
     const nextVersion = Number(entitlement.data()?.version ?? 0) + 1;
 
     transaction.set(subscriptionRef, {
-      workspaceId: event.workspaceId,
+      billingSubjectId: event.billingSubjectId,
       provider: event.provider,
       providerSubscriptionId: event.providerSubscriptionId,
       ...(event.providerCustomerId ? { providerCustomerId: event.providerCustomerId } : {}),
@@ -609,7 +540,7 @@ export const applyProviderEvent = async (
       createdAt: current?.createdAt ?? FieldValue.serverTimestamp(),
     }, { merge: true });
     transaction.set(entitlementRef, {
-      workspaceId: event.workspaceId,
+      billingSubjectId: event.billingSubjectId,
       managedAgentAccess: projection.managedAgentAccess,
       status: projection.status,
       sourceSubscription: subscriptionRef.path,
@@ -636,7 +567,7 @@ export const applyProviderEvent = async (
       processedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     transaction.create(db.collection('auditLogs').doc(), audit(
-      'billing.entitlement_changed', event.workspaceId, 'webhook',
+      'billing.entitlement_changed', event.billingSubjectId, 'webhook',
       { eventType: event.eventType, status: projection.status, version: nextVersion },
     ));
     return 'processed';
@@ -660,18 +591,12 @@ export const canUseManagedAgent = async (
   accessUntil: string;
 }> => {
   const db = getFirestore();
-  let organizationId: string | undefined;
-  if (workspaceId === personalWorkspaceId(principal.uid)) {
-    await ensurePersonalWorkspace(principal);
-  } else if (workspaceId.startsWith('organization_')) {
-    organizationId = workspaceId.slice('organization_'.length);
-    const organizationWorkspace = await resolveOrganizationWorkspace(principal, organizationId);
-    if (organizationWorkspace.id !== workspaceId) throw new HttpError(403, 'Workspace access denied.');
-  } else {
-    throw new HttpError(403, 'Workspace access denied.');
-  }
+  const access = await requireWorkspaceAccess(principal, workspaceId);
+  const organizationId = typeof access.workspace.organizationId === 'string'
+    ? access.workspace.organizationId
+    : undefined;
 
-  const individualSubjectId = personalWorkspaceId(principal.uid);
+  const individualSubjectId = personalBillingSubjectId(principal.uid);
   const individual = await db.collection('entitlements').doc(individualSubjectId).get();
   if (currentManagedAgentEntitlement(individual.data())) {
     return {
@@ -682,7 +607,8 @@ export const canUseManagedAgent = async (
     };
   }
   if (organizationId) {
-    const organizationSubjectId = organizationWorkspaceId(organizationId);
+    await requireOrganizationAccess(principal, organizationId);
+    const organizationSubjectId = organizationBillingSubjectId(organizationId);
     const organization = await db.collection('entitlements').doc(organizationSubjectId).get();
     if (currentManagedAgentEntitlement(organization.data())) {
       return {
@@ -697,7 +623,7 @@ export const canUseManagedAgent = async (
 };
 
 export const listReconciliationCandidates = async (): Promise<Array<{
-  workspaceId: string;
+  billingSubjectId: string;
   provider: BillingProvider;
   providerSubscriptionId: string;
   planKey?: PlanKey;
@@ -705,16 +631,16 @@ export const listReconciliationCandidates = async (): Promise<Array<{
   const db = getFirestore();
   const cursorRef = db.collection('billingJobs').doc('reconciliation');
   const cursor = await cursorRef.get();
-  const cursorWorkspaceId = typeof cursor.data()?.cursorWorkspaceId === 'string'
-    ? cursor.data()?.cursorWorkspaceId as string
+  const cursorBillingSubjectId = typeof cursor.data()?.cursorBillingSubjectId === 'string'
+    ? cursor.data()?.cursorBillingSubjectId as string
     : null;
   const baseQuery = db.collection('subscriptions').orderBy(FieldPath.documentId()).limit(250);
-  let snapshot = cursorWorkspaceId
-    ? await baseQuery.startAfter(cursorWorkspaceId).get()
+  let snapshot = cursorBillingSubjectId
+    ? await baseQuery.startAfter(cursorBillingSubjectId).get()
     : await baseQuery.get();
-  if (snapshot.empty && cursorWorkspaceId) snapshot = await baseQuery.get();
+  if (snapshot.empty && cursorBillingSubjectId) snapshot = await baseQuery.get();
   await cursorRef.set({
-    cursorWorkspaceId: snapshot.docs.at(-1)?.id ?? null,
+    cursorBillingSubjectId: snapshot.docs.at(-1)?.id ?? null,
     scannedAt: FieldValue.serverTimestamp(),
     candidateCount: snapshot.size,
   }, { merge: true });
@@ -723,7 +649,7 @@ export const listReconciliationCandidates = async (): Promise<Array<{
     if ((data.provider !== 'stripe' && data.provider !== 'razorpay')
       || typeof data.providerSubscriptionId !== 'string') return [];
     return [{
-      workspaceId: document.id,
+      billingSubjectId: document.id,
       provider: data.provider,
       providerSubscriptionId: data.providerSubscriptionId,
       planKey: typeof data.planKey === 'string' ? data.planKey as PlanKey : undefined,
@@ -732,7 +658,7 @@ export const listReconciliationCandidates = async (): Promise<Array<{
 };
 
 export const applyReconciliationSnapshot = async (
-  candidate: { workspaceId: string; planKey?: PlanKey },
+  candidate: { billingSubjectId: string; planKey?: PlanKey },
   snapshot: ProviderSubscriptionSnapshot,
 ): Promise<void> => {
   const now = Date.now();
@@ -741,7 +667,7 @@ export const applyReconciliationSnapshot = async (
     eventId: `reconcile_${snapshot.providerSubscriptionId}_${Math.floor(now / 3_600_000)}`,
     eventType: 'subscription.reconciled',
     occurredAtMs: now,
-    workspaceId: candidate.workspaceId,
+    billingSubjectId: candidate.billingSubjectId,
     providerSubscriptionId: snapshot.providerSubscriptionId,
     providerCustomerId: snapshot.providerCustomerId,
     planKey: candidate.planKey,

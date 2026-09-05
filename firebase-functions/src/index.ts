@@ -43,10 +43,9 @@ import {
   applyReconciliationSnapshot,
   canUseManagedAgent,
   completeCheckout,
-  ensurePersonalWorkspace,
   expireElapsedEntitlements,
   getBillingStatus,
-  listBillingWorkspaces,
+  listBillingSubjects,
   listReconciliationCandidates,
   markCancellationRequested,
   releaseCheckout,
@@ -55,6 +54,29 @@ import {
   subscriptionForCancellation,
   subscriptionForRazorpayVerification,
 } from './services.js';
+import {
+  acceptWorkspaceInvite,
+  createCanvas,
+  createMcpAccessToken,
+  createOrganization,
+  createWorkspace,
+  createWorkspaceInvite,
+  getWorkspace,
+  inspectWorkspaceInvite,
+  listCanvases,
+  listMcpAccessTokens,
+  listOrganizations,
+  listWorkspaceMembers,
+  listWorkspaces,
+  requireCanvasAccess,
+  requireMcpAccessToken,
+  revokeMcpAccessToken,
+  revokeWorkspaceInvite,
+  upsertIdentity,
+  updateCanvasMetadata,
+} from './workspaces.js';
+import { handleMcpRequest } from './mcp.js';
+import { runManagedAgent } from './managedAgent.js';
 
 initializeApp();
 
@@ -63,6 +85,7 @@ const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
 const razorpayKeyId = defineSecret('RAZORPAY_KEY_ID');
 const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
 const razorpayWebhookSecret = defineSecret('RAZORPAY_WEBHOOK_SECRET');
+const managedAgentApiKey = defineSecret('MANAGED_AGENT_API_KEY');
 
 const stripeMonthlyPrice = defineString('STRIPE_PRO_MONTHLY_PRICE_ID');
 const stripeAnnualPrice = defineString('STRIPE_PRO_ANNUAL_PRICE_ID');
@@ -70,6 +93,9 @@ const razorpayMonthlyPlan = defineString('RAZORPAY_PRO_MONTHLY_PLAN_ID');
 const razorpayAnnualPlan = defineString('RAZORPAY_PRO_ANNUAL_PLAN_ID');
 const checkoutSuccessUrl = defineString('CHECKOUT_SUCCESS_URL');
 const checkoutCancelUrl = defineString('CHECKOUT_CANCEL_URL');
+const inviteBaseUrl = defineString('INVITE_BASE_URL');
+const managedAgentApiUrl = defineString('MANAGED_AGENT_API_URL');
+const managedAgentModel = defineString('MANAGED_AGENT_MODEL');
 
 const configuredSecrets = (): ProviderSecrets => ({
   stripeSecretKey: stripeSecretKey.value(),
@@ -102,15 +128,22 @@ const resolvePlan = (planKey: unknown, billingRegion: unknown): PlanDefinition =
   };
 };
 
-const browserPaths = new Set([
-  '/v1/workspace',
-  '/v1/billing/workspaces',
+const exactBrowserPaths = new Set([
+  '/v1/workspaces',
+  '/v1/organizations',
+  '/v1/invites/inspect',
+  '/v1/invites/accept',
+  '/v1/mcp-tokens/revoke',
+  '/v1/billing/subjects',
   '/v1/billing/status',
   '/v1/billing/checkout',
   '/v1/billing/cancel',
   '/v1/billing/razorpay/verify',
   '/v1/managed-agent/authorize',
+  '/v1/managed-agent/run',
 ]);
+const isBrowserPath = (path: string): boolean => exactBrowserPaths.has(path)
+  || /^\/v1\/workspaces\/[A-Za-z0-9_-]{6,120}(?:\/(?:canvases|members|invites|mcp-tokens)(?:\/[A-Za-z0-9_-]{6,120})?)?$/.test(path);
 const webhookPaths = new Set(['/v1/webhooks/stripe', '/v1/webhooks/razorpay']);
 const MAX_BROWSER_REQUEST_BYTES = 32 * 1024;
 const MAX_WEBHOOK_REQUEST_BYTES = 1024 * 1024;
@@ -130,7 +163,7 @@ const optionalOrganizationId = (value: unknown): string | undefined => {
 export const api = onRequest({
   region: 'us-central1',
   cors: false,
-  timeoutSeconds: 30,
+  timeoutSeconds: 60,
   memory: '256MiB',
   secrets: [
     stripeSecretKey,
@@ -138,15 +171,20 @@ export const api = onRequest({
     razorpayKeyId,
     razorpayKeySecret,
     razorpayWebhookSecret,
+    managedAgentApiKey,
   ],
 }, async (request, response) => {
   response.setHeader('Cache-Control', 'no-store');
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Referrer-Policy', 'no-referrer');
   const path = request.path.replace(/\/$/, '') || '/';
+  const workspaceRootMatch = path.match(/^\/v1\/workspaces\/([A-Za-z0-9_-]{6,120})$/);
+  const workspaceChildMatch = path.match(
+    /^\/v1\/workspaces\/([A-Za-z0-9_-]{6,120})\/(canvases|members|invites|mcp-tokens)(?:\/([A-Za-z0-9_-]{6,120}))?$/,
+  );
 
   try {
-    if (browserPaths.has(path)) {
+    if (isBrowserPath(path)) {
       applyBrowserCors(request, response);
       if (request.method === 'OPTIONS') {
         response.status(204).end();
@@ -157,18 +195,156 @@ export const api = onRequest({
         request.query as Record<string, unknown>,
         path === '/v1/billing/status' ? ['organizationId'] : [],
       );
-      if (request.method === 'POST') requireJsonContentType(request);
+      if (request.method === 'POST' || request.method === 'PATCH') requireJsonContentType(request);
       await requireAppCheck(request);
     }
     if (webhookPaths.has(path)) {
       assertExactKeys(request.query as Record<string, unknown>, []);
       requireRequestBodyWithin(request, MAX_WEBHOOK_REQUEST_BYTES);
     }
+    if (path === '/v1/mcp') {
+      assertExactKeys(request.query as Record<string, unknown>, []);
+      requireRequestBodyWithin(request, 1024 * 1024);
+      if (request.method === 'POST') requireJsonContentType(request);
+    }
 
-    if (request.method === 'GET' && path === '/v1/workspace') {
+    if (request.method === 'GET' && path === '/v1/workspaces') {
       const principal = await requireFirebaseUser(request);
-      await enforceRateLimit('workspace', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 60, 60);
-      json(response, 200, { workspace: await ensurePersonalWorkspace(principal) });
+      await upsertIdentity(principal);
+      await enforceRateLimit('workspace_list', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 60, 60);
+      json(response, 200, { workspaces: await listWorkspaces(principal) });
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/workspaces') {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['name', 'organizationId']);
+      const organizationId = optionalOrganizationId(body.organizationId);
+      await enforceRateLimit('workspace_create', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 20, 60 * 60);
+      json(response, 201, await createWorkspace(principal, body.name, organizationId));
+      return;
+    }
+
+    if (request.method === 'GET' && path === '/v1/organizations') {
+      const principal = await requireFirebaseUser(request);
+      json(response, 200, { organizations: await listOrganizations(principal) });
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/organizations') {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['name']);
+      await enforceRateLimit('organization_create', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 5, 60 * 60);
+      json(response, 201, { organization: await createOrganization(principal, body.name) });
+      return;
+    }
+
+    if (request.method === 'GET' && workspaceRootMatch) {
+      const principal = await requireFirebaseUser(request);
+      const workspace = await getWorkspace(principal, workspaceRootMatch[1]!);
+      const canvases = await listCanvases(principal, workspace.id);
+      json(response, 200, { workspace, canvases });
+      return;
+    }
+
+    if (request.method === 'GET' && workspaceChildMatch?.[2] === 'canvases' && !workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      json(response, 200, { canvases: await listCanvases(principal, workspaceChildMatch[1]!) });
+      return;
+    }
+
+    if (request.method === 'POST' && workspaceChildMatch?.[2] === 'canvases' && !workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['name']);
+      json(response, 201, { canvas: await createCanvas(principal, workspaceChildMatch[1]!, body.name) });
+      return;
+    }
+
+    if (request.method === 'PATCH' && workspaceChildMatch?.[2] === 'canvases' && workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['name']);
+      json(response, 200, { canvas: await updateCanvasMetadata(
+        principal, workspaceChildMatch[1]!, workspaceChildMatch[3]!, body.name,
+      ) });
+      return;
+    }
+
+    if (request.method === 'GET' && workspaceChildMatch?.[2] === 'members' && !workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      json(response, 200, { members: await listWorkspaceMembers(principal, workspaceChildMatch[1]!) });
+      return;
+    }
+
+    if (request.method === 'POST' && workspaceChildMatch?.[2] === 'invites' && !workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['role', 'expiresInHours']);
+      const baseUrl = requireConfiguredBrowserUrl(
+        requireConfigured(inviteBaseUrl.value(), 'INVITE_BASE_URL'),
+        'INVITE_BASE_URL',
+      );
+      json(response, 201, { invite: await createWorkspaceInvite(
+        principal,
+        workspaceChildMatch[1]!,
+        body.role,
+        body.expiresInHours,
+        baseUrl,
+      ) });
+      return;
+    }
+
+    if (request.method === 'POST' && workspaceChildMatch?.[2] === 'invites' && workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, []);
+      await revokeWorkspaceInvite(principal, workspaceChildMatch[1]!, workspaceChildMatch[3]!);
+      json(response, 200, { revoked: true });
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/invites/inspect') {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['token']);
+      json(response, 200, { invite: await inspectWorkspaceInvite(principal, body.token) });
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/invites/accept') {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['token']);
+      await enforceRateLimit('invite_accept', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 20, 60 * 60);
+      json(response, 200, await acceptWorkspaceInvite(principal, body.token));
+      return;
+    }
+
+    if (request.method === 'GET' && workspaceChildMatch?.[2] === 'mcp-tokens' && !workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      json(response, 200, { tokens: await listMcpAccessTokens(principal, workspaceChildMatch[1]!) });
+      return;
+    }
+
+    if (request.method === 'POST' && workspaceChildMatch?.[2] === 'mcp-tokens' && !workspaceChildMatch[3]) {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['label']);
+      await enforceRateLimit('mcp_token_create', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 20, 60 * 60);
+      json(response, 201, await createMcpAccessToken(principal, workspaceChildMatch[1]!, body.label));
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/mcp-tokens/revoke') {
+      const principal = await requireFirebaseUser(request);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['workspaceId', 'tokenId']);
+      const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId : '';
+      await revokeMcpAccessToken(principal, workspaceId, body.tokenId);
+      json(response, 200, { revoked: true });
       return;
     }
 
@@ -176,10 +352,10 @@ export const api = onRequest({
       const principal = await requireFirebaseUser(request);
       requireBillingAuthorization(principal);
       const organizationId = optionalOrganizationId(request.query.organizationId);
-      const workspaceId = organizationId ? `organization_${organizationId}` : `personal_${principal.uid}`;
+      const billingSubjectId = organizationId ? `organization_${organizationId}` : `user_${principal.uid}`;
       await enforceRateLimit(
         'billing_status',
-        [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
+        [`uid:${principal.uid}`, `subject:${billingSubjectId}`, `ip:${requestIp(request)}`],
         60,
         60,
       );
@@ -187,11 +363,11 @@ export const api = onRequest({
       return;
     }
 
-    if (request.method === 'GET' && path === '/v1/billing/workspaces') {
+    if (request.method === 'GET' && path === '/v1/billing/subjects') {
       const principal = await requireFirebaseUser(request);
       requireBillingAuthorization(principal);
-      await enforceRateLimit('billing_workspaces', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 30, 60);
-      json(response, 200, { workspaces: await listBillingWorkspaces(principal) });
+      await enforceRateLimit('billing_subjects', [`uid:${principal.uid}`, `ip:${requestIp(request)}`], 30, 60);
+      json(response, 200, { subjects: await listBillingSubjects(principal) });
       return;
     }
 
@@ -202,17 +378,17 @@ export const api = onRequest({
       assertExactKeys(body, ['planKey', 'billingRegion', 'organizationId']);
       const plan = resolvePlan(body.planKey, body.billingRegion);
       const organizationId = optionalOrganizationId(body.organizationId);
-      const workspaceId = organizationId ? `organization_${organizationId}` : `personal_${principal.uid}`;
+      const billingSubjectId = organizationId ? `organization_${organizationId}` : `user_${principal.uid}`;
       await enforceRateLimit(
         'billing_checkout',
-        [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
+        [`uid:${principal.uid}`, `subject:${billingSubjectId}`, `ip:${requestIp(request)}`],
         5,
         15 * 60,
       );
       const reservation = await reserveCheckout(principal, plan, organizationId);
       try {
         const result = await createHostedCheckout({
-          workspaceId: reservation.workspace.id,
+          billingSubjectId: reservation.subject.id,
           uid: principal.uid,
           email: principal.email,
           displayName: principal.displayName,
@@ -227,10 +403,10 @@ export const api = onRequest({
           ),
           existingCustomerId: reservation.existingCustomerId,
         }, configuredSecrets());
-        await completeCheckout(principal, reservation.workspace, reservation.attemptId, plan, result);
+        await completeCheckout(principal, reservation.subject, reservation.attemptId, plan, result);
         json(response, 200, result);
       } catch (error) {
-        await releaseCheckout(reservation.workspace.id, reservation.attemptId);
+        await releaseCheckout(reservation.subject.id, reservation.attemptId);
         throw error;
       }
       return;
@@ -245,7 +421,7 @@ export const api = onRequest({
       const subscription = await subscriptionForCancellation(principal, organizationId);
       await enforceRateLimit(
         'billing_cancel',
-        [`uid:${principal.uid}`, `workspace:${subscription.workspaceId}`, `ip:${requestIp(request)}`],
+        [`uid:${principal.uid}`, `subject:${subscription.billingSubjectId}`, `ip:${requestIp(request)}`],
         5,
         60 * 60,
       );
@@ -254,7 +430,7 @@ export const api = onRequest({
         subscription.providerSubscriptionId,
         configuredSecrets(),
       );
-      await markCancellationRequested(principal, subscription.workspaceId);
+      await markCancellationRequested(principal, subscription.billingSubjectId);
       json(response, 200, { cancelAtPeriodEnd: true });
       return;
     }
@@ -273,10 +449,10 @@ export const api = onRequest({
         || !/^[a-f0-9]{64}$/i.test(signature)) {
         throw new HttpError(400, 'Invalid Razorpay verification payload.');
       }
-      const workspaceId = organizationId ? `organization_${organizationId}` : `personal_${principal.uid}`;
+      const billingSubjectId = organizationId ? `organization_${organizationId}` : `user_${principal.uid}`;
       await enforceRateLimit(
         'razorpay_callback_verify',
-        [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
+        [`uid:${principal.uid}`, `subject:${billingSubjectId}`, `ip:${requestIp(request)}`],
         10,
         15 * 60,
       );
@@ -294,7 +470,7 @@ export const api = onRequest({
       );
       await recordRazorpayCheckoutVerification(
         principal,
-        subscription.workspaceId,
+        subscription.billingSubjectId,
         subscription.providerSubscriptionId,
         paymentId,
         verified.paymentStatus,
@@ -321,6 +497,45 @@ export const api = onRequest({
         60,
       );
       json(response, 200, await canUseManagedAgent(principal, workspaceId));
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/managed-agent/run') {
+      const principal = await requireFirebaseUser(request);
+      requireBillingAuthorization(principal);
+      const body = assertJsonObject(request.body);
+      assertExactKeys(body, ['workspaceId', 'canvasId', 'prompt']);
+      const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId : '';
+      const canvasId = typeof body.canvasId === 'string' ? body.canvasId : '';
+      const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+      if (!workspaceId || !canvasId || !prompt || Buffer.byteLength(prompt, 'utf8') > 24 * 1024) {
+        throw new HttpError(400, 'A valid workspace, canvas, and bounded prompt are required.');
+      }
+      await requireCanvasAccess(principal, workspaceId, canvasId, { write: true });
+      const authorization = await canUseManagedAgent(principal, workspaceId);
+      await enforceRateLimit(
+        'managed_agent_run',
+        [`uid:${principal.uid}`, `workspace:${workspaceId}`, `ip:${requestIp(request)}`],
+        30,
+        60,
+      );
+      const output = await runManagedAgent({
+        endpoint: requireConfigured(managedAgentApiUrl.value(), 'MANAGED_AGENT_API_URL'),
+        apiKey: managedAgentApiKey.value(),
+        model: requireConfigured(managedAgentModel.value(), 'MANAGED_AGENT_MODEL'),
+        prompt,
+      });
+      json(response, 200, { output, authorization });
+      return;
+    }
+
+    if (request.method === 'POST' && path === '/v1/mcp') {
+      const principal = await requireMcpAccessToken(request.header('authorization'));
+      const result = await handleMcpRequest(principal, request.body);
+      response.setHeader('Content-Type', 'application/json; charset=utf-8');
+      response.setHeader('MCP-Protocol-Version', '2025-06-18');
+      if (result === null) response.status(202).end();
+      else json(response, 200, result);
       return;
     }
 
@@ -368,7 +583,7 @@ export const api = onRequest({
       return;
     }
 
-    if ([...browserPaths, ...webhookPaths].includes(path)) {
+    if (isBrowserPath(path) || webhookPaths.has(path) || path === '/v1/mcp') {
       throw new HttpError(405, 'Method not allowed.');
     }
     throw new HttpError(404, 'Not found.');
@@ -416,7 +631,7 @@ export const reconcileBilling = onSchedule({
     } catch (error) {
       failed += 1;
       logger.error('billing_reconciliation_item_failed', {
-        workspaceIdHash: sha256(candidate.workspaceId).slice(0, 16),
+        billingSubjectIdHash: sha256(candidate.billingSubjectId).slice(0, 16),
         provider: candidate.provider,
         errorName: error instanceof Error ? error.name : 'unknown',
       });

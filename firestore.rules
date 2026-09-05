@@ -2,10 +2,112 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Billing, entitlement, organization, membership, and audit records are server-owned. The
-    // Admin SDK uses IAM and bypasses these client rules.
-    match /{document=**} {
-      allow read, write: if false;
+    function signedIn() { return request.auth != null; }
+    function workspaceMember(workspaceId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid))
+        && get(/databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid)).data.status == 'active';
     }
+    function workspaceRole(workspaceId) {
+      return get(/databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid)).data.role;
+    }
+    function workspaceEditor(workspaceId) {
+      return workspaceMember(workspaceId) && workspaceRole(workspaceId) in ['owner', 'admin', 'member'];
+    }
+    function workspaceAdmin(workspaceId) {
+      return workspaceMember(workspaceId) && workspaceRole(workspaceId) in ['owner', 'admin'];
+    }
+    function organizationMember(organizationId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid))
+        && get(/databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid)).data.status == 'active';
+    }
+    function validElementClock() {
+      return request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.versionNonce is int
+        && request.resource.data.versionNonce >= 0;
+    }
+    function incomingClockWins() {
+      return request.resource.data.version > resource.data.version
+        || (request.resource.data.version == resource.data.version
+          && request.resource.data.versionNonce < resource.data.versionNonce);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /workspaces/{workspaceId} {
+      allow read: if workspaceMember(workspaceId);
+      allow write: if false;
+
+      match /canvases/{canvasId} {
+        allow read: if workspaceMember(workspaceId);
+        allow write: if false;
+
+        match /elements/{elementId} {
+          allow read: if workspaceMember(workspaceId);
+          allow create: if workspaceEditor(workspaceId)
+            && request.resource.data.keys().hasOnly(['workspaceId', 'canvasId', 'elementId', 'element', 'version', 'versionNonce', 'isDeleted', 'updatedBy', 'updatedAt'])
+            && request.resource.data.workspaceId == workspaceId
+            && request.resource.data.canvasId == canvasId
+            && request.resource.data.elementId == elementId
+            && request.resource.data.element.id == elementId
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && validElementClock();
+          allow update: if workspaceEditor(workspaceId)
+            && request.resource.data.keys().hasOnly(['workspaceId', 'canvasId', 'elementId', 'element', 'version', 'versionNonce', 'isDeleted', 'updatedBy', 'updatedAt'])
+            && request.resource.data.workspaceId == resource.data.workspaceId
+            && request.resource.data.canvasId == resource.data.canvasId
+            && request.resource.data.elementId == resource.data.elementId
+            && request.resource.data.element.id == elementId
+            && request.resource.data.updatedBy == request.auth.uid
+            && request.resource.data.updatedAt == request.time
+            && validElementClock()
+            && incomingClockWins();
+          allow delete: if false;
+        }
+
+        match /presence/{uid} {
+          allow read: if workspaceMember(workspaceId);
+          allow create, update: if workspaceMember(workspaceId)
+            && request.auth.uid == uid
+            && request.resource.data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'activeAt', 'expiresAt'])
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.activeAt == request.time
+            && request.resource.data.expiresAt > request.time
+            && request.resource.data.expiresAt <= request.time + duration.value(2, 'm');
+          allow delete: if workspaceMember(workspaceId) && request.auth.uid == uid;
+        }
+      }
+    }
+
+    match /workspaceMembers/{membershipId} {
+      allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || workspaceAdmin(resource.data.workspaceId));
+      allow write: if false;
+    }
+    match /organizations/{organizationId} {
+      allow read: if organizationMember(organizationId);
+      allow write: if false;
+    }
+    match /organizationMembers/{membershipId} {
+      allow get, list: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /workspaceInvites/{documentId} { allow read, write: if false; }
+    match /mcpAccessTokens/{documentId} { allow read, write: if false; }
+    match /billingCustomers/{documentId} { allow read, write: if false; }
+    match /subscriptions/{documentId} { allow read, write: if false; }
+    match /entitlements/{documentId} { allow read, write: if false; }
+    match /paymentEvents/{documentId} { allow read, write: if false; }
+    match /auditLogs/{documentId} { allow read, write: if false; }
+    match /rateLimits/{documentId} { allow read, write: if false; }
+    match /billingJobs/{documentId} { allow read, write: if false; }
+
+    match /{document=**} { allow read, write: if false; }
   }
 }

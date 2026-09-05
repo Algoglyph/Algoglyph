@@ -21,7 +21,7 @@
     "build:functions": "npm run build --prefix firebase-functions",
     "test:billing": "npm test --prefix firebase-functions",
     "test:firebase": "npm run test:emulator --prefix firebase-functions",
-    "lint:billing": "eslint \"firebase-functions/src/**/*.ts\" src/lib/billing src/lib/firebaseAuth.ts src/components/AuthProvider.tsx src/components/authContext.ts src/components/BillingDialog.tsx src/components/McpConnectDialog.tsx",
+    "lint:billing": "eslint \"firebase-functions/src/**/*.ts\" src/lib/billing src/lib/workspaces src/lib/firebaseAuth.ts src/components/AuthProvider.tsx src/components/authContext.ts src/components/BillingDialog.tsx src/components/CloudCanvasPage.tsx src/components/CloudWorkspacesPage.tsx src/components/InvitePage.tsx src/components/McpConnectDialog.tsx",
     "test:diagrams": "node scripts/validateDiagramLayout.mjs",
     "test:seo": "node scripts/validateSeo.mjs",
     "build": "tsc -b && vite build",

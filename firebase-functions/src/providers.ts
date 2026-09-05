@@ -15,7 +15,7 @@ interface ProviderSecrets {
 }
 
 export interface CheckoutContext {
-  workspaceId: string;
+  billingSubjectId: string;
   uid: string;
   email?: string;
   displayName?: string;
@@ -171,8 +171,8 @@ export const createHostedCheckout = async (
         body: stripeForm([
           ['email', context.email],
           ['name', context.displayName],
-          ['metadata[workspaceId]', context.workspaceId],
-          ['metadata[ownerUid]', context.uid],
+          ['metadata[billingSubjectId]', context.billingSubjectId],
+          ['metadata[purchaserUid]', context.uid],
         ]),
       });
       customerId = stringValue(customer.id);
@@ -188,10 +188,10 @@ export const createHostedCheckout = async (
         ['line_items[0][quantity]', '1'],
         ['success_url', context.successUrl],
         ['cancel_url', context.cancelUrl],
-        ['client_reference_id', context.workspaceId],
-        ['metadata[workspaceId]', context.workspaceId],
+        ['client_reference_id', context.billingSubjectId],
+        ['metadata[billingSubjectId]', context.billingSubjectId],
         ['metadata[planKey]', context.plan.key],
-        ['subscription_data[metadata][workspaceId]', context.workspaceId],
+        ['subscription_data[metadata][billingSubjectId]', context.billingSubjectId],
         ['subscription_data[metadata][planKey]', context.plan.key],
       ]),
     });
@@ -211,8 +211,8 @@ export const createHostedCheckout = async (
       quantity: 1,
       customer_notify: 1,
       notes: {
-        workspaceId: context.workspaceId,
-        ownerUid: context.uid,
+        billingSubjectId: context.billingSubjectId,
+        purchaserUid: context.uid,
         planKey: context.plan.key,
       },
     }),
@@ -338,8 +338,8 @@ export const normalizeStripeEvent = (payload: unknown): NormalizedProviderEvent 
   const subscriptionMetadata = objectAt(subscriptionDetails, 'metadata');
   const firstLine = firstRecordAt(objectAt(object, 'lines'), 'data');
   const lineSubscriptionDetails = objectAt(objectAt(firstLine, 'parent'), 'subscription_item_details');
-  const workspaceId = stringValue(metadata?.workspaceId)
-    ?? stringValue(subscriptionMetadata?.workspaceId)
+  const billingSubjectId = stringValue(metadata?.billingSubjectId)
+    ?? stringValue(subscriptionMetadata?.billingSubjectId)
     ?? stringValue(object.client_reference_id);
   const subscriptionValue = object.subscription;
   const subscriptionObject = asRecord(subscriptionValue);
@@ -348,7 +348,7 @@ export const normalizeStripeEvent = (payload: unknown): NormalizedProviderEvent 
     ?? stringValue(subscriptionDetails?.subscription)
     ?? stringValue(lineSubscriptionDetails?.subscription)
     ?? (object.object === 'subscription' ? stringValue(object.id) : undefined);
-  if (!workspaceId || !providerSubscriptionId) return null;
+  if (!billingSubjectId || !providerSubscriptionId) return null;
 
   const status = stringValue(subscriptionObject?.status)
     ?? stringValue(object.status)
@@ -372,7 +372,7 @@ export const normalizeStripeEvent = (payload: unknown): NormalizedProviderEvent 
     eventId,
     eventType,
     occurredAtMs: eventCreatedSeconds * 1_000,
-    workspaceId,
+    billingSubjectId,
     providerSubscriptionId,
     providerCheckoutId: object.object === 'checkout.session' ? stringValue(object.id) : undefined,
     providerCustomerId: stringValue(object.customer) ?? stringValue(subscriptionObject?.customer),
@@ -496,12 +496,12 @@ export const normalizeRazorpayEvent = (
     ?? objectAt(payment, 'notes')
     ?? objectAt(refund, 'notes')
     ?? objectAt(dispute, 'notes');
-  const workspaceId = stringValue(notes?.workspaceId);
+  const billingSubjectId = stringValue(notes?.billingSubjectId);
   const providerSubscriptionId = stringValue(subscription?.id)
     ?? stringValue(payment?.subscription_id)
     ?? stringValue(refund?.subscription_id)
     ?? stringValue(dispute?.subscription_id);
-  if (!workspaceId || !providerSubscriptionId) return null;
+  if (!billingSubjectId || !providerSubscriptionId) return null;
 
   const status = stringValue(subscription?.status) ?? eventType.replace(/^subscription\./, '');
   const periodEndSeconds = numberValue(subscription?.current_end) ?? numberValue(subscription?.end_at);
@@ -517,7 +517,7 @@ export const normalizeRazorpayEvent = (
     eventId,
     eventType,
     occurredAtMs: occurredSeconds * 1_000,
-    workspaceId,
+    billingSubjectId,
     providerSubscriptionId,
     providerCustomerId: stringValue(subscription?.customer_id),
     planKey: isPlanKey(planKeyValue) ? planKeyValue : undefined,

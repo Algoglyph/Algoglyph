@@ -17,8 +17,9 @@ This document provides comprehensive context, architectural guidelines, and tech
   - `Tiptap` v3 for rich-text Markdown notes editing with KaTeX LaTeX math support (`MathExtensions.tsx`) and embedded PDFs (`PdfEmbed.tsx`)
   - `CodeMirror` 6 + `Wandbox API` (`src/lib/wandbox.ts`) for multi-language code editing and remote execution (C++, Java, Python, Go, Rust, JavaScript)
   - `KaTeX` & `Highlight.js` for rendering math formulas and syntax-highlighted code blocks within blogs and notes
-  - Optional Firebase Google authentication on the web; identity never gates or synchronizes the local workspace
-  - Firebase Functions billing for Stripe/Razorpay hosted checkout and server-owned individual/organization `managedAgentAccess`; the local MCP connector remains free
+  - Optional Firebase Google authentication on the web; identity never gates the local `/workspace`, but it is required for membership-scoped cloud workspaces
+  - Element-level Firestore collaboration under `/workspace/:workspaceId/canvas/:canvasId`, with hashed invite/MCP tokens and server-owned membership
+  - Firebase Functions billing for Stripe/Razorpay hosted checkout and server-owned individual/organization `managedAgentAccess`; both local and cloud MCP paths remain free
 
 ---
 

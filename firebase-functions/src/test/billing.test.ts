@@ -17,6 +17,7 @@ import {
   verifyStripeWebhook,
 } from '../providers.js';
 import type { PlanDefinition } from '../model.js';
+import { runManagedAgent } from '../managedAgent.js';
 import {
   assertExactKeys,
   HttpError,
@@ -34,7 +35,7 @@ const baseEvent = (overrides: Partial<NormalizedProviderEvent> = {}): Normalized
   eventId: 'evt_test',
   eventType: 'customer.subscription.updated',
   occurredAtMs: 1_700_000_000_000,
-  workspaceId: 'personal_user_1',
+  billingSubjectId: 'user_user_1',
   providerSubscriptionId: 'sub_test',
   planKey: 'pro_monthly',
   providerStatus: 'active',
@@ -130,7 +131,7 @@ test('provider facade creates and cancels server-priced Stripe and Razorpay subs
       providerPriceId: 'price_server_monthly',
     };
     const stripe = await createHostedCheckout({
-      workspaceId: 'personal_user_1',
+      billingSubjectId: 'user_user_1',
       uid: 'user_1',
       email: 'user@example.com',
       plan: stripePlan,
@@ -154,7 +155,7 @@ test('provider facade creates and cancels server-priced Stripe and Razorpay subs
       providerPriceId: 'plan_server_annual',
     };
     const razorpay = await createHostedCheckout({
-      workspaceId: 'personal_user_1',
+      billingSubjectId: 'user_user_1',
       uid: 'user_1',
       plan: razorpayPlan,
       successUrl: 'https://algoglyph.com/workspace?billing=success',
@@ -174,6 +175,31 @@ test('provider facade creates and cancels server-priced Stripe and Razorpay subs
       && new URLSearchParams(request.body).get('cancel_at_period_end') === 'true'));
     assert.ok(requests.some((request) => request.url.endsWith('/subscriptions/sub_server_created/cancel')
       && JSON.parse(request.body).cancel_at_cycle_end === 1));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('managed-agent adapter keeps credentials server-side and returns only provider output', async () => {
+  const originalFetch = globalThis.fetch;
+  let authorization = '';
+  globalThis.fetch = async (_input, init = {}) => {
+    authorization = new Headers(init.headers).get('authorization') || '';
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"intent":"none","layout":"auto","elements":[]}' } }] }), { status: 200 });
+  };
+  try {
+    const output = await runManagedAgent({
+      endpoint: 'https://provider.example/v1/chat/completions',
+      apiKey: 'server-secret',
+      model: 'managed-model',
+      prompt: 'draw a queue',
+    });
+    assert.match(output, /"intent":"none"/);
+    assert.equal(authorization, 'Bearer server-secret');
+    await assert.rejects(
+      runManagedAgent({ endpoint: 'https://provider.example/v1/chat/completions', apiKey: '', model: 'managed-model', prompt: 'x' }),
+      (error: unknown) => error instanceof HttpError && error.status === 503,
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -226,7 +252,7 @@ test('Razorpay provider verification retrieves and matches payment, subscription
   }
 });
 
-test('provider payloads normalize only server-created workspace and plan metadata', () => {
+test('provider payloads normalize only server-created billing-subject and plan metadata', () => {
   const stripe = normalizeStripeEvent({
     id: 'evt_1',
     type: 'customer.subscription.updated',
@@ -238,11 +264,11 @@ test('provider payloads normalize only server-created workspace and plan metadat
         status: 'active',
         customer: 'cus_1',
         current_period_end: 1_800_000_000,
-        metadata: { workspaceId: 'personal_user_1', planKey: 'pro_monthly' },
+        metadata: { billingSubjectId: 'user_user_1', planKey: 'pro_monthly' },
       },
     },
   });
-  assert.equal(stripe?.workspaceId, 'personal_user_1');
+  assert.equal(stripe?.billingSubjectId, 'user_user_1');
   assert.equal(stripe?.transition, 'activate');
   assert.equal(stripe?.planKey, 'pro_monthly');
 
@@ -255,7 +281,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
           id: 'sub_rzp_1',
           status: 'halted',
           current_end: 1_800_000_000,
-          notes: { workspaceId: 'personal_user_1', planKey: 'pro_annual' },
+          notes: { billingSubjectId: 'user_user_1', planKey: 'pro_annual' },
         },
       },
     },
@@ -274,7 +300,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
         parent: {
           subscription_details: {
             subscription: 'sub_1',
-            metadata: { workspaceId: 'personal_user_1', planKey: 'pro_monthly' },
+            metadata: { billingSubjectId: 'user_user_1', planKey: 'pro_monthly' },
           },
         },
       },
@@ -292,7 +318,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
         object: 'subscription',
         id: 'sub_1',
         status: 'active',
-        metadata: { workspaceId: 'personal_user_1', planKey: 'pro_monthly' },
+        metadata: { billingSubjectId: 'user_user_1', planKey: 'pro_monthly' },
         items: { data: [{ current_period_end: 1_800_000_000 }] },
       },
     },
@@ -308,7 +334,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
         object: 'refund',
         status: 'succeeded',
         subscription: 'sub_1',
-        metadata: { workspaceId: 'personal_user_1' },
+        metadata: { billingSubjectId: 'user_user_1' },
       },
     },
   });
@@ -323,7 +349,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
       object: {
         object: 'radar.early_fraud_warning',
         subscription: 'sub_1',
-        metadata: { workspaceId: 'personal_user_1' },
+        metadata: { billingSubjectId: 'user_user_1' },
       },
     },
   });
@@ -338,7 +364,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
       object: {
         object: 'dispute',
         status: 'won',
-        metadata: { workspaceId: 'personal_user_1' },
+        metadata: { billingSubjectId: 'user_user_1' },
         subscription: {
           id: 'sub_1',
           status: 'active',
@@ -357,7 +383,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
           id: 'sub_rzp_1',
           status: 'active',
           current_end: 1_800_000_000,
-          notes: { workspaceId: 'personal_user_1', planKey: 'pro_annual' },
+          notes: { billingSubjectId: 'user_user_1', planKey: 'pro_annual' },
         },
       },
       dispute: { entity: { status: 'lost' } },
@@ -374,7 +400,7 @@ test('provider payloads normalize only server-created workspace and plan metadat
           id: 'sub_rzp_1',
           status: 'active',
           current_end: 1_800_000_000,
-          notes: { workspaceId: 'personal_user_1', planKey: 'pro_annual' },
+          notes: { billingSubjectId: 'user_user_1', planKey: 'pro_annual' },
         },
       },
       dispute: { entity: { status: 'won' } },

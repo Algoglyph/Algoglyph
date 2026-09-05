@@ -18,7 +18,7 @@ export interface NormalizedProviderEvent {
   eventId: string;
   eventType: string;
   occurredAtMs: number;
-  workspaceId: string;
+  billingSubjectId: string;
   providerSubscriptionId: string;
   providerCheckoutId?: string;
   providerCustomerId?: string;

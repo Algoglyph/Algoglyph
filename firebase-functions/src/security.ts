@@ -135,7 +135,7 @@ export const applyBrowserCors = (request: Request, response: {
   const origin = request.header('origin');
   if (!origin || !allowedOrigins().has(origin)) throw new HttpError(403, 'Origin is not allowed.');
   response.setHeader('Access-Control-Allow-Origin', origin);
-  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   response.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Firebase-AppCheck');
   response.setHeader('Access-Control-Max-Age', '600');
   response.setHeader('Vary', 'Origin');
