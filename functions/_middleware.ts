@@ -17,6 +17,8 @@ interface MiddlewareContext {
 
 const CANONICAL_HOST = 'algoglyph.com';
 const REDIRECT_HOSTS = new Set(['www.algoglyph.com']);
+const HSTS_HOSTS = new Set([CANONICAL_HOST, ...REDIRECT_HOSTS]);
+const HSTS_VALUE = 'max-age=31536000; includeSubDomains';
 
 // Crawler-critical files that ad/verification bots fetch directly (Google's
 // AdsBot for ads.txt, generic crawlers for robots.txt/sitemap.xml). Both
@@ -27,12 +29,27 @@ const REDIRECT_HOSTS = new Set(['www.algoglyph.com']);
 // entirely and resolve with a direct 200 on whichever host was requested.
 const REDIRECT_EXEMPT_PATHS = new Set(['/ads.txt', '/robots.txt', '/sitemap.xml']);
 
+const withProductionSecurityHeaders = (url: URL, response: Response): Response => {
+  // Use an exact host allowlist instead of an environment flag. Cloudflare
+  // previews and local Pages/Vite development therefore cannot receive HSTS.
+  if (url.protocol !== 'https:' || !HSTS_HOSTS.has(url.hostname)) return response;
+
+  // Cloudflare fetch/static responses can have immutable headers, so construct
+  // a writable response before adding the production transport policy.
+  const securedResponse = new Response(response.body, response);
+  securedResponse.headers.set('Strict-Transport-Security', HSTS_VALUE);
+  return securedResponse;
+};
+
 export async function onRequest(context: MiddlewareContext): Promise<Response> {
   const url = new URL(context.request.url);
   if (REDIRECT_HOSTS.has(url.hostname) && !REDIRECT_EXEMPT_PATHS.has(url.pathname)) {
     url.hostname = CANONICAL_HOST;
     // 301 permanent: path + query are preserved by reusing the URL object.
-    return Response.redirect(url.toString(), 301);
+    return withProductionSecurityHeaders(
+      new URL(context.request.url),
+      Response.redirect(url.toString(), 301),
+    );
   }
-  return context.next();
+  return withProductionSecurityHeaders(url, await context.next());
 }
