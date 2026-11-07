@@ -21,6 +21,7 @@ import {
 } from '../services.js';
 import {
   acceptWorkspaceInvite,
+  applyCanvasElementMutations,
   createMcpAccessToken,
   createWorkspaceInvite,
   inspectWorkspaceInvite,
@@ -170,6 +171,16 @@ test('element clocks reject stale and duplicate writes, while higher-version tom
   assert.equal((await getDoc(element)).data()?.isDeleted, true);
 });
 
+test('element clocks reject values outside the Excalidraw clock range and mismatched payload clocks', async () => {
+  const client = environment.authenticatedContext('user_1').firestore();
+  const element = doc(client, 'workspaces', 'ws_personal_1', 'canvases', 'canvas_main_1', 'elements', 'element_a');
+  await assertFails(setDoc(element, elementRecord('user_1', 'element_a', 2_147_483_648, 1)));
+  await assertFails(setDoc(element, elementRecord('user_1', 'element_a', 1, 2_147_483_648)));
+  const mismatchedClock = elementRecord('user_1', 'element_a', 1, 1);
+  mismatchedClock.element.versionNonce = 2;
+  await assertFails(setDoc(element, mismatchedClock));
+});
+
 test('invite tokens are hashed, expirable, revocable, single-use membership grants', async () => {
   const owner = principal('user_1');
   const invite = await createWorkspaceInvite(owner, 'ws_personal_1', 'member', 24, 'https://algoglyph.example');
@@ -207,6 +218,12 @@ test('free MCP access is workspace-scoped and independent of managed-agent entit
     },
   });
   assert.match(JSON.stringify(updated), /"applied":1/);
+  await assert.rejects(
+    applyCanvasElementMutations(mcpPrincipal, 'ws_personal_1', 'canvas_main_1', [
+      { id: 'invalid_clock', type: 'rectangle', version: 2_147_483_648, versionNonce: 1 },
+    ]),
+    (error: unknown) => error instanceof HttpError && error.status === 400,
+  );
   const readBack = await handleMcpRequest(mcpPrincipal, {
     jsonrpc: '2.0', id: 3, method: 'tools/call', params: {
       name: 'algoglyph_canvas_get', arguments: { canvasId: 'canvas_main_1' },

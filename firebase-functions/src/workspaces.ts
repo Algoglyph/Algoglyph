@@ -626,6 +626,8 @@ export const requireMcpAccessToken = async (authorization: string | undefined): 
   };
 };
 
+const MAX_EXCALIDRAW_CLOCK = 2_147_483_647;
+
 const elementClock = (element: Record<string, unknown>): [number, number] => [
   Number.isSafeInteger(element.version) ? Number(element.version) : 0,
   Number.isSafeInteger(element.versionNonce) ? Number(element.versionNonce) : 0,
@@ -670,7 +672,10 @@ export const applyCanvasElementMutations = async (
     const element = value as Record<string, unknown>;
     if (typeof element.id !== 'string' || !ELEMENT_ID_PATTERN.test(element.id)) throw new HttpError(400, 'Invalid element identifier.');
     const [version, versionNonce] = elementClock(element);
-    if (version < 1 || versionNonce < 0 || JSON.stringify(element).length > 200_000) {
+    if (!Number.isSafeInteger(element.version) || !Number.isSafeInteger(element.versionNonce)
+      || version < 1 || version > MAX_EXCALIDRAW_CLOCK
+      || versionNonce < 0 || versionNonce > MAX_EXCALIDRAW_CLOCK
+      || JSON.stringify(element).length > 200_000) {
       throw new HttpError(400, 'Invalid canvas element version or size.');
     }
     return { element, version, versionNonce };

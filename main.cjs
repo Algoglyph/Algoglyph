@@ -78,7 +78,12 @@ function createWindow() {
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const trusted = isDev ? url.startsWith('http://localhost:5173') : url.startsWith(`${APP_ORIGIN}/`);
+    let trusted = false;
+    try {
+      trusted = new URL(url).origin === (isDev ? 'http://localhost:5173' : APP_ORIGIN);
+    } catch {
+      trusted = false;
+    }
     if (!trusted) event.preventDefault();
   });
 

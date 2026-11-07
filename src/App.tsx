@@ -4,6 +4,7 @@ import posthog from 'posthog-js';
 import { useWorkspaceStore } from './store/workspaceStore';
 import { startMcpConnectionBootstrap } from './lib/mcp/bootstrap';
 import { useIsMobile } from './hooks/useIsMobile';
+import { getPublicPageViewProperties } from './lib/analytics';
 import { SEO } from './components/SEO';
 import { LANDING_FAQ, SITE_IDENTITY } from './config/siteIdentity';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -81,14 +82,10 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Track page views on every route change in PostHog
+  // Only send public route paths; workspace and invite URLs contain private IDs or tokens.
   useEffect(() => {
-    if (typeof window !== 'undefined' && import.meta.env.VITE_POSTHOG_KEY) {
-      posthog.capture('$pageview', {
-        $current_url: window.location.href,
-        $pathname: location.pathname,
-      });
-    }
+    const properties = getPublicPageViewProperties(location.pathname);
+    if (properties && import.meta.env.VITE_POSTHOG_KEY) posthog.capture('$pageview', properties);
   }, [location]);
 
   // Initialize workspace from IndexedDB on load and map navigation APIs globally
@@ -115,20 +112,6 @@ const AppContent: React.FC = () => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.style.colorScheme = theme;
   }, [theme]);
-
-  // Dynamically inject Google AdSense Auto Ads, but ONLY on non-workspace pages.
-  useEffect(() => {
-    if (location.pathname.startsWith('/workspace')) return;
-
-    // Prevent injecting duplicates
-    if (!document.querySelector('script[src*="adsbygoogle.js"]')) {
-      const script = document.createElement('script');
-      script.async = true;
-      script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3436896061379895";
-      script.crossOrigin = "anonymous";
-      document.head.appendChild(script);
-    }
-  }, [location.pathname]);
 
   // Intercept all link clicks globally inside Electron so relative routes
   // route client-side (no file:// navigation crashes) and external ones open externally.

@@ -35,13 +35,13 @@ const expectedFiles = [
 ];
 
 const expectedDependencies = {
-  '@modelcontextprotocol/client': '2.0.0',
-  '@modelcontextprotocol/node': '2.0.0',
-  '@modelcontextprotocol/server': '2.0.0',
+  '@modelcontextprotocol/client': '2.4.0',
+  '@modelcontextprotocol/node': '2.1.2',
+  '@modelcontextprotocol/server': '2.4.0',
   '@xterm/headless': '6.0.0',
-  hono: '4.13.1',
+  hono: '4.13.17',
   'node-pty': '1.2.0-beta.15',
-  undici: '7.29.0',
+  undici: '7.30.2',
 };
 
 const fail = (message) => {
@@ -412,7 +412,7 @@ const main = async () => {
   }
   if (manifest.version !== '0.2.6') fail(`expected release candidate 0.2.6, found ${manifest.version}`);
   if (manifest.license !== 'Apache-2.0') fail(`expected Apache-2.0 license, found ${manifest.license}`);
-  if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.29.0');
+  if (manifest.engines?.node !== '>=20.18.1') fail('Node engine floor must match undici 7.30.2');
   if (JSON.stringify(manifest.dependencies) !== JSON.stringify(expectedDependencies)) {
     fail('direct runtime dependencies are not exactly pinned to the reviewed versions');
   }

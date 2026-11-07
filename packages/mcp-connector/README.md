@@ -29,7 +29,7 @@ This package provides `0.2.6` / protocol v2. Running the release checks does not
 
 - Removes `npm-shrinkwrap.json` from the published artifact so package managers use their normal dependency-resolution procedure and Socket does not raise its shrinkwrap heuristic.
 - Retains the exact reviewed 21-package tree in a source-only `package-lock.json`; release smoke tests compare a clean packed install with that review lock before publication.
-- Declares the modular MCP Node transport's `hono@4.13.1` peer explicitly so clean installs cannot omit it.
+- Declares the modular MCP Node transport's patched `hono@4.13.17` peer explicitly so clean installs cannot omit it.
 - Applies one end-to-end deadline to MCP DNS resolution, transport fallback, calls, and bounded client shutdown.
 - Rejects Antigravity transcript data that began before the current prompt, including stale partially written JSONL records.
 - Uses monotonic clocks for credential lifetimes, rate limits, caches, waits, and retries, and escalates shutdown across the whole PTY process group.

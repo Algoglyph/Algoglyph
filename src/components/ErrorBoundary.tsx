@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { isPrivateAnalyticsPath } from '../lib/analytics';
 
 interface Props {
   children: ReactNode;
@@ -25,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary] uncaught render error:', error, info.componentStack);
     const ph = (window as unknown as { posthog?: { captureException?: (e: unknown) => void } }).posthog;
-    ph?.captureException?.(error);
+    if (!isPrivateAnalyticsPath(window.location.pathname)) ph?.captureException?.(error);
   }
 
   handleReload = () => {
