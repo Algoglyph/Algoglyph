@@ -49,6 +49,16 @@ export const PrivacyPage: React.FC = () => {
             <p>
               Optional Google sign-in is provided through Google and Firebase Authentication. We also use third-party APIs such as Wandbox for code compilation. Code that you run in the Sandbox Compiler is sent to Wandbox to be executed and returned. Do not submit sensitive personal information or proprietary secrets through the code runner.
             </p>
+            <p className="mt-3">
+              We use Google AdSense to display ads on the public website. When an ad is served, Google and its advertising partners may place or read cookies and use web beacons, IP addresses, or similar identifiers to deliver and measure ads. Ad personalization depends on applicable consent choices and Google settings. You can learn more in{' '}
+              <a href="https://support.google.com/adsense/answer/7549925" target="_blank" rel="noreferrer" className="text-white underline underline-offset-4">
+                Google's AdSense cookie information
+              </a>{' '}
+              and manage ad personalization in{' '}
+              <a href="https://myadcenter.google.com/" target="_blank" rel="noreferrer" className="text-white underline underline-offset-4">
+                My Ad Center
+              </a>.
+            </p>
           </section>
 
           <section>
@@ -66,7 +76,7 @@ export const PrivacyPage: React.FC = () => {
           </section>
           
           <div className="pt-8 border-t border-white/[0.04] text-[13px] text-white/40">
-            Last updated: August 2026
+            Last updated: November 13, 2026
           </div>
         </div>
       </main>

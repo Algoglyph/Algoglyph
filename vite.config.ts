@@ -3,6 +3,36 @@ import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const ADSENSE_PUBLISHER_ID = 'ca-pub-3436896061379895'
+
+const adsensePlugin = {
+  name: 'algoglyph-adsense',
+  transformIndexHtml(html: string) {
+    if (html.includes('data-adsense-bootstrap')) return html
+
+    const publisherMeta = html.includes('name="google-adsense-account"')
+      ? ''
+      : `    <meta name="google-adsense-account" content="${ADSENSE_PUBLISHER_ID}" />\n`
+    const bootstrap = `    <script data-adsense-bootstrap>
+      (() => {
+        const host = window.location.hostname.toLowerCase();
+        const isProductionSite = window.location.protocol === 'https:'
+          && (host === 'algoglyph.com' || host === 'www.algoglyph.com');
+        const isElectron = /electron/i.test(navigator.userAgent) || window.location.protocol === 'file:';
+        if (!isProductionSite || isElectron) return;
+
+        const adsense = document.createElement('script');
+        adsense.async = true;
+        adsense.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}';
+        adsense.crossOrigin = 'anonymous';
+        document.head.appendChild(adsense);
+      })();
+    </script>\n`
+
+    return html.replace('</head>', `${publisherMeta}${bootstrap}  </head>`)
+  },
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   // Web is served from the domain root, so use an absolute base — this is
@@ -24,7 +54,7 @@ export default defineConfig({
       ]
     }
   },
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), adsensePlugin],
   define: {
     'process.env.IS_PREACT': JSON.stringify('true'),
   },

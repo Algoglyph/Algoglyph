@@ -1,6 +1,50 @@
 # Canonical legacy entry point.
 /blog        /roadmap   301
 
+# Old DSA article URLs redirect to their current canonical article routes.
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/cyclic-sort /roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/cyclic-sort 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/merge-intervals /roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/merge-intervals 301
+/roadmap/dsa-foundations/tree-structures/tree-basics/min-heaps /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/min-heaps 301
+/roadmap/dsa-foundations/linear-structures/linked-lists/circular-linked-lists /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/circular-linked-lists 301
+/roadmap/dsa-foundations/sorting-searching/searching/ternary-search /roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/ternary-search 301
+/roadmap/dsa-foundations/linear-structures/stacks-queues/lifo-stacks /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/lifo-stacks 301
+/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/dijkstra /roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/dijkstra 301
+/roadmap/dsa-foundations/tree-structures/tree-search/tree-bfs /roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/tree-bfs 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/greedy /roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/greedy 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/randomized-algorithms /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/randomized-algorithms 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/dynamic-programming /roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/dynamic-programming 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/divide-and-conquer /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/divide-and-conquer 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/two-pointer-technique /roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/two-pointer-technique 301
+/roadmap/dsa-foundations/linear-structures/linked-lists/singly-linked-lists /roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/singly-linked-lists 301
+/roadmap/dsa-foundations/complex-structures/complex-nodes/two-three-trees /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/two-three-trees 301
+/roadmap/dsa-foundations/tree-structures/tree-basics/binary-search-trees /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/binary-search-trees 301
+/roadmap/dsa-foundations/linear-structures/hash-tables/load-factor-scaling /roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/load-factor-scaling 301
+/roadmap/dsa-foundations/basics-memory/memory-allocation/stack-allocation /roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/stack-allocation 301
+/roadmap/dsa-foundations/linear-structures/linked-lists/doubly-linked-lists /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/doubly-linked-lists 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/fast-slow-pointers /roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/fast-slow-pointers 301
+/roadmap/dsa-foundations/advanced-structures/advanced-nodes/trie /roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/trie 301
+/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/a-star-algorithm /roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/a-star-algorithm 301
+/roadmap/dsa-foundations/linear-structures/arrays/dynamic-vectors /roadmap/dsa-foundations/data-structures-topic/linear-ds-concept/dynamic-vectors 301
+/roadmap/dsa-foundations/linear-structures/stacks-queues/double-ended-deques /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/double-ended-deques 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/kth-element /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/kth-element 301
+/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/time-complexity-analysis /roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/time-complexity-analysis 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-1/recursion /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/recursion 301
+/roadmap/dsa-foundations/tree-structures/tree-traversal/post-order-traversal /roadmap/dsa-foundations/dsa-foundations-topic/dsa-trees-traversals-concept/post-order-traversal 301
+/roadmap/dsa-foundations/sorting-searching/searching/linear-search /roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/linear-search 301
+/roadmap/dsa-foundations/sorting-searching/searching/binary-search /roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/binary-search 301
+/roadmap/dsa-foundations/basics-memory/intro-dsa/importance-dsa /roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/importance-dsa 301
+/roadmap/dsa-foundations/complex-structures/complex-nodes/isam-indexing /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/isam-indexing 301
+/roadmap/dsa-foundations/advanced-structures/advanced-nodes/segment-tree /roadmap/dsa-foundations/advanced-cp-topic/advanced-cp-concept/segment-tree 301
+/roadmap/dsa-foundations/complexity-analysis/asymptotic-notations/space-complexity-analysis /roadmap/dsa-foundations/dsa-foundations-topic/dsa-basics-concept/space-complexity-analysis 301
+/roadmap/dsa-foundations/sorting-searching/sorting/bubble-sort /roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/bubble-sort 301
+/roadmap/dsa-foundations/graph-structures/minimum-spanning-tree/kruskal-mst /roadmap/dsa-foundations/algorithms-searching-sorting-topic/algorithmic-patterns-concept/kruskal-mst 301
+/roadmap/dsa-foundations/sorting-searching/sorting/radix-sort /roadmap/dsa-foundations/algorithms-searching-sorting-topic/graph-pathfinding-concept/radix-sort 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/multi-threaded /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/multi-threaded 301
+/roadmap/dsa-foundations/problem-solving-techniques/algorithmic-patterns-2/two-heaps-pattern /roadmap/dsa-foundations/algorithms-searching-sorting-topic/specialized-computational-concept/two-heaps-pattern 301
+/roadmap/dsa-foundations/graph-structures/shortest-path-algorithms/bellman-ford-floyd-warshall /roadmap/dsa-foundations/algorithms-searching-sorting-topic/searching-sorting-concept/bellman-ford-floyd-warshall 301
+/roadmap/dsa-foundations/tree-structures/tree-basics/avl-trees /roadmap/dsa-foundations/data-structures-topic/tree-ds-concept/avl-trees 301
+/roadmap/dsa-foundations/complex-structures/indexing/linear-indexing /roadmap/dsa-foundations/dsa-foundations-topic/dsa-indexing-paradigms-concept/linear-indexing 301
+
 # Legacy article slugs boot the client redirect resolver. Current roadmap
 # routes are emitted as real route-specific HTML during postbuild, including
 # noindex shells for unfinished syllabus entries, so no roadmap catch-all is
