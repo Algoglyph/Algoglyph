@@ -17,12 +17,15 @@ export interface CollaboratorPresence {
   photoURL: string | null;
 }
 
+export type CanvasSyncStatus = 'connecting' | 'live' | 'syncing' | 'error';
+
 interface CollaborationOptions {
   workspaceId: string;
   canvasId: string;
   user: { uid: string; displayName: string | null; photoURL: string | null };
   onElements: (elements: readonly OrderedExcalidrawElement[]) => void;
   onPresence: (people: CollaboratorPresence[]) => void;
+  onStatus: (status: CanvasSyncStatus, message?: string) => void;
   onError: (message: string) => void;
 }
 
@@ -37,6 +40,28 @@ const isExcalidrawElement = (value: unknown): value is OrderedExcalidrawElement 
     && typeof element.x === 'number'
     && typeof element.y === 'number';
 };
+
+const SERIALIZED_ELEMENT_FIELD = '__algoglyphSerializedElementV1';
+
+const decodeStoredElement = (value: unknown): OrderedExcalidrawElement | null => {
+  if (isExcalidrawElement(value)) return value;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const serialized = (value as Record<string, unknown>)[SERIALIZED_ELEMENT_FIELD];
+  if (typeof serialized !== 'string') return null;
+  try {
+    const parsed: unknown = JSON.parse(serialized);
+    return isExcalidrawElement(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const encodeStoredElement = (element: OrderedExcalidrawElement) => ({
+  id: element.id,
+  version: element.version,
+  versionNonce: element.versionNonce,
+  [SERIALIZED_ELEMENT_FIELD]: JSON.stringify(element),
+});
 
 const clock = (element: Pick<OrderedExcalidrawElement, 'version' | 'versionNonce'>): [number, number] => [
   Number(element.version) || 0,
@@ -59,21 +84,31 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
   const known = new Map<string, string>();
   let ready = false;
   let disposed = false;
+  let hasServerSnapshot = false;
+  let lastWriteFailed = false;
   let queued: readonly OrderedExcalidrawElement[] | null = null;
+  let queuedFingerprint: string | null = null;
+  let failedFingerprint: string | null = null;
+  const inFlightFingerprints = new Set<string>();
   let debounce: number | undefined;
 
   const flush = async (elements: readonly OrderedExcalidrawElement[]) => {
     if (disposed) return;
     const changed = elements.filter((element) => known.get(element.id) !== fingerprint(element));
-    if (!changed.length) return;
+    if (!changed.length) {
+      options.onStatus('live');
+      return;
+    }
+    options.onStatus('syncing');
     for (let offset = 0; offset < changed.length; offset += 100) {
       const chunk = changed.slice(offset, offset + 100);
-      await runTransaction(db, async (transaction) => {
+      const writtenIds = await runTransaction(db, async (transaction) => {
         const refs = chunk.map((element) => doc(elementsRef, element.id));
         const snapshots = await Promise.all(refs.map((reference) => transaction.get(reference)));
+        const written: string[] = [];
         chunk.forEach((element, index) => {
           const stored = snapshots[index]?.data()?.element as unknown;
-          const existing = isExcalidrawElement(stored) ? stored : undefined;
+          const existing = decodeStoredElement(stored) ?? undefined;
           const reference = refs[index];
           if (!reference || !wins(element, existing)) return;
           const [version, versionNonce] = clock(element);
@@ -81,36 +116,97 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
             workspaceId: options.workspaceId,
             canvasId: options.canvasId,
             elementId: element.id,
-            element,
+            element: encodeStoredElement(element),
             version,
             versionNonce,
             isDeleted: element.isDeleted === true,
             updatedBy: options.user.uid,
             updatedAt: serverTimestamp(),
           });
+          written.push(element.id);
         });
+        return written;
       });
+      for (const element of chunk) {
+        if (writtenIds.includes(element.id)) known.set(element.id, fingerprint(element));
+      }
     }
+    lastWriteFailed = false;
+    options.onStatus('live');
   };
 
   const publish = (elements: readonly OrderedExcalidrawElement[]) => {
+    if (!ready || disposed) {
+      queued = elements;
+      return;
+    }
+    const changed = elements.filter((element) => known.get(element.id) !== fingerprint(element));
+    if (!changed.length) return;
+    const nextFingerprint = changed.map(fingerprint).sort().join('|');
+    if (failedFingerprint && failedFingerprint !== nextFingerprint) {
+      failedFingerprint = null;
+      lastWriteFailed = false;
+    }
+    if (failedFingerprint === nextFingerprint || inFlightFingerprints.has(nextFingerprint)) return;
     queued = elements;
-    if (!ready || disposed) return;
+    if (queuedFingerprint === nextFingerprint) return;
+    queuedFingerprint = nextFingerprint;
+    options.onStatus('syncing');
     if (debounce) window.clearTimeout(debounce);
     debounce = window.setTimeout(() => {
       const next = queued;
+      const nextFingerprint = queuedFingerprint;
       queued = null;
-      if (next) void flush(next).catch(() => options.onError('A canvas update could not be synced. The current server state was kept.'));
+      queuedFingerprint = null;
+      if (next && nextFingerprint) {
+        inFlightFingerprints.add(nextFingerprint);
+        void flush(next).catch((error: unknown) => {
+          lastWriteFailed = true;
+          failedFingerprint = nextFingerprint;
+          const code = error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+            ? error.code
+            : null;
+          const detail = error instanceof Error ? error.message.slice(0, 180) : '';
+          const message = code === 'invalid-argument'
+            ? `Firestore rejected a canvas value: ${detail || 'unsupported data in an element.'}`
+            : code === 'permission-denied'
+              ? 'Firestore denied this canvas write. Check this account’s workspace role.'
+              : code
+                ? `Canvas update failed (${code}). Check your connection and workspace access.`
+                : 'Canvas update could not be synced. Check your connection and try editing again.';
+          options.onStatus('error', message);
+          options.onError(message);
+        }).finally(() => inFlightFingerprints.delete(nextFingerprint));
+      }
     }, 150);
   };
 
   const unsubscribeElements = onSnapshot(elementsRef, (snapshot) => {
-    const remote = snapshot.docs.map((item) => item.data().element as unknown).filter(isExcalidrawElement);
-    remote.forEach((element) => known.set(element.id, fingerprint(element)));
+    const remote: OrderedExcalidrawElement[] = [];
+    snapshot.docs.forEach((item) => {
+      const element = decodeStoredElement(item.data().element);
+      if (!element) return;
+      remote.push(element);
+      // Firestore emits latency-compensated snapshots before a write is accepted.
+      // Only acknowledge committed snapshots so a rejected optimistic write stays retryable.
+      if (!item.metadata.hasPendingWrites) known.set(element.id, fingerprint(element));
+    });
     ready = true;
+    if (snapshot.metadata.fromCache) {
+      if (!hasServerSnapshot && !lastWriteFailed) options.onStatus('connecting');
+    } else {
+      hasServerSnapshot = true;
+      if (!snapshot.metadata.hasPendingWrites && !lastWriteFailed) options.onStatus('live');
+    }
     options.onElements(remote);
     if (queued) publish(queued);
-  }, () => options.onError('Live canvas updates are unavailable. Check your workspace membership and connection.'));
+  }, (error) => {
+    lastWriteFailed = true;
+    const code = typeof error.code === 'string' ? error.code : 'unknown';
+    const message = `Live canvas updates failed (${code}). Check your workspace membership and connection.`;
+    options.onStatus('error', message);
+    options.onError(message);
+  });
 
   const unsubscribePresence = onSnapshot(presenceRef, (snapshot) => {
     const now = Date.now();

@@ -22,6 +22,9 @@ service cloud.firestore {
     function workspaceEditor(workspaceId) {
       return workspaceMember(workspaceId) && workspaceRole(workspaceId) in ['owner', 'admin', 'member'];
     }
+    function workspaceAdmin(workspaceId) {
+      return workspaceMember(workspaceId) && workspaceRole(workspaceId) in ['owner', 'admin'];
+    }
     function organizationMember(organizationId) {
       return signedIn()
         && exists(/databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid))
@@ -86,6 +89,96 @@ service cloud.firestore {
         && existsAfter(workspacePath)
         && getAfter(workspacePath).data.ownerId == request.auth.uid
         && getAfter(workspacePath).data.status == 'active';
+    }
+    function validInviteWorkspaceMember(workspaceId) {
+      let inviteId = request.resource.data.inviteId;
+      let invitePath = /databases/$(database)/documents/workspaceInvites/$(inviteId);
+      let invite = get(invitePath);
+      let inviteAfter = getAfter(invitePath);
+      return signedIn()
+        && inviteId is string
+        && inviteId.matches('^[a-f0-9]{64}$')
+        && request.resource.data.role in ['member', 'viewer']
+        && invite.data.tokenHash == inviteId
+        && invite.data.workspaceId == workspaceId
+        && invite.data.role == request.resource.data.role
+        && invite.data.status == 'active'
+        && invite.data.maxUses == 1
+        && invite.data.useCount == 0
+        && invite.data.expiresAt > request.time
+        && inviteAfter.data.status == 'consumed'
+        && inviteAfter.data.useCount == 1
+        && inviteAfter.data.consumedBy == request.auth.uid
+        && inviteAfter.data.consumedAt == request.time;
+    }
+    function validInviteOrganizationMember(organizationId) {
+      let inviteId = request.resource.data.inviteId;
+      let invitePath = /databases/$(database)/documents/workspaceInvites/$(inviteId);
+      let invite = get(invitePath);
+      let inviteAfter = getAfter(invitePath);
+      let workspacePath = /databases/$(database)/documents/workspaces/$(invite.data.workspaceId);
+      return signedIn()
+        && inviteId is string
+        && inviteId.matches('^[a-f0-9]{64}$')
+        && request.resource.data.role == 'member'
+        && invite.data.tokenHash == inviteId
+        && invite.data.organizationId == organizationId
+        && invite.data.status == 'active'
+        && invite.data.maxUses == 1
+        && invite.data.useCount == 0
+        && invite.data.expiresAt > request.time
+        && inviteAfter.data.status == 'consumed'
+        && inviteAfter.data.useCount == 1
+        && inviteAfter.data.consumedBy == request.auth.uid
+        && inviteAfter.data.consumedAt == request.time
+        && get(workspacePath).data.organizationId == organizationId;
+    }
+    function validWorkspaceInviteCreate(inviteId) {
+      let workspaceId = request.resource.data.workspaceId;
+      let workspacePath = /databases/$(database)/documents/workspaces/$(workspaceId);
+      return signedIn()
+        && inviteId.matches('^[a-f0-9]{64}$')
+        && request.resource.data.keys().hasAll(['tokenHash', 'tokenHint', 'workspaceId', 'workspaceName', 'organizationId', 'role', 'status', 'maxUses', 'useCount', 'createdBy', 'createdAt', 'expiresAt'])
+        && request.resource.data.keys().hasOnly(['tokenHash', 'tokenHint', 'workspaceId', 'workspaceName', 'organizationId', 'role', 'status', 'maxUses', 'useCount', 'createdBy', 'createdAt', 'expiresAt'])
+        && request.resource.data.tokenHash == inviteId
+        && request.resource.data.workspaceId is string
+        && request.resource.data.workspaceName == get(workspacePath).data.name
+        && request.resource.data.organizationId == get(workspacePath).data.organizationId
+        && request.resource.data.role in ['member', 'viewer']
+        && request.resource.data.status == 'active'
+        && request.resource.data.maxUses == 1
+        && request.resource.data.useCount == 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(26, 'h')
+        && workspaceAdmin(workspaceId);
+    }
+    function validWorkspaceInviteRevocation() {
+      return workspaceAdmin(resource.data.workspaceId)
+        && resource.data.status == 'active'
+        && request.resource.data.status == 'revoked'
+        && request.resource.data.revokedBy == request.auth.uid
+        && request.resource.data.revokedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'revokedBy', 'revokedAt']);
+    }
+    function validWorkspaceInviteConsumption(inviteId) {
+      let memberPath = /databases/$(database)/documents/workspaceMembers/$(resource.data.workspaceId + '_' + request.auth.uid);
+      return signedIn()
+        && resource.data.tokenHash == inviteId
+        && resource.data.status == 'active'
+        && resource.data.maxUses == 1
+        && resource.data.useCount == 0
+        && resource.data.expiresAt > request.time
+        && request.resource.data.status == 'consumed'
+        && request.resource.data.useCount == 1
+        && request.resource.data.consumedBy == request.auth.uid
+        && request.resource.data.consumedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'useCount', 'consumedBy', 'consumedAt'])
+        && existsAfter(memberPath)
+        && getAfter(memberPath).data.inviteId == inviteId
+        && getAfter(memberPath).data.uid == request.auth.uid
+        && getAfter(memberPath).data.status == 'active';
     }
     function validCanvasCreate(workspaceId) {
       return request.resource.data.keys().hasAll(['workspaceId', 'name', 'createdBy', 'status', 'createdAt', 'updatedAt'])
@@ -170,16 +263,21 @@ service cloud.firestore {
     }
 
     match /workspaceMembers/{membershipId} {
-      allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || workspaceMember(resource.data.workspaceId));
+      allow get: if signedIn() && (membershipId.matches('^.*_' + request.auth.uid + '$')
+        || resource.data.uid == request.auth.uid || workspaceMember(resource.data.workspaceId));
+      allow list: if signedIn() && (resource.data.uid == request.auth.uid || workspaceMember(resource.data.workspaceId));
       allow create: if request.resource.data.keys().hasAll(['workspaceId', 'uid', 'role', 'status', 'joinedAt'])
-        && request.resource.data.keys().hasOnly(['workspaceId', 'uid', 'role', 'status', 'joinedAt'])
+        && request.resource.data.keys().hasOnly(['workspaceId', 'uid', 'role', 'status', 'joinedAt', 'inviteId', 'displayName', 'email'])
         && request.resource.data.workspaceId is string
         && membershipId == request.resource.data.workspaceId + '_' + request.auth.uid
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.role == 'owner'
         && request.resource.data.status == 'active'
         && request.resource.data.joinedAt == request.time
-        && validInitialWorkspaceOwner(request.resource.data.workspaceId);
+        && (!request.resource.data.keys().hasAny(['displayName']) || request.resource.data.displayName == null || (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 128))
+        && (!request.resource.data.keys().hasAny(['email']) || request.resource.data.email == null || (request.resource.data.email is string && request.resource.data.email.size() <= 254))
+        && (request.resource.data.role == 'owner'
+          ? validInitialWorkspaceOwner(request.resource.data.workspaceId)
+          : validInviteWorkspaceMember(request.resource.data.workspaceId));
       allow update, delete: if false;
     }
     match /organizations/{organizationId} {
@@ -188,20 +286,31 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     match /organizationMembers/{membershipId} {
-      allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || organizationMember(resource.data.organizationId));
+      allow get: if signedIn() && (membershipId.matches('^.*_' + request.auth.uid + '$')
+        || resource.data.uid == request.auth.uid || organizationMember(resource.data.organizationId));
+      allow list: if signedIn() && (resource.data.uid == request.auth.uid || organizationMember(resource.data.organizationId));
       allow create: if request.resource.data.keys().hasAll(['organizationId', 'uid', 'role', 'status', 'joinedAt'])
-        && request.resource.data.keys().hasOnly(['organizationId', 'uid', 'role', 'status', 'joinedAt'])
+        && request.resource.data.keys().hasOnly(['organizationId', 'uid', 'role', 'status', 'joinedAt', 'inviteId', 'displayName', 'email'])
         && request.resource.data.organizationId is string
         && membershipId == request.resource.data.organizationId + '_' + request.auth.uid
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.role == 'owner'
         && request.resource.data.status == 'active'
         && request.resource.data.joinedAt == request.time
-        && validInitialOrganizationOwner(request.resource.data.organizationId);
+        && (!request.resource.data.keys().hasAny(['displayName']) || request.resource.data.displayName == null || (request.resource.data.displayName is string && request.resource.data.displayName.size() <= 128))
+        && (!request.resource.data.keys().hasAny(['email']) || request.resource.data.email == null || (request.resource.data.email is string && request.resource.data.email.size() <= 254))
+        && (request.resource.data.role == 'owner'
+          ? validInitialOrganizationOwner(request.resource.data.organizationId)
+          : validInviteOrganizationMember(request.resource.data.organizationId));
       allow update, delete: if false;
     }
 
-    match /workspaceInvites/{documentId} { allow read, write: if false; }
+    match /workspaceInvites/{inviteId} {
+      allow get: if signedIn() && resource.data.tokenHash == inviteId;
+      allow list: if false;
+      allow create: if validWorkspaceInviteCreate(inviteId);
+      allow update: if validWorkspaceInviteRevocation() || validWorkspaceInviteConsumption(inviteId);
+      allow delete: if false;
+    }
     match /mcpAccessTokens/{documentId} { allow read, write: if false; }
     match /billingCustomers/{documentId} { allow read, write: if false; }
     match /subscriptions/{documentId} { allow read, write: if false; }

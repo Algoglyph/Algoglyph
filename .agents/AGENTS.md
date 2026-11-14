@@ -18,7 +18,7 @@ This document provides comprehensive context, architectural guidelines, and tech
   - `CodeMirror` 6 + `Wandbox API` (`src/lib/wandbox.ts`) for multi-language code editing and remote execution (C++, Java, Python, Go, Rust, JavaScript)
   - `KaTeX` & `Highlight.js` for rendering math formulas and syntax-highlighted code blocks within blogs and notes
   - Optional Firebase Google authentication on the web; identity never gates the local `/workspace`, but it is required for membership-scoped cloud workspaces
-  - Firebase client SDK + Firestore Rules for core cloud workspace/organization create, list, and open operations (Spark compatible); element-level Firestore collaboration under `/workspace/:workspaceId/canvas/:canvasId`; hashed invite/MCP tokens and billing remain backend-owned. Cloudflare Pages serves `/workspaces` from `workspaces.html`; `functions/_middleware.ts` routes direct workspace, canvas, and invite URLs to that app shell so browser reloads work.
+  - Firebase client SDK + Firestore Rules for core cloud workspace/organization create, list, and open operations plus hashed single-use invites (Spark compatible); element-level Firestore collaboration under `/workspace/:workspaceId/canvas/:canvasId`; cloud MCP tokens and billing remain backend-owned. Cloudflare Pages serves `/workspaces` from `workspaces.html`; `functions/_middleware.ts` routes direct workspace, canvas, and invite URLs to that app shell so browser reloads work.
   - Firebase Functions billing for Stripe/Razorpay hosted checkout and server-owned individual/organization `managedAgentAccess`; both local and cloud MCP paths remain free
 
 ---

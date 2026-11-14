@@ -8,7 +8,10 @@ import {
   getFirestore,
   limit,
   query,
+  runTransaction,
   serverTimestamp,
+  Timestamp,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
@@ -36,7 +39,7 @@ export class WorkspaceRequestError extends Error {
 }
 
 export const getWorkspaceConfigurationError = (): string | null => {
-  if (!configuredApiUrl) return 'Cloud workspace invites and MCP are not configured. Set VITE_ALGOGLYPH_API_URL.';
+  if (!configuredApiUrl) return 'Workspace-scoped MCP is not configured. Set VITE_ALGOGLYPH_API_URL.';
   try {
     const url = new URL(configuredApiUrl);
     const loopback = import.meta.env.DEV && ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
@@ -278,28 +281,172 @@ export const listWorkspaceMembers = async (
   };
 };
 
-export const createWorkspaceInvite = (
-  tokens: WorkspaceApiTokens,
+const createInviteToken = (): string => {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = '';
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+const hashInviteToken = async (token: string): Promise<string> => {
+  if (!/^[A-Za-z0-9_-]{40,80}$/.test(token)) throw new WorkspaceRequestError('This invitation link is invalid.', 404);
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+export const createWorkspaceInvite = async (
   workspaceId: string,
   role: Extract<WorkspaceRole, 'member' | 'viewer'> = 'member',
-) => api<{ invite: WorkspaceInvite }>(`v1/workspaces/${encodeURIComponent(workspaceId)}/invites`, tokens, {
-  method: 'POST', body: JSON.stringify({ role, expiresInHours: 24 }),
-});
+) => {
+  const user = getAuth(getApp()).currentUser;
+  if (!user) throw new WorkspaceRequestError('Sign in to invite a collaborator.', 401);
+  if (role !== 'member' && role !== 'viewer') throw new WorkspaceRequestError('Choose a valid workspace role.', 400);
 
-export const revokeWorkspaceInvite = (tokens: WorkspaceApiTokens, workspaceId: string, inviteId: string) =>
-  api<{ revoked: true }>(`v1/workspaces/${encodeURIComponent(workspaceId)}/invites/${encodeURIComponent(inviteId)}`, tokens, {
-    method: 'POST', body: JSON.stringify({}),
-  });
+  const firestore = db();
+  const [workspace, membership] = await Promise.all([
+    getDoc(doc(firestore, 'workspaces', workspaceId)),
+    getDoc(doc(firestore, 'workspaceMembers', `${workspaceId}_${user.uid}`)),
+  ]);
+  if (!workspace.exists() || workspace.data().status !== 'active') throw new WorkspaceRequestError('Workspace not found.', 404);
+  if (!membership.exists() || membership.data().status !== 'active' || !['owner', 'admin'].includes(membership.data().role)) {
+    throw new WorkspaceRequestError('Only workspace owners and admins can invite people.', 403);
+  }
 
-export const inspectWorkspaceInvite = (tokens: WorkspaceApiTokens, token: string) =>
-  api<{ invite: { workspaceId: string; workspaceName: string; role: string; expiresAt: string } }>('v1/invites/inspect', tokens, {
-    method: 'POST', body: JSON.stringify({ token }),
-  });
+  const token = createInviteToken();
+  const inviteId = await hashInviteToken(token);
+  const expiresAt = Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1_000);
+  const inviteRef = doc(firestore, 'workspaceInvites', inviteId);
+  await writeBatch(firestore).set(inviteRef, {
+    tokenHash: inviteId,
+    tokenHint: token.slice(0, 6),
+    workspaceId,
+    workspaceName: String(workspace.data().name ?? 'Workspace'),
+    organizationId: typeof workspace.data().organizationId === 'string' ? workspace.data().organizationId : null,
+    role,
+    status: 'active',
+    maxUses: 1,
+    useCount: 0,
+    createdBy: user.uid,
+    createdAt: serverTimestamp(),
+    expiresAt,
+  }).commit();
 
-export const acceptWorkspaceInvite = (tokens: WorkspaceApiTokens, token: string) =>
-  api<{ workspaceId: string; membershipCreated: boolean }>('v1/invites/accept', tokens, {
-    method: 'POST', body: JSON.stringify({ token }),
+  return {
+    invite: {
+      id: inviteId,
+      inviteUrl: `${window.location.origin}/invite/${encodeURIComponent(token)}`,
+      role,
+      expiresAt: expiresAt.toDate().toISOString(),
+    } satisfies WorkspaceInvite,
+  };
+};
+
+export const revokeWorkspaceInvite = async (workspaceId: string, inviteId: string): Promise<{ revoked: true }> => {
+  const uid = currentUid();
+  const inviteRef = doc(db(), 'workspaceInvites', inviteId);
+  const invite = await getDoc(inviteRef);
+  if (!invite.exists() || invite.data().workspaceId !== workspaceId) {
+    throw new WorkspaceRequestError('Invite not found for this workspace.', 404);
+  }
+  await updateDoc(inviteRef, {
+    status: 'revoked',
+    revokedBy: uid,
+    revokedAt: serverTimestamp(),
   });
+  return { revoked: true };
+};
+
+export const inspectWorkspaceInvite = async (
+  token: string,
+): Promise<{ invite: { workspaceId: string; workspaceName: string; role: string; expiresAt: string } }> => {
+  currentUid();
+  const inviteId = await hashInviteToken(token);
+  const snapshot = await getDoc(doc(db(), 'workspaceInvites', inviteId));
+  if (!snapshot.exists()) throw new WorkspaceRequestError('This invitation is no longer available.', 404);
+  const data = snapshot.data();
+  if (data.tokenHash !== inviteId || typeof data.workspaceId !== 'string' || typeof data.workspaceName !== 'string') {
+    throw new WorkspaceRequestError('This invitation is invalid.', 404);
+  }
+  if (data.status !== 'active') throw new WorkspaceRequestError('This invitation has already been used or revoked.', 410);
+  if (!(data.expiresAt instanceof Timestamp) || data.expiresAt.toMillis() <= Date.now()) {
+    throw new WorkspaceRequestError('This invitation has expired.', 410);
+  }
+  if (data.role !== 'member' && data.role !== 'viewer') throw new WorkspaceRequestError('This invitation is invalid.', 404);
+  return {
+    invite: {
+      workspaceId: data.workspaceId,
+      workspaceName: data.workspaceName,
+      role: data.role,
+      expiresAt: data.expiresAt.toDate().toISOString(),
+    },
+  };
+};
+
+export const acceptWorkspaceInvite = async (token: string): Promise<{ workspaceId: string; membershipCreated: boolean }> => {
+  const user = getAuth(getApp()).currentUser;
+  if (!user) throw new WorkspaceRequestError('Sign in to accept this invitation.', 401);
+  const firestore = db();
+  const inviteId = await hashInviteToken(token);
+  const inviteRef = doc(firestore, 'workspaceInvites', inviteId);
+
+  return runTransaction(firestore, async (transaction) => {
+    const inviteSnapshot = await transaction.get(inviteRef);
+    if (!inviteSnapshot.exists()) throw new WorkspaceRequestError('This invitation is no longer available.', 404);
+    const invite = inviteSnapshot.data();
+    if (invite.status !== 'active' || !(invite.expiresAt instanceof Timestamp) || invite.expiresAt.toMillis() <= Date.now()) {
+      throw new WorkspaceRequestError('This invitation has expired, been used, or was revoked.', 410);
+    }
+    if (typeof invite.workspaceId !== 'string' || (invite.role !== 'member' && invite.role !== 'viewer')) {
+      throw new WorkspaceRequestError('This invitation is invalid.', 404);
+    }
+
+    const memberRef = doc(firestore, 'workspaceMembers', `${invite.workspaceId}_${user.uid}`);
+    const memberSnapshot = await transaction.get(memberRef);
+    if (memberSnapshot.exists()) {
+      if (memberSnapshot.data().status === 'active') throw new WorkspaceRequestError('You already belong to this workspace.', 409);
+      throw new WorkspaceRequestError('Your previous workspace membership is inactive. Ask an owner to restore access.', 403);
+    }
+
+    let organizationMemberRef: ReturnType<typeof doc> | null = null;
+    if (typeof invite.organizationId === 'string') {
+      organizationMemberRef = doc(firestore, 'organizationMembers', `${invite.organizationId}_${user.uid}`);
+      const organizationMember = await transaction.get(organizationMemberRef);
+      if (organizationMember.exists() && organizationMember.data().status !== 'active') {
+        throw new WorkspaceRequestError('Your organization membership is inactive. Ask an organization owner for access.', 403);
+      }
+    }
+
+    transaction.set(memberRef, {
+      workspaceId: invite.workspaceId,
+      uid: user.uid,
+      role: invite.role,
+      status: 'active',
+      displayName: user.displayName,
+      email: user.email,
+      joinedAt: serverTimestamp(),
+      inviteId,
+    });
+    if (organizationMemberRef) {
+      transaction.set(organizationMemberRef, {
+        organizationId: invite.organizationId,
+        uid: user.uid,
+        role: 'member',
+        status: 'active',
+        displayName: user.displayName,
+        email: user.email,
+        joinedAt: serverTimestamp(),
+        inviteId,
+      });
+    }
+    transaction.update(inviteRef, {
+      status: 'consumed',
+      useCount: 1,
+      consumedBy: user.uid,
+      consumedAt: serverTimestamp(),
+    });
+    return { workspaceId: invite.workspaceId, membershipCreated: true };
+  });
+};
 
 export const listMcpTokens = (tokens: WorkspaceApiTokens, workspaceId: string) =>
   api<{ tokens: McpAccessToken[] }>(`v1/workspaces/${encodeURIComponent(workspaceId)}/mcp-tokens`, tokens);

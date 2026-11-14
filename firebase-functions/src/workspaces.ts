@@ -401,7 +401,7 @@ export const createWorkspaceInvite = async (
   expiresInHoursValue: unknown,
   inviteBaseUrl: string,
 ): Promise<{ id: string; inviteUrl: string; expiresAt: string; role: 'member' | 'viewer' }> => {
-  await requireWorkspaceAccess(principal, workspaceId, { admin: true });
+  const access = await requireWorkspaceAccess(principal, workspaceId, { admin: true });
   const role = roleValue === 'viewer' ? 'viewer' : roleValue === undefined || roleValue === 'member' ? 'member' : null;
   if (!role) throw new HttpError(400, 'Invite role must be member or viewer.');
   const expiresInHours = expiresInHoursValue === undefined ? 72 : Number(expiresInHoursValue);
@@ -415,6 +415,8 @@ export const createWorkspaceInvite = async (
     tokenHash: id,
     tokenHint: token.slice(0, 6),
     workspaceId,
+    workspaceName: String(access.workspace.name ?? 'Workspace'),
+    organizationId: typeof access.workspace.organizationId === 'string' ? access.workspace.organizationId : null,
     role,
     status: 'active',
     maxUses: 1,
@@ -627,6 +629,29 @@ export const requireMcpAccessToken = async (authorization: string | undefined): 
 };
 
 const MAX_EXCALIDRAW_CLOCK = 2_147_483_647;
+const SERIALIZED_ELEMENT_FIELD = '__algoglyphSerializedElementV1';
+
+const serializeCanvasElement = (element: Record<string, unknown>) => ({
+  id: element.id,
+  version: element.version,
+  versionNonce: element.versionNonce,
+  [SERIALIZED_ELEMENT_FIELD]: JSON.stringify(element),
+});
+
+const deserializeCanvasElement = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const stored = value as Record<string, unknown>;
+  const serialized = stored[SERIALIZED_ELEMENT_FIELD];
+  if (typeof serialized !== 'string') return stored;
+  try {
+    const parsed: unknown = JSON.parse(serialized);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 const elementClock = (element: Record<string, unknown>): [number, number] => [
   Number.isSafeInteger(element.version) ? Number(element.version) : 0,
@@ -650,10 +675,8 @@ export const listCanvasElements = async (
   const snapshot = await getFirestore().collection('workspaces').doc(workspaceId)
     .collection('canvases').doc(canvasId).collection('elements').limit(10_000).get();
   return snapshot.docs.flatMap((document) => {
-    const element = document.data().element;
-    return element && typeof element === 'object' && !Array.isArray(element)
-      ? [element as Record<string, unknown>]
-      : [];
+    const element = deserializeCanvasElement(document.data().element);
+    return element ? [element] : [];
   });
 };
 
@@ -698,7 +721,7 @@ export const applyCanvasElementMutations = async (
         workspaceId,
         canvasId,
         elementId: element.id,
-        element,
+        element: serializeCanvasElement(element),
         version,
         versionNonce,
         isDeleted: element.isDeleted === true,

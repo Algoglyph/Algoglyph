@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './authContext';
 import { WorkspaceAccountControl } from './AccountControls';
 import { acceptWorkspaceInvite, getCloudWorkspace, inspectWorkspaceInvite } from '../lib/workspaces/workspaceClient';
-import type { WorkspaceApiTokens } from '../lib/workspaces/types';
 
 export const InvitePage = () => {
   const { token = '' } = useParams();
@@ -12,27 +11,22 @@ export const InvitePage = () => {
   const [invite, setInvite] = useState<{ workspaceName: string; role: string; expiresAt: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const tokens = useCallback(async (): Promise<WorkspaceApiTokens> => {
-    const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
-    return { idToken, appCheckToken };
-  }, [auth.actions]);
-
   useEffect(() => {
     if (auth.state.status !== 'authenticated' || !token) return;
     void (async () => {
       try {
-        const result = await inspectWorkspaceInvite(await tokens(), token);
+        const result = await inspectWorkspaceInvite(token);
         setInvite(result.invite);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'This invite is invalid.');
       }
     })();
-  }, [auth.state.status, token, tokens]);
+  }, [auth.state.status, token]);
 
   const accept = async () => {
     setPending(true);
     try {
-      const result = await acceptWorkspaceInvite(await tokens(), token);
+      const result = await acceptWorkspaceInvite(token);
       const detail = await getCloudWorkspace(result.workspaceId);
       const canvas = detail.canvases[0];
       navigate(canvas ? `/workspace/${result.workspaceId}/canvas/${canvas.id}` : '/workspaces');

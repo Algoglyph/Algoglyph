@@ -10,8 +10,8 @@ import { buildCanvasPrompt, generateCanvasResponse, insertCanvasSkeletons, Canva
 import { serializeCanvasForNotes } from '../lib/ai/notes';
 import { beginCanvasPerfTrace, finishCanvasPerfTrace } from '../lib/ai/devTiming';
 import type { CanvasPlacementAnchor } from '../lib/ai/canvasPlacement';
-import { connectCanvasCollaboration, type CollaboratorPresence } from '../lib/workspaces/canvasCollaboration';
-import { authorizeManagedAgent, runManagedAgent } from '../lib/billing/billingClient';
+import { connectCanvasCollaboration, type CanvasSyncStatus, type CollaboratorPresence } from '../lib/workspaces/canvasCollaboration';
+import { authorizeManagedAgent, BillingRequestError, runManagedAgent } from '../lib/billing/billingClient';
 import { useAuth } from './authContext';
 import '@excalidraw/excalidraw/index.css';
 
@@ -72,9 +72,10 @@ interface CanvasProps {
     canvasId: string;
     user: { uid: string; displayName: string | null; photoURL: string | null };
   };
+  onCollaborationStatus?: (status: CanvasSyncStatus, message?: string) => void;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
+export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationStatus }) => {
   const auth = useAuth();
   // Select only loading, import counters, and save methods reactively.
   // DO NOT select elements, appState, or tool state to keep the component render-independent.
@@ -93,7 +94,10 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
   // AI-native diagram generation: read the prompt off the canvas → generate.
   const [aiBusy, setAiBusy] = useState(false);
   const [managedBusy, setManagedBusy] = useState(false);
-  const [managedAccess, setManagedAccess] = useState<{ workspaceId: string; status: 'allowed' | 'locked' } | null>(null);
+  const [managedAccess, setManagedAccess] = useState<{
+    workspaceId: string;
+    status: 'allowed' | 'locked' | 'unavailable';
+  } | null>(null);
   const aiAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -104,8 +108,11 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
         const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
         await authorizeManagedAgent({ idToken, appCheckToken }, collaboration.workspaceId);
         if (!cancelled) setManagedAccess({ workspaceId: collaboration.workspaceId, status: 'allowed' });
-      } catch {
-        if (!cancelled) setManagedAccess({ workspaceId: collaboration.workspaceId, status: 'locked' });
+      } catch (error) {
+        if (!cancelled) setManagedAccess({
+          workspaceId: collaboration.workspaceId,
+          status: error instanceof BillingRequestError && error.status === 402 ? 'locked' : 'unavailable',
+        });
       }
     };
     void check();
@@ -276,6 +283,7 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
   useEffect(() => {
     if (!excalidrawAPI || !collaboration) return;
     const notify = useWorkspaceStore.getState().showNotification;
+    onCollaborationStatus?.('connecting');
     collaborationRef.current = connectCanvasCollaboration({
       ...collaboration,
       onElements: (remoteElements) => {
@@ -287,13 +295,14 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
         excalidrawAPI.updateScene({ elements: merged, commitToHistory: false });
       },
       onPresence: setCollaborators,
+      onStatus: (status, message) => onCollaborationStatus?.(status, message),
       onError: (message) => notify(message, 'error'),
     });
     return () => {
       collaborationRef.current?.dispose();
       collaborationRef.current = null;
     };
-  }, [collaboration, excalidrawAPI]);
+  }, [collaboration, excalidrawAPI, onCollaborationStatus]);
 
   const UIOptions = useMemo(() => {
     return {
@@ -517,6 +526,13 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
   const currentManagedAccess = managedAccess && managedAccess.workspaceId === collaboration?.workspaceId
     ? managedAccess.status
     : 'checking';
+  const managedAgentTitle = currentManagedAccess === 'allowed'
+    ? 'Paid AlgoGlyph-hosted agent; authorization is checked by the backend for every run'
+    : currentManagedAccess === 'locked'
+      ? 'An active managed-agent subscription is required. Open Plan & billing to subscribe.'
+      : currentManagedAccess === 'unavailable'
+        ? 'The managed-agent service could not be reached. Check Firebase Functions and App Check configuration.'
+        : 'Checking the managed-agent subscription.';
 
   return (
     <div data-tour="canvas" className="h-full w-full bg-canvas flex relative">
@@ -568,12 +584,10 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration }) => {
             disabled={managedBusy || currentManagedAccess !== 'allowed'}
             onClick={() => void runHostedCanvasAi()}
             className="absolute bottom-4 right-28 z-20 inline-flex h-9 cursor-pointer items-center gap-2 rounded-full bg-ink px-3.5 text-xs font-medium text-canvas shadow-[var(--shadow-modal)] disabled:cursor-wait disabled:opacity-60"
-            title={currentManagedAccess === 'allowed'
-              ? 'Paid AlgoGlyph-hosted agent; authorization is checked by the backend for every run'
-              : 'Managed agent is locked. Open Plan & billing to subscribe.'}
+            title={managedAgentTitle}
           >
             {managedBusy ? <LoadingSpinner size={14} inverted /> : <Sparkles size={14} />}
-            {managedBusy ? 'Running…' : currentManagedAccess === 'checking' ? 'Checking plan…' : currentManagedAccess === 'allowed' ? 'Managed agent' : 'Managed agent · locked'}
+            {managedBusy ? 'Running…' : currentManagedAccess === 'checking' ? 'Checking plan…' : currentManagedAccess === 'allowed' ? 'Managed agent' : currentManagedAccess === 'unavailable' ? 'Managed agent · unavailable' : 'Managed agent · locked'}
           </button>
         ) : null}
       </div>

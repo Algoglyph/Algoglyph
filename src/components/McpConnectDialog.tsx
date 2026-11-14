@@ -75,6 +75,7 @@ export const McpConnectDialog: React.FC = () => {
   const [toolName, setToolName] = useState('');
   const [toolArguments, setToolArguments] = useState('{}');
   const [toolResult, setToolResult] = useState<string | null>(null);
+  const [pendingToolInvocation, setPendingToolInvocation] = useState<{ args: Record<string, unknown>; preview: string } | null>(null);
   const [serverResult, setServerResult] = useState<McpServerTestResult | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState(false);
@@ -212,14 +213,18 @@ export const McpConnectDialog: React.FC = () => {
       setServerError('Tool arguments must be a JSON object.');
       return;
     }
-    const preview = `${toolName}\n${JSON.stringify(args, null, 2)}`;
-    if (!window.confirm(`Invoke this MCP tool with exactly these arguments?\n\n${preview}`)) return;
+    setPendingToolInvocation({ args, preview: `${toolName}\n${JSON.stringify(args, null, 2)}` });
+  };
+
+  const confirmToolInvocation = async () => {
+    if (!pendingToolInvocation || !serverResult || !toolName) return;
     try {
       setServerError(null);
       const token = useMcpStore.getState().connectorToken;
       if (!token) throw new McpConnectorRequestError('The connector session is no longer available.');
-      const result = await invokeMcpTool(connectorEndpoint, token, serverResult.serverId, toolName, args);
+      const result = await invokeMcpTool(connectorEndpoint, token, serverResult.serverId, toolName, pendingToolInvocation.args);
       setToolResult(JSON.stringify(result, null, 2));
+      setPendingToolInvocation(null);
     } catch (error) {
       if (error instanceof McpConnectorRequestError && error.status === 401) {
         setStoredConnectorToken(null);
@@ -608,6 +613,20 @@ export const McpConnectDialog: React.FC = () => {
           )}
         </div>
       </section>
+      {pendingToolInvocation ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="presentation">
+          <section role="dialog" aria-modal="true" aria-labelledby="mcp-invoke-title" className="w-full max-w-lg rounded-xl border border-hairline bg-canvas p-5 text-ink shadow-[var(--shadow-modal)]">
+            <h3 id="mcp-invoke-title" className="text-base font-semibold">Confirm MCP tool call</h3>
+            <p className="mt-2 text-sm leading-5 text-body">This sends the exact tool name and arguments below to the connected MCP server.</p>
+            <pre className="mt-4 max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border border-hairline bg-canvas-soft p-3 text-xs text-body">{pendingToolInvocation.preview}</pre>
+            {serverError ? <p role="alert" className="mt-3 text-sm text-rose-500">{serverError}</p> : null}
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setPendingToolInvocation(null)} className="h-9 cursor-pointer rounded-lg px-3 text-sm font-medium text-body hover:bg-canvas-soft">Cancel</button>
+              <button type="button" onClick={() => void confirmToolInvocation()} className="h-9 cursor-pointer rounded-lg bg-ink px-4 text-sm font-semibold text-canvas">Invoke tool</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 };

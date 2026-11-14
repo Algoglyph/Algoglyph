@@ -73,6 +73,7 @@ export const BillingDialog = ({
     returnState === 'cancelled' ? 'Checkout was cancelled. No subscription changes were made.' : null,
   );
   const [needsRecentAuthentication, setNeedsRecentAuthentication] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   const getApiTokens = useCallback(async (): Promise<BillingApiTokens> => {
     const [idToken, appCheckToken] = await Promise.all([
@@ -234,7 +235,11 @@ export const BillingDialog = ({
   };
 
   const cancelSubscription = async (confirmed = false) => {
-    if (!confirmed && !window.confirm('Cancel renewal at the end of the current billing period?')) return;
+    if (!confirmed) {
+      setCancelConfirmOpen(true);
+      return;
+    }
+    setCancelConfirmOpen(false);
     setPending(true);
     setError(null);
     setNotice(null);
@@ -480,6 +485,18 @@ export const BillingDialog = ({
           </button>
         ) : null}
       </div>
+      {cancelConfirmOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <section role="dialog" aria-modal="true" aria-labelledby="cancel-renewal-title" className="w-full max-w-sm rounded-2xl border border-hairline bg-canvas p-5 text-ink shadow-[var(--shadow-modal)]">
+            <h3 id="cancel-renewal-title" className="text-base font-semibold">Cancel renewal?</h3>
+            <p className="mt-2 text-sm leading-5 text-body">Your current access remains active until the end of this billing period.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setCancelConfirmOpen(false)} className="h-9 cursor-pointer rounded-lg px-3 text-sm font-medium text-body hover:bg-canvas-soft">Keep subscription</button>
+              <button type="button" disabled={pending} onClick={() => void cancelSubscription(true)} className="h-9 cursor-pointer rounded-lg bg-rose-600 px-3 text-sm font-semibold text-white disabled:opacity-50">Cancel renewal</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>,
     document.body,
   );

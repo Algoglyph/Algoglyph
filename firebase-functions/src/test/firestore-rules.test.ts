@@ -9,7 +9,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, Timestamp as ClientTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore';
 import type { NormalizedProviderEvent } from '../model.js';
 import { HttpError, type AuthenticatedPrincipal } from '../security.js';
 import {
@@ -147,6 +147,123 @@ test('an organization member without admin rights cannot attach a workspace to t
     createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
   });
   await assertFails(batch.commit());
+});
+
+test('workspace owners can create and revoke secure single-use Firestore invite links', async () => {
+  const owner = environment.authenticatedContext('user_1').firestore();
+  const inviteId = 'a'.repeat(64);
+  const inviteRef = doc(owner, 'workspaceInvites', inviteId);
+  await assertSucceeds(setDoc(inviteRef, {
+    tokenHash: inviteId,
+    tokenHint: 'abc123',
+    workspaceId: 'ws_personal_1',
+    workspaceName: 'Personal canvas',
+    organizationId: null,
+    role: 'member',
+    status: 'active',
+    maxUses: 1,
+    useCount: 0,
+    createdBy: 'user_1',
+    createdAt: serverTimestamp(),
+    expiresAt: ClientTimestamp.fromMillis(Date.now() + 60 * 60 * 1_000),
+  }));
+
+  const member = environment.authenticatedContext('user_2').firestore();
+  const memberRef = doc(member, 'workspaceMembers', 'ws_personal_1_user_2');
+  const memberInviteRef = doc(member, 'workspaceInvites', inviteId);
+  await assertSucceeds(getDoc(memberInviteRef));
+  await assertSucceeds(getDoc(memberRef));
+  const acceptance = writeBatch(member);
+  acceptance.set(memberRef, {
+    workspaceId: 'ws_personal_1', uid: 'user_2', role: 'member', status: 'active',
+    displayName: 'User Two', email: 'two@example.com', joinedAt: serverTimestamp(), inviteId,
+  });
+  acceptance.update(memberInviteRef, { status: 'consumed', useCount: 1, consumedBy: 'user_2', consumedAt: serverTimestamp() });
+  await assertSucceeds(acceptance.commit());
+  await assertSucceeds(getDoc(doc(member, 'workspaces', 'ws_personal_1')));
+
+  const replay = environment.authenticatedContext('user_3').firestore();
+  const replayBatch = writeBatch(replay);
+  replayBatch.set(doc(replay, 'workspaceMembers', 'ws_personal_1_user_3'), {
+    workspaceId: 'ws_personal_1', uid: 'user_3', role: 'member', status: 'active', joinedAt: serverTimestamp(), inviteId,
+  });
+  replayBatch.update(doc(replay, 'workspaceInvites', inviteId), {
+    status: 'consumed', useCount: 1, consumedBy: 'user_3', consumedAt: serverTimestamp(),
+  });
+  await assertFails(replayBatch.commit());
+
+  const revokeId = 'b'.repeat(64);
+  const revokeRef = doc(owner, 'workspaceInvites', revokeId);
+  await assertSucceeds(setDoc(revokeRef, {
+    tokenHash: revokeId,
+    tokenHint: 'def456',
+    workspaceId: 'ws_personal_1',
+    workspaceName: 'Personal canvas',
+    organizationId: null,
+    role: 'viewer',
+    status: 'active',
+    maxUses: 1,
+    useCount: 0,
+    createdBy: 'user_1',
+    createdAt: serverTimestamp(),
+    expiresAt: ClientTimestamp.fromMillis(Date.now() + 60 * 60 * 1_000),
+  }));
+  await assertFails(updateDoc(doc(member, 'workspaceInvites', revokeId), {
+    status: 'revoked', revokedBy: 'user_2', revokedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(updateDoc(revokeRef, {
+    status: 'revoked', revokedBy: 'user_1', revokedAt: serverTimestamp(),
+  }));
+});
+
+test('accepting an invite to an organization workspace creates the matching organization membership', async () => {
+  const adminDb = getAdminFirestore();
+  await Promise.all([
+    adminDb.collection('organizations').doc('org_team_123456').set({ name: 'Team', ownerId: 'user_1', status: 'active' }),
+    adminDb.collection('organizationMembers').doc('org_team_123456_user_1').set({
+      organizationId: 'org_team_123456', uid: 'user_1', role: 'owner', status: 'active',
+    }),
+    adminDb.collection('workspaces').doc('ws_team_123456').set({
+      name: 'Team workspace', ownerId: 'user_1', organizationId: 'org_team_123456', status: 'active',
+    }),
+    adminDb.collection('workspaceMembers').doc('ws_team_123456_user_1').set({
+      workspaceId: 'ws_team_123456', uid: 'user_1', role: 'owner', status: 'active',
+    }),
+  ]);
+
+  const owner = environment.authenticatedContext('user_1').firestore();
+  const inviteId = 'c'.repeat(64);
+  const inviteRef = doc(owner, 'workspaceInvites', inviteId);
+  await assertSucceeds(setDoc(inviteRef, {
+    tokenHash: inviteId,
+    tokenHint: 'ghi789',
+    workspaceId: 'ws_team_123456',
+    workspaceName: 'Team workspace',
+    organizationId: 'org_team_123456',
+    role: 'viewer',
+    status: 'active',
+    maxUses: 1,
+    useCount: 0,
+    createdBy: 'user_1',
+    createdAt: serverTimestamp(),
+    expiresAt: ClientTimestamp.fromMillis(Date.now() + 60 * 60 * 1_000),
+  }));
+
+  const invitee = environment.authenticatedContext('user_2').firestore();
+  const acceptance = writeBatch(invitee);
+  acceptance.set(doc(invitee, 'workspaceMembers', 'ws_team_123456_user_2'), {
+    workspaceId: 'ws_team_123456', uid: 'user_2', role: 'viewer', status: 'active',
+    displayName: 'User Two', email: 'two@example.com', joinedAt: serverTimestamp(), inviteId,
+  });
+  acceptance.set(doc(invitee, 'organizationMembers', 'org_team_123456_user_2'), {
+    organizationId: 'org_team_123456', uid: 'user_2', role: 'member', status: 'active',
+    displayName: 'User Two', email: 'two@example.com', joinedAt: serverTimestamp(), inviteId,
+  });
+  acceptance.update(doc(invitee, 'workspaceInvites', inviteId), {
+    status: 'consumed', useCount: 1, consumedBy: 'user_2', consumedAt: serverTimestamp(),
+  });
+  await assertSucceeds(acceptance.commit());
+  await assertSucceeds(getDoc(doc(invitee, 'organizations', 'org_team_123456')));
 });
 
 const elementRecord = (uid: string, id: string, version: number, versionNonce: number, isDeleted = false) => ({
