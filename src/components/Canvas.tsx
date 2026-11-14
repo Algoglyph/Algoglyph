@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Excalidraw, convertToExcalidrawElements, reconcileElements } from '@excalidraw/excalidraw';
+import type { Collaborator, SocketId } from '@excalidraw/excalidraw/types';
 import { Sparkles } from 'lucide-react';
 import { useWorkspaceStore } from '../store/workspaceStore';
 import { useMcpStore } from '../store/mcpStore';
@@ -10,7 +11,7 @@ import { buildCanvasPrompt, generateCanvasResponse, insertCanvasSkeletons, Canva
 import { serializeCanvasForNotes } from '../lib/ai/notes';
 import { beginCanvasPerfTrace, finishCanvasPerfTrace } from '../lib/ai/devTiming';
 import type { CanvasPlacementAnchor } from '../lib/ai/canvasPlacement';
-import { connectCanvasCollaboration, type CanvasSyncStatus, type CollaboratorPresence } from '../lib/workspaces/canvasCollaboration';
+import { connectCanvasCollaboration, type CanvasPointer, type CanvasSyncStatus, type CollaboratorPresence } from '../lib/workspaces/canvasCollaboration';
 import { authorizeManagedAgent, BillingRequestError, runManagedAgent } from '../lib/billing/billingClient';
 import { useAuth } from './authContext';
 import '@excalidraw/excalidraw/index.css';
@@ -24,6 +25,21 @@ interface CanvasPrompt {
   text: string;
   anchor: CanvasPlacementAnchor;
 }
+
+const collaboratorColors = [
+  { background: '#fde68a', stroke: '#b45309' },
+  { background: '#bfdbfe', stroke: '#1d4ed8' },
+  { background: '#fbcfe8', stroke: '#be185d' },
+  { background: '#bbf7d0', stroke: '#15803d' },
+  { background: '#ddd6fe', stroke: '#6d28d9' },
+  { background: '#fed7aa', stroke: '#c2410c' },
+];
+
+const collaboratorColor = (uid: string) => {
+  let hash = 0;
+  for (const character of uid) hash = (hash * 31 + character.charCodeAt(0)) | 0;
+  return collaboratorColors[Math.abs(hash) % collaboratorColors.length]!;
+};
 
 function canvasPrompt(elements: readonly any[]): CanvasPrompt | null {
   if (!elements.length) return null;
@@ -294,7 +310,27 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
         );
         excalidrawAPI.updateScene({ elements: merged, commitToHistory: false });
       },
-      onPresence: setCollaborators,
+      onPresence: (people) => {
+        setCollaborators(people);
+        const remoteCollaborators = new Map<SocketId, Collaborator>();
+        people.forEach((person) => {
+          if (!person.pointer || person.uid === collaboration.user.uid) return;
+          const socketId = person.uid as SocketId;
+          remoteCollaborators.set(socketId, {
+            id: person.uid,
+            socketId,
+            username: person.displayName || 'Collaborator',
+            avatarUrl: person.photoURL || undefined,
+            color: collaboratorColor(person.uid),
+            pointer: { ...person.pointer, renderCursor: true },
+            button: person.pointer.button,
+          });
+        });
+        excalidrawAPI.updateScene({ collaborators: remoteCollaborators });
+      },
+      onFiles: (remoteFiles) => {
+        excalidrawAPI.updateScene({ files: { ...excalidrawAPI.getFiles(), ...remoteFiles } });
+      },
       onStatus: (status, message) => onCollaborationStatus?.(status, message),
       onError: (message) => notify(message, 'error'),
     });
@@ -318,9 +354,9 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
     } as const;
   }, []);
 
-  // Sync scene ONLY on manual workspace imports
+  // Sync scene ONLY on manual imports into the local workspace; cloud canvases own their scene remotely.
   useEffect(() => {
-    if (excalidrawAPI && !isLoading && lastImportTime > localLastImportTime) {
+    if (!collaboration && excalidrawAPI && !isLoading && lastImportTime > localLastImportTime) {
       const state = useWorkspaceStore.getState();
       excalidrawAPI.updateScene({
         elements: state.canvasElements,
@@ -332,7 +368,7 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
       });
       setLocalLastImportTime(lastImportTime);
     }
-  }, [excalidrawAPI, isLoading, lastImportTime, localLastImportTime, theme]);
+  }, [collaboration, excalidrawAPI, isLoading, lastImportTime, localLastImportTime, theme]);
 
   // Handle global keyboard shortcuts for tool switching
   useEffect(() => {
@@ -433,7 +469,7 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
       }
     }
 
-    if (collaboration) collaborationRef.current?.publish(elements);
+    if (collaboration) collaborationRef.current?.publish(elements, files);
     else updateCanvas([...elements], appState, files);
   };
 
@@ -562,8 +598,12 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
             (window as any).excalidrawAPI = api;
           }}
           theme={theme}
+          isCollaborating={Boolean(collaboration)}
           initialData={initialData}
           onChange={handleCanvasChange}
+          onPointerUpdate={({ pointer, button }) => {
+            collaborationRef.current?.publishPointer({ ...pointer, button } as CanvasPointer);
+          }}
           UIOptions={UIOptions}
         />
 

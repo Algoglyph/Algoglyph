@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, Building2, Plus, Users, X } from 'lucide-react';
+import { ArrowLeft, Building2, Plus, Trash2, Users, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './authContext';
 import { WorkspaceAccountControl } from './AccountControls';
@@ -7,6 +7,8 @@ import { LoadingSpinner } from './LoadingSpinner';
 import {
   createCloudOrganization,
   createCloudWorkspace,
+  deleteCloudOrganization,
+  deleteCloudWorkspace,
   getCloudWorkspace,
   listCloudOrganizations,
   listCloudWorkspaces,
@@ -14,6 +16,7 @@ import {
 import type { CloudOrganization, CloudWorkspace } from '../lib/workspaces/types';
 
 type CreationDialog = 'workspace' | 'organization' | null;
+type DeletionTarget = { kind: 'workspace' | 'organization'; id: string; name: string; deletionPending: boolean } | null;
 
 export const CloudWorkspacesPage = () => {
   const auth = useAuth();
@@ -28,6 +31,9 @@ export const CloudWorkspacesPage = () => {
   const [selectedOrganizationId, setSelectedOrganizationId] = useState('');
   const [saving, setSaving] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
+  const [deletionTarget, setDeletionTarget] = useState<DeletionTarget>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const refresh = useCallback(async () => {
     if (auth.state.status !== 'authenticated') return;
@@ -78,6 +84,55 @@ export const CloudWorkspacesPage = () => {
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [creationDialog, saving]);
+
+  useEffect(() => {
+    if (!deletionTarget) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !deleting) {
+        setDeletionTarget(null);
+        setDialogError(null);
+      }
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [deletionTarget, deleting]);
+
+  const openDeletionDialog = (target: NonNullable<DeletionTarget>) => {
+    setDeletionTarget(target);
+    setDeleteConfirmation('');
+    setDialogError(null);
+  };
+
+  const submitDeletion = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!deletionTarget) return;
+    if (deleteConfirmation.trim() !== deletionTarget.name) {
+      setDialogError('Type the name exactly to confirm deletion.');
+      return;
+    }
+    setDeleting(true);
+    setDialogError(null);
+    try {
+      if (deletionTarget.kind === 'workspace') {
+        await deleteCloudWorkspace(deletionTarget.id);
+      } else {
+        await deleteCloudOrganization(deletionTarget.id);
+      }
+      setDeletionTarget(null);
+      setDeleteConfirmation('');
+      await refresh();
+    } catch (requestError) {
+      const code = requestError && typeof requestError === 'object' && 'code' in requestError
+        ? requestError.code
+        : null;
+      setDialogError(code === 'permission-denied'
+        ? `Firebase denied this deletion. Confirm this account owns the ${deletionTarget.kind} and deploy the latest Firestore rules to the same Firebase project.`
+        : requestError instanceof Error ? requestError.message : `Could not delete this ${deletionTarget.kind}.`);
+      void refresh();
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const submitCreation = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,10 +202,11 @@ export const CloudWorkspacesPage = () => {
                   {organizations.map((organization) => (
                     <div key={organization.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-canvas p-4">
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-canvas-soft text-mute"><Building2 size={16} /></span>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-ink">{organization.name}</p>
-                        <p className="mt-0.5 text-xs capitalize text-mute">{organization.role.replace('_', ' ')}</p>
+                        <p className="mt-0.5 text-xs capitalize text-mute">{organization.deletionPending ? 'Removal in progress' : organization.role.replace('_', ' ')}</p>
                       </div>
+                      {organization.role === 'owner' ? <button type="button" onClick={() => openDeletionDialog({ kind: 'organization', id: organization.id, name: organization.name, deletionPending: organization.deletionPending === true })} className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-mute hover:bg-rose-500/10 hover:text-rose-500" aria-label={`${organization.deletionPending ? 'Continue deleting' : 'Delete'} organization ${organization.name}`} title={organization.deletionPending ? 'Continue removal' : 'Delete organization'}><Trash2 size={15} /></button> : null}
                     </div>
                   ))}
                 </div>
@@ -172,15 +228,19 @@ export const CloudWorkspacesPage = () => {
                 <h2 id="workspaces-heading" className="text-sm font-semibold text-ink">Workspaces</h2>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {workspaces.map((workspace) => (
-                    <button key={workspace.id} type="button" onClick={async () => {
-                      try {
-                        const result = await getCloudWorkspace(workspace.id);
-                        if (result.canvases[0]) navigate(`/workspace/${workspace.id}/canvas/${result.canvases[0].id}`);
-                      } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Could not open workspace.'); }
-                    }} className="cursor-pointer rounded-xl border border-hairline bg-canvas p-5 text-left transition-colors hover:bg-canvas-soft">
-                      <p className="font-medium">{workspace.name}</p>
-                      <p className="mt-2 text-xs text-mute">{workspace.organizationId ? 'Organization' : 'Personal'} · {workspace.role}</p>
-                    </button>
+                    <div key={workspace.id} className="flex items-stretch gap-2 rounded-xl border border-hairline bg-canvas p-3 transition-colors hover:bg-canvas-soft">
+                      <button key={workspace.id} type="button" disabled={workspace.deletionPending} onClick={async () => {
+                        try {
+                          const result = await getCloudWorkspace(workspace.id);
+                          const activeCanvas = result.canvases.find((item) => !item.deletionPending);
+                          if (activeCanvas) navigate(`/workspace/${workspace.id}/canvas/${activeCanvas.id}`);
+                        } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Could not open workspace.'); }
+                      }} className="min-w-0 flex-1 cursor-pointer p-2 text-left disabled:cursor-not-allowed">
+                        <p className="font-medium">{workspace.name}</p>
+                        <p className="mt-2 text-xs text-mute">{workspace.deletionPending ? 'Deletion in progress' : `${workspace.organizationId ? 'Organization' : 'Personal'} · ${workspace.role}`}</p>
+                      </button>
+                      {workspace.role === 'owner' ? <button type="button" onClick={() => openDeletionDialog({ kind: 'workspace', id: workspace.id, name: workspace.name, deletionPending: workspace.deletionPending === true })} className="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center self-center rounded-lg text-mute hover:bg-rose-500/10 hover:text-rose-500" aria-label={`${workspace.deletionPending ? 'Continue deleting' : 'Delete'} workspace ${workspace.name}`} title={workspace.deletionPending ? 'Continue deletion' : 'Delete workspace'}><Trash2 size={15} /></button> : null}
+                    </div>
                   ))}
                   {!workspaces.length ? <p className="text-sm text-mute">No cloud workspaces yet.</p> : null}
                 </div>
@@ -247,7 +307,7 @@ export const CloudWorkspacesPage = () => {
                     className="h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm text-ink focus:border-link focus:outline-none focus:ring-2 focus:ring-link/20"
                   >
                     <option value="">Personal workspace</option>
-                    {organizations.map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
+                    {organizations.filter((organization) => !organization.deletionPending).map((organization) => <option key={organization.id} value={organization.id}>{organization.name}</option>)}
                   </select>
                 </div>
               ) : null}
@@ -259,6 +319,36 @@ export const CloudWorkspacesPage = () => {
                 <button type="submit" disabled={saving} className="inline-flex h-10 min-w-36 cursor-pointer items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60">
                   {saving ? <><LoadingSpinner size={14} inverted /> Creating…</> : creationDialog === 'workspace' ? 'Create workspace' : 'Create organization'}
                 </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {deletionTarget ? (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !deleting) setDeletionTarget(null);
+        }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="cloud-delete-title" className="relative w-full max-w-md rounded-2xl border border-hairline bg-canvas p-6 text-ink shadow-[var(--shadow-soft)]">
+            <button type="button" onClick={() => setDeletionTarget(null)} disabled={deleting} aria-label="Close dialog" className="absolute right-4 top-4 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-mute transition-colors hover:bg-canvas-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"><X size={16} /></button>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-rose-500">Destructive action</p>
+            <h2 id="cloud-delete-title" className="mt-2 pr-8 text-xl font-semibold tracking-tight">
+              {deletionTarget.deletionPending ? 'Continue removal?' : `Delete ${deletionTarget.kind}?`}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-body">
+              {deletionTarget.kind === 'workspace'
+                ? 'This permanently removes the workspace, its canvases, drawings, images, members, and invite links.'
+                : 'The organization and its memberships will be removed. Its workspaces will be kept and detached from the organization.'}
+            </p>
+            <form className="mt-6 space-y-4" onSubmit={(event) => void submitDeletion(event)}>
+              <div>
+                <label htmlFor="cloud-delete-confirm" className="mb-1.5 block text-sm font-medium">Type <strong>{deletionTarget.name}</strong> to confirm</label>
+                <input id="cloud-delete-confirm" autoFocus value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20" />
+              </div>
+              {dialogError ? <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/5 p-3 text-sm text-rose-500">{dialogError}</p> : null}
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setDeletionTarget(null)} disabled={deleting} className="h-10 cursor-pointer rounded-lg px-4 text-sm font-medium text-body hover:bg-canvas-soft disabled:opacity-50">Cancel</button>
+                <button type="submit" disabled={deleting} className="inline-flex h-10 min-w-36 cursor-pointer items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">{deleting ? <><LoadingSpinner size={14} /> Removing…</> : deletionTarget.deletionPending ? 'Continue removal' : `Delete ${deletionTarget.kind}`}</button>
               </div>
             </form>
           </section>

@@ -9,6 +9,7 @@ export interface CloudWorkspace {
   role: WorkspaceRole;
   createdAt: string | null;
   updatedAt: string | null;
+  deletionPending?: boolean;
 }
 
 export interface CloudCanvas {
@@ -18,6 +19,7 @@ export interface CloudCanvas {
   createdBy: string;
   createdAt: string | null;
   updatedAt: string | null;
+  deletionPending?: boolean;
 }
 
 export interface CloudOrganization {
@@ -25,6 +27,7 @@ export interface CloudOrganization {
   name: string;
   ownerId: string;
   role: OrganizationRole;
+  deletionPending?: boolean;
 }
 
 export interface WorkspaceMember {

@@ -2,10 +2,12 @@ import { getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
   getFirestore,
+  onSnapshot,
   limit,
   query,
   runTransaction,
@@ -14,6 +16,8 @@ import {
   updateDoc,
   where,
   writeBatch,
+  type Query,
+  type Unsubscribe,
 } from 'firebase/firestore';
 import type {
   CloudCanvas,
@@ -98,6 +102,7 @@ const workspaceFrom = (id: string, data: Record<string, unknown>, role: Workspac
   role,
   createdAt: timestampToIso(data.createdAt),
   updatedAt: timestampToIso(data.updatedAt),
+  deletionPending: data.status === 'deleting',
 });
 
 const canvasFrom = (workspaceId: string, id: string, data: Record<string, unknown>): CloudCanvas => ({
@@ -107,6 +112,7 @@ const canvasFrom = (workspaceId: string, id: string, data: Record<string, unknow
   createdBy: typeof data.createdBy === 'string' ? data.createdBy : '',
   createdAt: timestampToIso(data.createdAt),
   updatedAt: timestampToIso(data.updatedAt),
+  deletionPending: data.status === 'deleting',
 });
 
 const organizationRole = (value: unknown): CloudOrganization['role'] => {
@@ -123,7 +129,7 @@ export const listCloudWorkspaces = async (): Promise<{ workspaces: CloudWorkspac
     const data = membership.data();
     if (typeof data.workspaceId !== 'string') return null;
     const workspace = await getDoc(doc(db(), 'workspaces', data.workspaceId));
-    if (!workspace.exists() || workspace.data().status !== 'active') return null;
+    if (!workspace.exists() || !['active', 'deleting'].includes(String(workspace.data().status))) return null;
     return workspaceFrom(workspace.id, workspace.data(), workspaceRole(data.role));
   }));
   return { workspaces: workspaces.filter((workspace): workspace is CloudWorkspace => workspace !== null) };
@@ -181,7 +187,7 @@ export const getCloudWorkspace = async (
   const [workspace, membership, canvasSnapshot] = await Promise.all([
     getDoc(doc(firestore, 'workspaces', workspaceId)),
     getDoc(doc(firestore, 'workspaceMembers', `${workspaceId}_${uid}`)),
-    getDocs(query(collection(firestore, 'workspaces', workspaceId, 'canvases'), where('status', '==', 'active'), limit(200))),
+    getDocs(query(collection(firestore, 'workspaces', workspaceId, 'canvases'), where('status', 'in', ['active', 'deleting']), limit(200))),
   ]);
   if (!workspace.exists() || workspace.data().status !== 'active' || !membership.exists() || membership.data().status !== 'active') {
     throw new WorkspaceRequestError('Workspace access denied.', 403);
@@ -210,6 +216,106 @@ export const createCloudCanvas = async (
   return { canvas: { id: canvasRef.id, workspaceId, name, createdBy: uid, createdAt: null, updatedAt: null } };
 };
 
+export const subscribeCloudCanvases = (
+  workspaceId: string,
+  onCanvases: (canvases: CloudCanvas[], fromCache: boolean) => void,
+  onError: (error: Error) => void,
+): Unsubscribe => onSnapshot(
+  query(collection(db(), 'workspaces', workspaceId, 'canvases'), where('status', 'in', ['active', 'deleting']), limit(200)),
+  (snapshot) => onCanvases(snapshot.docs.map((canvas) => canvasFrom(workspaceId, canvas.id, canvas.data())), snapshot.metadata.fromCache),
+  onError,
+);
+
+const deleteQueryDocuments = async (source: Query): Promise<void> => {
+  while (true) {
+    const page = await getDocs(query(source, limit(400)));
+    if (page.empty) return;
+    const batch = writeBatch(db());
+    page.docs.forEach((item) => batch.delete(item.ref));
+    await batch.commit();
+    if (page.size < 400) return;
+  }
+};
+
+const markCanvasDeleting = async (workspaceId: string, canvasId: string, uid: string): Promise<void> => {
+  const canvasRef = doc(db(), 'workspaces', workspaceId, 'canvases', canvasId);
+  const canvas = await getDoc(canvasRef);
+  if (!canvas.exists()) return;
+  if (canvas.data().status === 'active') {
+    await updateDoc(canvasRef, { status: 'deleting', deletedBy: uid, deletedAt: serverTimestamp() });
+  } else if (canvas.data().status !== 'deleting') {
+    throw new WorkspaceRequestError('This canvas is no longer available.', 404);
+  }
+};
+
+const clearCanvasData = async (workspaceId: string, canvasId: string): Promise<void> => {
+  const canvasRef = doc(db(), 'workspaces', workspaceId, 'canvases', canvasId);
+  await deleteQueryDocuments(collection(canvasRef, 'elements'));
+  await deleteQueryDocuments(collection(canvasRef, 'files'));
+  await deleteQueryDocuments(collection(canvasRef, 'presence'));
+  await deleteDoc(canvasRef);
+};
+
+const currentWorkspaceRole = async (workspaceId: string): Promise<{ uid: string; role: WorkspaceRole }> => {
+  const uid = currentUid();
+  const membership = await getDoc(doc(db(), 'workspaceMembers', `${workspaceId}_${uid}`));
+  if (!membership.exists() || membership.data().status !== 'active') {
+    throw new WorkspaceRequestError('Workspace access denied.', 403);
+  }
+  return { uid, role: workspaceRole(membership.data().role) };
+};
+
+export const deleteCloudCanvas = async (workspaceId: string, canvasId: string): Promise<void> => {
+  const { uid, role } = await currentWorkspaceRole(workspaceId);
+  if (role !== 'owner' && role !== 'admin') {
+    throw new WorkspaceRequestError('Only workspace owners and admins can delete a canvas.', 403);
+  }
+  await markCanvasDeleting(workspaceId, canvasId, uid);
+  await clearCanvasData(workspaceId, canvasId);
+};
+
+export const deleteCloudWorkspace = async (workspaceId: string): Promise<void> => {
+  const { uid, role } = await currentWorkspaceRole(workspaceId);
+  if (role !== 'owner') throw new WorkspaceRequestError('Only the workspace owner can delete it.', 403);
+  const firestore = db();
+  const workspaceRef = doc(firestore, 'workspaces', workspaceId);
+  const workspace = await getDoc(workspaceRef);
+  if (!workspace.exists()) return;
+  if (workspace.data().status === 'active') {
+    await updateDoc(workspaceRef, { status: 'deleting', deletedBy: uid, deletedAt: serverTimestamp() });
+  } else if (workspace.data().status !== 'deleting') {
+    throw new WorkspaceRequestError('This workspace is no longer available.', 404);
+  }
+
+  const canvasesRef = collection(workspaceRef, 'canvases');
+  while (true) {
+    const page = await getDocs(query(canvasesRef, where('status', 'in', ['active', 'deleting']), limit(50)));
+    if (page.empty) break;
+    for (const canvas of page.docs) {
+      await markCanvasDeleting(workspaceId, canvas.id, uid);
+      await clearCanvasData(workspaceId, canvas.id);
+    }
+  }
+
+  await deleteQueryDocuments(query(collection(firestore, 'workspaceInvites'), where('workspaceId', '==', workspaceId)));
+
+  const ownerMemberId = `${workspaceId}_${uid}`;
+  const membershipQuery = query(collection(firestore, 'workspaceMembers'), where('workspaceId', '==', workspaceId), limit(400));
+  while (true) {
+    const page = await getDocs(membershipQuery);
+    const otherMembers = page.docs.filter((membership) => membership.id !== ownerMemberId);
+    if (!otherMembers.length) break;
+    const batch = writeBatch(firestore);
+    otherMembers.forEach((membership) => batch.delete(membership.ref));
+    await batch.commit();
+  }
+
+  const finalBatch = writeBatch(firestore);
+  finalBatch.delete(workspaceRef);
+  finalBatch.delete(doc(firestore, 'workspaceMembers', ownerMemberId));
+  await finalBatch.commit();
+};
+
 export const listCloudOrganizations = async (): Promise<{ organizations: CloudOrganization[] }> => {
   const uid = currentUid();
   const memberships = await getDocs(query(
@@ -219,16 +325,17 @@ export const listCloudOrganizations = async (): Promise<{ organizations: CloudOr
     const data = membership.data();
     if (typeof data.organizationId !== 'string') return null;
     const organization = await getDoc(doc(db(), 'organizations', data.organizationId));
-    if (!organization.exists() || organization.data().status !== 'active') return null;
+    if (!organization.exists() || !['active', 'deleting'].includes(String(organization.data().status))) return null;
     const orgData = organization.data();
     return {
       id: organization.id,
       name: typeof orgData.name === 'string' ? orgData.name : 'Organization',
       ownerId: typeof orgData.ownerId === 'string' ? orgData.ownerId : '',
       role: organizationRole(data.role),
+      deletionPending: orgData.status === 'deleting',
     };
   }));
-  return { organizations: organizations.filter((organization): organization is CloudOrganization => organization !== null) };
+  return { organizations: organizations.filter((organization): organization is NonNullable<typeof organization> => organization !== null) };
 };
 
 export const createCloudOrganization = async (
@@ -258,6 +365,60 @@ export const createCloudOrganization = async (
   });
   await batch.commit();
   return { organization: { id: organizationRef.id, name, ownerId: uid, role: 'owner' } };
+};
+
+export const deleteCloudOrganization = async (organizationId: string): Promise<void> => {
+  const uid = currentUid();
+  const firestore = db();
+  const organizationRef = doc(firestore, 'organizations', organizationId);
+  const ownerMemberId = `${organizationId}_${uid}`;
+  const ownerMemberRef = doc(firestore, 'organizationMembers', ownerMemberId);
+  const [organization, membership] = await Promise.all([getDoc(organizationRef), getDoc(ownerMemberRef)]);
+  if (!organization.exists()) return;
+  if (!membership.exists() || membership.data().status !== 'active' || membership.data().role !== 'owner') {
+    throw new WorkspaceRequestError('Only the organization owner can delete it.', 403);
+  }
+  if (organization.data().status === 'active') {
+    await updateDoc(organizationRef, { status: 'deleting', deletedBy: uid, deletedAt: serverTimestamp() });
+  } else if (organization.data().status !== 'deleting') {
+    throw new WorkspaceRequestError('This organization is no longer available.', 404);
+  }
+
+  const associatedWorkspaces = query(collection(firestore, 'workspaces'), where('organizationId', '==', organizationId), limit(400));
+  while (true) {
+    const page = await getDocs(associatedWorkspaces);
+    if (page.empty) break;
+    const batch = writeBatch(firestore);
+    page.docs.forEach((workspace) => batch.update(workspace.ref, {
+      organizationId: null,
+      updatedAt: serverTimestamp(),
+    }));
+    await batch.commit();
+  }
+
+  const organizationInvites = query(collection(firestore, 'workspaceInvites'), where('organizationId', '==', organizationId), limit(400));
+  while (true) {
+    const page = await getDocs(organizationInvites);
+    if (page.empty) break;
+    const batch = writeBatch(firestore);
+    page.docs.forEach((invite) => batch.update(invite.ref, { organizationId: null }));
+    await batch.commit();
+  }
+
+  const members = query(collection(firestore, 'organizationMembers'), where('organizationId', '==', organizationId), limit(400));
+  while (true) {
+    const page = await getDocs(members);
+    const otherMembers = page.docs.filter((item) => item.id !== ownerMemberId);
+    if (!otherMembers.length) break;
+    const batch = writeBatch(firestore);
+    otherMembers.forEach((item) => batch.delete(item.ref));
+    await batch.commit();
+  }
+
+  const finalBatch = writeBatch(firestore);
+  finalBatch.delete(organizationRef);
+  finalBatch.delete(ownerMemberRef);
+  await finalBatch.commit();
 };
 
 export const listWorkspaceMembers = async (

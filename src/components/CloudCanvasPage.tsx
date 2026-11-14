@@ -9,16 +9,18 @@ import { LoadingSpinner } from './LoadingSpinner';
 import type { CanvasSyncStatus } from '../lib/workspaces/canvasCollaboration';
 import {
   createMcpToken,
+  deleteCloudCanvas,
   createCloudCanvas,
   createWorkspaceInvite,
   getCloudWorkspace,
   listWorkspaceMembers,
   revokeWorkspaceInvite,
+  subscribeCloudCanvases,
 } from '../lib/workspaces/workspaceClient';
 import type { WorkspaceInvite } from '../lib/workspaces/types';
 import type { CloudCanvas, CloudWorkspace, WorkspaceApiTokens, WorkspaceMember } from '../lib/workspaces/types';
 
-type WorkspaceDialog = 'canvas' | 'invite' | 'members' | 'mcp' | null;
+type WorkspaceDialog = 'canvas' | 'delete-canvas' | 'invite' | 'members' | 'mcp' | null;
 
 export const CloudCanvasPage = () => {
   const { workspaceId = '', canvasId = '' } = useParams();
@@ -33,6 +35,7 @@ export const CloudCanvasPage = () => {
   const [dialogBusy, setDialogBusy] = useState(false);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [canvasName, setCanvasName] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
   const [mcpSetup, setMcpSetup] = useState<string | null>(null);
   const [mcpCopied, setMcpCopied] = useState(false);
@@ -81,6 +84,26 @@ export const CloudCanvasPage = () => {
   }, [auth.state.status, canvasId, workspaceId]);
 
   useEffect(() => {
+    if (auth.state.status !== 'authenticated') return;
+    let receivedServerSnapshot = false;
+    return subscribeCloudCanvases(workspaceId, (nextCanvases, fromCache) => {
+      setCanvases(nextCanvases);
+      const selected = nextCanvases.find((item) => item.id === canvasId);
+      if (selected) setCanvas(selected);
+      if (fromCache) return;
+      receivedServerSnapshot = true;
+      if (!selected) {
+        navigate(nextCanvases[0]
+          ? `/workspace/${workspaceId}/canvas/${nextCanvases[0].id}`
+          : '/workspaces',
+        { replace: true });
+      }
+    }, (snapshotError) => {
+      if (receivedServerSnapshot && snapshotError.message) setError(snapshotError.message);
+    });
+  }, [auth.state.status, canvasId, navigate, workspaceId]);
+
+  useEffect(() => {
     if (!dialog) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !dialogBusy) setDialog(null);
@@ -93,6 +116,7 @@ export const CloudCanvasPage = () => {
     setDialog(next);
     setDialogError(null);
     if (next === 'canvas') setCanvasName('');
+    if (next === 'delete-canvas') setDeleteConfirmation('');
     if (next === 'invite') setInviteCopied(false);
     if (next === 'mcp') { setMcpSetup(null); setMcpCopied(false); }
   };
@@ -125,6 +149,31 @@ export const CloudCanvasPage = () => {
       navigate(`/workspace/${workspaceId}/canvas/${result.canvas.id}`);
     } catch (requestError) {
       setDialogError(requestError instanceof Error ? requestError.message : 'Could not create the canvas.');
+    } finally {
+      setDialogBusy(false);
+    }
+  };
+
+  const submitCanvasDeletion = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canvas) return;
+    if (canvases.filter((item) => !item.deletionPending).length <= 1 && !canvas.deletionPending) {
+      setDialogError('A workspace needs at least one canvas. Create another canvas before deleting this one.');
+      return;
+    }
+    if (deleteConfirmation.trim() !== canvas.name) {
+      setDialogError('Type the canvas name exactly to confirm deletion.');
+      return;
+    }
+    setDialogBusy(true);
+    setDialogError(null);
+    try {
+      await deleteCloudCanvas(workspaceId, canvas.id);
+      setDialog(null);
+      const remaining = canvases.filter((item) => item.id !== canvas.id && !item.deletionPending);
+      navigate(remaining[0] ? `/workspace/${workspaceId}/canvas/${remaining[0].id}` : '/workspaces', { replace: true });
+    } catch (requestError) {
+      setDialogError(requestError instanceof Error ? requestError.message : 'Could not finish deleting this canvas.');
     } finally {
       setDialogBusy(false);
     }
@@ -188,6 +237,14 @@ export const CloudCanvasPage = () => {
   }
   if (error && !workspace) return <main className="flex min-h-screen items-center justify-center bg-canvas p-6 text-center text-sm text-rose-500">{error}</main>;
   if (!workspace || !canvas) return <main className="flex min-h-screen items-center justify-center bg-canvas text-mute"><LoadingSpinner size={20} /> <span className="ml-2 text-sm">Verifying workspace membership…</span></main>;
+  if (canvas.deletionPending) {
+    return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas px-5 text-center text-ink">
+      <p className="text-sm">This canvas is being deleted.</p>
+      {(workspace.role === 'owner' || workspace.role === 'admin') ? <button type="button" onClick={() => void deleteCloudCanvas(workspaceId, canvas.id).then(() => navigate('/workspaces', { replace: true })).catch((failure: unknown) => setError(failure instanceof Error ? failure.message : 'Could not finish deleting this canvas.'))} className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-canvas">Continue deletion</button> : null}
+      {error ? <p role="alert" className="text-sm text-rose-500">{error}</p> : null}
+      <button type="button" onClick={() => navigate('/workspaces')} className="text-sm text-link">Back to workspaces</button>
+    </main>;
+  }
 
   return (
     <main className="flex h-screen w-screen flex-col overflow-hidden bg-canvas text-ink">
@@ -196,9 +253,11 @@ export const CloudCanvasPage = () => {
         <span className="mx-1 h-4 w-px bg-hairline" />
         <strong className="truncate text-xs">{workspace.name}</strong>
         <select value={canvas.id} onChange={(event) => navigate(`/workspace/${workspaceId}/canvas/${event.target.value}`)} className="max-w-44 cursor-pointer bg-transparent text-xs text-mute outline-none" aria-label="Canvas">
-          {canvases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          {canvases.filter((item) => !item.deletionPending).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
+        <span className="hidden text-[10px] text-mute sm:inline">{canvases.filter((item) => !item.deletionPending).length} canvases</span>
         {workspace.role !== 'viewer' ? <button type="button" onClick={() => openDialog('canvas')} className="cursor-pointer rounded p-1 text-mute hover:bg-canvas-soft hover:text-ink" aria-label="Create canvas"><Plus size={13} /></button> : null}
+        {(workspace.role === 'owner' || workspace.role === 'admin') ? <button type="button" onClick={() => openDialog('delete-canvas')} className="cursor-pointer rounded p-1 text-mute hover:bg-rose-500/10 hover:text-rose-500" aria-label={`Delete canvas ${canvas.name}`} title="Delete this canvas"><X size={13} /></button> : null}
         <span className="ml-auto hidden text-[11px] text-mute md:inline">{members.length || 1} member{members.length === 1 ? '' : 's'}</span>
         <button type="button" onClick={() => openDialog('members')} className="cursor-pointer rounded-md border border-hairline p-1.5 text-mute hover:bg-canvas-soft hover:text-ink" aria-label="View members"><Users size={13} /></button>
         {(workspace.role === 'owner' || workspace.role === 'admin') ? <button type="button" onClick={() => void inviteCollaborator()} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[11px] hover:bg-canvas-soft"><UserPlus size={13} /> Invite</button> : null}
@@ -208,7 +267,7 @@ export const CloudCanvasPage = () => {
       </header>
       {error ? <div role="alert" className="border-b border-rose-400/30 bg-rose-400/5 px-3 py-2 text-xs text-rose-500">{error}</div> : null}
       <div className="min-h-0 flex-1 ph-no-capture">
-        <Canvas collaboration={collaboration} onCollaborationStatus={handleCollaborationStatus} />
+        <Canvas key={`${workspaceId}:${canvasId}`} collaboration={collaboration} onCollaborationStatus={handleCollaborationStatus} />
       </div>
       <div
         role="status"
@@ -227,10 +286,10 @@ export const CloudCanvasPage = () => {
             <button type="button" onClick={() => setDialog(null)} disabled={dialogBusy} aria-label="Close dialog" className="absolute right-4 top-4 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-mute transition-colors hover:bg-canvas-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"><X size={16} /></button>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-mute">Cloud collaboration</p>
             <h2 id="cloud-canvas-dialog-title" className="mt-2 pr-8 text-xl font-semibold tracking-tight">
-              {dialog === 'canvas' ? 'Create a canvas' : dialog === 'invite' ? 'Invite a collaborator' : dialog === 'members' ? 'Workspace members' : 'Connect an MCP client'}
+              {dialog === 'canvas' ? 'Create a canvas' : dialog === 'delete-canvas' ? 'Delete this canvas?' : dialog === 'invite' ? 'Invite a collaborator' : dialog === 'members' ? 'Workspace members' : 'Connect an MCP client'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-body">
-              {dialog === 'canvas' ? 'Give the new canvas a name.' : dialog === 'invite' ? 'Share this single-use link with the person joining your workspace.' : dialog === 'members' ? 'People who currently have access to this workspace.' : 'Use these details to connect an external MCP client to this workspace.'}
+              {dialog === 'canvas' ? 'Give the new canvas a name.' : dialog === 'delete-canvas' ? 'This permanently removes the canvas, its drawings, images, and live presence for everyone in this workspace.' : dialog === 'invite' ? 'Share this single-use link with the person joining your workspace.' : dialog === 'members' ? 'People who currently have access to this workspace.' : 'Use these details to connect an external MCP client to this workspace.'}
             </p>
 
             {dialog === 'canvas' ? (
@@ -243,6 +302,16 @@ export const CloudCanvasPage = () => {
                 <div className="flex justify-end gap-2 pt-2">
                   <button type="button" onClick={() => setDialog(null)} disabled={dialogBusy} className="h-10 cursor-pointer rounded-lg px-4 text-sm font-medium text-body hover:bg-canvas-soft disabled:opacity-50">Cancel</button>
                   <button type="submit" disabled={dialogBusy} className="inline-flex h-10 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-canvas disabled:cursor-wait disabled:opacity-60">{dialogBusy ? <><LoadingSpinner size={14} inverted /> Creating…</> : 'Create canvas'}</button>
+                </div>
+              </form>
+            ) : dialog === 'delete-canvas' ? (
+              <form className="mt-6 space-y-4" onSubmit={(event) => void submitCanvasDeletion(event)}>
+                <p className="text-sm text-body">To confirm, type <strong className="text-ink">{canvas.name}</strong>.</p>
+                <input autoFocus value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} className="h-11 w-full rounded-lg border border-hairline bg-canvas px-3 text-sm focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/20" aria-label="Type the canvas name to confirm" />
+                {dialogError ? <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/5 p-3 text-sm text-rose-500">{dialogError}</p> : null}
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setDialog(null)} disabled={dialogBusy} className="h-10 cursor-pointer rounded-lg px-4 text-sm font-medium text-body hover:bg-canvas-soft disabled:opacity-50">Cancel</button>
+                  <button type="submit" disabled={dialogBusy} className="inline-flex h-10 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60">{dialogBusy ? <><LoadingSpinner size={14} /> Deleting…</> : 'Delete canvas'}</button>
                 </div>
               </form>
             ) : dialog === 'invite' ? (
@@ -300,7 +369,8 @@ export const CloudWorkspaceEntryPage = () => {
     void (async () => {
       try {
         const detail = await getCloudWorkspace(workspaceId);
-        if (!cancelled) navigate(detail.canvases[0] ? `/workspace/${workspaceId}/canvas/${detail.canvases[0].id}` : '/workspaces', { replace: true });
+        const activeCanvas = detail.canvases.find((item) => !item.deletionPending);
+        if (!cancelled) navigate(activeCanvas ? `/workspace/${workspaceId}/canvas/${activeCanvas.id}` : '/workspaces', { replace: true });
       } catch {
         if (!cancelled) navigate('/workspaces', { replace: true });
       }
