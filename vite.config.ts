@@ -62,11 +62,12 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        // /workspace and /roadmap are real built entry points (each boots the
-        // full App, which routes off location.pathname). They are served as
-        // static assets by Cloudflare Pages — unlike a `_redirects` rewrite to
-        // /index.html, which Pages canonicalizes and bounces to `/`.
+        // App routes with static HTML entry points are served directly by
+        // Cloudflare Pages. Dynamic collaboration URLs are internally routed
+        // to the workspaces shell by functions/_middleware.ts; avoid a broad
+        // `_redirects` rewrite to /index.html, which Pages canonicalizes to `/`.
         workspace: resolve(__dirname, 'workspace.html'),
+        workspaces: resolve(__dirname, 'workspaces.html'),
         roadmap: resolve(__dirname, 'roadmap.html'),
         about: resolve(__dirname, 'about/index.html'),
         privacy: resolve(__dirname, 'privacy/index.html'),

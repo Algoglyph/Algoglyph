@@ -12,7 +12,7 @@
 
 interface MiddlewareContext {
   request: Request;
-  next: () => Promise<Response>;
+  next: (input?: Request | string, init?: RequestInit) => Promise<Response>;
 }
 
 const CANONICAL_HOST = 'algoglyph.com';
@@ -28,6 +28,11 @@ const HSTS_VALUE = 'max-age=31536000; includeSubDomains';
 // nominally-supported limit), so they bypass the www->apex canonicalization
 // entirely and resolve with a direct 200 on whichever host was requested.
 const REDIRECT_EXEMPT_PATHS = new Set(['/ads.txt', '/robots.txt', '/sitemap.xml']);
+const COLLABORATION_APP_SHELL = '/workspaces';
+
+const needsCollaborationAppShell = (pathname: string): boolean =>
+  /^\/workspace\/[^/]+(?:\/canvas\/[^/]+)?\/?$/.test(pathname)
+  || /^\/invite\/[^/]+\/?$/.test(pathname);
 
 const withProductionSecurityHeaders = (url: URL, response: Response): Response => {
   // Use an exact host allowlist instead of an environment flag. Cloudflare
@@ -51,5 +56,22 @@ export async function onRequest(context: MiddlewareContext): Promise<Response> {
       Response.redirect(url.toString(), 301),
     );
   }
+
+  // Cloudflare Pages serves static assets before React Router can match a
+  // dynamic URL. Serve the noindex collaboration shell for direct visits and
+  // refreshes while keeping the browser's original URL intact.
+  if (
+    (context.request.method === 'GET' || context.request.method === 'HEAD')
+    && needsCollaborationAppShell(url.pathname)
+  ) {
+    const shellUrl = new URL(COLLABORATION_APP_SHELL, url);
+    const shellRequest = new Request(shellUrl, {
+      method: context.request.method,
+      headers: context.request.headers,
+      signal: context.request.signal,
+    });
+    return withProductionSecurityHeaders(url, await context.next(shellRequest));
+  }
+
   return withProductionSecurityHeaders(url, await context.next());
 }
