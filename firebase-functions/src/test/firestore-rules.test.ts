@@ -9,7 +9,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, where, writeBatch } from 'firebase/firestore';
 import type { NormalizedProviderEvent } from '../model.js';
 import { HttpError, type AuthenticatedPrincipal } from '../security.js';
 import {
@@ -83,6 +83,70 @@ test('authenticated browser clients cannot read or mutate server-owned billing r
     await assertFails(setDoc(reference, { managedAgentAccess: true, amount: 1 }));
   }
   assert.ok(true);
+});
+
+test('authenticated owners can atomically create organizations and workspaces with the matching membership', async () => {
+  const client = environment.authenticatedContext('user_2').firestore();
+  const organizationId = 'org_created_123456';
+  const organization = doc(client, 'organizations', organizationId);
+  const organizationMember = doc(client, 'organizationMembers', `${organizationId}_user_2`);
+  const organizationBatch = writeBatch(client);
+  organizationBatch.set(organization, {
+    name: 'My Organization', ownerId: 'user_2', status: 'active',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  organizationBatch.set(organizationMember, {
+    organizationId, uid: 'user_2', role: 'owner', status: 'active', joinedAt: serverTimestamp(),
+  });
+  await assertSucceeds(organizationBatch.commit());
+  await assertSucceeds(getDoc(organization));
+
+  const workspaceId = 'ws_created_123456';
+  const workspace = doc(client, 'workspaces', workspaceId);
+  const member = doc(client, 'workspaceMembers', `${workspaceId}_user_2`);
+  const canvas = doc(client, 'workspaces', workspaceId, 'canvases', 'canvas_main_2');
+  const workspaceBatch = writeBatch(client);
+  workspaceBatch.set(workspace, {
+    name: 'My Workspace', ownerId: 'user_2', organizationId, status: 'active',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  workspaceBatch.set(member, {
+    workspaceId, uid: 'user_2', role: 'owner', status: 'active', joinedAt: serverTimestamp(),
+  });
+  workspaceBatch.set(canvas, {
+    workspaceId, name: 'Main canvas', createdBy: 'user_2', status: 'active',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  await assertSucceeds(workspaceBatch.commit());
+  await assertSucceeds(getDoc(workspace));
+  await assertSucceeds(getDocs(query(
+    collection(client, 'workspaceMembers'), where('uid', '==', 'user_2'), where('status', '==', 'active'),
+  )));
+  await assertSucceeds(getDocs(collection(client, 'workspaces', workspaceId, 'canvases')));
+});
+
+test('an organization member without admin rights cannot attach a workspace to that organization', async () => {
+  const client = environment.authenticatedContext('user_3').firestore();
+  await Promise.all([
+    getAdminFirestore().collection('organizations').doc('org_123456').set({ name: 'Example Org', ownerId: 'user_1', status: 'active' }),
+    getAdminFirestore().collection('organizationMembers').doc('org_123456_user_3').set({
+      organizationId: 'org_123456', uid: 'user_3', role: 'member', status: 'active',
+    }),
+  ]);
+  const workspaceId = 'ws_wrong_org_123456';
+  const batch = writeBatch(client);
+  batch.set(doc(client, 'workspaces', workspaceId), {
+    name: 'Unauthorized workspace', ownerId: 'user_3', organizationId: 'org_123456', status: 'active',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  batch.set(doc(client, 'workspaceMembers', `${workspaceId}_user_3`), {
+    workspaceId, uid: 'user_3', role: 'owner', status: 'active', joinedAt: serverTimestamp(),
+  });
+  batch.set(doc(client, 'workspaces', workspaceId, 'canvases', 'canvas_wrong_org'), {
+    workspaceId, name: 'Main canvas', createdBy: 'user_3', status: 'active',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  await assertFails(batch.commit());
 });
 
 const elementRecord = (uid: string, id: string, version: number, versionNonce: number, isDeleted = false) => ({

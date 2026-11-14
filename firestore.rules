@@ -8,19 +8,97 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid))
         && get(/databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid)).data.status == 'active';
     }
+    function workspaceMemberAfter(workspaceId) {
+      let memberPath = /databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid);
+      return signedIn()
+        && existsAfter(memberPath)
+        && getAfter(memberPath).data.workspaceId == workspaceId
+        && getAfter(memberPath).data.uid == request.auth.uid
+        && getAfter(memberPath).data.status == 'active';
+    }
     function workspaceRole(workspaceId) {
       return get(/databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid)).data.role;
     }
     function workspaceEditor(workspaceId) {
       return workspaceMember(workspaceId) && workspaceRole(workspaceId) in ['owner', 'admin', 'member'];
     }
-    function workspaceAdmin(workspaceId) {
-      return workspaceMember(workspaceId) && workspaceRole(workspaceId) in ['owner', 'admin'];
-    }
     function organizationMember(organizationId) {
       return signedIn()
         && exists(/databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid))
         && get(/databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid)).data.status == 'active';
+    }
+    function organizationAdmin(organizationId) {
+      let organizationPath = /databases/$(database)/documents/organizations/$(organizationId);
+      let memberPath = /databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid);
+      return organizationMember(organizationId)
+        && get(organizationPath).data.status == 'active'
+        && get(memberPath).data.role in ['owner', 'admin'];
+    }
+    function validOrganizationCreate(organizationId) {
+      let memberPath = /databases/$(database)/documents/organizationMembers/$(organizationId + '_' + request.auth.uid);
+      return signedIn()
+        && request.resource.data.keys().hasAll(['name', 'ownerId', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['name', 'ownerId', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(memberPath)
+        && getAfter(memberPath).data.organizationId == organizationId
+        && getAfter(memberPath).data.uid == request.auth.uid
+        && getAfter(memberPath).data.role == 'owner'
+        && getAfter(memberPath).data.status == 'active';
+    }
+    function validInitialOrganizationOwner(organizationId) {
+      let organizationPath = /databases/$(database)/documents/organizations/$(organizationId);
+      return signedIn()
+        && !exists(organizationPath)
+        && existsAfter(organizationPath)
+        && getAfter(organizationPath).data.ownerId == request.auth.uid
+        && getAfter(organizationPath).data.status == 'active';
+    }
+    function validWorkspaceCreate(workspaceId) {
+      let memberPath = /databases/$(database)/documents/workspaceMembers/$(workspaceId + '_' + request.auth.uid);
+      return signedIn()
+        && request.resource.data.keys().hasAll(['name', 'ownerId', 'organizationId', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['name', 'ownerId', 'organizationId', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && (request.resource.data.organizationId == null || organizationAdmin(request.resource.data.organizationId))
+        && existsAfter(memberPath)
+        && getAfter(memberPath).data.workspaceId == workspaceId
+        && getAfter(memberPath).data.uid == request.auth.uid
+        && getAfter(memberPath).data.role == 'owner'
+        && getAfter(memberPath).data.status == 'active';
+    }
+    function validInitialWorkspaceOwner(workspaceId) {
+      let workspacePath = /databases/$(database)/documents/workspaces/$(workspaceId);
+      return signedIn()
+        && !exists(workspacePath)
+        && existsAfter(workspacePath)
+        && getAfter(workspacePath).data.ownerId == request.auth.uid
+        && getAfter(workspacePath).data.status == 'active';
+    }
+    function validCanvasCreate(workspaceId) {
+      return request.resource.data.keys().hasAll(['workspaceId', 'name', 'createdBy', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['workspaceId', 'name', 'createdBy', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.workspaceId == workspaceId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && (workspaceEditor(workspaceId) || workspaceMemberAfter(workspaceId));
     }
     function validElementClock() {
       return request.resource.data.version is int
@@ -45,11 +123,13 @@ service cloud.firestore {
 
     match /workspaces/{workspaceId} {
       allow read: if workspaceMember(workspaceId);
-      allow write: if false;
+      allow create: if validWorkspaceCreate(workspaceId);
+      allow update, delete: if false;
 
       match /canvases/{canvasId} {
         allow read: if workspaceMember(workspaceId);
-        allow write: if false;
+        allow create: if validCanvasCreate(workspaceId);
+        allow update, delete: if false;
 
         match /elements/{elementId} {
           allow read: if workspaceMember(workspaceId);
@@ -90,16 +170,35 @@ service cloud.firestore {
     }
 
     match /workspaceMembers/{membershipId} {
-      allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || workspaceAdmin(resource.data.workspaceId));
-      allow write: if false;
+      allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || workspaceMember(resource.data.workspaceId));
+      allow create: if request.resource.data.keys().hasAll(['workspaceId', 'uid', 'role', 'status', 'joinedAt'])
+        && request.resource.data.keys().hasOnly(['workspaceId', 'uid', 'role', 'status', 'joinedAt'])
+        && request.resource.data.workspaceId is string
+        && membershipId == request.resource.data.workspaceId + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'owner'
+        && request.resource.data.status == 'active'
+        && request.resource.data.joinedAt == request.time
+        && validInitialWorkspaceOwner(request.resource.data.workspaceId);
+      allow update, delete: if false;
     }
     match /organizations/{organizationId} {
       allow read: if organizationMember(organizationId);
-      allow write: if false;
+      allow create: if validOrganizationCreate(organizationId);
+      allow update, delete: if false;
     }
     match /organizationMembers/{membershipId} {
-      allow get, list: if signedIn() && resource.data.uid == request.auth.uid;
-      allow write: if false;
+      allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || organizationMember(resource.data.organizationId));
+      allow create: if request.resource.data.keys().hasAll(['organizationId', 'uid', 'role', 'status', 'joinedAt'])
+        && request.resource.data.keys().hasOnly(['organizationId', 'uid', 'role', 'status', 'joinedAt'])
+        && request.resource.data.organizationId is string
+        && membershipId == request.resource.data.organizationId + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'owner'
+        && request.resource.data.status == 'active'
+        && request.resource.data.joinedAt == request.time
+        && validInitialOrganizationOwner(request.resource.data.organizationId);
+      allow update, delete: if false;
     }
 
     match /workspaceInvites/{documentId} { allow read, write: if false; }

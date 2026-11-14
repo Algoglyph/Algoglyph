@@ -33,7 +33,7 @@ export const InvitePage = () => {
     setPending(true);
     try {
       const result = await acceptWorkspaceInvite(await tokens(), token);
-      const detail = await getCloudWorkspace(await tokens(), result.workspaceId);
+      const detail = await getCloudWorkspace(result.workspaceId);
       const canvas = detail.canvases[0];
       navigate(canvas ? `/workspace/${result.workspaceId}/canvas/${canvas.id}` : '/workspaces');
     } catch (requestError) {

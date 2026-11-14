@@ -39,18 +39,17 @@ export const CloudCanvasPage = () => {
     let cancelled = false;
     void (async () => {
       try {
-        const apiTokens = await tokens();
-        const detail = await getCloudWorkspace(apiTokens, workspaceId);
+        const detail = await getCloudWorkspace(workspaceId);
         const selected = detail.canvases.find((item) => item.id === canvasId);
         if (!selected) throw new Error('Canvas not found in this workspace.');
-        const memberResult = await listWorkspaceMembers(apiTokens, workspaceId).catch(() => ({ members: [] }));
+        const memberResult = await listWorkspaceMembers(workspaceId).catch(() => ({ members: [] }));
         if (!cancelled) { setWorkspace(detail.workspace); setCanvas(selected); setCanvases(detail.canvases); setMembers(memberResult.members); }
       } catch (requestError) {
         if (!cancelled) setError(requestError instanceof Error ? requestError.message : 'Workspace access denied.');
       }
     })();
     return () => { cancelled = true; };
-  }, [auth.state.status, canvasId, tokens, workspaceId]);
+  }, [auth.state.status, canvasId, workspaceId]);
 
   const invite = async () => {
     try {
@@ -65,7 +64,7 @@ export const CloudCanvasPage = () => {
     const name = window.prompt('Canvas name');
     if (!name?.trim()) return;
     try {
-      const result = await createCloudCanvas(await tokens(), workspaceId, name);
+      const result = await createCloudCanvas(workspaceId, name);
       navigate(`/workspace/${workspaceId}/canvas/${result.canvas.id}`);
     } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Could not create canvas.'); }
   };
@@ -129,8 +128,7 @@ export const CloudWorkspaceEntryPage = () => {
     let cancelled = false;
     void (async () => {
       try {
-        const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
-        const detail = await getCloudWorkspace({ idToken, appCheckToken }, workspaceId);
+        const detail = await getCloudWorkspace(workspaceId);
         if (!cancelled) navigate(detail.canvases[0] ? `/workspace/${workspaceId}/canvas/${detail.canvases[0].id}` : '/workspaces', { replace: true });
       } catch {
         if (!cancelled) navigate('/workspaces', { replace: true });
