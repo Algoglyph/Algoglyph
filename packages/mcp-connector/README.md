@@ -2,7 +2,12 @@
 
 The local loopback bridge between [AlgoGlyph](https://algoglyph.com), supported local AI CLIs, and user-approved MCP servers.
 
-This package provides `0.2.6` / protocol v2. Running the release checks does not publish anything.
+This package provides `0.2.7` / protocol v2. Running the release checks does not publish anything.
+
+## 0.2.7 streamed canvas generation
+
+- Relays Claude Code text deltas through the connector as they are generated.
+- Supports incremental canvas element parsing so valid JSON responses can begin drawing before the complete response arrives.
 
 ## 0.2.6 macOS Antigravity launch fix
 
@@ -48,7 +53,7 @@ This package provides `0.2.6` / protocol v2. Running the release checks does not
 ## Start and connect
 
 ```bash
-npx --yes @algoglyph/mcp-connector@0.2.6
+npx --yes @algoglyph/mcp-connector@0.2.7
 ```
 
 Keep the command running and open AlgoGlyph. The browser discovers `http://127.0.0.1:4319`, obtains a short-lived one-time pairing credential, and redeems it automatically. There is no connection link to open and no token to copy.
