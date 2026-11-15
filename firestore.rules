@@ -328,7 +328,7 @@ service cloud.firestore {
       return workspaceMember(workspaceId)
         && canvasActive(workspaceId, canvasId)
         && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['uid', 'sessionId', 'displayName', 'photoURL', 'activeAt', 'expiresAt', 'pointer', 'pointerUpdatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'sessionId', 'displayName', 'photoURL', 'activeAt', 'expiresAt', 'pointer', 'pointerUpdatedAt', 'agentPointer', 'agentPointerUpdatedAt'])
         && request.resource.data.uid == request.auth.uid
         && (!request.resource.data.keys().hasAny(['sessionId']) || (request.resource.data.sessionId is string && request.resource.data.sessionId.size() >= 16 && request.resource.data.sessionId.size() <= 64))
         && request.resource.data.activeAt == request.time
@@ -341,7 +341,16 @@ service cloud.firestore {
           && request.resource.data.pointer.tool in ['pointer', 'laser']
           && request.resource.data.pointer.button in ['up', 'down']))
         && (!request.resource.data.keys().hasAny(['pointerUpdatedAt']) || (request.resource.data.pointerUpdatedAt is timestamp
-          && request.resource.data.pointerUpdatedAt <= request.time));
+          && request.resource.data.pointerUpdatedAt <= request.time))
+        && (!request.resource.data.keys().hasAny(['agentPointer']) || request.resource.data.agentPointer == null
+          || (request.resource.data.agentPointer is map
+            && request.resource.data.agentPointer.keys().hasOnly(['x', 'y', 'tool', 'button'])
+            && request.resource.data.agentPointer.x is number
+            && request.resource.data.agentPointer.y is number
+            && request.resource.data.agentPointer.tool in ['pointer', 'laser']
+            && request.resource.data.agentPointer.button in ['up', 'down']))
+        && (!request.resource.data.keys().hasAny(['agentPointerUpdatedAt']) || (request.resource.data.agentPointerUpdatedAt is timestamp
+          && request.resource.data.agentPointerUpdatedAt <= request.time));
     }
     function validRtcDescription(description, expectedType) {
       return description is map

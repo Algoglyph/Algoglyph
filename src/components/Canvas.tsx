@@ -8,6 +8,7 @@ import { StructuresPanel } from './StructuresPanel';
 import { LoadingSpinner } from './LoadingSpinner';
 import { dsaStructures, bindTextContainers } from '../config/dsaStructures';
 import { buildCanvasPrompt, generateCanvasResponse, insertCanvasSkeletons, CanvasAiError, parseCanvasAgentOutput } from '../lib/ai/diagram';
+import { CanvasDrawingSession } from '../lib/ai/canvasDrawingSession';
 import { serializeCanvasForNotes } from '../lib/ai/notes';
 import { beginCanvasPerfTrace, finishCanvasPerfTrace } from '../lib/ai/devTiming';
 import type { CanvasPlacementAnchor } from '../lib/ai/canvasPlacement';
@@ -110,6 +111,7 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
   const [collaborators, setCollaborators] = useState<CollaboratorPresence[]>([]);
   const collaboratorAnimationRef = useRef<number | null>(null);
   const renderedCollaboratorsRef = useRef<Map<SocketId, Collaborator>>(new Map());
+  const localAgentCursorRef = useRef<Collaborator | null>(null);
   const collaboratorPresenceRef = useRef<Map<string, CollaboratorPresence>>(new Map());
   const realtimePeerUidsRef = useRef(new Set<string>());
 
@@ -199,26 +201,109 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
     aiAbortRef.current = controller;
     setAiBusy(true);
     notify('Thinking…', 'info');
+    let timedOut = false;
+    let timeoutReason: 'first-action' | 'run-limit' | null = null;
+    let limited = false;
+    let generating = true;
+    let lastActionAt = performance.now();
+    let rejectOnAbort: (() => void) | null = null;
+    const hardTimeout = window.setTimeout(() => {
+      timedOut = true;
+      timeoutReason = 'run-limit';
+      controller.abort();
+    }, 60_000);
+    const actionWatch = window.setInterval(() => {
+      if (!generating) return;
+      if (performance.now() - lastActionAt < 20_000) return;
+      timedOut = true;
+      timeoutReason = 'first-action';
+      controller.abort();
+    }, 1_000);
+    const setAgentCursor = (pointer: CanvasPointer | null) => {
+      const socketId = 'algoglyph-ai-local' as SocketId;
+      const next = new Map(renderedCollaboratorsRef.current);
+      if (!pointer) {
+        next.delete(socketId);
+        localAgentCursorRef.current = null;
+      } else {
+        const collaborator: Collaborator = {
+          id: socketId,
+          socketId,
+          username: 'AlgoGlyph AI',
+          color: { background: '#ede9fe', stroke: '#7c3aed' },
+          pointer: { ...pointer, renderCursor: true },
+          button: pointer.button,
+        };
+        next.set(socketId, collaborator);
+        localAgentCursorRef.current = collaborator;
+      }
+      renderedCollaboratorsRef.current = next;
+      api.updateScene({ collaborators: next });
+      collaborationRef.current?.publishAgentPointer(pointer);
+    };
+    const drawing = new CanvasDrawingSession({
+      api,
+      anchor: prompt.anchor,
+      onCursor: setAgentCursor,
+      onError: (message) => notify(message, 'error'),
+      onLimit: () => {
+        limited = true;
+        controller.abort();
+      },
+    });
     try {
-      const { intent, skeletons } = await generateCanvasResponse(prompt.text, {
+      const generation = generateCanvasResponse(prompt.text, {
         connectorEndpoint: mcp.connectorEndpoint,
         connectorToken: mcp.connectorToken,
         agentId: mcp.activeAgentId || undefined,
         signal: controller.signal,
         canvasContext: serializeCanvasForNotes(sceneElements),
+        onActions: (actions) => {
+          lastActionAt = performance.now();
+          drawing.enqueue(actions);
+        },
+        onLimit: () => {
+          limited = true;
+          controller.abort();
+        },
       });
+      const cancelled = new Promise<never>((_resolve, reject) => {
+        rejectOnAbort = () => reject(new Error('Canvas AI run cancelled.'));
+        if (controller.signal.aborted) rejectOnAbort();
+        else controller.signal.addEventListener('abort', rejectOnAbort, { once: true });
+      });
+      const { intent, skeletons } = await Promise.race([generation, cancelled]);
+      generating = false;
+      const added = await drawing.finish();
       if (!skeletons.length) {
         notify('The AI did not produce a canvas response. Try rewording the request.', 'info');
         return;
       }
-      const added = insertCanvasSkeletons(skeletons, undefined, prompt.anchor);
+      if (limited) {
+        notify('Stopped at the drawing limit to keep this run quick. The actions generated so far were kept.', 'info');
+        return;
+      }
       const verb = intent === 'answer' || intent === 'explain' ? 'Answered' : 'Drew';
       notify(`${verb} on the canvas · ${added} elements`, 'success');
     } catch (error) {
-      if (!controller.signal.aborted) {
+      generating = false;
+      await drawing.finish();
+      if (timedOut) {
+        notify(timeoutReason === 'first-action'
+          ? 'No drawing action arrived for 20 seconds, so the run stopped. Try a smaller prompt or a different local agent.'
+          : 'Stopped after 60 seconds. The actions drawn so far were kept; try a smaller request for a faster result.', 'error');
+      } else if (limited) {
+        notify('Stopped at the drawing limit to keep this run quick. The actions drawn so far were kept.', 'info');
+      } else if (controller.signal.aborted) {
+        notify('Stopped. The actions drawn so far were kept.', 'info');
+      } else {
         notify(error instanceof CanvasAiError ? error.message : 'Canvas AI failed.', 'error');
       }
     } finally {
+      window.clearTimeout(hardTimeout);
+      window.clearInterval(actionWatch);
+      if (rejectOnAbort) controller.signal.removeEventListener('abort', rejectOnAbort);
+      setAgentCursor(null);
       aiAbortRef.current = null;
       setAiBusy(false);
     }
@@ -235,6 +320,29 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
       return;
     }
     setManagedBusy(true);
+    const setAgentCursor = (pointer: CanvasPointer | null) => {
+      const socketId = 'algoglyph-ai-local' as SocketId;
+      const next = new Map(renderedCollaboratorsRef.current);
+      if (!pointer) {
+        next.delete(socketId);
+        localAgentCursorRef.current = null;
+      } else {
+        const collaborator: Collaborator = {
+          id: socketId,
+          socketId,
+          username: 'AlgoGlyph AI',
+          color: { background: '#ede9fe', stroke: '#7c3aed' },
+          pointer: { ...pointer, renderCursor: true },
+          button: pointer.button,
+        };
+        next.set(socketId, collaborator);
+        localAgentCursorRef.current = collaborator;
+      }
+      renderedCollaboratorsRef.current = next;
+      api.updateScene({ collaborators: next });
+      collaborationRef.current?.publishAgentPointer(pointer);
+    };
+    const drawing = new CanvasDrawingSession({ api, anchor: prompt.anchor, onCursor: setAgentCursor });
     try {
       const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
       const result = await runManagedAgent(
@@ -244,11 +352,14 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
         buildCanvasPrompt(prompt.text, serializeCanvasForNotes(sceneElements)),
       );
       const response = await parseCanvasAgentOutput(result.output, prompt.text);
-      const added = insertCanvasSkeletons(response.skeletons, undefined, prompt.anchor);
+      drawing.enqueue(response.skeletons);
+      const added = await drawing.finish();
       notify(`Managed agent added ${added} elements.`, 'success');
     } catch (error) {
+      await drawing.finish();
       notify(error instanceof Error ? error.message : 'Managed agent failed.', 'error');
     } finally {
+      setAgentCursor(null);
       setManagedBusy(false);
     }
   }, [auth.actions, collaboration, managedBusy]);
@@ -323,22 +434,39 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
         people.forEach((person) => {
           if (person.uid === collaboration.user.uid) return;
           const socketId = person.uid as SocketId;
+          const aiSocketId = `ai-${person.uid}` as SocketId;
           if (realtimePeerUidsRef.current.has(person.uid)) {
             const current = renderedCollaboratorsRef.current.get(socketId);
             if (current) targetCollaborators.set(socketId, current);
-            return;
+            const currentAi = renderedCollaboratorsRef.current.get(aiSocketId);
+            if (currentAi) targetCollaborators.set(aiSocketId, currentAi);
+          } else if (person.pointer) {
+            targetCollaborators.set(socketId, {
+              id: person.uid,
+              socketId,
+              username: person.displayName || 'Collaborator',
+              avatarUrl: person.photoURL || undefined,
+              color: collaboratorColor(person.uid),
+              pointer: { ...person.pointer, renderCursor: true },
+              button: person.pointer.button,
+            });
           }
-          if (!person.pointer) return;
-          targetCollaborators.set(socketId, {
-            id: person.uid,
-            socketId,
-            username: person.displayName || 'Collaborator',
-            avatarUrl: person.photoURL || undefined,
-            color: collaboratorColor(person.uid),
-            pointer: { ...person.pointer, renderCursor: true },
-            button: person.pointer.button,
-          });
+          if (person.agentPointer && (!realtimePeerUidsRef.current.has(person.uid)
+            || !renderedCollaboratorsRef.current.has(aiSocketId))) {
+            targetCollaborators.set(aiSocketId, {
+              id: aiSocketId,
+              socketId: aiSocketId,
+              username: 'AlgoGlyph AI',
+              color: collaboratorColor(`ai-${person.uid}`),
+              pointer: { ...person.agentPointer, renderCursor: true },
+              button: person.agentPointer.button,
+            });
+          }
         });
+
+        if (localAgentCursorRef.current) {
+          targetCollaborators.set('algoglyph-ai-local' as SocketId, localAgentCursorRef.current);
+        }
 
         if (collaboratorAnimationRef.current !== null) {
           cancelAnimationFrame(collaboratorAnimationRef.current);
@@ -390,6 +518,23 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
         renderedCollaboratorsRef.current = next;
         excalidrawAPI.updateScene({ collaborators: next });
       },
+      onRealtimeAgentPointer: (uid, pointer) => {
+        const socketId = `ai-${uid}` as SocketId;
+        const next = new Map(renderedCollaboratorsRef.current);
+        if (!pointer) next.delete(socketId);
+        else {
+          next.set(socketId, {
+            id: socketId,
+            socketId,
+            username: 'AlgoGlyph AI',
+            color: collaboratorColor(`ai-${uid}`),
+            pointer: { ...pointer, renderCursor: true },
+            button: pointer.button,
+          });
+        }
+        renderedCollaboratorsRef.current = next;
+        excalidrawAPI.updateScene({ collaborators: next });
+      },
       onRealtimePeerState: (uid, connected) => {
         if (connected) realtimePeerUidsRef.current.add(uid);
         else realtimePeerUidsRef.current.delete(uid);
@@ -406,6 +551,7 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
         collaboratorAnimationRef.current = null;
       }
       renderedCollaboratorsRef.current.clear();
+      localAgentCursorRef.current = null;
       collaboratorPresenceRef.current.clear();
       realtimePeerUidsRef.current.clear();
       collaborationRef.current?.dispose();

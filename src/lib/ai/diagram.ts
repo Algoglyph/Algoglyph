@@ -3,7 +3,7 @@ import { runAgent } from '../mcp/connectorClient';
 import { serializeCanvasForNotes } from './notes';
 import { createBasicIllustrationPlan } from './basicIllustrations';
 import { recordCanvasPerfStage, recordCanvasPerfStages } from './devTiming';
-import { parseCanvasResponse, type CanvasResponse } from './diagramLayout';
+import { parseCanvasResponse, type CanvasIntent, type CanvasLayout, type CanvasResponse } from './diagramLayout';
 import { extractJsonObject } from './modelJson';
 import { placeSkeletonsBelowAnchor, type CanvasPlacementAnchor } from './canvasPlacement';
 import {
@@ -72,6 +72,27 @@ export const buildCanvasPrompt = (
   return `${CANVAS_AI_SYSTEM_PROMPT}\n\nUser request:\n${userRequest.trim().slice(0, 4000)}${available}${context}`;
 };
 
+const STREAMING_RESPONSE_CONTRACT = `For this run, stream one complete newline-delimited JSON record at a time. Start with:
+{"event":"start","intent":"draw","layout":"flow-left-to-right"}
+Then emit each finished canvas action immediately, before planning the next action:
+{"event":"element","element":{"type":"rectangle","id":"node-a","label":"A","x":0,"y":0,"width":180,"height":80}}
+Finish with {"event":"done"}. Do not use markdown, code fences, commentary, or one large JSON object.
+
+An element must use this skeleton schema: text {type:"text",text,x,y,fontSize?}; node {type:"rectangle"|"ellipse"|"diamond",id,label,role?,group?,x,y,width,height}; connector {type:"arrow"|"line",from,to,label?}; illustration {type:"path",id,points,closed?} or {type:"arc",id,x,y,width,height,startAngle,endAngle}; library {type:"library",id,name,label?,x,y,width?,height?}. Keep the complete run fast: emit no more than 32 element records. For diagrams, emit every node before its arrows; give every node explicit x, y, width, and height, spaced to avoid overlap. Emit an arrow only after both endpoint nodes. For illustrations, emit each shape/path as soon as its geometry is ready and use explicit coordinates. Use concise labels and only the elements needed to answer the request. Never emit private reasoning. If a request needs more than 32 actions, simplify the drawing while preserving its main idea.`;
+
+export const buildStreamingCanvasPrompt = (
+  userRequest: string,
+  canvasContext: string | null,
+  libraryHints: readonly string[] = [],
+): string => {
+  const prompt = buildCanvasPrompt(userRequest, canvasContext, libraryHints);
+  const contractStart = prompt.indexOf('Return STRICT JSON ONLY, with no markdown or prose outside this object:');
+  const contractEnd = prompt.indexOf('\n\nFirst classify the request.', contractStart);
+  if (contractStart < 0 || contractEnd < 0) return `${prompt}\n\n${STREAMING_RESPONSE_CONTRACT}`;
+  const remainder = prompt.slice(contractEnd).replace(/\n\nUse at most 40 shapes and 60 connectors\.[\s\S]*$/, '');
+  return `${prompt.slice(0, contractStart)}${STREAMING_RESPONSE_CONTRACT}${remainder}`;
+};
+
 export class CanvasAiError extends Error {
   constructor(message: string) {
     super(message);
@@ -107,10 +128,37 @@ export const generateCanvasResponse = async (
     signal?: AbortSignal;
     canvasContext?: string | null;
     timingTraceId?: string;
+    onActions?: (skeletons: Record<string, unknown>[]) => void;
+    onLimit?: () => void;
   },
 ): Promise<CanvasResponse> => {
+  const MAX_STREAM_ACTIONS = 32;
+  const MAX_DRAW_ELEMENTS = 96;
+  const emitActions = (skeletons: Record<string, unknown>[]) => {
+    if (!options.onActions || !skeletons.length) return;
+    const remaining = MAX_DRAW_ELEMENTS - streamedSkeletons.length;
+    if (remaining <= 0) {
+      if (!limitReached) options.onLimit?.();
+      limitReached = true;
+      return;
+    }
+    const accepted = skeletons.slice(0, remaining);
+    streamedSkeletons.push(...accepted);
+    options.onActions(accepted);
+    if (accepted.length < skeletons.length && !limitReached) {
+      limitReached = true;
+      options.onLimit?.();
+    }
+  };
+  let limitReached = false;
+  const streamedSkeletons: Record<string, unknown>[] = [];
+
   const basicIllustration = createBasicIllustrationPlan(userRequest);
-  if (basicIllustration) return parseCanvasResponse(basicIllustration);
+  if (basicIllustration) {
+    const response = parseCanvasResponse(basicIllustration);
+    emitActions(response.skeletons);
+    return { ...response, skeletons: streamedSkeletons.length ? streamedSkeletons : response.skeletons };
+  }
 
   let catalog: LibraryCatalogEntry[] = [];
   try {
@@ -118,7 +166,11 @@ export const generateCanvasResponse = async (
     catalog = await loadLibraryCatalog();
     recordCanvasPerfStage(options.timingTraceId, 'library_catalog_ms', performance.now() - catalogStartedAt);
     const directLibraryPlan = createSingleLibraryPlan(userRequest, catalog);
-    if (directLibraryPlan) return await hydrateLibrarySkeletons(parseCanvasResponse(directLibraryPlan));
+    if (directLibraryPlan) {
+      const response = await hydrateLibrarySkeletons(parseCanvasResponse(directLibraryPlan));
+      emitActions(response.skeletons);
+      return { ...response, skeletons: streamedSkeletons.length ? streamedSkeletons : response.skeletons };
+    }
   } catch {
     // The library is an enhancement. Agent planning and generated geometry remain available offline.
   }
@@ -126,6 +178,53 @@ export const generateCanvasResponse = async (
   const canvasContext = options.canvasContext === undefined ? serializeCanvasForNotes() : options.canvasContext;
   let stdout = '';
   let stderr = '';
+  let lineBuffer = '';
+  let streamDetected = false;
+  let streamIntent: CanvasIntent = 'draw';
+  let streamLayout: CanvasLayout = 'auto';
+  let streamActionCount = 0;
+  const streamActions: Record<string, unknown>[] = [];
+  const emittedSkeletonIds = new Set<string>();
+  const processStreamLine = async (line: string) => {
+    if (!line.trim() || line.length > 64_000) return;
+    let decoded: unknown;
+    try { decoded = JSON.parse(line); } catch { return; }
+    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) return;
+    const record = decoded as Record<string, unknown>;
+    if (record.event === 'start') {
+      streamDetected = true;
+      if (record.intent === 'answer' || record.intent === 'draw' || record.intent === 'illustration' || record.intent === 'explain') {
+        streamIntent = record.intent;
+      }
+      if (typeof record.layout === 'string') streamLayout = record.layout as CanvasLayout;
+      return;
+    }
+    if (record.event !== 'element' || !record.element || typeof record.element !== 'object' || Array.isArray(record.element)) return;
+    streamDetected = true;
+    if (streamActionCount >= MAX_STREAM_ACTIONS) {
+      if (!limitReached) options.onLimit?.();
+      limitReached = true;
+      return;
+    }
+    streamActionCount += 1;
+    streamActions.push(record.element as Record<string, unknown>);
+    if (!options.onActions) return;
+    try {
+      const raw = applyLibraryMatches({ intent: streamIntent, layout: streamLayout, elements: streamActions }, userRequest, catalog);
+      const parsed = parseCanvasResponse(raw);
+      const newSkeletons = parsed.skeletons.filter((skeleton) => {
+        const id = typeof skeleton.id === 'string' ? skeleton.id : null;
+        if (!id || emittedSkeletonIds.has(id)) return false;
+        emittedSkeletonIds.add(id);
+        return true;
+      });
+      if (!newSkeletons.length) return;
+      const hydrated = await hydrateLibrarySkeletons({ ...parsed, skeletons: newSkeletons });
+      emitActions(hydrated.skeletons);
+    } catch {
+      // Ignore an incomplete/invalid action and continue consuming the stream.
+    }
+  };
 
   try {
     const agentStartedAt = performance.now();
@@ -134,14 +233,25 @@ export const generateCanvasResponse = async (
       options.connectorToken,
       {
         agentId: options.agentId || 'claude',
-        prompt: buildCanvasPrompt(userRequest, canvasContext, relevantLibraryNames(userRequest, catalog)),
-        outputMode: 'buffered',
+        prompt: buildStreamingCanvasPrompt(userRequest, canvasContext, relevantLibraryNames(userRequest, catalog)),
+        outputMode: 'stream',
         traceId: options.timingTraceId,
       },
       options.signal,
     )) {
       if (event.type === 'output') {
-        if (event.stream === 'stdout') stdout += event.chunk;
+        if (event.stream === 'stdout') {
+          stdout += event.chunk;
+          lineBuffer += event.chunk;
+          if (stdout.length > 128_000) throw new CanvasAiError('The canvas response exceeded its size limit. Try a smaller request.');
+          let newline = lineBuffer.indexOf('\n');
+          while (newline !== -1) {
+            const line = lineBuffer.slice(0, newline).replace(/\r$/, '');
+            lineBuffer = lineBuffer.slice(newline + 1);
+            await processStreamLine(line);
+            newline = lineBuffer.indexOf('\n');
+          }
+        }
         else stderr += event.chunk;
       } else if (event.type === 'error') {
         throw new CanvasAiError(event.message);
@@ -153,6 +263,25 @@ export const generateCanvasResponse = async (
   } catch (error) {
     if (error instanceof CanvasAiError) throw error;
     throw new CanvasAiError(error instanceof Error ? error.message : 'Could not reach the local connector.');
+  }
+
+  if (lineBuffer.trim()) await processStreamLine(lineBuffer.trim());
+
+  if (streamDetected) {
+    if (!streamActions.length) {
+      throw new CanvasAiError('The AI did not stream any canvas actions. Try rewording the request.');
+    }
+    try {
+      const raw = applyLibraryMatches({ intent: streamIntent, layout: streamLayout, elements: streamActions }, userRequest, catalog);
+      const response = parseCanvasResponse(raw);
+      if (!options.onActions) return await hydrateLibrarySkeletons(response);
+      return { ...response, skeletons: streamedSkeletons };
+    } catch (error) {
+      if (streamedSkeletons.length) {
+        return { intent: streamIntent, layout: streamLayout, skeletons: streamedSkeletons, qualityWarnings: [] };
+      }
+      throw error;
+    }
   }
 
   if (!stdout.trim()) {
@@ -172,7 +301,8 @@ export const generateCanvasResponse = async (
     const hydrationStartedAt = performance.now();
     const hydrated = await hydrateLibrarySkeletons(response);
     recordCanvasPerfStage(options.timingTraceId, 'library_hydration_ms', performance.now() - hydrationStartedAt);
-    return hydrated;
+    emitActions(hydrated.skeletons);
+    return { ...hydrated, skeletons: streamedSkeletons.length ? streamedSkeletons : hydrated.skeletons };
   } catch (error) {
     throw new CanvasAiError(
       error instanceof Error ? `Could not read the response: ${error.message}` : 'Could not read the response.',

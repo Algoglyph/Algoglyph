@@ -21,6 +21,7 @@ export interface CollaboratorPresence {
   displayName: string | null;
   photoURL: string | null;
   pointer: { x: number; y: number; tool: 'pointer' | 'laser'; button: 'up' | 'down' } | null;
+  agentPointer: CanvasPointer | null;
 }
 
 export interface CanvasPointer {
@@ -40,6 +41,7 @@ interface CollaborationOptions {
   onFiles: (files: BinaryFiles) => void;
   onPresence: (people: CollaboratorPresence[]) => void;
   onRealtimePointer: (uid: string, pointer: CanvasPointer) => void;
+  onRealtimeAgentPointer: (uid: string, pointer: CanvasPointer | null) => void;
   onRealtimePeerState: (uid: string, connected: boolean) => void;
   onStatus: (status: CanvasSyncStatus, message?: string) => void;
   onError: (message: string) => void;
@@ -136,6 +138,11 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
   let localPointer: CanvasPointer | null = null;
   let pointerWriteTimer: number | undefined;
   let lastPointerWriteAt = 0;
+  let localAgentPointer: CanvasPointer | null = null;
+  let agentPointerWriteTimer: number | undefined;
+  let lastAgentPointerWriteAt = 0;
+  let agentPointerWriteBlocked = false;
+  let agentPointerErrorNotified = false;
   let pointerWriteBlocked = false;
   let pointerErrorNotified = false;
   const sessionId = crypto.randomUUID();
@@ -149,6 +156,7 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
       options.onElements(elements);
     },
     onPointer: options.onRealtimePointer,
+    onAgentPointer: options.onRealtimeAgentPointer,
     onPeerState: options.onRealtimePeerState,
     onError: options.onError,
   });
@@ -193,6 +201,41 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
     const delay = Math.max(0, POINTER_WRITE_INTERVAL - (Date.now() - lastPointerWriteAt));
     if (delay === 0) writePointer();
     else if (pointerWriteTimer === undefined) pointerWriteTimer = window.setTimeout(writePointer, delay);
+  };
+
+  const writeAgentPointer = () => {
+    agentPointerWriteTimer = undefined;
+    if (agentPointerWriteBlocked || disposed) return;
+    lastAgentPointerWriteAt = Date.now();
+    void setDoc(ownPresenceRef, {
+      uid: options.user.uid,
+      displayName: options.user.displayName,
+      photoURL: options.user.photoURL,
+      sessionId,
+      activeAt: serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 90_000),
+      agentPointer: localAgentPointer,
+      agentPointerUpdatedAt: serverTimestamp(),
+    }, { merge: true }).then(() => {
+      agentPointerErrorNotified = false;
+    }).catch((error: unknown) => {
+      const code = error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+        ? error.code
+        : null;
+      if (code === 'permission-denied') agentPointerWriteBlocked = true;
+      if (agentPointerErrorNotified) return;
+      agentPointerErrorNotified = true;
+      options.onError(code === 'permission-denied'
+        ? 'Live AI cursors are blocked by Firestore rules. Deploy the latest firestore.rules, then reload this canvas.'
+        : 'Could not sync the AI cursor. Check the connection if it continues.');
+    });
+  };
+
+  const storeAgentPointer = (pointer: CanvasPointer | null) => {
+    localAgentPointer = pointer;
+    const delay = Math.max(0, POINTER_WRITE_INTERVAL - (Date.now() - lastAgentPointerWriteAt));
+    if (delay === 0) writeAgentPointer();
+    else if (agentPointerWriteTimer === undefined) agentPointerWriteTimer = window.setTimeout(writeAgentPointer, delay);
   };
 
   const storeFile = async (file: BinaryFiles[string]) => {
@@ -408,6 +451,10 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
         && now - value.pointerUpdatedAt.toMillis() < POINTER_VISIBLE_MS
         ? value.pointer
         : null,
+      agentPointer: (isCanvasPointer(value.agentPointer) || value.agentPointer === null) && value.agentPointerUpdatedAt instanceof Timestamp
+        && now - value.agentPointerUpdatedAt.toMillis() < POINTER_VISIBLE_MS
+        ? value.agentPointer as CanvasPointer | null
+        : null,
     }));
     realtime.updateParticipants(people);
     options.onPresence(people);
@@ -432,11 +479,17 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
         if (!realtime.hasAllPeersConnected()) storePointer(pointer);
       }
     },
+    publishAgentPointer: (pointer: CanvasPointer | null) => {
+      if (disposed || (pointer !== null && !isCanvasPointer(pointer))) return;
+      realtime.publishAgentPointer(pointer);
+      if (pointer === null || !realtime.hasAllPeersConnected()) storeAgentPointer(pointer);
+    },
     dispose: () => {
       disposed = true;
       realtime.dispose();
       if (debounce) window.clearTimeout(debounce);
       if (pointerWriteTimer !== undefined) window.clearTimeout(pointerWriteTimer);
+      if (agentPointerWriteTimer !== undefined) window.clearTimeout(agentPointerWriteTimer);
       window.clearInterval(heartbeatTimer);
       unsubscribeElements();
       unsubscribeFiles();

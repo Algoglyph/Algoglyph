@@ -26,6 +26,7 @@ interface RealtimeOptions {
   sessionId: string;
   onElements: (elements: readonly OrderedExcalidrawElement[]) => void;
   onPointer: (uid: string, pointer: CanvasPointer) => void;
+  onAgentPointer: (uid: string, pointer: CanvasPointer | null) => void;
   onPeerState: (uid: string, connected: boolean) => void;
   onError: (message: string) => void;
 }
@@ -125,8 +126,10 @@ export const connectCanvasRealtime = (options: RealtimeOptions) => {
   const fragments = new Map<string, FragmentSet>();
   const pendingElements = new Map<string, OrderedExcalidrawElement>();
   let pendingPointer: CanvasPointer | null = null;
+  let pendingAgentPointer: CanvasPointer | null | undefined;
   let elementTimer: number | undefined;
   let pointerTimer: number | undefined;
+  let agentPointerTimer: number | undefined;
   let disposed = false;
   let permissionErrorShown = false;
   let fallbackParticipantCount = 0;
@@ -206,6 +209,8 @@ export const connectCanvasRealtime = (options: RealtimeOptions) => {
       if (elements.length) options.onElements(elements);
     } else if (message.kind === 'pointer' && isPointer(message.pointer)) {
       options.onPointer(peer.uid, message.pointer);
+    } else if (message.kind === 'agent-pointer' && (message.pointer === null || isPointer(message.pointer))) {
+      options.onAgentPointer(peer.uid, message.pointer as CanvasPointer | null);
     }
   };
 
@@ -489,11 +494,23 @@ export const connectCanvasRealtime = (options: RealtimeOptions) => {
     }, 16);
   };
 
+  const publishAgentPointer = (pointer: CanvasPointer | null) => {
+    pendingAgentPointer = pointer;
+    if (agentPointerTimer !== undefined) return;
+    agentPointerTimer = window.setTimeout(() => {
+      agentPointerTimer = undefined;
+      const latest = pendingAgentPointer;
+      pendingAgentPointer = undefined;
+      if (latest !== undefined) activePeers.forEach((peer) => sendJson(peer, { kind: 'agent-pointer', pointer: latest }));
+    }, 16);
+  };
+
   return {
     sessionId: options.sessionId,
     updateParticipants,
     publishElements,
     publishPointer,
+    publishAgentPointer,
     isPeerConnected: (uid: string) => activePeers.get(uid)?.channel?.readyState === 'open',
     hasAllPeersConnected: () => participants.size > 0
       && fallbackParticipantCount === 0
@@ -502,6 +519,7 @@ export const connectCanvasRealtime = (options: RealtimeOptions) => {
       disposed = true;
       if (elementTimer !== undefined) window.clearTimeout(elementTimer);
       if (pointerTimer !== undefined) window.clearTimeout(pointerTimer);
+      if (agentPointerTimer !== undefined) window.clearTimeout(agentPointerTimer);
       fragments.forEach((fragment) => window.clearTimeout(fragment.timer));
       fragments.clear();
       unsubscribeSessions();
