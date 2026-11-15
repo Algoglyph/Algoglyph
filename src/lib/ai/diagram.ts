@@ -185,21 +185,13 @@ export const generateCanvasResponse = async (
   let streamActionCount = 0;
   const streamActions: Record<string, unknown>[] = [];
   const emittedSkeletonIds = new Set<string>();
-  const processStreamLine = async (line: string) => {
-    if (!line.trim() || line.length > 64_000) return;
-    let decoded: unknown;
-    try { decoded = JSON.parse(line); } catch { return; }
-    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) return;
-    const record = decoded as Record<string, unknown>;
-    if (record.event === 'start') {
-      streamDetected = true;
-      if (record.intent === 'answer' || record.intent === 'draw' || record.intent === 'illustration' || record.intent === 'explain') {
-        streamIntent = record.intent;
-      }
-      if (typeof record.layout === 'string') streamLayout = record.layout as CanvasLayout;
-      return;
-    }
-    if (record.event !== 'element' || !record.element || typeof record.element !== 'object' || Array.isArray(record.element)) return;
+  let legacyArrayOffset = -1;
+  let legacyObjectStart = -1;
+  let legacyObjectDepth = 0;
+  let legacyInString = false;
+  let legacyEscaped = false;
+  let legacyArrayEnded = false;
+  const addStreamAction = async (element: Record<string, unknown>) => {
     streamDetected = true;
     if (streamActionCount >= MAX_STREAM_ACTIONS) {
       if (!limitReached) options.onLimit?.();
@@ -207,7 +199,7 @@ export const generateCanvasResponse = async (
       return;
     }
     streamActionCount += 1;
-    streamActions.push(record.element as Record<string, unknown>);
+    streamActions.push(element);
     if (!options.onActions) return;
     try {
       const raw = applyLibraryMatches({ intent: streamIntent, layout: streamLayout, elements: streamActions }, userRequest, catalog);
@@ -223,6 +215,78 @@ export const generateCanvasResponse = async (
       emitActions(hydrated.skeletons);
     } catch {
       // Ignore an incomplete/invalid action and continue consuming the stream.
+    }
+  };
+  const processStreamLine = async (line: string) => {
+    if (!line.trim() || line.length > 64_000) return;
+    let decoded: unknown;
+    try { decoded = JSON.parse(line); } catch { return; }
+    if (!decoded || typeof decoded !== 'object' || Array.isArray(decoded)) return;
+    const record = decoded as Record<string, unknown>;
+    if (record.event === 'start') {
+      streamDetected = true;
+      if (record.intent === 'answer' || record.intent === 'draw' || record.intent === 'illustration' || record.intent === 'explain') {
+        streamIntent = record.intent;
+      }
+      if (typeof record.layout === 'string') streamLayout = record.layout as CanvasLayout;
+      return;
+    }
+    if (record.event !== 'element' || !record.element || typeof record.element !== 'object' || Array.isArray(record.element)) return;
+    await addStreamAction(record.element as Record<string, unknown>);
+  };
+  const processLegacyJsonActions = async () => {
+    if (streamDetected || legacyArrayEnded) return;
+    if (legacyArrayOffset === -1) {
+      const elementsKey = stdout.indexOf('"elements"');
+      if (elementsKey === -1) return;
+      const arrayStart = stdout.indexOf('[', elementsKey + '"elements"'.length);
+      if (arrayStart === -1) return;
+      const header = stdout.slice(0, arrayStart);
+      const intent = header.match(/"intent"\s*:\s*"(answer|draw|illustration|explain)"/);
+      if (intent) streamIntent = intent[1] as CanvasIntent;
+      const layout = header.match(/"layout"\s*:\s*"([^"]+)"/);
+      if (layout) streamLayout = layout[1] as CanvasLayout;
+      legacyArrayOffset = arrayStart + 1;
+      streamDetected = true;
+    }
+
+    for (let index = legacyArrayOffset; index < stdout.length; index += 1) {
+      const char = stdout[index];
+      legacyArrayOffset = index + 1;
+      if (legacyObjectStart === -1) {
+        if (char === ']') {
+          legacyArrayEnded = true;
+          return;
+        }
+        if (char === '{') {
+          legacyObjectStart = index;
+          legacyObjectDepth = 1;
+          legacyInString = false;
+          legacyEscaped = false;
+        }
+        continue;
+      }
+
+      if (legacyInString) {
+        if (legacyEscaped) legacyEscaped = false;
+        else if (char === '\\') legacyEscaped = true;
+        else if (char === '"') legacyInString = false;
+        continue;
+      }
+      if (char === '"') legacyInString = true;
+      else if (char === '{') legacyObjectDepth += 1;
+      else if (char === '}') {
+        legacyObjectDepth -= 1;
+        if (legacyObjectDepth === 0) {
+          const serialized = stdout.slice(legacyObjectStart, index + 1);
+          legacyObjectStart = -1;
+          let element: unknown;
+          try { element = JSON.parse(serialized); } catch { continue; }
+          if (element && typeof element === 'object' && !Array.isArray(element)) {
+            await addStreamAction(element as Record<string, unknown>);
+          }
+        }
+      }
     }
   };
 
@@ -251,6 +315,7 @@ export const generateCanvasResponse = async (
             await processStreamLine(line);
             newline = lineBuffer.indexOf('\n');
           }
+          await processLegacyJsonActions();
         }
         else stderr += event.chunk;
       } else if (event.type === 'error') {
@@ -266,6 +331,7 @@ export const generateCanvasResponse = async (
   }
 
   if (lineBuffer.trim()) await processStreamLine(lineBuffer.trim());
+  await processLegacyJsonActions();
 
   if (streamDetected) {
     if (!streamActions.length) {

@@ -2361,6 +2361,20 @@ const handleClaudeStreamLine = (session, line) => {
     session.initializationMs ||= session.initializedAt - session.startedAt;
     return;
   }
+  if (message.type === 'stream_event' && session.activeMessage) {
+    const event = message.event;
+    const delta = event?.delta;
+    if (event?.type !== 'content_block_delta' || delta?.type !== 'text_delta' || typeof delta.text !== 'string') return;
+    const active = session.activeMessage;
+    const nextBytes = active.streamedBytes + Buffer.byteLength(delta.text, 'utf8');
+    if (nextBytes > MAX_AGENT_OUTPUT_BYTES) {
+      active.completion.reject(new ClaudeStreamUnavailableError('The agent run exceeded the output safety limit.'));
+      return;
+    }
+    active.streamedBytes = nextBytes;
+    if (delta.text) active.onDelta?.(delta.text);
+    return;
+  }
   if (message.type !== 'result' || !session.activeMessage) return;
   const active = session.activeMessage;
   if (message.is_error === true || message.subtype !== 'success') {
@@ -2377,6 +2391,7 @@ const handleClaudeStreamLine = (session, line) => {
   }
   active.completion.resolve({
     output,
+    streamedOutput: active.streamedBytes > 0,
     sessionId: typeof message.session_id === 'string' ? message.session_id : undefined,
   });
 };
@@ -2576,11 +2591,11 @@ const getClaudeStreamSession = async (approvedServer, owner) => {
 const executeClaudeStreamMessage = async (
   session,
   content,
-  { cancellationPromise, isCancelled, timeoutMs = AGENT_RUN_TIMEOUT_MS },
+  { cancellationPromise, isCancelled, onDelta, timeoutMs = AGENT_RUN_TIMEOUT_MS },
 ) => {
   if (session.activeMessage) throw new ClaudeStreamUnavailableError('Claude is already processing a message.');
   const completion = createDeferred();
-  const active = { completion, content };
+  const active = { completion, content, onDelta, streamedBytes: 0 };
   session.activeMessage = active;
   const startedAt = monotonicMilliseconds();
   const timedOut = createDeferred();
@@ -2634,7 +2649,12 @@ const executeClaudeStreamTurn = async (session, prompt, cancellation) => {
   }
   session.lastSessionId = result.sessionId;
   session.turnsCompleted += 1;
-  return { output: result.output, clearMs, modelRequestMs: result.durationMs };
+  return {
+    output: result.output,
+    streamedOutput: result.streamedOutput,
+    clearMs,
+    modelRequestMs: result.durationMs,
+  };
 };
 
 const streamPersistentClaudeRun = async (
@@ -2645,6 +2665,7 @@ const streamPersistentClaudeRun = async (
   secrets,
   authorization,
   releaseSlot,
+  bufferedOutputMode,
 ) => {
   const requestStartedAt = monotonicMilliseconds();
   let worker;
@@ -2688,8 +2709,11 @@ const streamPersistentClaudeRun = async (
     const result = await executeClaudeStreamTurn(worker, prompt, {
       isCancelled: () => cancelled,
       cancellationPromise: cancellation.promise,
+      onDelta: bufferedOutputMode ? undefined : (chunk) => send('output', { stream: 'stdout', chunk }),
     });
-    if (result.output) send('output', { stream: 'stdout', chunk: result.output });
+    if (result.output && (bufferedOutputMode || !result.streamedOutput)) {
+      send('output', { stream: 'stdout', chunk: result.output });
+    }
     if (DEV_TIMING_ENABLED) {
       send('timing', {
         stages: {
@@ -3325,6 +3349,7 @@ const streamAgentRun = async (request, response, body, authorization) => {
       secrets,
       authorization,
       releaseSlot,
+      bufferedOutput,
     );
     if (handled) return;
   }
