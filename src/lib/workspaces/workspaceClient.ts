@@ -253,6 +253,15 @@ const clearCanvasData = async (workspaceId: string, canvasId: string): Promise<v
   await deleteQueryDocuments(collection(canvasRef, 'elements'));
   await deleteQueryDocuments(collection(canvasRef, 'files'));
   await deleteQueryDocuments(collection(canvasRef, 'presence'));
+  const rtcSessionsRef = collection(canvasRef, 'rtcSessions');
+  while (true) {
+    const rtcSessions = await getDocs(query(rtcSessionsRef, limit(100)));
+    if (rtcSessions.empty) break;
+    for (const session of rtcSessions.docs) {
+      await deleteQueryDocuments(collection(session.ref, 'candidates'));
+      await deleteDoc(session.ref);
+    }
+  }
   await deleteDoc(canvasRef);
 };
 

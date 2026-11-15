@@ -41,6 +41,8 @@ const collaboratorColor = (uid: string) => {
   return collaboratorColors[Math.abs(hash) % collaboratorColors.length]!;
 };
 
+const REMOTE_CURSOR_ANIMATION_MS = 90;
+
 function canvasPrompt(elements: readonly any[]): CanvasPrompt | null {
   if (!elements.length) return null;
   const minX = Math.min(...elements.map((element: any) => Number(element.x) || 0));
@@ -106,6 +108,10 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
   const containerRef = useRef<HTMLDivElement>(null);
   const collaborationRef = useRef<ReturnType<typeof connectCanvasCollaboration> | null>(null);
   const [collaborators, setCollaborators] = useState<CollaboratorPresence[]>([]);
+  const collaboratorAnimationRef = useRef<number | null>(null);
+  const renderedCollaboratorsRef = useRef<Map<SocketId, Collaborator>>(new Map());
+  const collaboratorPresenceRef = useRef<Map<string, CollaboratorPresence>>(new Map());
+  const realtimePeerUidsRef = useRef(new Set<string>());
 
   // AI-native diagram generation: read the prompt off the canvas → generate.
   const [aiBusy, setAiBusy] = useState(false);
@@ -312,11 +318,18 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
       },
       onPresence: (people) => {
         setCollaborators(people);
-        const remoteCollaborators = new Map<SocketId, Collaborator>();
+        collaboratorPresenceRef.current = new Map(people.map((person) => [person.uid, person]));
+        const targetCollaborators = new Map<SocketId, Collaborator>();
         people.forEach((person) => {
-          if (!person.pointer || person.uid === collaboration.user.uid) return;
+          if (person.uid === collaboration.user.uid) return;
           const socketId = person.uid as SocketId;
-          remoteCollaborators.set(socketId, {
+          if (realtimePeerUidsRef.current.has(person.uid)) {
+            const current = renderedCollaboratorsRef.current.get(socketId);
+            if (current) targetCollaborators.set(socketId, current);
+            return;
+          }
+          if (!person.pointer) return;
+          targetCollaborators.set(socketId, {
             id: person.uid,
             socketId,
             username: person.displayName || 'Collaborator',
@@ -326,7 +339,60 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
             button: person.pointer.button,
           });
         });
-        excalidrawAPI.updateScene({ collaborators: remoteCollaborators });
+
+        if (collaboratorAnimationRef.current !== null) {
+          cancelAnimationFrame(collaboratorAnimationRef.current);
+          collaboratorAnimationRef.current = null;
+        }
+        const starts = renderedCollaboratorsRef.current;
+        const startedAt = performance.now();
+        const animate = (now: number) => {
+          const progress = Math.min(1, (now - startedAt) / REMOTE_CURSOR_ANIMATION_MS);
+          const next = new Map<SocketId, Collaborator>();
+          targetCollaborators.forEach((target, socketId) => {
+            const targetPointer = target.pointer;
+            if (!targetPointer) return;
+            const startPointer = starts.get(socketId)?.pointer ?? targetPointer;
+            next.set(socketId, {
+              ...target,
+              pointer: {
+                ...targetPointer,
+                x: startPointer.x + (targetPointer.x - startPointer.x) * progress,
+                y: startPointer.y + (targetPointer.y - startPointer.y) * progress,
+              },
+            });
+          });
+          renderedCollaboratorsRef.current = next;
+          excalidrawAPI.updateScene({ collaborators: next });
+          if (progress < 1) collaboratorAnimationRef.current = requestAnimationFrame(animate);
+          else collaboratorAnimationRef.current = null;
+        };
+        collaboratorAnimationRef.current = requestAnimationFrame(animate);
+      },
+      onRealtimePointer: (uid, pointer) => {
+        const person = collaboratorPresenceRef.current.get(uid);
+        if (!person) return;
+        const socketId = uid as SocketId;
+        const next = new Map(renderedCollaboratorsRef.current);
+        next.set(socketId, {
+          id: uid,
+          socketId,
+          username: person.displayName || 'Collaborator',
+          avatarUrl: person.photoURL || undefined,
+          color: collaboratorColor(uid),
+          pointer: { ...pointer, renderCursor: true },
+          button: pointer.button,
+        });
+        if (collaboratorAnimationRef.current !== null) {
+          cancelAnimationFrame(collaboratorAnimationRef.current);
+          collaboratorAnimationRef.current = null;
+        }
+        renderedCollaboratorsRef.current = next;
+        excalidrawAPI.updateScene({ collaborators: next });
+      },
+      onRealtimePeerState: (uid, connected) => {
+        if (connected) realtimePeerUidsRef.current.add(uid);
+        else realtimePeerUidsRef.current.delete(uid);
       },
       onFiles: (remoteFiles) => {
         excalidrawAPI.updateScene({ files: { ...excalidrawAPI.getFiles(), ...remoteFiles } });
@@ -335,6 +401,13 @@ export const Canvas: React.FC<CanvasProps> = ({ collaboration, onCollaborationSt
       onError: (message) => notify(message, 'error'),
     });
     return () => {
+      if (collaboratorAnimationRef.current !== null) {
+        cancelAnimationFrame(collaboratorAnimationRef.current);
+        collaboratorAnimationRef.current = null;
+      }
+      renderedCollaboratorsRef.current.clear();
+      collaboratorPresenceRef.current.clear();
+      realtimePeerUidsRef.current.clear();
       collaborationRef.current?.dispose();
       collaborationRef.current = null;
     };

@@ -13,9 +13,11 @@ import {
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
+import { connectCanvasRealtime } from './canvasRealtime';
 
 export interface CollaboratorPresence {
   uid: string;
+  sessionId: string | null;
   displayName: string | null;
   photoURL: string | null;
   pointer: { x: number; y: number; tool: 'pointer' | 'laser'; button: 'up' | 'down' } | null;
@@ -37,6 +39,8 @@ interface CollaborationOptions {
   onElements: (elements: readonly OrderedExcalidrawElement[]) => void;
   onFiles: (files: BinaryFiles) => void;
   onPresence: (people: CollaboratorPresence[]) => void;
+  onRealtimePointer: (uid: string, pointer: CanvasPointer) => void;
+  onRealtimePeerState: (uid: string, connected: boolean) => void;
   onStatus: (status: CanvasSyncStatus, message?: string) => void;
   onError: (message: string) => void;
 }
@@ -108,6 +112,7 @@ const wins = (incoming: OrderedExcalidrawElement, existing?: OrderedExcalidrawEl
   return iv > ev || (iv === ev && inonce < enonce);
 };
 const fingerprint = (element: OrderedExcalidrawElement) => `${element.id}:${element.version || 0}:${element.versionNonce || 0}:${element.isDeleted === true}`;
+const sameVersion = (left: OrderedExcalidrawElement, right: OrderedExcalidrawElement) => fingerprint(left) === fingerprint(right);
 
 export const connectCanvasCollaboration = (options: CollaborationOptions) => {
   const db = getFirestore(getApp());
@@ -117,6 +122,7 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
   const presenceRef = collection(canvasRef, 'presence');
   const ownPresenceRef = doc(presenceRef, options.user.uid);
   const known = new Map<string, string>();
+  const knownElements = new Map<string, OrderedExcalidrawElement>();
   const knownFiles = new Map<string, { stamp: string; dataURL: string }>();
   let ready = false;
   let disposed = false;
@@ -132,6 +138,28 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
   let lastPointerWriteAt = 0;
   let pointerWriteBlocked = false;
   let pointerErrorNotified = false;
+  const sessionId = crypto.randomUUID();
+  const realtime = connectCanvasRealtime({
+    workspaceId: options.workspaceId,
+    canvasId: options.canvasId,
+    user: options.user,
+    sessionId,
+    onElements: (elements) => {
+      elements.forEach(acknowledgeElement);
+      options.onElements(elements);
+    },
+    onPointer: options.onRealtimePointer,
+    onPeerState: options.onRealtimePeerState,
+    onError: options.onError,
+  });
+
+  function acknowledgeElement(element: OrderedExcalidrawElement) {
+    const current = knownElements.get(element.id);
+    if (!current || wins(element, current) || sameVersion(element, current)) {
+      knownElements.set(element.id, element);
+      known.set(element.id, fingerprint(element));
+    }
+  }
 
   const writePointer = () => {
     pointerWriteTimer = undefined;
@@ -141,6 +169,7 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
       uid: options.user.uid,
       displayName: options.user.displayName,
       photoURL: options.user.photoURL,
+      sessionId,
       activeAt: serverTimestamp(),
       expiresAt: Timestamp.fromMillis(Date.now() + 90_000),
       ...(localPointer ? { pointer: localPointer, pointerUpdatedAt: serverTimestamp() } : {}),
@@ -242,7 +271,7 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
         return written;
       });
       for (const element of chunk) {
-        if (writtenIds.includes(element.id)) known.set(element.id, fingerprint(element));
+        if (writtenIds.includes(element.id)) acknowledgeElement(element);
       }
     }
     lastWriteFailed = false;
@@ -259,6 +288,7 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
       const stored = knownFiles.get(file.id);
       return !stored || stored.stamp !== fileStamp(file) || stored.dataURL !== file.dataURL;
     });
+    if (changed.length) realtime.publishElements(changed);
     if (!changed.length && !changedFiles.length) return;
     const nextFingerprint = [
       ...changed.map((element) => `element:${fingerprint(element)}`),
@@ -310,7 +340,7 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
       remote.push(element);
       // Firestore emits latency-compensated snapshots before a write is accepted.
       // Only acknowledge committed snapshots so a rejected optimistic write stays retryable.
-      if (!item.metadata.hasPendingWrites) known.set(element.id, fingerprint(element));
+      if (!item.metadata.hasPendingWrites) acknowledgeElement(element);
     });
     ready = true;
     if (snapshot.metadata.fromCache) {
@@ -367,23 +397,27 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
 
   const unsubscribePresence = onSnapshot(presenceRef, (snapshot) => {
     const now = Date.now();
-    options.onPresence(snapshot.docs.map((item) => item.data()).filter((value) => {
+    const people = snapshot.docs.map((item) => item.data()).filter((value) => {
       return value.expiresAt instanceof Timestamp && value.expiresAt.toMillis() > now;
     }).map((value) => ({
       uid: value.uid,
+      sessionId: typeof value.sessionId === 'string' ? value.sessionId : null,
       displayName: value.displayName ?? null,
       photoURL: value.photoURL ?? null,
       pointer: isCanvasPointer(value.pointer) && value.pointerUpdatedAt instanceof Timestamp
         && now - value.pointerUpdatedAt.toMillis() < POINTER_VISIBLE_MS
         ? value.pointer
         : null,
-    })));
+    }));
+    realtime.updateParticipants(people);
+    options.onPresence(people);
   });
 
   const heartbeat = () => setDoc(ownPresenceRef, {
       uid: options.user.uid,
       displayName: options.user.displayName,
       photoURL: options.user.photoURL,
+      sessionId,
       activeAt: serverTimestamp(),
       expiresAt: Timestamp.fromMillis(Date.now() + 90_000),
     }, { merge: true }).catch(() => undefined);
@@ -392,9 +426,15 @@ export const connectCanvasCollaboration = (options: CollaborationOptions) => {
 
   return {
     publish,
-    publishPointer: (pointer: CanvasPointer) => { if (!disposed && isCanvasPointer(pointer)) storePointer(pointer); },
+    publishPointer: (pointer: CanvasPointer) => {
+      if (!disposed && isCanvasPointer(pointer)) {
+        realtime.publishPointer(pointer);
+        if (!realtime.hasAllPeersConnected()) storePointer(pointer);
+      }
+    },
     dispose: () => {
       disposed = true;
+      realtime.dispose();
       if (debounce) window.clearTimeout(debounce);
       if (pointerWriteTimer !== undefined) window.clearTimeout(pointerWriteTimer);
       window.clearInterval(heartbeatTimer);
