@@ -1,6 +1,6 @@
 # AlgoGlyph MCP connector
 
-AlgoGlyph now has two free MCP surfaces. This document primarily describes the local loopback connector, which lets the browser drive a user-owned CLI agent. Authenticated cloud workspaces can additionally issue a one-time-displayed, workspace-scoped bearer token for the deployed `/v1/mcp` Streamable HTTP endpoint. Only the token hash is stored, every tool call rechecks active workspace membership, and read/write scopes are independent of subscriptions and `managedAgentAccess`.
+AlgoGlyph has two free MCP surfaces. The **Free MCP** button in cloud canvases opens the local loopback connector, letting the browser run a user-owned CLI agent; its canvas edits flow through the normal collaborative sync. Authenticated cloud workspaces can also issue a one-time-displayed, workspace-scoped bearer token for the separately deployed `/v1/mcp` Streamable HTTP endpoint, for external MCP clients. Only the token hash is stored, every tool call rechecks active workspace membership, and read/write scopes are independent of subscriptions and `managedAgentAccess`.
 
 ## Release and compatibility status
 

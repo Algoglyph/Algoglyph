@@ -177,7 +177,7 @@ export const CloudWorkspacesPage = () => {
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.22em] text-mute">Cloud collaboration</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight">Your workspaces</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-body">Invite members, edit the same canvas live, or connect your own agent through free workspace-scoped MCP.</p>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-body">Invite members, edit the same canvas live, or run your local agent through the free MCP connector.</p>
           </div>
           {auth.state.status === 'authenticated' ? (
             <div className="flex gap-2">

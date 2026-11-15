@@ -6,9 +6,9 @@ import { BillingDialog } from './BillingDialog';
 import { WorkspaceAccountControl } from './AccountControls';
 import { useAuth } from './authContext';
 import { LoadingSpinner } from './LoadingSpinner';
+import { useMcpStore } from '../store/mcpStore';
 import type { CanvasSyncStatus } from '../lib/workspaces/canvasCollaboration';
 import {
-  createMcpToken,
   deleteCloudCanvas,
   createCloudCanvas,
   createWorkspaceInvite,
@@ -18,13 +18,14 @@ import {
   subscribeCloudCanvases,
 } from '../lib/workspaces/workspaceClient';
 import type { WorkspaceInvite } from '../lib/workspaces/types';
-import type { CloudCanvas, CloudWorkspace, WorkspaceApiTokens, WorkspaceMember } from '../lib/workspaces/types';
+import type { CloudCanvas, CloudWorkspace, WorkspaceMember } from '../lib/workspaces/types';
 
-type WorkspaceDialog = 'canvas' | 'delete-canvas' | 'invite' | 'members' | 'mcp' | null;
+type WorkspaceDialog = 'canvas' | 'delete-canvas' | 'invite' | 'members' | null;
 
 export const CloudCanvasPage = () => {
   const { workspaceId = '', canvasId = '' } = useParams();
   const auth = useAuth();
+  const openMcpPanel = useMcpStore((state) => state.openMcpPanel);
   const navigate = useNavigate();
   const [workspace, setWorkspace] = useState<CloudWorkspace | null>(null);
   const [canvas, setCanvas] = useState<CloudCanvas | null>(null);
@@ -37,14 +38,11 @@ export const CloudCanvasPage = () => {
   const [canvasName, setCanvasName] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [mcpSetup, setMcpSetup] = useState<string | null>(null);
-  const [mcpCopied, setMcpCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collaborationStatus, setCollaborationStatus] = useState<CanvasSyncStatus>('connecting');
   const [collaborationError, setCollaborationError] = useState<string | null>(null);
   const [billingOpen, setBillingOpen] = useState(false);
   const inviteInputRef = useRef<HTMLInputElement>(null);
-  const mcpSetupRef = useRef<HTMLTextAreaElement>(null);
 
   const collaboration = useMemo(() => {
     if (auth.state.status !== 'authenticated' || !auth.state.user) return undefined;
@@ -54,11 +52,6 @@ export const CloudCanvasPage = () => {
     setCollaborationStatus(status);
     setCollaborationError(message ?? null);
   }, []);
-
-  const tokens = useCallback(async (): Promise<WorkspaceApiTokens> => {
-    const [idToken, appCheckToken] = await Promise.all([auth.actions.getIdToken(), auth.actions.getAppCheckToken()]);
-    return { idToken, appCheckToken };
-  }, [auth.actions]);
 
   useEffect(() => {
     if (auth.state.status !== 'authenticated') return;
@@ -118,7 +111,6 @@ export const CloudCanvasPage = () => {
     if (next === 'canvas') setCanvasName('');
     if (next === 'delete-canvas') setDeleteConfirmation('');
     if (next === 'invite') setInviteCopied(false);
-    if (next === 'mcp') { setMcpSetup(null); setMcpCopied(false); }
   };
 
   const inviteCollaborator = async () => {
@@ -206,32 +198,6 @@ export const CloudCanvasPage = () => {
     }
   };
 
-  const connectWorkspaceMcp = async () => {
-    openDialog('mcp');
-    setDialogBusy(true);
-    try {
-      const result = await createMcpToken(await tokens(), workspaceId, 'My agent');
-      const endpoint = `${(import.meta.env.VITE_ALGOGLYPH_API_URL || import.meta.env.VITE_BILLING_API_URL || '').replace(/\/$/, '')}/v1/mcp`;
-      setMcpSetup(`${result.token}\n${endpoint}`);
-    } catch (requestError) {
-      setDialogError(requestError instanceof Error ? requestError.message : 'Could not connect a workspace MCP client.');
-    } finally {
-      setDialogBusy(false);
-    }
-  };
-
-  const copyMcpSetup = async () => {
-    if (!mcpSetup) return;
-    try {
-      await navigator.clipboard.writeText(mcpSetup);
-      setMcpCopied(true);
-      setDialogError(null);
-    } catch {
-      mcpSetupRef.current?.select();
-      setDialogError('The connection details are selected. Copy them with Ctrl+C or Command+C.');
-    }
-  };
-
   if (auth.state.status !== 'authenticated' || !auth.state.user) {
     return <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas text-ink"><p className="text-sm">Sign in to verify workspace membership.</p><WorkspaceAccountControl /></main>;
   }
@@ -261,7 +227,7 @@ export const CloudCanvasPage = () => {
         <span className="ml-auto hidden text-[11px] text-mute md:inline">{members.length || 1} member{members.length === 1 ? '' : 's'}</span>
         <button type="button" onClick={() => openDialog('members')} className="cursor-pointer rounded-md border border-hairline p-1.5 text-mute hover:bg-canvas-soft hover:text-ink" aria-label="View members"><Users size={13} /></button>
         {(workspace.role === 'owner' || workspace.role === 'admin') ? <button type="button" onClick={() => void inviteCollaborator()} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[11px] hover:bg-canvas-soft"><UserPlus size={13} /> Invite</button> : null}
-        <button type="button" onClick={() => void connectWorkspaceMcp()} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[11px] hover:bg-canvas-soft" title="Connect an external MCP client"><Plug size={13} /> Free MCP</button>
+        <button type="button" onClick={openMcpPanel} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-hairline px-2.5 py-1.5 text-[11px] hover:bg-canvas-soft" title="Connect your local MCP agent"><Plug size={13} /> Free MCP</button>
         <button type="button" onClick={() => setBillingOpen(true)} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-ink px-2.5 py-1.5 text-[11px] text-canvas" title="Paid hosted agent"><Bot size={13} /> Managed agent</button>
         <WorkspaceAccountControl />
       </header>
@@ -286,10 +252,10 @@ export const CloudCanvasPage = () => {
             <button type="button" onClick={() => setDialog(null)} disabled={dialogBusy} aria-label="Close dialog" className="absolute right-4 top-4 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-mute transition-colors hover:bg-canvas-soft hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"><X size={16} /></button>
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-mute">Cloud collaboration</p>
             <h2 id="cloud-canvas-dialog-title" className="mt-2 pr-8 text-xl font-semibold tracking-tight">
-              {dialog === 'canvas' ? 'Create a canvas' : dialog === 'delete-canvas' ? 'Delete this canvas?' : dialog === 'invite' ? 'Invite a collaborator' : dialog === 'members' ? 'Workspace members' : 'Connect an MCP client'}
+              {dialog === 'canvas' ? 'Create a canvas' : dialog === 'delete-canvas' ? 'Delete this canvas?' : dialog === 'invite' ? 'Invite a collaborator' : 'Workspace members'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-body">
-              {dialog === 'canvas' ? 'Give the new canvas a name.' : dialog === 'delete-canvas' ? 'This permanently removes the canvas, its drawings, images, and live presence for everyone in this workspace.' : dialog === 'invite' ? 'Share this single-use link with the person joining your workspace.' : dialog === 'members' ? 'People who currently have access to this workspace.' : 'Use these details to connect an external MCP client to this workspace.'}
+              {dialog === 'canvas' ? 'Give the new canvas a name.' : dialog === 'delete-canvas' ? 'This permanently removes the canvas, its drawings, images, and live presence for everyone in this workspace.' : dialog === 'invite' ? 'Share this single-use link with the person joining your workspace.' : 'People who currently have access to this workspace.'}
             </p>
 
             {dialog === 'canvas' ? (
@@ -340,18 +306,7 @@ export const CloudCanvasPage = () => {
                 )) : <p className="rounded-lg bg-canvas-soft p-4 text-sm text-mute">No member records are available yet.</p>}
                 <div className="flex justify-end pt-2"><button type="button" onClick={() => setDialog(null)} className="h-10 cursor-pointer rounded-lg px-4 text-sm font-medium text-body hover:bg-canvas-soft">Close</button></div>
               </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                {dialogBusy ? <div className="flex items-center gap-2 text-sm text-mute"><LoadingSpinner size={16} /> Preparing workspace connection…</div> : null}
-                {mcpSetup ? <>
-                  <label htmlFor="workspace-mcp-setup" className="block text-sm font-medium">Bearer token and endpoint</label>
-                  <textarea ref={mcpSetupRef} id="workspace-mcp-setup" readOnly rows={3} value={mcpSetup} onFocus={(event) => event.currentTarget.select()} className="w-full resize-none rounded-lg border border-hairline bg-canvas-soft p-3 font-mono text-xs text-ink focus:outline-none focus:ring-2 focus:ring-link/20" />
-                  <div className="flex justify-end"><button type="button" onClick={() => void copyMcpSetup()} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-ink px-4 text-sm font-semibold text-canvas">{mcpCopied ? <Check size={15} /> : <Copy size={15} />}{mcpCopied ? 'Copied' : 'Copy details'}</button></div>
-                </> : null}
-                {dialogError ? <p role="alert" className="rounded-lg border border-rose-500/25 bg-rose-500/5 p-3 text-sm text-rose-500">{dialogError}</p> : null}
-                {!dialogBusy && !mcpSetup ? <div className="flex justify-end"><button type="button" onClick={() => setDialog(null)} className="h-10 cursor-pointer rounded-lg px-4 text-sm font-medium text-body hover:bg-canvas-soft">Close</button></div> : null}
-              </div>
-            )}
+            ) : null}
           </section>
         </div>
       ) : null}
