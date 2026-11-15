@@ -235,7 +235,7 @@ export const generateCanvasResponse = async (
     await addStreamAction(record.element as Record<string, unknown>);
   };
   const processLegacyJsonActions = async () => {
-    if (streamDetected || legacyArrayEnded) return;
+    if ((streamDetected && legacyArrayOffset === -1) || legacyArrayEnded) return;
     if (legacyArrayOffset === -1) {
       const elementsKey = stdout.indexOf('"elements"');
       if (elementsKey === -1) return;
